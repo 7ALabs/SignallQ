@@ -8,7 +8,7 @@
 
 1. `.claude/CLAUDE.md` + `.claude/agents/*` — squad, fluxo e regras operacionais
 2. `docs_ai/technical/` — arquitetura, módulos, telas
-3. `docs_ai/ai/` — resumos apontadores de workflow e handoff
+3. `.claude/fluxos/` — resumos apontadores de workflow e handoff
 4. `docs_ai/design-system/` — consistência visual
 5. Codebase — módulos `android/` e `SignallQ Admin/`
 
@@ -22,7 +22,7 @@
 ## O que NÃO fazer
 
 - Não referencie `.signallq/` — descontinuado, substituído por `.claude/`.
-- Não trate `docs_ai/ai/*` como verdade paralela — são resumos; o canônico é `.claude/CLAUDE.md` + `.claude/agents/*`.
+- Não trate `.claude/fluxos/*` como verdade paralela — são resumos; o canônico é `.claude/CLAUDE.md` + `.claude/agents/*`.
 - Não infira paths não confirmados no código.
 - Não invente comportamento de feature não confirmado.
 

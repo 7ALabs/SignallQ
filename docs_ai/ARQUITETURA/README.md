@@ -204,7 +204,7 @@ compartilhado `:core:diagnostico` — hoje consumidos tanto pela linha consumer 
 Da mesma forma, `PdfPrintHelper`/`WebViewHtmlPdfExporter` (antes em `:featureHistory`) foram
 extraídos para `:core:relatorio` (issue #1164). Isso significa que dois módulos de domínio nascidos
 como Pro-only hoje têm consumidor real na linha consumer — não é dívida, é reaproveitamento
-intencional (ver `docs_ai/plataforma/13_SignallQ_Pro_Arquitetura_e_Reaproveitamento_v1.md`), mas
+intencional (ver `docs_ai/pro-onhold/13_SignallQ_Pro_Arquitetura_e_Reaproveitamento_v1.md`), mas
 qualquer mudança em `:core:diagnostico`/`:core:relatorio` passa a ter blast radius nos dois produtos.
 
 ## 5. Decisões arquiteturais (ADR)

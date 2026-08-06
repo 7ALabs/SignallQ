@@ -8,7 +8,7 @@ Kotlin/Compose · **Responsável:** Lia (Especialista Sr de Produto & UX)
 
 > **Nota de estado (19/07/2026).** Este documento descreve o design-alvo do Pro, mas o app **já
 > tem código real** — Fase 0 (esqueleto `:pro:app`) e Fase 1 (MVP0) mergeadas via PR #1159/#1157
-> (ver `docs_ai/plataforma/13_SignallQ_Pro_Arquitetura_e_Reaproveitamento_v1.md`). A paleta de
+> (ver `docs_ai/pro-onhold/13_SignallQ_Pro_Arquitetura_e_Reaproveitamento_v1.md`). A paleta de
 > cores do tema claro já está implementada 1:1 em
 > `android/pro/app/src/main/kotlin/io/signallq/pro/ui/theme/SignallQProColor.kt` e
 > `SignallQProTheme.kt`, e 9 dos 15 componentes já existem em Kotlin

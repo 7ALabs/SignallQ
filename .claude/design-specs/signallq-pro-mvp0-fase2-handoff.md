@@ -7,8 +7,8 @@
 - **Escopo:** telas do Grupo 1 (trimmed, sem auth/assinatura) e Grupo 2 (núcleo — visita/ambiente/
   medição/diagnóstico) do SignallQ Pro
 - **Responsável:** Camilo (implementação), Lia (design)
-- **Documentos relacionados:** `docs_ai/plataforma/13_SignallQ_Pro_Arquitetura_e_Reaproveitamento_v1.md`
-  §5 (mapa telas→módulo), `docs_ai/plataforma/09_SignallQ_Pro_Jornada_e_Fluxo_de_Telas_v5.md`
+- **Documentos relacionados:** `docs_ai/pro-onhold/13_SignallQ_Pro_Arquitetura_e_Reaproveitamento_v1.md`
+  §5 (mapa telas→módulo), `docs_ai/pro-onhold/09_SignallQ_Pro_Jornada_e_Fluxo_de_Telas_v5.md`
 
 Fonte visual: protótipo Claude Design `69e53070-6aa8-485a-8d0a-5bfa36e1a08c`, design system
 `77a19317-ea64-4e47-b55c-578eca776c09` (azul `#0B6CFF` + ciano `#006B76` + roxo `#6558E8`, M3, 2

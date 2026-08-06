@@ -425,17 +425,15 @@ docs_ai/
 │   │                            transversais — analytics-events, integrations-api)
 │   └── schemas/                (índice de schemas reais: Room, D1, analytics — referencia a origem)
 ├── RELEASES.md
-├── ai/
-├── decisions/
+├── decisions/                  (ADRs e decisões de negócio — preservados, não regeneráveis)
 ├── design-system/            (histórico — conteúdo vigente em DESIGN_SYSTEM.md)
 ├── functional/                (specs pontuais que não migraram para FUNCIONAL.md)
 ├── legal/
 ├── operations/
-├── plataforma/                (visão-alvo do ecossistema, pacote v5 — ver `.claude/CLAUDE.md`,
-│                                seção "Produtos e Superficies")
 ├── technical/                  (docs pontuais que não migraram para TECNICO.md/ARQUITETURA/)
-├── testing/
-└── _archive/
+├── templates/
+├── pro-onhold/                 (specs do SignallQ Pro — CONGELADAS, não manter)
+└── _archive/                   (vazia por decisão — só o README com instrução de recuperação)
 ```
 
 Nota: assets de marca (`signallq-*.png`) vivem em `brand/` na raiz do repo, não em `docs_ai/` — é a
@@ -443,11 +441,21 @@ fonte da verdade de logo/ícone/favicon, referenciada por build Android e Admin 
 
 A árvore `FUNCIONAL.md`/`TECNICO.md`/`ARQUITETURA/`/`CONTRATOS/`/`DESIGN_SYSTEM.md` é o alvo para
 conteúdo funcional, técnico, arquitetural, de contrato e de design — não uma exigência de mover
-tudo para dentro dela. `ai/`, `decisions/`, `functional/` (residual), `legal/`, `operations/`,
-`plataforma/`, `technical/` (residual), `testing/` e `_archive/` continuam existindo para o que não
-se encaixa nessa árvore (processo do squad, ADRs, visão-alvo consolidada, planos pontuais, mapas de
-campo de equipamento, runbooks, termos legais). Ver `docs_ai/README.md` para o índice completo e a
-justificativa de cada pasta residual.
+tudo para dentro dela. `decisions/`, `functional/` (residual), `legal/`, `operations/`,
+`technical/` (residual) e `templates/` continuam existindo para o que não se encaixa nessa árvore
+(ADRs, planos pontuais, mapas de campo de equipamento, runbooks, termos legais). Ver
+`docs_ai/README.md` para o índice completo.
+
+**Perímetro (atualizado 2026-08-06):** `docs_ai/` documenta **apenas** o app consumer Android e o
+backend Cloudflare. O painel Admin vive em `buildea-admin` e o site/PWA em `signallq-web` — a
+documentação deles pertence aos repositórios deles, aqui só existe ponteiro. O worker
+`signallq-admin-worker` é exceção: é deste repositório, embora o painel que o consome não seja.
+O SignallQ Pro está **on hold** e suas specs estão congeladas em `pro-onhold/`.
+
+**Sem pasta de arquivo.** Documento substituído é **removido**, não movido para `_archive/`. O git
+é o arquivo — a pasta duplicava o histórico e poluía toda busca com versões antigas, que agentes e
+humanos liam como verdade atual. Ver `docs_ai/_archive/README.md` para recuperar qualquer documento
+removido.
 
 `docs_ai/README.md` deve funcionar como índice, não como uma segunda documentação completa.
 
@@ -495,13 +503,25 @@ Cada ADR deve possuir número único. Existe histórico de numeração duplicada
 5. atualize o índice;
 6. preserve links ou redirecionamentos ao renomear documento antigo.
 
-### Arquivamento
+### Remoção (substitui a antiga regra de arquivamento — mudou em 2026-08-06)
 
-Mover para `_archive` quando o documento: foi substituído; descreve produto descontinuado; registra
+**Remova** o documento quando ele: foi substituído; descreve produto descontinuado; registra
 processo antigo; cita arquitetura que não existe mais; serve apenas como memória histórica.
 
-Adicionar no início do documento arquivado: data de arquivamento, motivo, documento atual que o
-substituiu. Não apagar histórico útil sem necessidade.
+Não mova para `_archive`. O git preserva tudo, e manter cópias antigas na árvore custa caro: até
+2026-08-06 havia 100 documentos arquivados em `docs_ai/_archive/`, e toda busca por um fato técnico
+devolvia a versão substituída junto com a vigente — agentes e humanos liam a antiga como verdade
+atual. A pasta foi esvaziada e não volta a receber arquivos.
+
+Ao remover:
+1. registre a substituição no documento que substituiu (campo "documentos substituídos");
+2. se havia links apontando para o removido, atualize-os ou remova-os na mesma mudança;
+3. cite na mensagem de commit o SHA em que o arquivo ainda existia, para facilitar recuperação
+   (`git show <sha>:<caminho>`).
+
+Exceção: documento de **produto pausado** não é removido nem arquivado — fica onde está, com um
+README de selagem declarando o congelamento, a data, o estado no congelamento e a condição de
+retomada (modelo em `docs_ai/pro-onhold/README.md`).
 
 ---
 

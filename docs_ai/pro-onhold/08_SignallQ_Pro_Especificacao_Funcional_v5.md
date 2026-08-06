@@ -6,7 +6,7 @@
 
 O **SignallQ Pro** descrito aqui é majoritariamente **🎯 ALVO**, mas o app **já tem código real**:
 Fase 0 (esqueleto `:pro:app`) e Fase 1 (MVP0) foram implementadas e mergeadas — ver
-`docs_ai/plataforma/13_SignallQ_Pro_Arquitetura_e_Reaproveitamento_v1.md` para o estado real
+`docs_ai/pro-onhold/13_SignallQ_Pro_Arquitetura_e_Reaproveitamento_v1.md` para o estado real
 (telas, ViewModels, Room, Hilt já existentes em `android/pro/`). É um aplicativo Android,
 `io.signallq.pro`, com Firebase e Play separados. Esta especificação define o produto desejado
 por completo; partes dela já foram construídas, o restante ainda não.

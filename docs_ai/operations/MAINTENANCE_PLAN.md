@@ -19,8 +19,8 @@
 ## Agentes
 
 - Manter `AGENTS.md` como contrato curto de operacao.
-- Manter `docs_ai/ai/AGENT_WORKFLOW.md` como fluxo detalhado.
-- Quando criar novo agente, documentar objetivo, entradas, saidas, limites e validacao esperada em `docs_ai/ai/`.
+- Manter `.claude/fluxos/AGENT_WORKFLOW.md` como fluxo detalhado.
+- Quando criar novo agente, documentar objetivo, entradas, saidas, limites e validacao esperada em `.claude/fluxos/`.
 - Quando remover agente, apagar referencias dos comandos em `.claude/commands/` e dos documentos em `docs_ai/ai/`.
 
 ## Skills e comandos

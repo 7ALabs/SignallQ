@@ -179,11 +179,15 @@ Documentação pode ser deletada se:
 - [ ] Owner concorda que é obsoleto
 - [ ] Alternativa nova foi linkada
 
-**Procedimento:**
-1. Mover para `_archive/[YYYY-MM-DD]_NOME.md` (primeiro)
-2. Remover de todos os índices
-3. Se alguém abrir PR restaurando, revisar motivo
-4. Após 3 meses em archive, considerar delete permanente
+**Procedimento (atualizado 2026-08-06 — não há mais pasta de arquivo):**
+1. Remover o arquivo — o git é o arquivo
+2. Remover de todos os índices (`INDICE.md`, `README.md`, links de outros documentos)
+3. Registrar a substituição no documento que o substituiu
+4. Citar na mensagem de commit o SHA em que o arquivo ainda existia
+
+Ver `.claude/rules/higiene-e-padronizacao-repositorio.md`, seção "Remoção", para o racional — em
+resumo: documentação arquivada na árvore duplica o histórico do git e é lida como verdade atual por
+quem busca, o que causa erro real.
 
 ---
 

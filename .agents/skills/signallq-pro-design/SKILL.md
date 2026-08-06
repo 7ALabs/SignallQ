@@ -9,7 +9,10 @@ O SignallQ Pro é um produto **separado** do SignallQ consumidor (app próprio, 
 ## Fonte da verdade
 
 1. **Projeto online (visual, autoritativo):** Claude Design **"SignallQ PRO - Design System"** — `77a19317-ea64-4e47-b55c-578eca776c09` (`https://claude.ai/design/p/77a19317-ea64-4e47-b55c-578eca776c09`). **Este projeto é a fonte da verdade visual do Pro e evolui** — sempre reler antes de desenhar (a identidade mudou de teal para azul em 2026-07-18; os valores abaixo são snapshot dessa data). Contém foundations (`foundations/tokens.html`, `status-and-charts.html`, `typography.html`, `elevation.html`, `shape.html`, `dark-mode.html`, `cards.html`, `adaptive-layout.html`, `usage-guidelines.html`, `brand.html`), `styles.css`, fontes (Google Sans Flex), exemplos de tela (`foundations/screen-*.html`) e 15 componentes. Ler/escrever via a tool `DesignSync` (só a sessão principal e a Lia têm — subagente pode não herdar; se faltar, reporta e a sessão principal faz a I/O).
-2. **Spec textual (no repo):** `docs_ai/plataforma/10_SignallQ_Pro_Design_System_v5.md` e o dicionário canônico `docs_ai/plataforma/00_CANONICO_v5.md §5`. Onde o projeto online e o doc divergirem em cor/token, **o projeto online vence** (o doc é reconciliação textual, o projeto é o design vivo).
+2. **Código (implementado e conferido):** `android/pro/app/src/main/kotlin/io/signallq/pro/ui/theme/SignallQProColor.kt` — os 7 tokens de marca do Pro foram validados contra este arquivo em 2026-08-06, todos batendo com a spec. Para saber o que está de fato implementado, esta é a fonte.
+3. **Spec textual (no repo, congelada):** `docs_ai/pro-onhold/10_SignallQ_Pro_Design_System_v5.md`. Onde o projeto online e o doc divergirem em cor/token, **o projeto online vence** (o doc é reconciliação textual, o projeto é o design vivo). O antigo dicionário `plataforma/00_CANONICO_v5.md` foi removido em 2026-08-06 — a parte dele que valia (a paleta) está no item 2; recuperável em `git show 10b2f05d:docs_ai/plataforma/00_CANONICO_v5.md`.
+
+> ⏸️ **SignallQ Pro está on hold por tempo indeterminado** (decisão de 2026-08-06, retomada condicionada à maturação do consumer em produção). Esta skill segue válida para trabalho de design, mas não há desenvolvimento ativo — ver `docs_ai/pro-onhold/README.md`.
 
 Não confundir com a skill `SignallQ-design` (consumer, paleta violeta) nem com os projetos [SignallQ Design System](https://claude.ai/design/p/2d25d7a1-31b2-4ac3-881f-72dbc8f35a29) e [SignallQ — Protótipos](https://claude.ai/design/p/e77ea465-291f-4bf5-930c-a267680da04e), que são do consumidor/Admin.
 
@@ -31,7 +34,7 @@ Não confundir com a skill `SignallQ-design` (consumer, paleta violeta) nem com 
 - **Cor nunca é o único sinal de estado** — sempre ícone + rótulo textual + valor. Estados semânticos: Excelente / Bom / Atenção / Fraco / Crítico / Não avaliado.
 - **Tipografia:** Google Sans Flex (fallback Roboto → system-ui), uma família em todas as telas.
 - **Grid e toque:** grid 8dp (passo fino 4dp para ícone/label); **alvo de toque mínimo 48×48dp em todo elemento acionável**, mesmo quando o ícone/conteúdo visual for menor (aplicar padding/`minimumInteractiveComponentSize()`); ícone padrão 24dp, ícone de chip/contexto 14–18dp (Material Symbols Outlined).
-- **Profundidade — 4 níveis (ver `docs_ai/plataforma/10_SignallQ_Pro_Design_System_v5.md` §4.1 para a versão completa):**
+- **Profundidade — 4 níveis (ver `docs_ai/pro-onhold/10_SignallQ_Pro_Design_System_v5.md` §4.1 para a versão completa):**
   - **Nível 0 — Fundo** (`ProBackground` `#F7F9FC`): sem sombra, sem borda.
   - **Nível 1 — Conteúdo agrupado** (`ProSurface` `#FFFFFF`, reaproveitado — sem token novo): cards, listas, métricas. Diferença tonal com o fundo já basta; borda só quando dois cards brancos ficam colados sem espaçamento.
   - **Nível 2 — Interativo/destacado** (`ProSurfaceContainerHigh` `#E7ECF3` já existe + `ProSurfaceSelected` `#EAF2FF`, **novo**, ainda não implementado em código): selecionado, recomendação prioritária, controle em foco — sombra discreta, borda de destaque suave permitida.
@@ -52,5 +55,5 @@ Fundações (grid, tipografia, shape, elevação, M3) e componentes de medição
 
 ## Como usar
 
-- Protótipo/mock: gerar HTML estático on-brand nos **dois temas** (ou editar o projeto online via DesignSync, incrementalmente, um componente por vez — nunca replace em massa). Ancorar em tela/fluxo real do Pro (`docs_ai/plataforma/09_SignallQ_Pro_Jornada_e_Fluxo_de_Telas_v5.md` + `foundations/screen-*.html`), montar como fluxo navegável — nunca grade de telas numeradas tipo apresentação.
+- Protótipo/mock: gerar HTML estático on-brand nos **dois temas** (ou editar o projeto online via DesignSync, incrementalmente, um componente por vez — nunca replace em massa). Ancorar em tela/fluxo real do Pro (`docs_ai/pro-onhold/09_SignallQ_Pro_Jornada_e_Fluxo_de_Telas_v5.md` + `foundations/screen-*.html`), montar como fluxo navegável — nunca grade de telas numeradas tipo apresentação.
 - Sem outra instrução: reler o projeto online primeiro, então perguntar o que desenhar, fazer 2-3 perguntas e atuar como designer especialista do Pro.

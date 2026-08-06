@@ -731,7 +731,7 @@ cópias redundantes entre si mesmo compartilhando os mesmos tokens visuais (refe
 | `docs_ai/design-system/` (histórico) | Android (app real) | Os seis documentos-fonte consolidados aqui — movidos para `docs_ai/_archive/` |
 | `DESIGN.md` / `PRODUCT.md` (raiz do repo) | Android (app real) | Spec no formato da skill `impeccable`, North Star "The Calm Translator" |
 | `SignallQ Admin/DESIGN.md` / `PRODUCT.md` | SignallQ Console (Admin) | Mesmo formato impeccable, mas do Console — North Star e paleta próprias, não confundir com o app Android |
-| `docs_ai/plataforma/08..11_*` + skill `/signallq-pro-design` | SignallQ Pro | Design do Pro — identidade azul, projeto [SignallQ PRO - Design System](https://claude.ai/design/p/77a19317-ea64-4e47-b55c-578eca776c09), não misturar com este documento |
+| `docs_ai/pro-onhold/08..11_*` + skill `/signallq-pro-design` | SignallQ Pro | Design do Pro — identidade azul, projeto [SignallQ PRO - Design System](https://claude.ai/design/p/77a19317-ea64-4e47-b55c-578eca776c09), não misturar com este documento |
 
 Não criar artefato de design novo sem checar se já existe em algum destes.
 

@@ -24,8 +24,9 @@ status=0
 for mirror in "${MIRRORS[@]}"; do
   if [[ "$CHECK_ONLY" == true ]]; then
     # --exclude ignora extras conhecidos do espelho (arquivos proprios da ferramenta,
-    # nao skills de verdade) para nao dar falso positivo.
-    diff_out=$(diff -rq --exclude=agents "$CANONICAL" "$mirror" 2>&1 || true)
+    # nao skills de verdade) para nao dar falso positivo. README.md existe so nos
+    # espelhos: e o aviso "nao edite aqui", nao faz sentido na fonte canonica.
+    diff_out=$(diff -rq --exclude=agents --exclude=README.md "$CANONICAL" "$mirror" 2>&1 || true)
     if [[ -n "$diff_out" ]]; then
       echo "desatualizado: $mirror diverge de $CANONICAL"
       echo "$diff_out"

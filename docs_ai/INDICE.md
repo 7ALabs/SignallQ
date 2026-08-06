@@ -1,237 +1,154 @@
 ---
-title: "Índice Central de Documentação — SignallQ"
-description: "Mapa de toda documentação viva do projeto, com responsáveis e status"
+title: "Índice — documentação SignallQ"
+description: "Mapa de todos os documentos existentes em docs_ai, gerado a partir do disco"
 type: "índice"
-version: "1.0.0"
-last_updated: "2026-08-05"
-consolidacao: "Fase 1-3 concluída em 2026-08-05 (ver commits 98204fcf + 3099b3d3)"
-owner: "Squad"
 status: "ativo"
+owner: "Squad"
+last_updated: "2026-08-06"
 ---
 
-# 📚 Índice Central de Documentação — SignallQ
+# Índice da documentação
 
-**Última atualização:** 2026-08-05  
-**Mantido por:** Squad  
-**Próxima revisão:** 2026-11-05
+**116 documentos.** Escopo: app consumer Android e backend Cloudflare. Perímetro e o que saiu em
+2026-08-06 estão em [`README.md`](README.md).
 
----
-
-## 🎯 Começar aqui
-
-**Novo no projeto?** Leia nesta ordem:
-
-1. [`AGENTS.md`](../AGENTS.md) — O que é SignallQ, stack, agentes
-2. [`docs_ai/README.md`](README.md) — Visão geral rápida
-3. [`docs_ai/FUNCIONAL.md`](FUNCIONAL.md) — O que o app faz
-4. [`docs_ai/TECNICO.md`](TECNICO.md) — Como é construído
-5. [`docs_ai/ARQUITETURA/README.md`](ARQUITETURA/README.md) — Estrutura de módulos
+> ⚠️ **Reconstrução em andamento.** Os canônicos (`FUNCIONAL`, `TECNICO`, `ARQUITETURA`,
+> `DESIGN_SYSTEM`) serão reescritos a partir do código no PR 2 — hoje contêm dados defasados.
+> A coluna "Validado" indica a última conferência **contra código**, não a data do arquivo.
+> Onde estiver `—`, trate os números como não confiáveis e confirme na fonte.
 
 ---
 
-## 📋 Documentação por tipo
+## Começar por aqui
 
-### Funcional (jornadas, features, critérios)
-
-| Documento | Status | Owner | Última atualização |
-|---|---|---|---|
-| [**FUNCIONAL.md**](FUNCIONAL.md) | ✅ Ativo | Claudete | 2026-08-04 |
-| [functional/FEATURE_FLAGS.md](functional/FEATURE_FLAGS.md) | ✅ Ativo | Claudete | 2026-07-28 |
-| [functional/DIAGNOSTICO_GUIADO_MODO_GAMER_SPEC.md](functional/DIAGNOSTICO_GUIADO_MODO_GAMER_SPEC.md) | ✅ Ativo | Claudete | 2026-07-15 |
+1. [`../AGENTS.md`](../AGENTS.md) — o que é o SignallQ, stack, agentes
+2. [`README.md`](README.md) — perímetro e mapa das pastas
+3. [`FUNCIONAL.md`](FUNCIONAL.md) — o que o app faz
+4. [`TECNICO.md`](TECNICO.md) — como é construído
+5. [`ARQUITETURA/README.md`](ARQUITETURA/README.md) — módulos e dependências
 
 ---
 
-### Técnico (arquitetura, engines, motores)
+## Canônicos
 
-| Documento | Status | Owner | Última atualização |
-|---|---|---|---|
-| [**TECNICO.md**](TECNICO.md) | ✅ Ativo | Camilo | 2026-08-04 |
-| [**ARQUITETURA/README.md**](ARQUITETURA/README.md) | ✅ Ativo | Camilo | 2026-08-01 |
-| [ARQUITETURA/MODULOS/core-diagnostico.md](ARQUITETURA/MODULOS/core-diagnostico.md) | ✅ Ativo | Camilo | 2026-07-20 |
-| [ARQUITETURA/MODULOS/feature-diagnostico.md](ARQUITETURA/MODULOS/feature-diagnostico.md) | ✅ Ativo | Camilo | 2026-07-20 |
-| [technical/auditoria-motores-diagnostico-e-analise.md](technical/auditoria-motores-diagnostico-e-analise.md) | ✅ Ativo | Camilo | 2026-08-05 |
-| [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | ✅ Ativo | Juliana | 2026-07-30 |
-
----
-
-### Decisões (ADRs)
-
-| Documento | Status | Owner | Versão |
-|---|---|---|---|
-| [**decisions/README.md**](decisions/README.md) | ✅ Ativo | Claudete | — |
-| [decisions/ADR-001-shadow-mode-remote-diagnostics.md](decisions/ADR-001-shadow-mode-remote-diagnostics.md) | ✅ Aceito | Claudete | 1.0 |
-| [decisions/ADR-013-consolidate-feature-flags.md](decisions/ADR-013-consolidate-feature-flags.md) | ✅ Aceito | Claudete | 1.2 |
-
----
-
-### Operações (runbooks, deploy, release)
-
-| Documento | Status | Owner | Severidade |
-|---|---|---|---|
-| [**operations/README.md**](operations/README.md) | ✅ Ativo | Gustavo | — |
-| [operations/RELEASE_ANDROID.md](operations/RELEASE_ANDROID.md) | ✅ Ativo | Camilo | P1 |
-| [operations/DEPLOY_WORKERS.md](operations/DEPLOY_WORKERS.md) | ✅ Ativo | Camilo | P1 |
-| [operations/INCIDENT_RESPONSE.md](operations/INCIDENT_RESPONSE.md) | ✅ Ativo | Gustavo | P1 |
-| [operations/INFRASTRUCTURE_COSTS.md](operations/INFRASTRUCTURE_COSTS.md) | ✅ Ativo | Gustavo | P2 |
-
----
-
-### Legal / Compliance
-
-| Documento | Status | Owner | Última atualização |
-|---|---|---|---|
-| [legal/PRIVACIDADE.md](legal/PRIVACIDADE.md) | ✅ Ativo | Claudete | 2026-07-10 |
-| [legal/TERMOS_SERVICO.md](legal/TERMOS_SERVICO.md) | ✅ Ativo | Claudete | 2026-07-10 |
-
----
-
-### Contratos / OpenAPI
-
-| Documento | Status | Owner | Última validação |
-|---|---|---|---|
-| [CONTRATOS/README.md](CONTRATOS/README.md) | ⚠️ Parcial | Camilo | 2026-08-05 |
-| [CONTRATOS/openapi/signallq-diagnostic-worker.yaml](CONTRATOS/openapi/signallq-diagnostic-worker.yaml) | ✅ Sincronizado | Camilo | 2026-08-05 |
-| [CONTRATOS/openapi/signallq-admin-api.yaml](CONTRATOS/openapi/signallq-admin-api.yaml) | ⚠️ Incompleto | Camilo | 2026-06-15 |
-| [CONTRATOS/openapi/signallq-analytics-events.yaml](CONTRATOS/openapi/signallq-analytics-events.yaml) | ❌ Fictício | Camilo | — |
-| [CONTRATOS/openapi/signallq-integrations-api.yaml](CONTRATOS/openapi/signallq-integrations-api.yaml) | ❌ Fictício | Camilo | — |
-
----
-
-### Templates (meta-documentação)
-
-| Documento | Status | Uso |
-|---|---|---|
-| [templates/README.md](templates/README.md) | ✅ Ativo | Guia para criar novas documentações |
-| [templates/TEMPLATE_TECNICO.md](templates/TEMPLATE_TECNICO.md) | ✅ Ativo | Copiar para novos docs técnicos |
-| [templates/TEMPLATE_FUNCIONAL.md](templates/TEMPLATE_FUNCIONAL.md) | ✅ Ativo | Copiar para novos docs funcionais |
-| [templates/TEMPLATE_ADR.md](templates/TEMPLATE_ADR.md) | ✅ Ativo | Copiar para novos ADRs |
-| [templates/TEMPLATE_RUNBOOK.md](templates/TEMPLATE_RUNBOOK.md) | ✅ Ativo | Copiar para novos runbooks |
-
----
-
-### Planos / Roadmaps
-
-| Documento | Status | Tipo |
-|---|---|---|
-| [plano-execucao-consumer-consolidado-2026-08-05.md](plano-execucao-consumer-consolidado-2026-08-05.md) | ✅ Ativo | Plano de execução Consumer 2026 |
-
----
-
-## 🚨 Documentação legada / desatualizada
-
-| Documento | Motivo | Ação |
-|---|---|---|
-| `_archive/2026-07-16_ANDROID_FUNCIONAL.md` | Substituído por FUNCIONAL.md | Arquivado |
-| `_archive/2026-07-16_SCREENS_ANDROID.md` | Telas removidas (JogosScreen) | Arquivado |
-| `.issues/` (24 arquivos) | Backlog em markdown obsoleto | Mover para `_archive/` |
-
----
-
-## 📊 Status da documentação
-
-### Saúde geral
-
-| Categoria | Ativo | Draft | Legado | Taxa atualização |
-|---|---|---|---|---|
-| Funcional | 3 | 0 | 1 | 100% |
-| Técnico | 6 | 0 | 3 | 90% |
-| Decisões | 13 | 0 | 0 | 100% |
-| Operações | 5 | 0 | 0 | 80% |
-| Contratos | 2/5 | 0 | 0 | 40% |
-
-### Problemas conhecidos
-
-🔴 **CRÍTICO:**
-- [ ] Contratos OpenAPI 3 e 4 são fictícios (não correspondem ao código real)
-- [ ] CLAUDE.md da raiz está vazio (12 bytes)
-- [ ] `.issues/` backlog duplica GitHub Issues
-
-🟡 **IMPORTANTE:**
-- [ ] `docs_ai/_archive/` tem 90+ documentos antigos (limpeza necessária)
-- [ ] `signallq-admin-api.yaml` incompleto (dezenas de rotas reais não documentadas)
-- [ ] Fragmentação: specs espalhadas em `functional/`, `technical/`, `plataforma/`
-
-🟢 **LEVE:**
-- [ ] Alguns runbooks não foram executados há >3 meses (rotação de ondas anterior)
-- [ ] Path legado `io/veloo` em 460 arquivos Android (documentação cita ambos)
-
----
-
-## 🔄 Política de manutenção
-
-### Cadência
-
-**Semanal:** Revisar documentação que será tocada pela sprint  
-**Mensal:** Validar que runbooks ainda funcionam  
-**Trimestral:** Auditoria completa (este documento)  
-**Quando código muda:** Atualizar doc relacionada na mesma PR
-
-### Responsabilidades
-
-| Quem | O quê |
+| Documento | Validado contra código |
 |---|---|
-| **Claudete** | FUNCIONAL.md, ADRs, decisões |
-| **Camilo** | TECNICO.md, ARQUITETURA, contratos |
-| **Juliana** | DESIGN_SYSTEM.md |
-| **Gustavo** | operations/, métricas |
-| **Caio** | Revisar mudanças críticas |
+| [FUNCIONAL.md](FUNCIONAL.md) | parcial — 2026-08-05 |
+| [TECNICO.md](TECNICO.md) | ❌ defasado — declara `0.30.1`/`67`, código está em `0.31.0`/`72` |
+| [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | tokens conferidos 2026-08-06 (4/4 corretos) |
+| [ARQUITETURA/README.md](ARQUITETURA/README.md) | ❌ — cita 16 módulos, existem 28 (19 consumer + 9 Pro) |
+| [RELEASES.md](RELEASES.md) | — |
+| [plano-execucao-consumer-consolidado-2026-08-05.md](plano-execucao-consumer-consolidado-2026-08-05.md) | plano ativo, 42 issues |
+
+## Arquitetura por módulo — `ARQUITETURA/MODULOS/`
+
+16 documentos: `app`, `core-database`, `core-datastore`, `core-network`, `core-permissions`,
+`core-recommendation`, `core-telephony`, `feature-devices`, `feature-diagnostico`, `feature-dns`,
+`feature-fibra`, `feature-history`, `feature-home`, `feature-settings`, `feature-speedtest`,
+`feature-wifi`.
+
+Também em `ARQUITETURA/`: `AUDITORIA_1228_FASE0_INVENTARIO_COMPLETO.md`.
+
+> Faltam documentos para 3 módulos consumer reais: `:core:relatorio`, `:core:diagnostico`,
+> `:core:featureflags`. Serão criados no PR 2.
+
+## Contratos — `CONTRATOS/`
+
+7 contratos OpenAPI 3.0.3, **122 endpoints** (`CONTRATOS/openapi/`):
+
+| Contrato | Versão | Paths |
+|---|---|---:|
+| `signallq-admin-api.yaml` | 2.1.0 | 59 |
+| `signallq-diagnostic-worker.yaml` | 1 | 43 |
+| `signallq-integrations-api.yaml` | 1.0.0 | 9 |
+| `signallq-analytics-events.yaml` | 1.0.0 | 5 |
+| `ai-diagnosis-worker.yaml` | 2 | 2 |
+| `game-latency-probe-worker.yaml` | 1 | 2 |
+| `signallq-privacy-worker.yaml` | 1 | 2 |
+
+Mais `CONTRATOS/schemas/README.md`. A reconciliação dos dois últimos contratos transversais com o
+código real é a issue **#1588**.
+
+## Decisões — `decisions/` · **preservadas, não regeneráveis**
+
+**ADRs (13):** `ADR-001` Timber · `ADR-002` Ktlint/Detekt · `ADR-003` DispatcherProvider ·
+`ADR-004` estrutura multi-módulo · `ADR-005` custo de IA e fallback · `ADR-006` workflow do squad ·
+`ADR-007` iOS adiado · `ADR-008` features D1-only · `ADR-009` vocabulário de diagnóstico ·
+`ADR-010` monetização do consumer · `ADR-011` motor canônico fase 0 · `ADR-012` executionId/
+rulesVersion · `ADR-013` unificação latência/perda/upload.
+
+**Decisões de negócio (9):** consolidação do squad, cronograma de lançamento, modelo de dados de
+avaliações Google Play, modelo de dados de integrações Play/Firebase, status de credenciais,
+mudanças de equipe, e `NOTA_DIVERGENCIA_GITHUB_PROJECTS`.
+
+> Próximo número livre de ADR: **014**.
+
+## Operações — `operations/` (26)
+
+Release e build: `RELEASE.md`, `DEPLOY.md`, `GuiaReleaseBuild.md`, `APK_OUTPUT_POLICY.md`,
+`VERSIONING.md`, `SIGNING.md`, `ci-cd.md`, `SCRIPTS.md`.
+Incidente e continuidade: `HOTFIX_PROCEDURE.md`, `ROLLBACK_PLAN.md`, `ROLLOUT_TRANSITION.md`,
+`HYPERCARE_PLAN.md`, `INCIDENTE_BYPASS_BLOQUEIO_SEGURANCA_2026-07-20.md`, `MAINTENANCE_PLAN.md`.
+Qualidade e lançamento: `GO_NOGO_CHECKLIST.md`, `BETA_CRITERIA.md`, `DEVICE_TEST_MATRIX.md`,
+`MANIFEST_AUDIT.md`, `PLAY_STORE_LISTING.md`, `ENVIRONMENTS.md`, `INFRASTRUCTURE_COSTS.md`.
+Processo: `PROCESSO_PR_E_AGENTES_2026-07-16.md`, `WORKFLOW_BOARD.md`, `FAQ_USERS.md`,
+`THIRD_PARTY_NOTICES.md`, `RUNBOOK_LAUNCH.md`.
+
+> Apenas `RELEASE.md` teve as referências conferidas (2026-08-05). Os demais estão marcados "ativo"
+> sem histórico de execução. Consolidação de 26 → ~12 fica para o PR 2.
+
+## Referências técnicas — `technical/` (14)
+
+`admin-api-schema.md` (schema do worker `signallq-admin`, validado 2026-08-04) ·
+`analytics-events.md` · `analytics-events-schema.md` · `AI_FLOW.md` ·
+`PING_EXECUTOR_ARCHITECTURE.md` · `MONITORAMENTO_PASSIVO.md` · `feature-flags-remote-config.md` ·
+`auditoria-motores-diagnostico-e-analise.md` · `SCREEN_MAP.md` ·
+`PARIDADE_REC_WORKER_2026-07-26.md` · `P2_AMBIENTE_D1_ADMIN_SEPARACAO.md` ·
+`INTELBRAS_RX1500_FIELD_MAP.md` · `NOKIA_GPON_FIELD_MAP.md` · `TPLINK_ARCHER_ROUTER_FIELD_MAP.md`
+· `MATRIZ_DIAGNOSTICO_2026-07-03.xlsx`.
+
+## Funcional pontual — `functional/` (2)
+
+`FEATURE_FLAGS.md` · `DIAGNOSTICO_GUIADO_MODO_GAMER_SPEC.md`.
+
+## Design — `design-system/` (11)
+
+Decisões de design de 2026-07: alinhamento TOBE, cores do console, container de logo, topbar padrão,
+renomeação SignallQ Design, separação DS/protótipos, três seções do console, tokens MD3, plano de
+aplicação, auditoria de telas, endosso de marca. Conteúdo vigente consolidado em `DESIGN_SYSTEM.md`.
+
+## Legal — `legal/` (2) · **não editar sem revisão**
+
+`PRIVACY_POLICY.md` · `TERMS_OF_USE.md`.
+
+## Templates — `templates/` (5)
+
+`README.md` · `TEMPLATE_TECNICO.md` · `TEMPLATE_FUNCIONAL.md` · `TEMPLATE_ADR.md` ·
+`TEMPLATE_RUNBOOK.md`.
+
+## Congelado — `pro-onhold/` (7)
+
+Specs do SignallQ Pro, **on hold por tempo indeterminado** até a maturação do consumer em produção.
+Não manter. Ver [`pro-onhold/README.md`](pro-onhold/README.md).
+
+## Vazio por decisão — `_archive/`
+
+Ver [`_archive/README.md`](_archive/README.md) para recuperar qualquer documento removido.
 
 ---
 
-## 🆘 Links rápidos
+## Dívidas conhecidas
 
-**Para contribuidores:**
-- [Como criar nova documentação?](templates/README.md)
-- [Checklist de manutenção](templates/README.md#-checklist-manter-documentação-viva)
+| # | Dívida | Onde |
+|---|---|---|
+| **#1585** | `/ingest/provider-detection` e `/ingest/diagnostic-divergence` aceitam POST anônimo — o padrão `INGEST_KEY` já existe no admin-worker e não foi aplicado | `signallq-diagnostic-worker/src/index.ts:1141,1145` |
+| **#1586** | `MetricClassifier` não usado em `SinalScreen.kt`; limiares duplicados em três lugares | Android + worker |
+| **#1587** | `auth.ts` duplicado byte-a-byte entre admin-worker e diagnostic-worker | `integrations/cloudflare/*/src/auth.ts` |
+| **#1588** | OpenAPI transversais a reconciliar com o código | `CONTRATOS/openapi/` |
+| — | `TECNICO.md` e `ARQUITETURA/README.md` com inventário defasado | PR 2 |
+| — | Caminho físico legado `io/veloo` em ~460 arquivos `.kt` | `.claude/rules/higiene…§4.1` |
 
-**Para operações:**
-- [Runbooks](operations/README.md)
-- [Release Android](operations/RELEASE_ANDROID.md)
-- [Deploy Workers](operations/DEPLOY_WORKERS.md)
+## Manutenção
 
-**Para arquitetura:**
-- [ADRs](decisions/README.md)
-- [Módulos](ARQUITETURA/MODULOS/)
-- [Auditoria de motores](technical/auditoria-motores-diagnostico-e-analise.md)
-
-**Para produto:**
-- [Funcionalidades](FUNCIONAL.md)
-- [Design System](DESIGN_SYSTEM.md)
-
----
-
-## 📈 Próximas ações (Onda 0 de documentação)
-
-**Semana 1 (imediato):**
-- [ ] Atualizar CLAUDE.md da raiz (ou deletar)
-- [ ] Arquivar `.issues/` backlog para `_archive/issues-backlog-2026-06/`
-- [ ] Adicionar README em `.agents/skills/` e `.github/skills/` explicitando que são gerados
-- [ ] Criar MEMORY.md na raiz com sumário executivo
-
-**Semana 2-3:**
-- [ ] Revisar/limpar `_archive/` (remover cópias de 2026-07-16)
-- [ ] Consolidar specs de `functional/` em FUNCIONAL.md principal
-- [ ] Fixar contratos fictícios (#1587/#1588)
-- [ ] Validar runbooks (executar cada um)
-
-**Semana 4+:**
-- [ ] Abrir issue para eliminar path `io/veloo` (escopo grande)
-- [ ] Abrir issue para extrair HomeScreen/SinalScreen (refatoração)
-- [ ] Arquivar personas extintas em `docs/archive/ai-governance/legacy-agents/`
-
----
-
-## 🔗 Conexões
-
-**Documentação relacionada em outros repos:**
-- `ai-governance/` — políticas gerais de governança
-- `buildea-admin/AGENTS.md` — escopo do repositório Admin
-- `signallq-web/docs_ai/` — documentação web (compartilhando arquitetura)
-
----
-
-**Este índice mantém-se vivo.** Atualizado toda vez que documentação é criada, deletada ou movida.
-
-**Última atualização:** 2026-08-05  
-**Próxima revisão agendada:** 2026-11-05  
-**Mantido por:** Squad SignallQ
+Política em [`.claude/rules/politica-documentacao-viva.md`](../.claude/rules/politica-documentacao-viva.md).
+Documento substituído é **removido**, não arquivado. Próxima auditoria: **2026-11-06**.

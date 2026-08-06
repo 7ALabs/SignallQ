@@ -1,61 +1,93 @@
-# Documentação — SignallQ Android
+---
+title: "Documentação — SignallQ"
+description: "Ponto de entrada da documentação do app consumer Android e do backend Cloudflare"
+type: "índice"
+status: "ativo"
+owner: "Claudete (processo) · Camilo (técnico)"
+last_updated: "2026-08-06"
+---
 
-- **Status:** ativo
-- **Última validação:** 2026-08-05 (consolidação Fase 1-3: governance + issues + consolidação)
+# Documentação — SignallQ
+
 - **Fonte de verdade:** este arquivo é só um índice — não repete conteúdo de nenhum documento
-  listado abaixo. Para os fatos em si, abra o documento apontado.
-- **Escopo:** ponto de entrada de toda a documentação viva do monorepo SignallQ
-  (`7ALabs/SignallQ`)
-- **Responsável:** Claudete (dono do processo de documentação viva), Rhodolfo (manutenção/QA)
+  listado. Para os fatos, abra o documento apontado.
+- **Escopo:** **app consumer Android** (`io.signallq.app`) e **backend Cloudflare** (5 Workers, 2
+  bancos D1). Nada além disso.
 
-> Nota de marca: a UI e a documentação usam **SignallQ**. O package/namespace atual é
-> `io.signallq.app` (renomeado de `io.veloo.app` em 2026-06-28). Outros identificadores técnicos
-> permanecem por compatibilidade de infra: repo GitHub `7ALabs/SignallQ`, worker Cloudflare
-> `linka-ai-diagnosis-worker`, banco DataStore `linkaPreferencias`.
+> ⚠️ **Reconstrução em andamento (2026-08-06).** Este repositório passou por mudança de perímetro
+> — Admin e web saíram para repositórios próprios, o Pro entrou em hold — e a documentação está
+> sendo refeita a partir do código. Os documentos canônicos (`FUNCIONAL.md`, `TECNICO.md`,
+> `ARQUITETURA/`, `DESIGN_SYSTEM.md`) **ainda são os da árvore antiga e contêm dados defasados** —
+> por exemplo, `TECNICO.md` declara `0.30.1`/`67` enquanto o código está em `0.31.0`/`72`.
+> Até a reescrita, **confirme todo dado numérico direto no código.** Ordem de precedência em
+> `.claude/rules/higiene-e-padronizacao-repositorio.md §3`.
 
 ---
 
-## Documentos centrais (raiz)
+## Perímetro: o que é deste repositório
+
+| Produto | Onde vive | Documentação |
+|---|---|---|
+| **SignallQ consumer (Android)** | `android/` neste repo | aqui |
+| **Backend Cloudflare** (5 Workers, D1) | `integrations/cloudflare/` neste repo | aqui |
+| SignallQ Admin | repo **`buildea-admin`** | no repo dele |
+| Site / PWA | repo **`signallq-web`** (Next 16 + PWA) | no repo dele |
+| SignallQ Pro | `android/pro/` neste repo, **on hold** | selada em [`pro-onhold/`](./pro-onhold/) |
+| SignallQ Nethal | repo separado | fora deste repositório |
+
+O `signallq-admin-worker` é **deste** repositório, embora o painel Admin que o consome não seja.
+
+---
+
+## Documentos centrais
 
 | Documento | Conteúdo |
 |---|---|
-| [`FUNCIONAL.md`](./FUNCIONAL.md) | O que o app faz — navegação, telas, funcionalidades por domínio, permissões, feature flags visíveis ao usuário, limitações conhecidas |
-| [`TECNICO.md`](./TECNICO.md) | Como o app funciona — stack, build, Workers Cloudflare, persistência, analytics, segurança, release |
-| [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) | Cores, tipografia, espaçamento, raios, componentes, tokens — Android |
-| [`ARQUITETURA/README.md`](./ARQUITETURA/README.md) | Visão de sistema, componentes, fluxo de dados, diagrama de dependências entre módulos, riscos arquiteturais |
-| [`ARQUITETURA/MODULOS/`](./ARQUITETURA/MODULOS/) | Um documento por módulo Gradle real (16) — responsabilidade, dependências, consumidores, riscos |
-| [`CONTRATOS/openapi/`](./CONTRATOS/openapi/) | Contrato OpenAPI 3.0 (7 arquivos): um por Worker Cloudflare (5 — `admin-api` é o contrato do `signallq-admin-worker`) + `signallq-analytics-events.yaml` (schema de eventos de analytics, transversal) + `signallq-integrations-api.yaml` (API de integrações, transversal) |
-| [`CONTRATOS/schemas/README.md`](./CONTRATOS/schemas/README.md) | Índice de schemas reais (Room, D1, analytics) — referencia a origem, não copia |
-| [`RELEASES.md`](./RELEASES.md) | Histórico de releases a partir do git log real |
+| [`FUNCIONAL.md`](./FUNCIONAL.md) | O que o app faz — navegação, telas, funcionalidades, permissões |
+| [`TECNICO.md`](./TECNICO.md) | Como é construído — stack, build, Workers, persistência, analytics, segurança |
+| [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) | Cores, tipografia, espaçamento, componentes, tokens |
+| [`ARQUITETURA/README.md`](./ARQUITETURA/README.md) | Visão de sistema e dependências entre módulos |
+| [`ARQUITETURA/MODULOS/`](./ARQUITETURA/MODULOS/) | Um documento por módulo Gradle |
+| [`CONTRATOS/openapi/`](./CONTRATOS/openapi/) | 7 contratos OpenAPI 3.0 · 122 endpoints |
+| [`CONTRATOS/schemas/`](./CONTRATOS/schemas/) | Índice dos schemas reais (Room, D1) |
+| [`RELEASES.md`](./RELEASES.md) | Histórico de releases |
+| [`INDICE.md`](./INDICE.md) | Mapa completo com status e responsável |
 
----
-
-## Outras pastas (ficam onde estão — não force conteúdo funcional/técnico/design para dentro delas)
+## Pastas
 
 | Pasta | Conteúdo |
 |---|---|
-| `ai/` | Fluxo de trabalho dos agentes de IA (resumos apontadores de `.claude/CLAUDE.md`/`.claude/agents/`) |
-| `plataforma/` | **Visão-alvo** consolidada do ecossistema (pacote **v5**): SignallQ + SignallQ Pro + SignallQ Admin (+ Portal + Nethal), monorepo-alvo `signallq-platform`. É **proposta**, não o estado do código — cada doc marca ATUAL vs ALVO. Começar por [`LEIA-ME_v5.md`](./plataforma/LEIA-ME_v5.md) + [`00_CANONICO_v5.md`](./plataforma/00_CANONICO_v5.md) (fonte única de nomes/eventos/tabelas/paleta). Fonte da validação doc-vs-código: `00_CHANGELOG_e_Validacao_Cruzada_v5.md` |
-| `decisions/` | ADRs — decisões arquiteturais registradas (`ADR-001` a `ADR-007`) |
-| `functional/` | Specs funcionais que não migraram para `FUNCIONAL.md`: `FEATURE_FLAGS.md` (metade painel Admin), `JOGOS_TESTE_CONEXAO_SPEC.md` (spec de referência do domínio Jogos) |
-| `technical/` | Docs técnicos pontuais que não migraram para `TECNICO.md`/`ARQUITETURA/`: contratos em prosa (`admin-api-schema.md`, `analytics-events.md`, `analytics-events-schema.md`), mapeamento de endpoints (`ENDPOINTS_MAPPING.md`), auditorias de OpenAPI (`AUTHENTICATION_OPENAPI.md`, `FIREBASE_INTEGRATION_OPENAPI.md`, `OPENAPI_VALIDATION.md`), mapas de campo de equipamento (`INTELBRAS_RX1500_FIELD_MAP.md`, `NOKIA_GPON_FIELD_MAP.md`, `TPLINK_ARCHER_ROUTER_FIELD_MAP.md`), planos ativos (`PLANO_UNIFICACAO_TOPOLOGIA_WIFI_2026-07-15.md`, `TOBE_MD3_APP_PLANO_IMPLEMENTACAO.md`, `MIRO_PUBLICATION_PLAN_SIG172.md`, `PATH_CONSOLIDATION_SIG168.md`), doc de componente (`PING_EXECUTOR_ARCHITECTURE.md`), convenções de código (`CODE_PATTERNS.md`), doc de feature técnica (`MONITORAMENTO_PASSIVO.md`), mapa de telas (`SCREEN_MAP.md`), fluxo de IA (`AI_FLOW.md`), fundação de feature flags via Firebase Remote Config (`feature-flags-remote-config.md`, Épico #1347/GH#1477) |
-| `operations/` | Release, deploy, versionamento, ambientes, runbooks, custos, matriz de dispositivos, processo do squad |
-| `legal/` | Termos de uso, política de privacidade |
-| `design-system/` | Histórico — conteúdo vigente consolidado em `DESIGN_SYSTEM.md`; `DECISAO_*` mantidos aqui como registro de decisão |
-| `testing/` | `firebase-test-cases.yaml` |
-| `_archive/` | Material histórico — **nunca** usar como fonte de verdade atual |
+| `decisions/` | ADRs (`ADR-001`…`ADR-013`) e decisões de negócio — **preservados, não regeneráveis** |
+| `operations/` | Runbooks: release, deploy, hotfix, rollback, assinatura, custos |
+| `technical/` | Referências técnicas pontuais: schema da Admin API, mapas de campo de equipamento (Intelbras, Nokia, TP-Link), fluxo de IA, ping executor |
+| `functional/` | Specs funcionais que não migraram para `FUNCIONAL.md` |
+| `design-system/` | Decisões de design (tokens, paleta, topbar) — conteúdo vigente em `DESIGN_SYSTEM.md` |
+| `legal/` | Política de privacidade e termos de uso — **instrumentos jurídicos, não editar sem revisão** |
+| `templates/` | Modelos para documento novo (técnico, funcional, ADR, runbook) |
+| `pro-onhold/` | Specs do Pro **congeladas** — não manter enquanto o produto estiver parado |
+| `_archive/` | Vazia por decisão — ver [`_archive/README.md`](./_archive/README.md) |
+
+Assets de marca vivem em `brand/` na raiz do repositório, não aqui.
 
 ---
 
-## Como usar este índice
+## O que saiu em 2026-08-06
 
-1. Pergunta é "o que o app faz"? → `FUNCIONAL.md`.
-2. Pergunta é "como o app é construído/integrado"? → `TECNICO.md`, depois `ARQUITETURA/` para
-   detalhe por módulo.
-3. Pergunta é "qual o contrato de uma API"? → `CONTRATOS/openapi/`.
-4. Pergunta é "qual o valor de um token de design"? → `DESIGN_SYSTEM.md`.
-5. Pergunta é "por que essa decisão foi tomada"? → `decisions/` (ADRs).
-6. Pergunta é "como faço deploy/release"? → `operations/`.
-7. Nenhum desses documentos responde? Busque por símbolo (Grep) no código antes de assumir que a
-   documentação está completa — código é sempre a fonte de verdade final (ver
-   `.claude/rules/higiene-e-padronizacao-repositorio.md`, seção 3).
+Removidos da árvore; recuperáveis via git a partir do commit `10b2f05d` (instruções em
+[`_archive/README.md`](./_archive/README.md)).
+
+| Removido | Qtd | Motivo |
+|---|---:|---|
+| `_archive/` | 100 | Git já é o arquivo; a pasta poluía toda busca com versões substituídas |
+| `plataforma/` (pacote v5, docs 00–07) | 10 | Descrevia monorepo `signallq-platform` que não existe, Admin que saiu do repo e inventário defasado. A paleta que ele prescrevia está implementada e conferida no código |
+| `ai/` | 8 | Fluxo de trabalho de agente, não documentação de produto → movido para `.claude/fluxos/` |
+| `plano-execucao-consumer-2026-08-05.md` | 1 | Superado no mesmo dia pela versão consolidada v2, que permanece |
+| `AUDIT_REPORT_2026-08-05.md` | 1 | Continha afirmações derrubadas pela validação contra código de 2026-08-06 |
+| `design-system/_archive/` | 1 | Mesma regra do `_archive/` |
+
+**235 → 116 documentos.**
+
+## Regra a partir de agora
+
+Documento substituído é **removido**, não arquivado. A substituição fica registrada no documento
+que substituiu e no histórico do git.
