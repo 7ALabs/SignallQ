@@ -35,7 +35,7 @@ last_updated: "2026-08-06"
 |---|---|
 | [TECNICO.md](TECNICO.md) | ✅ reescrito do código · inventário gerado |
 | [ARQUITETURA/README.md](ARQUITETURA/README.md) | ✅ reescrito do código · inventário gerado |
-| [FUNCIONAL.md](FUNCIONAL.md) | ⏳ em reescrita — ainda é a versão de 2026-07-23 |
+| [FUNCIONAL.md](FUNCIONAL.md) | ✅ reescrito do código · 5 abas, 16 overlays, 77 citações de código |
 | [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | ✅ tokens conferidos 1 a 1 em `SignallQTheme.kt` |
 | [RELEASES.md](RELEASES.md) | não regenerado — histórico de releases, sai do git |
 | [plano-execucao-consumer-consolidado-2026-08-05.md](plano-execucao-consumer-consolidado-2026-08-05.md) | plano ativo, 42 issues |
