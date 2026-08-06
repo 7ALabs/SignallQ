@@ -6,9 +6,9 @@
 - **Escopo:** repositório `buildea-labs/signallq` (monorepo SignallQ) inteiro — Android, Admin, Cloudflare, docs
 - **Responsável:** Claudete (dono do processo). Esta regra se aplica a todos os agentes autorizados e aplicáveis ao repositório, conforme a governança canônica em ../ai-governance, e a qualquer sessão humana no repo.
 
-Referenciada a partir do `AGENTS.md` deste repositório (seção "Fontes complementares") e dos
-perfis dos agentes canônicos aplicáveis ao repositório. Não copiar o conteúdo completo em nenhum
-outro lugar — só linkar.
+Declarada como obrigatória no `AGENTS.md` deste repositório (seção "Regras operacionais
+obrigatórias") e referenciada pelos perfis dos agentes canônicos aplicáveis ao repositório. Não
+copiar o conteúdo completo em nenhum outro lugar — só linkar.
 
 `AGENTS.md` é a fonte de contexto do repositório para todas as ferramentas; `CLAUDE.md` e
 `.claude/CLAUDE.md` são adaptadores mínimos que apenas incluem `AGENTS.md`. As regras operacionais
