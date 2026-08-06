@@ -1,7 +1,8 @@
 # Politica De Saida De APK
 
 - **Status:** ativo
-- **Última validação:** 2026-07-23
+- **Última validação:** 2026-08-05 — caminho corrigido para `android/builds/` (o documento omitia o
+  prefixo `android/`); APKs obsoletos da marca Linka (v0.11.x) removidos na mesma revisão
 - **Fonte de verdade:** este documento (regra de nome/local de artefato); versão real em `android/gradle/libs.versions.toml`
 - **Escopo:** build local e scripts de empacotamento do app Android
 - **Documentos substituídos:** `docs_ai/operations/APK_BUILD.md` (arquivado, duplicava este conteúdo)
@@ -9,7 +10,7 @@
 Todo APK gerado pelo projeto deve ser arquivado na pasta oficial:
 
 ```text
-builds/apk/<buildType>/<versionName>/
+android/builds/apk/<buildType>/<versionName>/
 ```
 
 ## Nome obrigatorio
@@ -21,7 +22,7 @@ signallq-android-v<versionName>+<versionCode>-<buildType>-<yyyyMMdd-HHmmss>.apk
 Exemplo:
 
 ```text
-builds/apk/release/0.23.0/signallq-android-v0.23.0+56-release-20260705-112233.apk
+android/builds/apk/release/0.23.0/signallq-android-v0.23.0+56-release-20260705-112233.apk
 ```
 
 ## Comandos oficiais
