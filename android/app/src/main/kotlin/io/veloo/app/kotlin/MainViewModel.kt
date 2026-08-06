@@ -1976,8 +1976,9 @@ class MainViewModel
          * Chamada de IA de diagnostico -- mecanismo UNICO (decisao do Luiz, 2026-07-14)
          * reaproveitado tanto pela tela 1a "Analise detalhada" (spec To-Be -- acionada
          * automaticamente ao abrir o sheet a partir do Resultado, `problema = null`)
-         * quanto pelo fluxo legado "Analisar meu problema com IA" por sintoma escolhido
-         * (`AnaliseDetalhadaBottomSheet.kt`, `problema` preenchido). Os cards da 1a
+         * quanto pelo fluxo com objetivo/sintoma escolhido pelo usuario (`problema`
+         * preenchido -- hoje `DiagnosticoGuiadoScreen` e `ModoGamerScreen`; o sheet
+         * legado `AnaliseDetalhadaBottomSheet` foi removido em #1485). Os cards da 1a
          * (banner de veredito, Recomendacoes, Configuracoes) sao montados a partir do
          * MESMO [AnalisadorState.Resultado] que essa funcao produz.
          *

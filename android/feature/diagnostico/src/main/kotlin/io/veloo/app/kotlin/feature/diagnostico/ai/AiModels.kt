@@ -332,8 +332,13 @@ data class AiAcaoRecomendada(
 )
 
 /** Ordena por prioridade decrescente ("alta" primeiro). Extraido de duplicacao entre
- *  `AnaliseDetalhadaBottomSheet.kt` e `ResultadoVelocidadeScreen.kt` — ambas telas
- *  escolhem a acao de maior prioridade pra destacar num card compacto. */
+ *  `AnaliseDetalhadaBottomSheet.kt` e `ResultadoVelocidadeScreen.kt` — ambas escolhiam
+ *  a acao de maior prioridade pra destacar num card compacto.
+ *
+ *  ATENCAO (#1485, 2026-08-06): os dois consumidores originais deixaram de usar esta
+ *  extensao (#1475 tirou o uso da `ResultadoVelocidadeScreen`, #1485 removeu o sheet).
+ *  Hoje so o teste `AiAcaoRecomendadaOrderingTest` a exercita — avaliar remocao ou
+ *  reuso antes de deixar crescer. */
 fun List<AiAcaoRecomendada>.ordenadasPorPrioridade(): List<AiAcaoRecomendada> =
     sortedBy {
         when (it.prioridade) {

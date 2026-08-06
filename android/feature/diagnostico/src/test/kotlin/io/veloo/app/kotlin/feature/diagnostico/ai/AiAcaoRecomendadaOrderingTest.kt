@@ -6,8 +6,12 @@ import org.junit.Test
 /**
  * `ordenadasPorPrioridade` — extraida de duplicacao entre `AnaliseDetalhadaBottomSheet.kt`
  * (fluxo "Analisar meu problema com IA") e `ResultadoVelocidadeScreen.kt` (tela 1a,
- * "Analise detalhada"). As duas telas escolhem a acao de maior prioridade pra
+ * "Analise detalhada"). As duas telas escolhiam a acao de maior prioridade pra
  * destacar num card compacto — GH#design-tobe-alinhamento, 2026-07-16.
+ *
+ * ATENCAO (#1485, 2026-08-06): nenhum dos dois consumidores existe mais (o sheet foi
+ * removido em #1485, o uso na `ResultadoVelocidadeScreen` saiu em #1475). Este teste e
+ * hoje o unico exercicio da extensao.
  */
 class AiAcaoRecomendadaOrderingTest {
 

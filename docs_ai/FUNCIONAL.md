@@ -512,9 +512,10 @@ sessão válida abre a sheet de credenciais.
 
 **Divergência real no código:** o **banner Anatel não é exibido**. O composable `AnatelBanner`
 existe (`HomeScreen.kt:628`) e recebe os parâmetros encadeados desde o ViewModel
-(`AppShell.kt:743`), mas **nunca é chamado** — é código morto. O mesmo vale para outros oito
-composables declarados e nunca invocados no arquivo (`BufferbloatCard`, `MobileSignalCard`,
-`CardMovelDualSim`, `SignalQualitySheet`, entre outros).
+(`AppShell.kt:743`), mas **nunca é chamado** — é código morto. O mesmo vale para outros
+composables declarados e nunca invocados no arquivo (`BufferbloatCard`, `SignalQualitySheet`,
+entre outros). `MobileSignalCard`, `CardMovelDualSim` e `SimChipCompact` estavam nessa lista e
+foram removidos em #1261 (2026-08-06).
 
 ---
 

@@ -719,7 +719,7 @@ Confirmado em código:
 - Objetos: `LkColors` (cores claro/escuro), `LkTokens`, `LkSpacing`, `LkRadius`,
   `signallQTypography`
 - Consumo em componentes confirmado via grep de `LkColors` em múltiplos arquivos de
-  `ui/component/` (ex.: `BaseComponents.kt`, `ads/AdBadge.kt`, `AnaliseDetalhadaBottomSheet.kt`)
+  `ui/component/` (ex.: `BaseComponents.kt`, `ads/AdBadge.kt`, `OperadoraBottomSheet.kt`)
 
 **Nota de caminho físico:** o arquivo mora fisicamente em `io/veloo/app/kotlin/...` embora
 declare `package io.signallq.app...` — é a divergência conhecida de ~460 arquivos `.kt`

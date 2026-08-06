@@ -63,8 +63,9 @@ data class AppShellWifiState(
  * Estado da chamada de IA de diagnostico -- mecanismo UNICO reaproveitado tanto pela
  * tela 1a "Analise detalhada" (spec To-Be, GH#design-tobe-alinhamento -- aberta
  * automaticamente ao abrir o sheet, sem escolha de sintoma, `problema = null`) quanto
- * pelo fluxo legado "Analisar meu problema com IA" por sintoma escolhido
- * (`AnaliseDetalhadaBottomSheet.kt`, `problema` preenchido). Confirmado por decisao do
+ * pelo fluxo com objetivo/sintoma escolhido pelo usuario (`problema` preenchido --
+ * hoje `DiagnosticoGuiadoScreen` e `ModoGamerScreen`; o sheet legado por sintoma fixo
+ * `AnaliseDetalhadaBottomSheet` foi removido em #1485). Confirmado por decisao do
  * Luiz (2026-07-14): nao sao dois recursos paralelos, e a MESMA chamada
  * (`AiDiagnosisRepository.explainDiagnosis` + `AiFallbackFactory.fromLocal` no
  * fallback), so com gatilho diferente.
@@ -107,8 +108,9 @@ data class AppShellDiagnosticoState(
     val onIniciarDiagnostico: () -> Unit,
     val analisadorState: AnalisadorState = AnalisadorState.Inativo,
     /** `problema = null` quando acionado automaticamente pela tela 1a (sem sintoma
-     *  escolhido); `problema` preenchido quando vem do fluxo por sintoma
-     *  (`AnaliseDetalhadaBottomSheet`). Mesmo mecanismo, gatilhos diferentes. */
+     *  escolhido); `problema` preenchido quando vem do fluxo com objetivo escolhido
+     *  (`DiagnosticoGuiadoScreen`/`ModoGamerScreen`). Mesmo mecanismo, gatilhos
+     *  diferentes. */
     val onAnalisarProblema: (String?) -> Unit = {},
     val onResetarAnalisador: () -> Unit = {},
     /** SIG-173/#664 — chamado quando o usuario fecha o LaudoScreen. Avalia elegibilidade

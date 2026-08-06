@@ -31,7 +31,7 @@ last_updated: "2026-08-06"
 | Workers Cloudflare | 5 | `integrations/cloudflare/*/wrangler.toml` |
 | Tabelas D1 | 38 — 20 admin + 18 diagnostic | `*/migrations/*.sql`, `*/schema.sql` |
 | Contratos OpenAPI | 7 contratos · **122** endpoints | `docs_ai/CONTRATOS/openapi/` |
-| Arquivos `.kt` em caminho legado `io/veloo` | 527 (sendo 362 em `src/main`) | dívida conhecida — higiene §4.1 |
+| Arquivos `.kt` em caminho legado `io/veloo` | 525 (sendo 361 em `src/main`) | dívida conhecida — higiene §4.1 |
 
 **Módulos consumer (19):** :app :core:diagnostico :core:featureflags :core:relatorio :coreDatabase :coreDatastore :coreNetwork :corePermissions :coreRecommendation :coreTelephony :featureDevices :featureDiagnostico :featureDns :featureFibra :featureHistory :featureHome :featureSettings :featureSpeedtest :featureWifi
 
