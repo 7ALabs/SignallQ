@@ -1,8 +1,18 @@
+---
+title: "Especificação funcional — Diagnóstico guiado por objetivo e modo gamer por jogo/device"
+description: "Fluxo de produto pós-teste de velocidade: resumo simples, diagnóstico guiado por objetivo fechado, modo gamer por jogo/device e camada de detalhes técnicos (issue #550)."
+type: "funcional"
+status: "draft"
+owner: "Claudete"
+last_updated: "2026-08-06"
+---
+
 # Especificação funcional — Diagnóstico guiado por objetivo e modo gamer por jogo/device
 
 - **Status:** rascunho — pronto para virar critério de aceite de tasks do Camilo, pendente de
   confirmação dos pontos assinalados na seção 12
-- **Última validação:** 2026-07-26
+- **Última validação:** 2026-08-06 (nota de remoção do `AnalisadorEntryRow`); conteúdo da spec
+  validado pela última vez em 2026-07-26
 - **Fonte de verdade:** este arquivo — spec pontual de fluxo pós-teste, complementar a
   `docs_ai/FUNCIONAL.md` RF-01 (Velocidade) e RF-02 (Diagnóstico assistido por IA), que descrevem o
   estado **atual** de `ResultadoVelocidadeScreen`. Não duplicado lá.
@@ -15,6 +25,16 @@
 
 > Registrado em 2026-07-26 (Marina), a partir da issue #550 (migrada de SIG-303). Segue o template
 > de **Especificação Funcional** (`.claude/rules/higiene-e-padronizacao-repositorio.md`, seção 10).
+
+> **Nota de remoção (2026-08-06, #1485 / #1475).** Esta spec cita `AnalisadorEntryRow` (entrada de
+> IA por texto livre na camada de detalhes técnicos) como algo que "continua existindo" — seções
+> 3, 5, 8, 11 e 12.3. **O símbolo não existe mais no código:** grep em `android/` não devolve
+> nenhuma ocorrência. A #1475 substituiu o fluxo legado de sintoma pelo diagnóstico guiado de
+> objetivos fechados (`DiagnosticoGuiadoScreen`) e a #1485 removeu o que sobrou dele
+> (`AnaliseDetalhadaBottomSheet`). Não há hoje campo de texto livre para a IA em nenhuma das quatro
+> telas. Toda frase desta spec no presente sobre `AnalisadorEntryRow` deve ser lida como registro
+> histórico da intenção de 2026-07-26, não como estado atual do app. A spec continua em **rascunho**
+> e precisa ser rerratificada antes de virar critério de aceite.
 
 ---
 
@@ -226,8 +246,9 @@ que já vale hoje para `AnalisadorEntryRow`/laudo automático (RF-02, `AI_FLOW.m
   execuções (usar `HistoricalDegradationEngine`/médias 7d-30d já existentes como fonte de
   recorrência, não estado de sessão único).
 - Responder livre fora do conjunto de objetivos/perguntas fechadas — não há campo de texto livre
-  nas telas 2 e 3 desta spec (diferente de `AnalisadorEntryRow`, que continua existindo só na tela
-  4, detalhes técnicos, sem mudança de comportamento).
+  nas telas 2 e 3 desta spec (diferente de `AnalisadorEntryRow`, que em 2026-07-26 ainda existia só
+  na tela 4, detalhes técnicos, sem mudança de comportamento — **removido desde então, ver nota de
+  remoção no topo, #1485/#1475**).
 
 Regra-síntese, citada literalmente da issue #550: **"Motor local mede, classifica e decide. IA
 explica, organiza e conversa de forma guiada."**
@@ -300,6 +321,11 @@ guiado genérico (`UsageProfileClassifier.JOGOS`). **Decidido (Claudete, 2026-07
 técnicos.** Esta spec assume que ela continua existindo sem alteração (só deixou de ser a primeira
 coisa vista). Como o "Fora de escopo" da issue #550 cita "chat livre completo" como não coberto —
 não fica claro se isso significa "não mexer" ou "não criar um novo". **Decidido (Claudete, 2026-07-26): `AnalisadorEntryRow` fica intocada na camada de detalhes técnicos por enquanto; issue #550 não pede mudança ali, fora de escopo nesta entrega.**
+
+> **Superado pelos fatos (2026-08-06, #1485/#1475).** `AnalisadorEntryRow` não existe mais no
+> código — a decisão de "deixar intocada" perdeu objeto. Se a entrada de IA por texto livre voltar
+> a ser desejada, é feature nova e precisa de decisão de produto própria, não da reativação deste
+> parágrafo.
 
 ## 13. Métricas de sucesso
 

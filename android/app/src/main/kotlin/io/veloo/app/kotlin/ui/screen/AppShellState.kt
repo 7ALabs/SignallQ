@@ -83,8 +83,11 @@ sealed class AnalisadorState {
          *  pelo banner compacto da tela 1a. Vazio em respostas antigas/nao populadas. */
         val titulo: String = "",
         /** Resumo em 1-2 frases (AiDiagnosisResult.resumo) — mais compacto que [texto]
-         *  (que prioriza textoLaudo, um paragrafo). A tela 1a usa [resumo] primeiro;
-         *  o sheet "Analisar meu problema com IA" continua usando [texto]. */
+         *  (que prioriza textoLaudo, um paragrafo). Consumidor real hoje:
+         *  `DiagnosticoResultadoComponents.kt` (`resumo.ifBlank { texto }`), que prefere
+         *  o resumo e cai pro [texto] em respostas antigas/nao populadas. O fallback
+         *  segue valido; a justificativa anterior citava o sheet "Analisar meu problema
+         *  com IA", removido em #1485. */
         val resumo: String = "",
         /** Sintoma que o usuario descreveu explicitamente (fluxo legado por sintoma
          *  escolhido). Nulo quando a analise foi disparada automaticamente pela tela 1a

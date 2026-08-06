@@ -11,6 +11,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ## [Unreleased]
 
+### Removido
+- `AnaliseDetalhadaBottomSheet` e seu teste: sheet do fluxo legado "Analisar meu problema com IA" (3 sintomas fixos), órfão desde que a #1475 o substituiu pelo diagnóstico guiado de objetivos fechados (`DiagnosticoGuiadoScreen`). Sem consumidor em produção — 347 linhas (#1485).
+- Composables mortas de `HomeScreen.kt`: `MobileSignalCard`, `CardMovelDualSim` e `SimChipCompact`, mais os helpers exclusivos delas (`mobileSignalPercent`, `MiniSignalBars`). Nunca eram chamadas em lugar nenhum do app — 296 linhas, sem mudança visual para o usuário (#1261).
+
 ## [0.31.0] — 2026-08-01
 
 ### Adicionado
