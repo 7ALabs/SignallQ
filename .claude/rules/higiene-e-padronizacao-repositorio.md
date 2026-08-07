@@ -1,14 +1,20 @@
 # Regra permanente — Higiene e padronização do repositório
 
 - **Status:** ativo
-- **Última validação:** 2026-07-16
+- **Última validação:** 2026-08-06 (referências cruzadas religadas; conteúdo das seções não revalidado)
 - **Fonte de verdade:** este arquivo (`.claude/rules/higiene-e-padronizacao-repositorio.md`) — não duplicar em `docs_ai/`, `AGENTS.md`, mirrors ou docs de módulo
 - **Escopo:** repositório `buildea-labs/signallq` (monorepo SignallQ) inteiro — Android, Admin, Cloudflare, docs
 - **Responsável:** Claudete (dono do processo). Esta regra se aplica a todos os agentes autorizados e aplicáveis ao repositório, conforme a governança canônica em ../ai-governance, e a qualquer sessão humana no repo.
 
-Referenciada a partir de `.claude/CLAUDE.md` (seção "Higiene e padronização do repositório") e dos
-perfis dos agentes canônicos aplicáveis ao repositório. Não copiar o conteúdo completo em nenhum
-outro lugar — só linkar.
+Declarada como obrigatória no `AGENTS.md` deste repositório (seção "Regras operacionais
+obrigatórias") e referenciada pelos perfis dos agentes canônicos aplicáveis ao repositório. Não
+copiar o conteúdo completo em nenhum outro lugar — só linkar.
+
+`AGENTS.md` é a fonte de contexto do repositório para todas as ferramentas; `CLAUDE.md` e
+`.claude/CLAUDE.md` são adaptadores mínimos que apenas incluem `AGENTS.md`. As regras operacionais
+comuns a todos os repositórios vivem em `../ai-governance/policies/`. Não voltar a concentrar
+processo em `.claude/CLAUDE.md`: em 2026-08-03 aquele arquivo passou de 371 linhas para uma linha
+de include, e as referências a suas seções ficaram órfãs por três dias.
 
 ---
 
@@ -62,15 +68,15 @@ segura e completamente validável. Renomeações espalhadas por vários módulos
 
 Não renomear identificadores técnicos preservados pelo projeto: `io.signallq.app`,
 `buildea-labs/signallq`, `linkaKotlin.db`, `linkaPreferencias`, canais `linka_*`, workers cujos
-nomes técnicos já estejam publicados (ver `.claude/CLAUDE.md`, seção "Identidade").
+nomes técnicos já estejam publicados (ver `AGENTS.md`, "Identificadores técnicos").
 
 ---
 
 ## 3. Precedência de fontes técnicas (código vs. documentação)
 
-Distinta da tabela "Fontes da Verdade" do `.claude/CLAUDE.md` (que roteia execução/backlog entre
-GitHub, Notion, Linear etc.) — esta ordem resolve divergência entre **código e documentação**
-quando os dois descrevem o mesmo fato técnico:
+Distinta do roteamento de demandas entre agentes (`../ai-governance/policies/demand-routing.md`) —
+esta ordem resolve divergência entre **código e documentação** quando os dois descrevem o mesmo
+fato técnico:
 
 1. código executado e testes;
 2. `android/settings.gradle.kts`;
@@ -386,8 +392,8 @@ para a mudança, hardcode que já possui token ou constante oficial, arquivo tem
 versionado.
 
 Faça a melhoria na mesma branch e na mesma PR da tarefa principal. Quando a melhoria for relevante,
-use commit separado — mas não abra uma PR para cada achado (ver também "Batching" em
-`.claude/CLAUDE.md`, seção "Disciplina de Branches e PRs").
+use commit separado — mas não abra uma PR para cada achado (ver a regra de batching em
+`docs_ai/operations/PROCESSO_PR_E_AGENTES_2026-07-16.md`, item 2).
 
 ---
 
@@ -535,8 +541,8 @@ Antes de remover um arquivo: buscar referências; verificar build scripts; verif
 documentação; verificar uso por ferramentas e agentes; confirmar que não é mirror intencional.
 
 Os mirrors `.agents/skills/` e `.github/skills/` (sincronização de skill para Codex e hooks do
-GitHub) já têm regra própria documentada em `.claude/CLAUDE.md`, seção "Design System" → "Onde fica
-cada 'design system'" — não duplicar aqui, só aplicar: fonte canônica é `.claude/skills/`, nunca
+GitHub) já têm regra própria documentada em `AGENTS.md`, seção "Skills locais e espelhos" — não
+duplicar aqui, só aplicar: fonte canônica é `.claude/skills/`, nunca
 editar o mirror direto, resincronizar com `scripts/sync-skills-mirrors.sh` após editar a skill
 original (`--check` valida sem escrever).
 
@@ -561,9 +567,11 @@ packages; conferir testes; conferir scripts; conferir documentação; conferir C
 existem duas implementações ativas por acidente.
 
 A regra de nunca declarar merge, teste, build ou publicação como concluídos sem verificação real já
-está registrada em `.claude/CLAUDE.md`, seção "Disciplina de Branches e PRs" → "Verificação real
-antes de declarar" (`gh pr view --json state,merged`, `gh pr checks`, curl direto contra produção) —
-esta seção só acrescenta os comandos técnicos específicos de Kotlin/Gradle acima.
+está registrada em `../ai-governance/policies/agent-operating-contract.md`, seção 5 item 5 ("não
+alegar teste executado, funcionalidade comprovada ou maturidade sem evidência verificável") e seção
+9 (critério comum de conclusão). Na prática: `gh pr view <N> --json state,merged`, `gh pr checks
+<N>`, ou requisição direta contra o ambiente — nunca por inferência nem por relato de outro agente.
+Esta seção só acrescenta os comandos técnicos específicos de Kotlin/Gradle acima.
 
 ---
 

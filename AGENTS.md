@@ -56,13 +56,24 @@
 
 - O escopo autorizado está atendido, os comandos e validações aplicáveis foram executados com evidência, documentação afetada está atualizada e Caio revisou quando houver código, segurança, produção ou risco relevante.
 
+## Regras operacionais obrigatórias
+
+Valem para qualquer ferramenta e qualquer sessão neste repositório, não apenas para as que carregam
+`.claude/` automaticamente. Leia antes de alterar código ou documentação; o diretório é caminho de
+armazenamento, não condição de vigência.
+
+- [Higiene e padronização do repositório](.claude/rules/higiene-e-padronizacao-repositorio.md) — idioma, nomes, limites de tamanho, correção oportunista, remoção segura, validação obrigatória e formato da entrega.
+- [Documentação viva](.claude/rules/politica-documentacao-viva.md) — metadados, índices, sincronia com o código e o que o `docs-ci` reprova.
+
+As regras comuns a todos os repositórios estão em `../ai-governance/policies/` e têm precedência
+sobre instrução local em segurança, autorização e governança.
+
 ## Fontes complementares
 
 - `docs_ai/README.md`
 - `android/settings.gradle.kts`
 - `android/gradle/libs.versions.toml`
 - `docs_ai/CONTRATOS/openapi/`
-- `.claude/rules/higiene-e-padronizacao-repositorio.md`
 - `.claude/skills/SignallQ-design/`
 - `scripts/sync-skills-mirrors.sh`
 - `../ai-governance/policies/agent-operating-contract.md`
