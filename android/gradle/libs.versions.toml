@@ -45,7 +45,7 @@ mockk = "1.14.11"
 playServicesAds = "25.4.0"
 userMessagingPlatform = "4.0.0"
 coil = "2.7.0"
-orgJson = "20240303"
+orgJson = "20260719"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
