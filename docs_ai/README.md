@@ -4,7 +4,7 @@ description: "Ponto de entrada da documentação do app consumer Android e do ba
 type: "índice"
 status: "ativo"
 owner: "Claudete (processo) · Camilo (técnico)"
-last_updated: "2026-08-06"
+last_updated: "2026-08-09"
 ---
 
 # Documentação — SignallQ
@@ -43,6 +43,7 @@ O `signallq-admin-worker` é **deste** repositório, embora o painel Admin que o
 
 | Documento | Conteúdo |
 |---|---|
+| [`HISTORIA.md`](./HISTORIA.md) | Origem, propósito e princípios que explicam por que o SignallQ existe |
 | [`FUNCIONAL.md`](./FUNCIONAL.md) | O que o app faz — navegação, telas, funcionalidades, permissões |
 | [`TECNICO.md`](./TECNICO.md) | Como é construído — stack, build, Workers, persistência, analytics, segurança |
 | [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) | Cores, tipografia, espaçamento, componentes, tokens |
