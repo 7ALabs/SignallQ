@@ -40,6 +40,7 @@ import io.signallq.app.review.InAppReviewManager
 import io.signallq.app.ui.SignallQTheme
 import io.signallq.app.ui.component.LgpdConsentDialog
 import io.signallq.app.ui.screen.AppShell
+import io.signallq.app.ui.screen.AppShellMode
 import io.signallq.app.ui.screen.OnboardingScreen
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -353,6 +354,7 @@ class MainActivity : ComponentActivity() {
                     )
                 } else {
                     AppShell(
+                        shellMode = AppShellMode.Guided2,
                         snapshotRede = snapshotRede,
                         speedtest =
                             io.signallq.app.ui.screen.AppShellSpeedtestState(

@@ -1,0 +1,76 @@
+package io.signallq.app.ui.screen
+
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class AppShellNavigationTest {
+    @Test
+    fun `guided shell starts on Home and exposes four roots`() {
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.legacyIndex)
+
+        assertEquals(AppShellRoot.Home, navigator.selectedRoot)
+        assertEquals(
+            listOf(
+                AppShellRoot.Home,
+                AppShellRoot.Speed,
+                AppShellRoot.History,
+                AppShellRoot.Tools,
+            ),
+            AppShellMode.Guided2.roots(),
+        )
+    }
+
+    @Test
+    fun `legacy shell remains available with Wifi root`() {
+        assertEquals(AppShellRoot.entries, AppShellMode.Legacy.roots())
+    }
+
+    @Test
+    fun `switching roots preserves each independent overlay stack`() {
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.legacyIndex)
+        navigator.open(AppShellOverlay.SinalWifi)
+
+        navigator.select(AppShellRoot.Tools)
+        navigator.open(AppShellOverlay.Dns)
+        assertEquals(listOf(AppShellOverlay.Dns), navigator.overlayStack)
+
+        navigator.select(AppShellRoot.Home)
+        assertEquals(listOf(AppShellOverlay.SinalWifi), navigator.overlayStack)
+    }
+
+    @Test
+    fun `back removes only the top overlay from current root`() {
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Speed.legacyIndex)
+        navigator.open(AppShellOverlay.ResultadoVelocidade)
+        navigator.open(AppShellOverlay.DetalhesTecnicos)
+
+        assertEquals(AppShellOverlay.DetalhesTecnicos, navigator.pop())
+        assertEquals(listOf(AppShellOverlay.ResultadoVelocidade), navigator.overlayStack)
+    }
+
+    @Test
+    fun `saver restores selected root and all root stacks`() {
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.legacyIndex)
+        navigator.open(AppShellOverlay.SinalWifi)
+        navigator.select(AppShellRoot.Tools)
+        navigator.open(AppShellOverlay.Dns)
+
+        val restored = AppShellNavigator.restoreState(AppShellNavigator.saveState(navigator))
+
+        assertEquals(AppShellRoot.Tools, restored.selectedRoot)
+        assertEquals(listOf(AppShellOverlay.Dns), restored.overlayStack)
+        restored.select(AppShellRoot.Home)
+        assertEquals(listOf(AppShellOverlay.SinalWifi), restored.overlayStack)
+    }
+
+    @Test
+    fun `duplicate overlay is not pushed twice`() {
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.legacyIndex)
+
+        navigator.open(AppShellOverlay.Perfil)
+        navigator.open(AppShellOverlay.Perfil)
+
+        assertEquals(1, navigator.overlayStack.size)
+        assertEquals(AppShellOverlay.Perfil, navigator.overlayStack.single())
+    }
+}

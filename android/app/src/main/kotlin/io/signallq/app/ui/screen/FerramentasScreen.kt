@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Devices
@@ -213,8 +214,11 @@ fun FerramentasScreen(
                             )
                         } else {
                             Icon(
-                                imageVector = Icons.Filled.Menu,
-                                contentDescription = stringResource(R.string.appshell_cd_abrir_menu),
+                                imageVector = if (LocalAppShellMode.current == AppShellMode.Guided2) Icons.Filled.AccountCircle else Icons.Filled.Menu,
+                                contentDescription =
+                                    stringResource(
+                                        if (LocalAppShellMode.current == AppShellMode.Guided2) R.string.ajustes_cd_editar_perfil else R.string.appshell_cd_abrir_menu,
+                                    ),
                                 tint = c.textPrimary,
                             )
                         }
