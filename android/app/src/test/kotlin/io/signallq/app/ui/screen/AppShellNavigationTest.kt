@@ -73,4 +73,26 @@ class AppShellNavigationTest {
         assertEquals(1, navigator.overlayStack.size)
         assertEquals(AppShellOverlay.Perfil, navigator.overlayStack.single())
     }
+
+    @Test
+    fun `bar visibility follows root overlay and running speedtest contracts`() {
+        assertEquals(true, shouldShowAppShellBottomBar(AppShellMode.Guided2, isAtRoot = true, speedtestRunning = false))
+        assertEquals(false, shouldShowAppShellBottomBar(AppShellMode.Guided2, isAtRoot = false, speedtestRunning = false))
+        assertEquals(false, shouldShowAppShellBottomBar(AppShellMode.Guided2, isAtRoot = true, speedtestRunning = true))
+        assertEquals(true, shouldShowAppShellBottomBar(AppShellMode.Legacy, isAtRoot = false, speedtestRunning = false))
+    }
+
+    @Test
+    fun `screen view mapping remains stable without positional lookup`() {
+        assertEquals(
+            listOf("home", "speedtest", "sinal_wifi", "historico", "ferramentas"),
+            AppShellRoot.entries.map(AppShellRoot::screenName),
+        )
+    }
+
+    @Test
+    fun `rollout flag defaults Legacy and enables Guided2 explicitly`() {
+        assertEquals(AppShellMode.Legacy, AppShellFeatureFlagsState().shellMode)
+        assertEquals(AppShellMode.Guided2, AppShellFeatureFlagsState(guidedShell2Enabled = true).shellMode)
+    }
 }

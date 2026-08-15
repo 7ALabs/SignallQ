@@ -534,12 +534,10 @@ fun AppShell(
     // Home/Laudo com header "há X min" mas corpo vazio. Ver `resolverPrimeiraHistoria` em
     // HomeMedicaoAdapter.kt.
     val primeiraHistoria = remember(historico) { historico.resolverPrimeiraHistoria() }
-    val tabScreenNames = listOf("home", "speedtest", "sinal_wifi", "historico", "ferramentas")
-
     // NAV-D: verifica IA ao entrar na tab Velocidade (índice 1)
     LaunchedEffect(navigator.selectedTab) {
         if (navigator.selectedTab == 1) onVerificarGemma()
-        tabScreenNames.getOrNull(navigator.selectedTab)?.let { onScreenView(it) }
+        onScreenView(navigator.selectedRoot.screenName())
     }
 
     // GH#1480 (Epico #1347, F4) — a tab atual perdeu a flag em runtime (Admin desligou
@@ -571,22 +569,13 @@ fun AppShell(
         }
     }
 
-    // Back em overlay: desfaz último overlay empilhado.
-    BackHandler(enabled = overlayStack.isNotEmpty()) {
-        val removido = overlayStack.removeLastOrNull()
+    AppShellBackHandlers(navigator) { removido ->
         // SIG-173/#664 — back fisico tambem conta como "fechou o Laudo" para fins
         // de elegibilidade do prompt de avaliacao, mesmo caminho do botao voltar da tela.
         if (removido == Overlay.Laudo) onLaudoFechado()
         // Issue #1503 — back físico fechando o hub também limpa o badge contextual,
         // mesmo caminho do botão "voltar" explícito da tela (ver onVoltar abaixo).
         if (removido == Overlay.Ferramentas) ferramentaRecomendada = null
-    }
-
-    // Back na tab Histórico (índice 3): volta para Home em vez de sair do app.
-    // Sem este handler, o back gesture do sistema fecha o app enquanto o usuário está
-    // navegando pelo histórico — comportamento confuso reportado como "trava".
-    BackHandler(enabled = overlayStack.isEmpty() && navigator.selectedTab == 3) {
-        navigator.select(AppShellRoot.Home)
     }
 
     // #374: tela de erro do speedtest (overlay VelocidadeScreen) não tinha BackHandler
@@ -624,8 +613,11 @@ fun AppShell(
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 bottomBar = {
                     if (
-                        snapshotSpeedtest.estado != EstadoExecucaoSpeedtest.executando &&
-                        (shellMode == AppShellMode.Legacy || navigator.isAtRoot)
+                        shouldShowAppShellBottomBar(
+                            shellMode,
+                            navigator.isAtRoot,
+                            snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.executando,
+                        )
                     ) {
                         AppShellBottomBar(
                             c = c,

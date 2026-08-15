@@ -34,6 +34,7 @@ object FeatureFlagKeys {
     val CONSUMER_DIAGNOSTICO_SHADOW_MODE_ENABLED = FeatureFlagKey("consumer.diagnostico.shadow_mode_enabled")
     val CONSUMER_HISTORY_ENABLED = FeatureFlagKey("consumer.history.enabled")
     val CONSUMER_SETTINGS_ENABLED = FeatureFlagKey("consumer.settings.enabled")
+    val CONSUMER_APP_SHELL_GUIDED_2_ENABLED = FeatureFlagKey("consumer.app_shell.guided_2_enabled")
 
     /** Todas as constantes declaradas aqui -- usado pelo teste de paridade catalogo/codigo. */
     val ALL: List<FeatureFlagKey> =
@@ -49,6 +50,7 @@ object FeatureFlagKeys {
             CONSUMER_DIAGNOSTICO_SHADOW_MODE_ENABLED,
             CONSUMER_HISTORY_ENABLED,
             CONSUMER_SETTINGS_ENABLED,
+            CONSUMER_APP_SHELL_GUIDED_2_ENABLED,
         )
 
     /** Os 9 modulos feature do Consumer instrumentados por F4/#1480, na ordem do

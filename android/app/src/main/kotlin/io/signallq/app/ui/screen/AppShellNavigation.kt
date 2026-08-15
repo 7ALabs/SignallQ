@@ -1,5 +1,6 @@
 package io.signallq.app.ui.screen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -63,6 +64,36 @@ internal fun AppShellMode.roots(): List<AppShellRoot> =
                 AppShellRoot.Tools,
             )
     }
+
+internal fun AppShellRoot.screenName(): String =
+    when (this) {
+        AppShellRoot.Home -> "home"
+        AppShellRoot.Speed -> "speedtest"
+        AppShellRoot.Wifi -> "sinal_wifi"
+        AppShellRoot.History -> "historico"
+        AppShellRoot.Tools -> "ferramentas"
+    }
+
+internal fun shouldShowAppShellBottomBar(
+    mode: AppShellMode,
+    isAtRoot: Boolean,
+    speedtestRunning: Boolean,
+): Boolean = !speedtestRunning && (mode == AppShellMode.Legacy || isAtRoot)
+
+@Composable
+internal fun AppShellBackHandlers(
+    navigator: AppShellNavigator,
+    onOverlayRemoved: (AppShellOverlay) -> Unit = {},
+) {
+    BackHandler(enabled = navigator.isAtRoot && navigator.selectedRoot == AppShellRoot.History) {
+        navigator.select(AppShellRoot.Home)
+    }
+    // Registrado por último para ter prioridade LIFO quando uma mudança de estado e a
+    // recomposição dos handlers acontecem no mesmo frame.
+    BackHandler(enabled = !navigator.isAtRoot) {
+        navigator.pop()?.let(onOverlayRemoved)
+    }
+}
 
 @Stable
 internal class AppShellNavigator internal constructor(

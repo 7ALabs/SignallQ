@@ -84,9 +84,11 @@ regras de negócio ou ViewModels para a shell.
 
 ### 4.1 Barra inferior — Jornada 2.0 e fallback legado
 
-`AppShellBottomBar.kt` implementa os dois conjuntos reversíveis. O modo `Guided2`, usado por
-default, expõe quatro raízes e abre em Início. O modo `Legacy` continua disponível como parâmetro
-opt-in do `AppShell`, com as cinco abas e cold start em Velocidade.
+`AppShellBottomBar.kt` implementa os dois conjuntos reversíveis. A flag canônica
+`consumer.app_shell.guided_2_enabled` seleciona o modo; seu default local é `false`, portanto o
+fallback offline seguro é `Legacy`. Quando ativado via configuração já persistida pelo provider,
+`Guided2` expõe quatro raízes e abre em Início. O modo legado mantém cinco abas e cold start em
+Velocidade, sem depender de rede para rollback.
 
 | Índice compatível | Rótulo | Tela | Jornada 2.0 |
 |---|---|---|---|
