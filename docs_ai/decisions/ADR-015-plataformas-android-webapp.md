@@ -10,7 +10,13 @@ version: "1.0.0"
 
 # ADR-015 — SignallQ é exclusivo Android e Webapp (signallq.com)
 
-- **Status:** Aceito
+> **⚠️ CONSOLIDADO em [ADR-016](ADR-016-portfolio-buildea.md) em 2026-08-15.**
+> A decisão de plataforma (Android + Web para o SignallQ) permanece — ADR-016
+> consolida com a decisão simétrica do Linka (Apple exclusivo), a política de
+> descontinuados (Pro/ISP/Nethal) e a squad de 3 agentes num único documento de
+> portfólio. Consultar ADR-016 como fonte canônica.
+
+- **Status:** Superseded (2026-08-15) — originalmente Aceito em 2026-08-15 (mesmo dia)
 - **Data:** 2026-08-15
 - **Autor:** Luiz (CEO)
 - **Escopo:** toda a marca SignallQ — Consumer, Pro, Nethal e qualquer futuro produto que carregue a marca.

@@ -1,7 +1,22 @@
+---
+title: "ADR-010 — Monetização do SignallQ consumer: grátis, só anúncios"
+description: "Consolidado em ADR-016 (Portfólio Buildea) em 2026-08-15. Registro histórico da decisão de 2026-07-20 de manter SignallQ gratuito sustentado por ads."
+type: "adr"
+status: "deprecated"
+owner: "Luiz (CEO)"
+last_updated: "2026-08-15"
+version: "2.0.0"
+---
+
 # ADR-010 — Monetização do SignallQ consumer: grátis, só anúncios
 
+> **⚠️ CONSOLIDADO em [ADR-016](ADR-016-portfolio-buildea.md) em 2026-08-15.**
+> A decisão original (SignallQ gratuito com ads) permanece — ADR-016 reafirma no
+> nível de portfólio Buildea e adiciona a hipótese de recursos pagos futuros
+> ("freemium" em vez de "só ads"). Consultar ADR-016 para o modelo comercial vigente.
+
 **Data:** 2026-07-20
-**Status:** Aceito
+**Status:** Superseded (2026-08-15) — originalmente Aceito em 2026-07-20
 
 ## Contexto
 
