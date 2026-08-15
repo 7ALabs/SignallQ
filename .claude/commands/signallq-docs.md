@@ -150,4 +150,4 @@ Pergunte ao usuário:
 
 ## Agentes canônicos ([ADR-016](../../docs_ai/decisions/ADR-016-portfolio-buildea.md))
 
-Documentação é conduzida por **Claudete** (funcional/produto), **Camilo** (técnica/arquitetura), **Juliana** (design/UX), **Gustavo** (operações/dados) e **Caio** (revisão independente + prontidão de release).
+Squad de 3: **Claudete** (funcional/produto, ADR de portfólio), **Camilo** (técnica/arquitetura/operações/runbook) e **Caio** (revisão independente + prontidão de release). Não há agentes permanentes para design/UX nem para operações/dados — aspectos de design são validados via skill `/design-check` (ou `/auditar-ux` para revisão profunda); especificações de dados/telemetria via `/analytics-spec`.

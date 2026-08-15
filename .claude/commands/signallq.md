@@ -47,7 +47,7 @@ Em seguida, pergunte: **"Em que vamos trabalhar hoje?"**
 | `/estimativa-impacto` | Avaliar tamanho/risco/milestone de uma issue antes do breakdown |
 | `/checar-release` | Checklist pré-release (Android + Cloudflare) |
 | `/gerar-docs` | Gerar ou atualizar documentação funcional/técnica/testes |
-| `/auditar-ux` | Auditoria de design system e usabilidade (Juliana) |
+| `/auditar-ux` | Auditoria profunda de design system e usabilidade (invocada por Claudete/Caio) |
 | `/motor-diagnostico` | Trabalho no engine de diagnóstico, speedtest ou IA |
 | `/cloudflare-d1-console` | Antes de mexer em schema/migration/query do Admin Worker |
 | `/regras-android` | Antes de mexer em permissão, Wi-Fi, DNS ou background |
