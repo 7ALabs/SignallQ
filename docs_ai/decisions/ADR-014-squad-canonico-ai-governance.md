@@ -10,7 +10,15 @@ version: "1.0.0"
 
 # ADR-014 — Squad canônico: `ai-governance/agents/` como única fonte da verdade
 
-- **Status:** Aceito
+> **⚠️ SUPERSEDED por [ADR-016](ADR-016-portfolio-buildea.md) em 2026-08-15.**
+> ADR-016 declara o novo squad de 3 agentes (Claudete/Camilo/Caio) com personalidade
+> escrita, vivendo em `.claude/agents/` do próprio repo. `ai-governance/agents/` deixa
+> de ser fonte da verdade — agentes passam a ser repo-locais, sem squad organizacional
+> compartilhada entre produtos (SignallQ e Linka têm squads distintos).
+
+
+- **Status:** Superseded (2026-08-15) — originalmente Aceito em 2026-08-15 (mesmo dia)
+- **Superseded por:** [ADR-016](ADR-016-portfolio-buildea.md), que declara o novo squad de 3 agentes (Claudete/Camilo/Caio) vivendo em `.claude/agents/` do próprio repo em vez de `ai-governance/agents/`.
 - **Data:** 2026-08-15
 - **Autor:** Luiz (CEO) via consolidação orientada por Claudete
 - **Substitui:** [ADR-006](ADR-006-workflow-squad-5-agentes.md), [ADR-007](ADR-007-ios-scaffolding-sem-agente.md)

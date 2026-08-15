@@ -9,9 +9,11 @@
 
 ## Escopo e exclusões
 
-- **Pertence ao repositório:** aplicativo Android SignallQ e SignallQ Pro, módulos Gradle, Workers Cloudflare, contratos e documentação técnica relacionados.
-- **Não pertence:** aplicação Buildea Admin, que pertence ao repositório `buildea-admin`; site e PWA, que pertencem ao repositório `signallq-web`; projetos pessoais.
-- **Plataformas da marca SignallQ:** exclusivamente **Android** (este repo) e **Webapp** (`signallq.com`, repo `signallq-web`) — para Consumer, Pro e qualquer futuro produto. iOS/macOS/desktop/wearable/embedded ficam permanentemente fora. Ver [ADR-015](docs_ai/decisions/ADR-015-plataformas-android-webapp.md).
+- **Pertence ao repositório:** aplicativo Android SignallQ, módulos Gradle, Workers Cloudflare, contratos e documentação técnica relacionados.
+- **Não pertence:** aplicação Buildea Admin (repo `buildea-admin`); site e PWA (repo `signallq-web`); produto Linka (repo `linka` a ser criado — exclusivo ecossistema Apple, ver [ADR-016](docs_ai/decisions/ADR-016-portfolio-buildea.md)); projetos pessoais.
+- **Plataformas do SignallQ:** exclusivamente **Android** (este repo) e **Web** (`signallq.com`, repo `signallq-web`). iOS/macOS/desktop/wearable/embedded ficam permanentemente fora. Ver [ADR-016](docs_ai/decisions/ADR-016-portfolio-buildea.md).
+- **Descontinuados permanentemente:** SignallQ Pro, SignallQ ISP, Nethal, quaisquer derivados. Módulos `:pro:*` do Gradle e docs `docs_ai/pro-onhold/` serão removidos nas Fases 4a-b do épico [#1623](https://github.com/buildea-labs/signallq/issues/1623). Ver [ADR-016](docs_ai/decisions/ADR-016-portfolio-buildea.md).
+- **Modelo comercial:** freemium com propaganda. Núcleo (diagnóstico, IA, monitoramento) gratuito e sustentado por ads. Recursos pagos futuros possíveis sem quebrar a promessa de gratuidade do núcleo.
 
 ## Arquitetura comprovada
 
