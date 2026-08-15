@@ -1,3 +1,12 @@
+---
+title: "Runbook de Lançamento"
+description: "Passo a passo operacional do lançamento do SignallQ Android, da versão candidata ao rollout de produção"
+type: "runbook"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-15"
+---
+
 # Runbook de Lançamento — SignallQ Android
 
 **Projeto:** SignallQ (diagnóstico de conectividade)
@@ -8,9 +17,11 @@
 - **Status:** ativo
 - **Última validação:** 2026-07-23
 - **Fonte de verdade das datas:** GitHub issue
-  [#1222](https://github.com/7ALabs/SignallQ/issues/1222) e
-  `docs_ai/decisions/DECISAO_CRONOGRAMA_LANCAMENTO_2026-07-20.md` — não a tabela abaixo, que é
-  da criação original do doc (28/06) e não foi reconfirmada.
+  [#1222](https://github.com/7ALabs/SignallQ/issues/1222) (ver comentários — data pública mais
+  recente ainda não confirmada em 2026-07-25) — não a tabela abaixo, que é da criação original do
+  doc (28/06) e não foi reconfirmada. `docs_ai/decisions/DECISAO_CRONOGRAMA_LANCAMENTO_2026-07-20.md`
+  foi removido na Fase 4d do épico #1623 (git preserva); estava desatualizado frente à própria
+  issue antes mesmo de ser removido.
 
 ---
 

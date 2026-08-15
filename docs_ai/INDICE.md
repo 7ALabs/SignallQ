@@ -86,11 +86,16 @@ em 2026-08-15** (consolidados no ADR-016 ou superseded; git preserva por SHA):
 consumer (consolidado); `ADR-014` squad canônico ai-governance (superseded); `ADR-015` plataformas
 Android+Web (consolidado).
 
-**Decisões de negócio (9):** consolidação do squad, cronograma de lançamento, modelo de dados de
-avaliações Google Play, modelo de dados de integrações Play/Firebase, status de credenciais,
-mudanças de equipe, e `NOTA_DIVERGENCIA_GITHUB_PROJECTS`. Serão removidas na Fase 4d do épico
-[#1623](https://github.com/buildea-labs/signallq/issues/1623) — o git preserva por SHA quem
-precisar recuperar.
+**Decisões de negócio (9) — removidas na Fase 4d do épico
+[#1623](https://github.com/buildea-labs/signallq/issues/1623) em 2026-08-15:** eram registro de
+decisão organizacional/operacional que nunca foram ADRs (consolidação do squad, cronograma de
+lançamento, modelo de dados de avaliações Google Play, modelo de dados de integrações
+Play/Firebase, status de credenciais, mudanças de equipe, `NOTA_DIVERGENCIA_GITHUB_PROJECTS`) —
+git preserva por SHA quem precisar recuperar. O conteúdo técnico de schema (avaliações/integrações
+Google Play e Firebase) já vive nos comentários das migrations reais em
+`integrations/cloudflare/signallq-admin-worker/migrations/016_gh1342_gh1344_integration_history.sql`
+e `017_gh1341_google_play_reviews.sql`; o cronograma de lançamento vive na issue
+[#1222](https://github.com/buildea-labs/signallq/issues/1222).
 
 > Próximo número livre de ADR: **017**.
 

@@ -1,14 +1,23 @@
+---
+title: "Checklist Go/No-Go"
+description: "Critérios técnicos de avanço entre fases de lançamento do SignallQ Android"
+type: "runbook"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-15"
+---
+
 # Checklist Go/No-Go — SignallQ
 
 - **Status:** ativo
 - **Última validação:** 2026-07-23
 - **Fonte de verdade das datas:** GitHub issue
-  [#1222](https://github.com/7ALabs/SignallQ/issues/1222) e
-  `docs_ai/decisions/DECISAO_CRONOGRAMA_LANCAMENTO_2026-07-20.md` (revisão mais recente:
-  lançamento público em **21/08/2026**, não mais 07/08). As datas de M2/M4 abaixo são da
-  revisão de 2026-07-17, anterior à decisão de 2026-07-20 — os critérios (o que precisa estar
-  verde) continuam válidos, mas as datas específicas de M3/M4/M5 devem ser tratadas como
-  **[a confirmar]** até reconferir contra a issue #1222.
+  [#1222](https://github.com/7ALabs/SignallQ/issues/1222) — a data de 21/08/2026 citada em
+  revisões anteriores desta doc não está mais confirmada (ver comentários da issue a partir de
+  2026-07-25). `docs_ai/decisions/DECISAO_CRONOGRAMA_LANCAMENTO_2026-07-20.md` foi removido na
+  Fase 4d do épico #1623 (git preserva). As datas de M2/M4 abaixo são da revisão de 2026-07-17 —
+  os critérios (o que precisa estar verde) continuam válidos, mas as datas específicas de M3/M4/M5
+  devem ser tratadas como **[a confirmar]** até reconferir contra a issue #1222.
 - **Escopo:** critérios técnicos de avanço entre fases de lançamento
 
 ## M2 — Beta Fechado (21/07/2026)
