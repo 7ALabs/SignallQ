@@ -23,7 +23,7 @@
      display-medium e headline-medium são REMOVIDOS por não aparecerem em
      nenhuma tela do Fluxo de Telas (maior estilo usado no app real é
      displaySmall/34px) — se algum artefato novo precisar de um estilo maior,
-     validar com a Lia antes de reintroduzir um valor extrapolado.
+     validar com Claudete (via `/design-check`) antes de reintroduzir um valor extrapolado.
    - on-surface-variant-2 (2º degrau de neutro) é REMOVIDO — o Fluxo de Telas
      só define um onSurfaceVariant. Overline volta a usar onSurfaceVariant
      puro (era on-surface-variant-2 na migração anterior).
@@ -48,7 +48,7 @@
      compatibilidade com aliases antigos, mas com o hex ANTERIOR (não
      confirmado por nenhum dos dois documentos do projeto Claude Design) —
      marcado abaixo como não-confirmado. Não usar em artefato novo sem
-     validar com a Lia.
+     validar com Claudete (via `/design-check`).
    - Tipografia: fonte única do app confirmada pelo Fluxo de Telas — 'Google
      Sans Flex', 'Google Sans', 'Roboto', system-ui, sans-serif para TODOS os
      estilos (não mais split Google Sans Flex/Roboto por camada). Consistente
@@ -77,7 +77,7 @@
 
   /* ---- Tertiary (NÃO especificado pelo Fluxo de Telas — legado do manual
      MD3 anterior, mantido só por compatibilidade de alias; não usar em
-     artefato novo sem validação da Lia) --------------------------------- */
+     artefato novo sem validação de Claudete via `/design-check`) ---------- */
   --md-sys-color-tertiary:               #B03A5B; /* NÃO CONFIRMADO */
   --md-sys-color-on-tertiary:            #FFFFFF; /* NÃO CONFIRMADO */
   --md-sys-color-tertiary-container:     #FFE4EC; /* NÃO CONFIRMADO */

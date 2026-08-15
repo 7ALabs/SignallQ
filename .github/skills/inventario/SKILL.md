@@ -5,6 +5,8 @@ argument-hint: "[--modulos | --componentes | --utilitarios | --workers | --tudo 
 allowed-tools: Bash(grep *), Bash(find *), Bash(cat *), Bash(sed *), Bash(head *), Bash(tail *), Bash(ls *), Bash(awk *)
 ---
 
+**Dono:** Camilo. **Modelo sugerido:** Haiku — leitura mecânica de disco, sem julgamento.
+
 ## Quando usar
 
 **Antes** de:

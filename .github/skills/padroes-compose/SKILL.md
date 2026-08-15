@@ -2,8 +2,12 @@
 description: Checklist e padrões de implementação Jetpack Compose para o SignallQ — estrutura de Screen, ViewModel, StateFlow, estados visuais e anti-padrões a evitar.
 ---
 
+**Dono:** Camilo. **Modelo sugerido:** Sonnet.
+
 ## Quando usar
-Antes de implementar ou revisar código Compose no SignallQ.
+Antes de implementar ou revisar código Compose no SignallQ. Para checar o resultado contra os
+tokens visuais depois de implementado, use `/design-check` — esta skill cobre a estrutura
+Compose/arquitetura, não substitui a checagem de token.
 
 ## Padrões obrigatórios
 

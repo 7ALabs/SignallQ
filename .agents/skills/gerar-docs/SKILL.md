@@ -3,7 +3,9 @@ name: gerar-docs
 description: Gera documentação completa e atualizada para o projeto SignallQ (Android Kotlin) — funcional, técnica, testes, fluxos, design, PPT e HTML. Audita documentação existente antes de criar qualquer coisa nova, move obsoleta para .old, e adequa estilo ao público-alvo (humano ou IA).
 ---
 
-Skill de geração e atualização de documentação. Conduzida por **Caio** (revisão independente) e **Claudete** (produto/portfólio) conforme o tipo de documento — ver ADR-016.
+Skill de geração e atualização de documentação. **Dono:** Camilo (técnica) e Claudete (funcional/
+produto) conduzem conforme o tipo de documento; Caio revisa quando o documento cobre arquitetura,
+segurança ou release — ver ADR-016. **Modelo sugerido:** Sonnet.
 
 $ARGUMENTS
 
@@ -372,7 +374,7 @@ Usar ferramentas nativas (Glob, Grep, Read) para buscas em código e documentaç
 | Comportamento técnico SignallQ Admin/Console | Camilo |
 | Validação de device real, OEM, API level | `/regras-android` |
 | Decisão de arquitetura, fluxo de dados | Claudete |
-| Estados visuais, microcopy, MD3 | Juliana |
+| Estados visuais, microcopy, MD3 | `/design-check` + Claudete |
 | QA, bugs conhecidos, risco documentado | Caio |
 | Direção de produto | Claudete |
 

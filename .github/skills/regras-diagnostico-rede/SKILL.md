@@ -3,6 +3,8 @@ name: regras-diagnostico-rede
 description: Centraliza thresholds de diagnóstico de rede, padrões técnicos brasileiros (ANATEL), topologia doméstica (CGNAT, duplo-NAT), Wi-Fi, Fibra e redes móveis (4G/5G). Consultar antes de implementar qualquer engine de diagnóstico.
 ---
 
+**Dono:** Camilo. **Modelo sugerido:** Sonnet.
+
 ## Quando usar
 Antes de implementar thresholds de sinal, análise de velocidade, detecção de topologia, qualidade celular ou qualquer engine de diagnóstico de rede.
 

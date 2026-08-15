@@ -2,6 +2,9 @@
 description: Protocolo Ktlint — regras para suppressão no .editorconfig e cleanup de violações. Evita acúmulo de dívida técnica por supressões em massa.
 ---
 
+**Dono:** Camilo. **Modelo sugerido:** Sonnet; Haiku para supressão emergencial simples com issue
+já registrada.
+
 ## Quando usar
 
 Invocar **antes** de suprimir qualquer regra Ktlint no `.editorconfig`, ou ao deparar com violações que bloqueiam CI.
@@ -67,7 +70,7 @@ Se Ktlint bloqueia um PR de feature/refactor e não há tempo para cleanup compl
 
 ```ini
 # .editorconfig
-[app/src/main/kotlin/io/linka/...]
+[app/src/main/kotlin/io/veloo/app/kotlin/...]
 # Tracked in Issue #XXX — cleanup pendente
 ktlint_standard_<regra> = disabled
 ```
