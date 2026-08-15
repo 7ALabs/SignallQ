@@ -1,3 +1,13 @@
+---
+title: "ADR-007 — iOS: scaffolding criado, agente adiado"
+description: "Superseded por ADR-014 e reforçado por ADR-015 em 2026-08-15. Registro histórico da decisão de 2026-06-24 de não criar agente iOS enquanto o app estava adiado; hoje iOS está permanentemente fora do escopo da marca."
+type: "adr"
+status: "deprecated"
+owner: "Luiz (CEO)"
+last_updated: "2026-08-15"
+version: "2.0.0"
+---
+
 # ADR-007 — iOS: scaffolding criado, agente adiado
 
 > **⚠️ SUPERSEDED por [ADR-014](ADR-014-squad-canonico-ai-governance.md) em 2026-08-15
