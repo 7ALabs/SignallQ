@@ -4,14 +4,6 @@ minSdk = "24"
 targetSdk = "36"
 versionCode = "72"
 versionName = "0.31.0"
-# SignallQ Pro (io.signallq.pro) — contador PROPRIO, separado do consumidor acima (issue
-# #1157/#1119). Nunca incrementar junto com versionCode/versionName do consumidor: sao produtos,
-# Firebase/Play e trilhas de release distintos (ver docs_ai/pro-onhold/13_..._v1.md §1.3).
-# Mesma regra do consumidor (ver secao "Release Process" do CLAUDE.md): nunca gerar/distribuir
-# um APK do Pro sem incrementar proVersionCode antes. proVersionName sobe em marco funcional
-# real (nao a cada build), fica em 0.x.y ate o primeiro release em trilha real.
-proVersionCode = "8"
-proVersionName = "0.3.0"
 coreKtx = "1.19.0"
 activityKtx = "1.13.0"
 material = "1.14.0"
