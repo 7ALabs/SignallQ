@@ -3,10 +3,11 @@
 - **Status:** ativo
 - **Última validação:** 2026-07-23
 - **Fonte de verdade das datas:** GitHub issue
-  [#1222](https://github.com/7ALabs/SignallQ/issues/1222) e
-  `docs_ai/decisions/DECISAO_CRONOGRAMA_LANCAMENTO_2026-07-20.md` — lançamento público (M5) em
-  **21/08/2026** (revisão mais recente, substitui o 07/08 abaixo, que é de 2026-07-17). Datas de
-  M4 não reconfirmadas contra a decisão de 2026-07-20 — tratar como **[a confirmar]**.
+  [#1222](https://github.com/7ALabs/SignallQ/issues/1222) — a data de 21/08/2026 (M5) citada em
+  revisões anteriores desta doc não está mais confirmada (ver comentários da issue a partir de
+  2026-07-25). `docs_ai/decisions/DECISAO_CRONOGRAMA_LANCAMENTO_2026-07-20.md` foi removido na
+  Fase 4d do épico #1623 (git preserva). Datas de M4 seguem **[a confirmar]** diretamente na
+  issue.
 
 ## Visão Geral
 

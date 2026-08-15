@@ -3,11 +3,12 @@
 - **Status:** ativo
 - **Última validação:** 2026-07-23
 - **Fonte de verdade das datas de milestone:** GitHub issue
-  [#1222](https://github.com/7ALabs/SignallQ/issues/1222) e
-  `docs_ai/decisions/DECISAO_CRONOGRAMA_LANCAMENTO_2026-07-20.md` — **não este documento**.
-  Lançamento público confirmado em **21/08/2026**. As datas de M2/M4 abaixo são de uma revisão
-  anterior (28/06) e não foram reconfirmadas contra a decisão de 2026-07-20 — tratar como
-  **[a confirmar]** até checar a issue #1222 diretamente.
+  [#1222](https://github.com/7ALabs/SignallQ/issues/1222) — **não este documento**. A data de
+  21/08/2026 citada em revisões anteriores desta doc não está mais confirmada (ver comentários da
+  issue a partir de 2026-07-25); `docs_ai/decisions/DECISAO_CRONOGRAMA_LANCAMENTO_2026-07-20.md`
+  foi removido na Fase 4d do épico #1623 (git preserva). As datas de M2/M4 abaixo são de uma
+  revisão anterior (28/06) e não foram reconfirmadas — tratar como **[a confirmar]** até checar a
+  issue #1222 diretamente.
 - **Escopo:** critérios de entrada/saída de cada fase de beta
 
 ## Closed Beta (M2 — [a confirmar, ver issue #1222])
