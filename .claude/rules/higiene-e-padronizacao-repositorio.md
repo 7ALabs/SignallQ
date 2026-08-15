@@ -1,7 +1,7 @@
 # Regra permanente — Higiene e padronização do repositório
 
 - **Status:** ativo
-- **Última validação:** 2026-08-06 (referências cruzadas religadas; conteúdo das seções não revalidado)
+- **Última validação:** 2026-08-15 (§4.1 marcada RESOLVIDA após migração de 525 arquivos io/veloo → io/signallq; §4.2–§4.8 com paths atualizados)
 - **Fonte de verdade:** este arquivo (`.claude/rules/higiene-e-padronizacao-repositorio.md`) — não duplicar em `docs_ai/`, `AGENTS.md`, mirrors ou docs de módulo
 - **Escopo:** repositório `buildea-labs/signallq` (monorepo SignallQ) inteiro — Android, Admin, Cloudflare, docs
 - **Responsável:** Claudete (dono do processo). Esta regra se aplica a todos os agentes autorizados e aplicáveis ao repositório, conforme a governança canônica em ../ai-governance, e a qualquer sessão humana no repo.
@@ -98,26 +98,21 @@ caminhos ou nomes de classes, confirme diretamente nas fontes acima.
 Dívidas conhecidas do repositório, validadas em 2026-07-15. Reconfirme se ainda existem antes de
 agir — não presuma que seguem exatas conforme o tempo passa.
 
-### 4.1 Caminho físico legado de packages (`io/veloo` vs `io.signallq.app`)
+### 4.1 Caminho físico legado de packages (`io/veloo` vs `io.signallq.app`) — RESOLVIDO (2026-08-15)
 
-Validado: **460 arquivos `.kt`** ainda residem fisicamente em caminhos `io/veloo/app/kotlin/...`
-(ex.: `android/app/src/main/kotlin/io/veloo/app/kotlin/`) apesar de declararem
-`package io.signallq.app...` — divergência confirmada em **15 dos 16 módulos** (`:app`,
-`core/database`, `core/datastore`, `core/network`, `core/permissions`, `core/telephony`, e todos os
-9 módulos `feature/*`). Só `core/recommendation` já nasceu fisicamente em `io/signallq/` (módulo
-criado depois do rebrand, issue #790).
+Migração concluída em 2026-08-15 (issue #1645, épico de 1 PR). **525 arquivos `.kt`** foram
+movidos de `io/veloo/app/kotlin/` para `io/signallq/app/` em todos os 15 módulos afetados
+(`:app`, `core/database`, `core/datastore`, `core/network`, `core/permissions`, `core/telephony`,
+e todos os 9 módulos `feature/*`), preservando blame via `git mv`. Nenhuma alteração de
+`package` foi necessária — os arquivos já declaravam `io.signallq.app.*`; o path físico agora
+está alinhado ao package Kotlin.
 
-O destino padronizado é `android/<modulo>/src/<sourceSet>/kotlin/io/signallq/app/...`.
-
-Não mover apenas um ou dois arquivos oportunisticamente — isso criaria duas árvores físicas
-concorrentes. A migração deve ser tarefa dedicada e atômica, cobrindo: `main`, `test`,
-`androidTest`, imports, resources relacionados, schemas, regras de ProGuard, scripts, documentação,
-referências de CI. Até essa migração acontecer, não criar novos arquivos dentro de novos
-subdiretórios `io/veloo`.
+Estado atual: **zero arquivos** em `android/**/kotlin/io/veloo/**`. Não recriar essa árvore.
+Todo código novo nasce em `android/<modulo>/src/<sourceSet>/kotlin/io/signallq/app/...`.
 
 ### 4.2 `MainViewModel.kt`
 
-Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/MainViewModel.kt` — **2191 linhas**
+Caminho real: `android/app/src/main/kotlin/io/signallq/app/MainViewModel.kt` — **2191 linhas**
 (acima do limiar de "dívida crítica" da seção 7). Concentra responsabilidades demais e não deve
 continuar crescendo indiscriminadamente.
 
@@ -132,7 +127,7 @@ Ao tocar nele:
 
 ### 4.3 `AppShell.kt`
 
-Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/AppShell.kt` — **1146
+Caminho real: `android/app/src/main/kotlin/io/signallq/app/ui/screen/AppShell.kt` — **1146
 linhas** (acima do limiar de extração obrigatória da seção 7). Deve ser shell de composição e
 navegação, não depósito de regras de negócio.
 
@@ -143,7 +138,7 @@ chamar isso de modularização.
 
 ### 4.4 `AjustesScreen.kt`
 
-Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/AjustesScreen.kt` — **771
+Caminho real: `android/app/src/main/kotlin/io/signallq/app/ui/screen/AjustesScreen.kt` — **771
 linhas** (acima do limiar de extração obrigatória da seção 7, mas diminuiu de 809 em relação ao último audit). Ainda contém múltiplos fluxos e
 componentes.
 
@@ -153,7 +148,7 @@ agrupe por responsabilidade do usuário, não crie arquivos genéricos como `Aju
 
 ### 4.5 `HomeScreen.kt`
 
-Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/HomeScreen.kt` — **3938
+Caminho real: `android/app/src/main/kotlin/io/signallq/app/ui/screen/HomeScreen.kt` — **3938
 linhas** (acima do limiar de "dívida crítica" da seção 7). Concentra a tela Início e múltiplas sheets
 (Meu dispositivo, Internet/Provedor, Rede móvel, Medir agora, mais SignalQualitySheet,
 QualidadePlaceholderSheet, MedicaoTipoSheet).
@@ -170,7 +165,7 @@ Ao tocar nele:
 
 ### 4.6 `EquipamentoInternetScreen.kt` — RESOLVIDO (atualizado 2026-07-24)
 
-Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/EquipamentoInternetScreen.kt`
+Caminho real: `android/app/src/main/kotlin/io/signallq/app/ui/screen/EquipamentoInternetScreen.kt`
 — **550 linhas** (abaixo do limiar de extração obrigatória da seção 7). A entrada anterior desta
 seção citava 1549 linhas; o número está desatualizado — o redesign de 2026-07-18 (bug #6, spec de design)
 já extraiu os painéis por capacidade em componentes próprios no mesmo pacote:
@@ -186,7 +181,7 @@ seção se o arquivo voltar a crescer.
 
 ### 4.7 `DispositivosScreen.kt`
 
-Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/DispositivosScreen.kt` — **1386 linhas** (acima do limiar de "dívida crítica" da seção 7). Concentra a lista de dispositivos conectados com sheets de detalhe.
+Caminho real: `android/app/src/main/kotlin/io/signallq/app/ui/screen/DispositivosScreen.kt` — **1386 linhas** (acima do limiar de "dívida crítica" da seção 7). Concentra a lista de dispositivos conectados com sheets de detalhe.
 
 Ao tocar nele:
 1. identifique qual sheet ou fluxo de detalhe está sendo modificado;
@@ -198,7 +193,7 @@ Ao tocar nele:
 
 ### 4.8 `JogosScreen.kt` — RESOLVIDO (removido em 2026-07-26)
 
-Caminho antigo: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/JogosScreen.kt` —
+Caminho antigo: `android/app/src/main/kotlin/io/signallq/app/ui/screen/JogosScreen.kt` —
 **1120 linhas** (acima do limiar de extração obrigatória da seção 7). Concentrava o fluxo de
 teste direcionado por jogo com 5 etapas (GH#935).
 
@@ -251,10 +246,11 @@ Features não podem depender diretamente de outras features. A composição entr
 ### 4.10 Documentação divergente
 
 Valide antes de confiar: referências antigas a versões anteriores, quantidades antigas de módulos,
-caminhos `io/veloo`, nomes antigos da marca, navegação anterior, agentes arquivados, issues antigas,
-telas ou superfícies descontinuadas, módulos que já mudaram de localização. Ao modificar uma
-funcionalidade, atualize somente a documentação diretamente relacionada — não revise todos os
-documentos do projeto dentro de uma tarefa comum.
+caminhos legados `io/veloo` (path físico removido em 2026-08-15 — ver §4.1), nomes antigos da
+marca, navegação anterior, agentes arquivados, issues antigas, telas ou superfícies descontinuadas,
+módulos que já mudaram de localização. Ao modificar uma funcionalidade, atualize somente a
+documentação diretamente relacionada — não revise todos os documentos do projeto dentro de uma
+tarefa comum.
 
 ### 4.11 Espaçamento hardcoded em vez de token (Android)
 
