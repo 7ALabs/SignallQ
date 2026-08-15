@@ -336,10 +336,19 @@ function nowSec(): number {
 }
 
 // GH#1342/#1344 (migration 016) — grava uma linha de histórico append-only por sync, além do
-// cache "última sincronização" em admin_settings. Sem isso, nenhuma das integrações de Google
-// Play/Firebase teria série temporal pra plotar tendência (ChartCard) ou correlacionar por
-// período — cada sync sobrescrevia o anterior. payload é sempre o JSON bruto do registro
-// completo, nunca só o valor numérico, para preservar campos novos que a fonte adicionar depois.
+// cache "última sincronização" em admin_settings.
+//
+// ATENÇÃO — trim de 2026-07-24 (revisão de arquitetura da Claudete, doc de decisão removido em
+// docs_ai/decisions/ na Fase 4d do épico #1623, git preserva por SHA): este helper é reservado
+// EXCLUSIVAMENTE a métricas numéricas de série temporal genuína, com necessidade real (não
+// hipotética) de plotar tendência. Hoje isso é só Play Developer Reporting/ANR — único caller
+// autorizado é a linha ~3165. Firebase Management, Remote Config, App Check, App Distribution e
+// FCM Data API foram deliberadamente REMOVIDOS como callers: são estado/config pontual, já
+// servidos por admin_settings (cache de "última sincronização"), sem requisito de produto pra
+// histórico. NÃO adicionar chamada nova aqui pra nenhuma dessas 5 integrações — se um requisito
+// real de tendência aparecer, desenhar a modelagem daquele caso específico, não reverter o trim
+// por comodidade. payload é sempre o JSON bruto do registro completo, nunca só o valor numérico,
+// para preservar campos novos que a fonte adicionar depois.
 async function recordIntegrationSnapshot(env: Env, params: {
   provider: string;
   service: string;
@@ -3162,6 +3171,8 @@ async function syncSimpleVitalsMetric(env: Env, config: SimpleVitalsMetricConfig
     rangeStart: startDate.toISOString().slice(0, 10),
     rangeEnd: endDate.toISOString().slice(0, 10),
   };
+  // Único caller autorizado de recordIntegrationSnapshot — ver comentário do helper (trim de
+  // 2026-07-24). Não replicar esta chamada para outras integrações Play/Firebase.
   await recordIntegrationSnapshot(env, {
     provider: "google_play", service: "play_developer_reporting", resource: state.source.resource,
     metric: config.metricName, periodStart: state.rangeStart, periodEnd: state.rangeEnd,
