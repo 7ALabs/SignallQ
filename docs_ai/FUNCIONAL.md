@@ -550,6 +550,29 @@ positivo (`SignallQApplication.kt:123-126`).
 
 ## 7. Limitações conhecidas
 
+### 7.0 Contrato central de anúncios nativos
+
+Os cinco slots existentes permanecem `VELOCIDADE`, `RESULTADO`, `DISPOSITIVOS`, `HISTORICO` e
+`JOGOS`; não há anúncio na Início. `NativeAdLoadState` distingue inelegível por flag ou
+consentimento, loading, fill, no-fill, erro recuperável e offline. Somente `Fill` produz UI:
+loading/no-fill/erro/offline ocupam zero espaço e nunca bloqueiam conteúdo ou CTA.
+
+`rememberNativeAdState` preserva uma sessão por chave estável de slot/configuração, evita novo
+request por recomposição e destrói o `NativeAd` quando a composição sai ou a chave muda. Não há
+cache global nem preload: um fill pertence somente ao lifecycle do placement que o solicitou. O
+wrapper `rememberNativeAd` permanece temporariamente para os cinco callsites legados; cada tela o
+migrará em sua própria fatia.
+
+Remote Config continua fail-safe desligado e `canRequestAds` da UMP precede todo request. O estado
+sem consentimento mantém a funcionalidade integral. Sinais contextuais continuam limitados ao slot
+e vocabulário fechado sanitizado, sem SSID, IP, identificador de dispositivo ou texto livre.
+
+Não existe consumidor autorizado de paid event/revenue no contrato atual. A especificação
+preliminar seria `anuncio_receita_registrada` (`valor_micros: Long`, `moeda: String`,
+`precisao: String`), disparada uma vez pelo callback pago do SDK e nunca em request/load/impressão.
+Como não há tracker/contrato aprovado para esse dado, o evento **não foi implementado**; não se
+inventou backend, conversão monetária ou propriedade identificadora.
+
 **Equipamento de fibra — só Nokia.** O único driver com implementação real é o **Nokia G-1425G-B**:
 cliente HTTP autenticado, parsers de GPON/WAN/PPP/Wi-Fi/LAN/clientes, perfil óptico versionado com
 classificador de Rx/Tx e ação de reboot — tudo em
