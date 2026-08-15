@@ -83,6 +83,6 @@ Regra prática: se o pior caso da mudança é "quebra 1 tela até o próximo com
 
 - Contrato operacional: [`ai-governance/policies/agent-operating-contract.md`](../../../ai-governance/policies/agent-operating-contract.md)
 - ADR-016 (portfólio): [`docs_ai/decisions/ADR-016-portfolio-buildea.md`](../../docs_ai/decisions/ADR-016-portfolio-buildea.md)
-- Skills de apoio: `/inventario`, `/verificar-modulo`, `/regras-android`, `/regras-diagnostico-rede`, `/motor-diagnostico`, `/padroes-compose`, `/cloudflare-d1-console`, `/protocolo-ci-android`, `/protocolo-ktlint`, `/handoff`, `/check-done`
+- Skills de apoio: `/inventario`, `/verificar-modulo`, `/regras-android`, `/regras-diagnostico-rede`, `/motor-diagnostico`, `/padroes-compose`, `/cloudflare-d1-console`, `/protocolo-ci-android`, `/protocolo-ktlint`, `/design-check`, `/analytics-spec`, `/handoff`, `/check-done`
 - Regra de higiene: [`.claude/rules/higiene-e-padronizacao-repositorio.md`](../rules/higiene-e-padronizacao-repositorio.md)
 - Peer: [Claudete](claudete.md) (PM), [Caio](caio.md) (revisor)

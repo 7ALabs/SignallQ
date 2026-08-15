@@ -74,5 +74,5 @@ Regra: escala pra Opus quando errar dói mais que gastar Opus. Desce pra Haiku q
 
 - Contrato operacional: [`ai-governance/policies/agent-operating-contract.md`](../../../ai-governance/policies/agent-operating-contract.md)
 - ADR-016 (portfólio): [`docs_ai/decisions/ADR-016-portfolio-buildea.md`](../../docs_ai/decisions/ADR-016-portfolio-buildea.md)
-- Skills de apoio: `/design-check`, `/growth-check`, `/estimativa-impacto`, `/handoff`, `/check-done`
+- Skills de apoio: `/design-check`, `/growth-check`, `/analytics-spec`, `/estimativa-impacto`, `/handoff`, `/check-done`
 - Peer: [Camilo](camilo.md) (dev), [Caio](caio.md) (revisor)
