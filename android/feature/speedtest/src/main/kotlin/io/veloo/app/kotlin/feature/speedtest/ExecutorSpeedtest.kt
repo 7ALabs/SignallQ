@@ -13,8 +13,8 @@ interface ExecutorSpeedtest {
         /** GH#1221 RF-01 — resolve se a rede ATUAL (no momento do teste, nao na criacao do
          *  singleton) e metered/movel, para o executor escolher o perfil de pool HTTP
          *  correto (menos conexoes em rede movel). Quando nulo, mantem o valor passado na
-         *  construcao do executor (comportamento anterior, usado por callers que nao
-         *  monitoram rede — ex.: SignallQ Pro). */
+         *  construcao do executor (comportamento anterior, para callers que nao monitoram
+         *  rede). */
         isMobileProvider: (() -> Boolean)? = null,
     )
 

@@ -152,7 +152,7 @@ fun LaudoScreen(
                 title = {
                     // GH#1219 item 2 — "Laudo Técnico"/"Laudo de diagnóstico" sugere documento
                     // pericial (responsável técnico, metodologia completa, cadeia de custódia),
-                    // que este relatório B2C não tem. Nome reservado ao SignallQ Pro.
+                    // que este relatório B2C não tem. Não renomear para "Laudo".
                     Text(
                         "Relatório de diagnóstico",
                         style = MaterialTheme.typography.titleLarge,

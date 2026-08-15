@@ -49,7 +49,7 @@ import io.signallq.app.ui.component.SignalBars
 /**
  * Ferramenta "Sinal WiFi" (GH#1201) do hub Ferramentas -- indicador dinâmico de sinal Wi-Fi
  * (RSSI/PHY rate) enquanto o usuário se movimenta pela casa, mais padrão Wi-Fi (4/5/6/6E/7) e
- * suporte a MU-MIMO. Versão contida do Walk Test do SignallQ Pro (pedido explícito do Luiz).
+ * suporte a MU-MIMO.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

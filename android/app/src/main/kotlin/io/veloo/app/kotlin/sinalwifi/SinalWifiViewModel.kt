@@ -32,7 +32,7 @@ data class SinalWifiUiState(
  *
  * Amostra [WifiManager.getConnectionInfo] em polling periódico -- o `MonitorRede`/`NetworkCallback`
  * de `:coreNetwork` é orientado a evento e não dispara de forma confiável em variação pura de RSSI
- * dentro da mesma rede conectada (mesma decisão do Walk Test do SignallQ Pro, ver issue #1176).
+ * dentro da mesma rede conectada (ver issue #1176).
  */
 class SinalWifiViewModel(
     private val wifiManager: WifiManager,

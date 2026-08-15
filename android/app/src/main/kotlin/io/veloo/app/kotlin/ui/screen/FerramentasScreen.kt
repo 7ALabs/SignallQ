@@ -170,8 +170,8 @@ fun FerramentasScreen(
                         onClick = onAbrirJogos,
                     ),
                 )
-                // GH#1201 — nova ferramenta "Sinal WiFi": indicador dinâmico de RSSI/PHY/padrão
-                // via polling manual (versão contida do Walk Test do SignallQ Pro, ver #1176).
+                // GH#1201 — ferramenta "Sinal WiFi": indicador dinâmico de RSSI/PHY/padrão via
+                // polling manual (ver #1176).
                 add(
                     FerramentaItem(
                         tipo = TipoFerramenta.SINAL_WIFI,
