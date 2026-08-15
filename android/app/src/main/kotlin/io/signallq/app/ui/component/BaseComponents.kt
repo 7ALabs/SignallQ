@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -27,6 +28,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.signallq.app.ui.LkElevation
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
@@ -52,6 +54,28 @@ fun LkSurfaceCard(
                 ).padding(LkSpacing.base),
         content = content,
     )
+}
+
+/**
+ * Superfície de card Foundations 2.0. A API separada torna a migração explicitamente opt-in;
+ * [LkSurfaceCard] permanece com assinatura e comportamento legados até cada fatia ser validada.
+ */
+@Composable
+fun SignallQSurfaceCard(
+    modifier: Modifier = Modifier,
+    elevated: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val c = LocalLkTokens.current
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.medium,
+        color = if (elevated) c.cardSurfaceElevated else c.cardSurface,
+        tonalElevation = if (elevated) LkElevation.level2 else LkElevation.level0,
+        shadowElevation = if (elevated) LkElevation.level1 else LkElevation.level0,
+    ) {
+        Column(modifier = Modifier.padding(LkSpacing.cardContent), content = content)
+    }
 }
 
 @Composable

@@ -44,6 +44,10 @@ O `signallq-admin-worker` é **deste** repositório, embora o painel Admin que o
 | Documento | Conteúdo |
 |---|---|
 | [`HISTORIA.md`](./HISTORIA.md) | Origem, propósito e princípios que explicam por que o SignallQ existe |
+| [`POSICIONAMENTO_PRODUTO.md`](./POSICIONAMENTO_PRODUTO.md) | Diretriz obrigatória de produto para Android e Web/PWA |
+| [`design-system/SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md`](./design-system/SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md) | Direção futura de identidade e experiência compartilhada (draft) |
+| [`functional/JORNADA_ANDROID_GUIADA_2_SPEC.md`](./functional/JORNADA_ANDROID_GUIADA_2_SPEC.md) | Arquitetura futura da jornada Android orientada por sintomas (draft) |
+| [`prototypes/open-design-signallq-android-v2/`](./prototypes/open-design-signallq-android-v2/) | Pacote para gerar e revisar o primeiro protótipo Android 2.0 no Open Design |
 | [`FUNCIONAL.md`](./FUNCIONAL.md) | O que o app faz — navegação, telas, funcionalidades, permissões |
 | [`TECNICO.md`](./TECNICO.md) | Como é construído — stack, build, Workers, persistência, analytics, segurança |
 | [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) | Cores, tipografia, espaçamento, componentes, tokens |
@@ -64,6 +68,7 @@ O `signallq-admin-worker` é **deste** repositório, embora o painel Admin que o
 | `technical/` | Referências técnicas pontuais: schema da Admin API, mapas de campo de equipamento (Intelbras, Nokia, TP-Link), fluxo de IA, ping executor |
 | `functional/` | Specs funcionais que não migraram para `FUNCIONAL.md` |
 | `design-system/` | Decisões de design (tokens, paleta, topbar) — conteúdo vigente em `DESIGN_SYSTEM.md` |
+| `prototypes/` | Pacotes de prototipação e checklists; não são fonte canônica de produto ou implementação |
 | `legal/` | Política de privacidade e termos de uso — **instrumentos jurídicos, não editar sem revisão** |
 | `templates/` | Modelos para documento novo (técnico, funcional, ADR, runbook) |
 | `_archive/` | Vazia por decisão — ver [`_archive/README.md`](./_archive/README.md) |

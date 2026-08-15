@@ -20,15 +20,21 @@ fidelidade/resolução, gerar de novo a partir do projeto Claude Design de orige
 anteriores (2334×784) — adequado para a maioria dos usos web/mobile, mas sem a mesma folga de
 upscaling do arquivo anterior.
 
+**Pacote premium regenerado em 2026-08-15:** `scripts/generate-signallq-brand-assets.py` é a
+fonte determinística dos ícones derivados. O símbolo oficial não é redesenhado; o script aplica
+somente escala, safe area, fundo, máscara e exportação. O launcher Android usa fundo quase-preto
+`#0D0D1A`, alinhado à expressão premium aprovada. As variantes claras continuam disponíveis para
+contextos que exijam fundo branco.
+
 **Pendência aberta (fora do escopo desta rodada, sinalizada e não executada):**
 - Favicon do `SignallQ Admin/public/` continua com o símbolo antigo — mesma regeneração
   pendente, não feita nesta rodada (só `brand/` e `SignallQ Site/` foram atualizados).
 
-**Ícone do launcher Android — sincronizado em 2026-08-01 (issue #1554):** os mipmaps em
+**Ícone do launcher Android — sincronizado em 2026-08-15:** os mipmaps em
 `android/app/src/main/res/mipmap-*/ic_launcher*` foram regenerados a partir de
-`signallq-symbol-1024.png` (script determinístico, sem edição manual), substituindo o símbolo
-antigo (4 barras). Detalhe em "Ícone do app (Android)" abaixo. Falta um release novo pra valer em
-produção (Play Store ainda distribui o build com o ícone antigo até o próximo bump de versão).
+`signallq-symbol-1024.png` pelo script versionado, preservando o símbolo anéis + Q e adotando o
+fundo premium quase-preto. Detalhe em "Ícone do app (Android)" abaixo. Falta um release novo para
+qualquer alteração valer em produção.
 
 ## Arquivos
 
@@ -38,7 +44,7 @@ produção (Play Store ainda distribui o build com o ícone antigo até o próxi
 | `signallq-symbol-512.png` | Mesmo símbolo, 512px (usos menores / web). |
 | `signallq-lockup-light-bg.png` | Lockup horizontal (símbolo + wordmark) para **fundos claros** — "Signall" em quase-preto, "Q" em violeta. |
 | `signallq-lockup-dark-bg.png` | Lockup horizontal para **fundos escuros** — "Signall" em branco, "Q" em violeta. |
-| `signallq-feature-graphic-1024x500.png` | Feature graphic da Play Store (banner 1024×500) — **ainda com o símbolo antigo, não coberto pelo protótipo desta rodada**. |
+| `signallq-feature-graphic-1024x500.png` | Feature graphic premium da Play Store (1024×500), com símbolo atual, mensagem e CTA. |
 | `signallq-icon-512-play-store.png` | Ícone de app para listagem da Play Store (512×512), fundo branco sólido. |
 | `signallq-icon-512-play-store-dark.png` | Mesmo ícone, fundo escuro `#131217` (novo nesta rodada). |
 | `signallq-icon-1024-app-store.png` / `-dark.png` | Mesmo ícone em 1024×1024, fundo claro/escuro (novo nesta rodada — reserva para uma eventual listagem iOS/App Store; SignallQ não publica em iOS hoje). |
@@ -48,7 +54,7 @@ produção (Play Store ainda distribui o build com o ícone antigo até o próxi
 - **Símbolo:** anéis concêntricos (2 arcos + ponto central, referência a sinal/radar) com um
   traço que se estende formando a "cauda" do "Q" (lupa), em degradê **azul → violeta** da
   esquerda para a direita. Fundo transparente na versão isolada; fundo branco sólido ou
-  `#131217` nas versões "-dark" usadas como ícone de app.
+  `#0D0D1A` nas versões "-dark" usadas como ícone de app.
 - **Wordmark:** "SignallQ" — "Signall" em `#0D0D1A` (fundo claro) ou branco (fundo escuro),
   e o **"Q" em violeta `#6C2BFF`**.
 
@@ -66,19 +72,18 @@ O ícone do app deriva do **símbolo**. Os recursos em
 `android/app/src/main/res/mipmap-*/ic_launcher*` devem sempre corresponder a
 `signallq-symbol-1024.png`. Ao atualizar a marca, regenerar os mipmaps a partir deste símbolo.
 
-**Sincronizado em 2026-08-01 (issue #1554).** Os 5 arquivos por densidade
+**Sincronizado em 2026-08-15.** Os 5 arquivos por densidade
 (`ic_launcher_foreground`, `ic_launcher_background`, `ic_launcher_monochrome`, `ic_launcher`
 legado, `ic_launcher_round` legado, em `mdpi`/`hdpi`/`xhdpi`/`xxhdpi`/`xxxhdpi`) foram regenerados
 a partir de `signallq-symbol-1024.png`. Detalhe da geração:
-- `ic_launcher_background`: branco sólido opaco (mesma decisão de antes — o símbolo já carrega
-  degradê próprio, sem precisar de fundo colorido).
+- `ic_launcher_background`: quase-preto `#0D0D1A`, acabamento principal aprovado para o ícone.
 - `ic_launcher_foreground`/`ic_launcher_monochrome`: símbolo recortado (trim de transparência) e
   redimensionado mantendo aspect ratio, ocupando 62,5% da altura do canvas 108dp — mesma
   proporção de safe-zone medida no ícone antigo (4 barras: 62,5% de altura, 71,3% de largura no
   canvas 432px/xxxhdpi), sem inventar margem nova. `ic_launcher_monochrome` é a silhueta branca
   (alpha do símbolo, sem cor) do mesmo recorte, para o ícone temático do Android 13+.
 - `ic_launcher`/`ic_launcher_round` (legado pré-API26): mesmo recorte/proporção, achatado sobre
-  fundo branco opaco (`ic_launcher_round` com máscara circular, corners transparentes).
+  fundo quase-preto (`ic_launcher_round` com máscara circular e cantos transparentes).
 - `mipmap-anydpi-v26/ic_launcher.xml` não mudou — o adaptive icon já referenciava os três layers via
   `@mipmap/`.
 - **Achado na verificação em emulador (2026-08-01):** a regeneração inicial dos PNGs não bastou —
@@ -104,13 +109,12 @@ funciona em fundo claro ou escuro sem precisar de variante própria).
 | `favicon.ico` | Favicon multi-resolução (16/32/48px) | Transparente |
 | `favicon-16.png` / `favicon-32.png` / `favicon-48.png` | Favicon PNG por tamanho | Transparente |
 | `icon-192.png` / `icon-512.png` | PWA `manifest.json` (`purpose` padrão) | Transparente |
-| `icon-192-maskable.png` / `icon-512-maskable.png` | PWA `manifest.json` (`purpose: maskable`) | Branco `#FFFFFF`, símbolo a ~62% (zona segura) |
-| `apple-touch-icon.png` (180×180) | iOS home screen | Branco `#FFFFFF` (iOS não aceita transparência) |
+| `icon-192-maskable.png` / `icon-512-maskable.png` | PWA `manifest.json` (`purpose: maskable`) | Quase-preto `#0D0D1A`, símbolo a 62% (zona segura) |
+| `apple-touch-icon.png` (180×180) | Atalho web em home screen | Quase-preto `#0D0D1A`, símbolo a 72% |
 
-Aplicado em `SignallQ Site/` (`src/app/favicon.ico` + `public/icons/`) em 2026-08-01, junto da
-troca de símbolo — ver nota acima. **Ainda não reaplicado em `SignallQ Admin/public/`** (símbolo
-antigo, aplicado 2026-07-05, substituindo um ícone antigo de Wi-Fi/scan que não correspondia à
-marca) — regenerar a partir do mesmo símbolo quando essa frente for priorizada.
+O pacote canônico em `brand/favicon/` foi regenerado em 2026-08-15. Cópias em repositórios Web,
+Admin ou outros consumidores não são atualizadas automaticamente e devem ser sincronizadas em
+tarefa própria.
 
 **Pendente:** a landing page pública (`https://7agentsstudio.github.io/signallq/`) fica em
 repositório separado (`7agentsstudio` no GitHub, fora deste monorepo) — não verificado/atualizado
