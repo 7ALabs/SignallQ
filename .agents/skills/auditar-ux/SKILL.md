@@ -1,6 +1,6 @@
 ---
 name: auditar-ux
-description: Auditoria profunda de design system (tokens MD3, cores, tipografia, contraste WCAG) e de usabilidade (arquitetura de informação, fluxos, navegação, heurísticas mobile) do SignallQ Android. Conduzida por Juliana (design canônico — ver ADR-014).
+description: Auditoria profunda de design system (tokens MD3, cores, tipografia, contraste WCAG) e de usabilidade (arquitetura de informação, fluxos, navegação, heurísticas mobile) do SignallQ Android. Conduzida por Juliana (design canônico — ver ADR-016).
 ---
 
 ## Quando usar

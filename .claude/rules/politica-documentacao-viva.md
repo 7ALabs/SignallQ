@@ -242,9 +242,9 @@ quem busca, o que causa erro real.
 ### 6.3 ADRs e imutabilidade
 
 ADRs nunca são "versionados" de forma contínua. Se uma decisão muda:
-- [ ] Criar novo ADR (ADR-014 substitui ADR-013)
-- [ ] Marcar ADR-013 como `deprecated`
-- [ ] Linkar: "Ver ADR-014 para versão atual"
+- [ ] Criar novo ADR (ADR-N+1 substitui ADR-N)
+- [ ] Marcar ADR-N como `deprecated`
+- [ ] Linkar: "Ver ADR-N+1 para versão atual"
 
 ---
 

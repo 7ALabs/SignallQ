@@ -74,14 +74,18 @@ código real é a issue **#1588**.
 
 ## Decisões — `decisions/` · **preservadas, não regeneráveis**
 
-**ADRs (16):** `ADR-001` Timber · `ADR-002` Ktlint/Detekt · `ADR-003` DispatcherProvider ·
-`ADR-004` estrutura multi-módulo · `ADR-005` custo de IA e fallback · `ADR-006` workflow do squad
-*(superseded)* · `ADR-007` iOS adiado *(superseded)* · `ADR-008` features D1-only · `ADR-009`
-vocabulário de diagnóstico · `ADR-010` monetização consumer *(consolidado em ADR-016)* · `ADR-011`
-motor canônico fase 0 · `ADR-012` executionId/rulesVersion · `ADR-013` unificação latência/perda/
-upload · `ADR-014` squad canônico *(superseded por ADR-016)* · `ADR-015` plataformas Android+Web
-*(consolidado em ADR-016)* · **`ADR-016` portfólio Buildea: SignallQ + Linka como produtos
-comerciais separados, descontinua Pro/ISP/Nethal, squad de 3 agentes com personalidade**.
+**ADRs (11):** `ADR-001` Timber · `ADR-002` Ktlint/Detekt · `ADR-003` DispatcherProvider ·
+`ADR-004` estrutura multi-módulo · `ADR-005` custo de IA e fallback · `ADR-008` features D1-only ·
+`ADR-009` vocabulário de diagnóstico · `ADR-011` motor canônico fase 0 · `ADR-012` executionId/
+rulesVersion · `ADR-013` unificação latência/perda/upload · **`ADR-016` portfólio Buildea:
+SignallQ + Linka como produtos comerciais separados, descontinua Pro/ISP/Nethal, squad de 3
+agentes com personalidade**.
+
+**Removidos na Fase 3 do épico [#1623](https://github.com/buildea-labs/signallq/issues/1623)
+em 2026-08-15** (consolidados no ADR-016 ou superseded; git preserva por SHA):
+`ADR-006` workflow squad 5 (superseded); `ADR-007` iOS adiado (consolidado); `ADR-010` monetização
+consumer (consolidado); `ADR-014` squad canônico ai-governance (superseded); `ADR-015` plataformas
+Android+Web (consolidado).
 
 **Decisões de negócio (9):** consolidação do squad, cronograma de lançamento, modelo de dados de
 avaliações Google Play, modelo de dados de integrações Play/Firebase, status de credenciais,

@@ -1,6 +1,6 @@
 ---
 title: "ADR-016 — Portfólio Buildea: SignallQ e Linka como produtos comerciais separados"
-description: "Consolida ADR-010 (monetização consumer), ADR-014 (squad canônico) e ADR-015 (plataformas Android+Web). Declara SignallQ (Android+Web, freemium/ads) e Linka (Apple, pago) como os únicos produtos ativos do portfólio Buildea; descontinua Pro, ISP, Nethal e derivados."
+description: "Consolida e remove os antigos ADR-006, ADR-007, ADR-010, ADR-014, ADR-015. Declara SignallQ (Android+Web, freemium/ads) e Linka (Apple, pago) como os únicos produtos ativos do portfólio Buildea; descontinua Pro, ISP, Nethal e derivados."
 type: "adr"
 status: "ativo"
 owner: "Luiz (CEO)"
@@ -13,8 +13,8 @@ version: "1.0.0"
 - **Status:** Aceito
 - **Data:** 2026-08-15
 - **Autor:** Luiz (CEO)
-- **Consolida:** [ADR-010](ADR-010-monetizacao-consumer-gratis-ads.md), [ADR-014](ADR-014-squad-canonico-ai-governance.md), [ADR-015](ADR-015-plataformas-android-webapp.md)
-- **Reforça:** [ADR-007](ADR-007-ios-scaffolding-sem-agente.md) (iOS fora do escopo permanentemente)
+- **Consolida:** ADR-010 (monetização consumer grátis/ads), ADR-014 (squad canônico em `ai-governance/agents/`), ADR-015 (plataformas Android+Web). Todos removidos do disco na Fase 3 do épico #1623 em 2026-08-15 — git preserva por SHA.
+- **Reforça:** ADR-007 (iOS adiado — também consolidado neste ADR na Fase 3).
 
 ## Contexto
 
@@ -24,7 +24,7 @@ O portfólio Buildea acumulou hipóteses e produtos derivados ao longo do tempo:
 - **SignallQ Pro** — 13 módulos Gradle `:pro:*`, on hold desde 2026-08-06.
 - **SignallQ ISP** — nome tentativo, nunca chegou a produto.
 - **Nethal** — mencionado em decisão de consolidação 7ALabs como "segundo produto possível", nunca definido.
-- **iOS** — descontinuado em 2026-07-04 (ADR-007), reforçado como permanente em ADR-015.
+- **iOS** — descontinuado em 2026-07-04 (ex-ADR-007, hoje consolidado aqui), reforçado como permanente.
 - **Múltiplos ADRs de squad, monetização e plataforma** — divergentes, com sobreposições.
 
 Sem consolidação, cada retomada de discussão ("e se voltarmos com o Pro?", "e o Nethal?", "e o desktop?") reabre esforço estratégico em cima de algo que já foi implicitamente decidido. Este ADR fecha o portfólio.
@@ -96,7 +96,7 @@ Ficam **permanentemente fora** do portfólio Buildea:
 - **SignallQ Pro** — 13 módulos `:pro:*` a serem removidos (Fase 4a do épico #1623); docs `pro-onhold/` removidos (Fase 4b); skill `signallq-pro-design` removida (Fase 4b).
 - **SignallQ ISP** — nunca foi produto; nome descartado.
 - **Nethal** — nunca foi definido; descartado.
-- **Qualquer plataforma que não seja Android/Web (SignallQ) ou Apple (Linka)** — iOS via SignallQ, macOS/Windows/Linux desktop, wearables, TV, embedded, extensões de navegador. Reforço permanente de ADR-007 e ADR-015.
+- **Qualquer plataforma que não seja Android/Web (SignallQ) ou Apple (Linka)** — iOS via SignallQ, macOS/Windows/Linux desktop, wearables, TV, embedded, extensões de navegador. Reforço permanente do que os antigos ADR-007 e ADR-015 já diziam (ambos consolidados aqui).
 
 Se algum dia essas ideias voltarem, nascem em ADR próprio que supersede este.
 
@@ -104,10 +104,9 @@ Se algum dia essas ideias voltarem, nascem em ADR próprio que supersede este.
 
 ### Imediatas
 
-- ADR-010 (monetização consumer grátis/ads) — **consolidado neste ADR**, marcado como superseded.
-- ADR-014 (squad canônico em ai-governance/agents/) — **superseded**. Squad passa a viver em `.claude/agents/` do próprio repo (Fase 1).
-- ADR-015 (plataformas Android+Web) — **consolidado neste ADR**, marcado como superseded.
-- ADR-007 (iOS adiado) — mantém status deprecated, referência atualizada apontando para este ADR.
+- ADR-010, ADR-014, ADR-015 — **consolidados** neste ADR. Removidos do disco na Fase 3 do épico #1623 em 2026-08-15; git preserva.
+- ADR-007 (iOS adiado) — **consolidado** neste ADR. Removido do disco na mesma Fase 3.
+- ADR-006 (workflow squad de 5) — já era superseded desde 2026-08-15; removido do disco na Fase 3.
 
 ### Épico #1623 destranca
 
