@@ -4,7 +4,7 @@ description: "Aplicação Android do SignallQ Consumer — composição de featu
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-15"
 ---
 
 # `:app`
@@ -75,8 +75,7 @@ Plugins aplicados: AGP application, Kotlin Android, Compose compiler, kapt, KSP,
 ## Consumidores
 
 Nenhum. `:app` é o topo do grafo do Consumer — a busca por `project(":app")` nos
-`build.gradle.kts` do repositório não retorna nenhum consumidor. O app Pro tem seu próprio
-topo (`:pro:app`) e não depende deste módulo.
+`build.gradle.kts` do repositório não retorna nenhum consumidor.
 
 ## Componentes principais
 

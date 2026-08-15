@@ -4,7 +4,7 @@ description: "Infraestrutura de rede compartilhada: monitoramento de conexão, s
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-15"
 ---
 
 # `:coreNetwork`
@@ -52,9 +52,8 @@ Nenhuma dependência de outro módulo do monorepo. Nenhuma biblioteca HTTP (sem 
 | `:app` | `implementation` |
 | `:core:diagnostico` | `implementation` |
 | `:featureDevices`, `:featureDiagnostico`, `:featureFibra`, `:featureSpeedtest`, `:featureWifi` | `implementation` |
-| `:pro:app`, `:pro:feature:medicao-diagnostico` | `implementation` |
 
-É o módulo core mais consumido do repositório (9 consumidores diretos).
+É o módulo core mais consumido do repositório (7 consumidores diretos).
 
 ## Componentes principais
 

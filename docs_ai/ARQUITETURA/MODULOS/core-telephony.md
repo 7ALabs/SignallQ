@@ -4,7 +4,7 @@ description: "Coleta de sinal e identidade de célula da rede móvel via Telepho
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-15"
 ---
 
 # `:coreTelephony`
@@ -52,7 +52,6 @@ Regras registradas no próprio manifesto e no KDoc de `MonitorTelephonyImpl`:
 |---|---|
 | `:app` | `implementation` |
 | `:featureSpeedtest` | `implementation` |
-| `:pro:app` | `implementation` |
 
 ## Componentes principais
 

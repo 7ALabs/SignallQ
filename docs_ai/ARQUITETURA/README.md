@@ -113,7 +113,7 @@ empurra a adaptação para `HomeMedicaoAdapter.kt`, em `:app`.
 
 | Módulo | Papel | Observação |
 |---|---|---|
-| `:coreNetwork` | Sondagens de rede, contratos de analytics | **Sem lib HTTP** — `HttpURLConnection`/`Socket`/`InetAddress` amarrados à `Network` sob análise. Maior e mais consumido: 9 consumidores |
+| `:coreNetwork` | Sondagens de rede, contratos de analytics | **Sem lib HTTP** — `HttpURLConnection`/`Socket`/`InetAddress` amarrados à `Network` sob análise. Maior e mais consumido: 7 consumidores |
 | `:coreDatabase` | Room — histórico, outbox de analytics | Schema **v18**, 8 entidades, 7 DAOs, 17 migrations encadeadas |
 | `:coreDatastore` | Preferências do usuário, credenciais de modem | DataStore `linkaPreferencias` |
 | `:corePermissions` | Fluxo de permissões de rede | Sem testes |
