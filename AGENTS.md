@@ -38,16 +38,17 @@
 - **Compatibilidade:** consultar `android/gradle/libs.versions.toml` e a configuração Gradle antes de alterar versões, SDKs ou identificadores.
 - **Publicação:** builds, releases Android, deploys de Workers, produção e mudanças irreversíveis exigem aprovação explícita do Luiz.
 
-## Agentes aplicáveis
+## Squad canônico ([ADR-016](docs_ai/decisions/ADR-016-portfolio-buildea.md))
 
-- **Líder funcional:** Claudete.
-- **Responsável técnico:** Camilo.
-- **Design:** Juliana.
-- **Growth:** Marcos.
-- **Operações e dados:** Gustavo.
-- **Revisão independente:** Caio.
-- **Fonte organizacional:** os únicos agentes corporativos aplicáveis são os definidos em `../ai-governance/agents/`.
-- **Personas legadas:** arquivadas em `docs/archive/ai-governance/legacy-agents/`; não participam da descoberta ou do roteamento ativo.
+Squad enxuto de 3 agentes com personalidade escrita, vivendo em `.claude/agents/` deste repo:
+
+- **[Claudete](.claude/agents/claudete.md)** — Head de Produto (PM). Prioriza, decompõe, decide critérios de aceite. Absorve design/growth via skills (`/design-check`, `/growth-check`).
+- **[Camilo](.claude/agents/camilo.md)** — Principal Engineer. Android + Web (via `signallq-web`) + Workers + Admin — dev técnico único.
+- **[Caio](.claude/agents/caio.md)** — Principal Reviewer. Único gate independente antes de merge. Não implementa o que revisa.
+
+**Legado:** `ai-governance/agents/` (7 agentes org) foi superseded por ADR-016. Design (Juliana), Growth (Marcos), Dados (Gustavo) viraram **skills invocáveis**, não agentes permanentes. Personas históricas (Felipe, Lia, Gema, Rhodolfo, Juninho, Marina, Claudio, Nina, Taisa, Marcelo, Otávio) não participam da descoberta ou do roteamento ativo — o git preserva.
+
+**Autonomia:** agentes decidem sozinhos questões técnicas dentro do domínio; Luiz decide produto, estratégia, marca, monetização, custo recorrente, aprovação material ([contrato op §3](../ai-governance/policies/agent-operating-contract.md)). Decisões triviais de produto ficam com Claudete.
 
 ## Skills locais e espelhos
 

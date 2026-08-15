@@ -1,57 +1,55 @@
 # Handoff Rules
 
-> **Fonte da verdade:** [`ai-governance/policies/agent-operating-contract.md`](../../../ai-governance/policies/agent-operating-contract.md), seção 8. Este arquivo é um resumo apontador.
-> **Decisão canônica:** [ADR-014](../../docs_ai/decisions/ADR-014-squad-canonico-ai-governance.md).
+> **Fonte da verdade:** [contrato operacional §8](../../../ai-governance/policies/agent-operating-contract.md) + skill [`/handoff`](../skills/handoff/SKILL.md).
+> **Decisão canônica:** [ADR-016](../../docs_ai/decisions/ADR-016-portfolio-buildea.md).
 > **Última atualização:** 2026-08-15.
 
 ## Onde vive o handoff
 
-O estado do trabalho vive em **GitHub Issues** (status da issue) + **GitHub PR**. O GitHub notifica o Slack diretamente — não criar fluxo manual paralelo. Migração de Linear para GitHub Issues aconteceu em 2026-07-09; IDs `SIG-XXX` continuam válidos como referência histórica, mas não são fonte da verdade de tarefas ativas.
+**GitHub Issues** (status) + **GitHub PR** (execução). GitHub notifica Slack automaticamente. Skill `/handoff` formaliza pre-flight (git status, branch, PRs relacionadas) e posta o comentário canônico.
 
-Os scripts `agent-handoff.sh`, `notify.sh`, `discord_notify.sh`, `slack_notify.sh` foram movidos para `scripts/legacy/` em 2026-08-15 e permanecem depreciados: não são o mecanismo de handoff. Não documentar como fluxo. Ver [`scripts/legacy/README.md`](../../scripts/legacy/README.md).
+Scripts em `scripts/legacy/` (`agent-handoff.sh`, `notify.sh`, `discord_notify.sh`, `slack_notify.sh`) estão depreciados — não são mecanismo de handoff.
 
-Roteamento: **bug** → GitHub Issues (título `[BUG] ...`, label `type:bug`); **feature / task / refactor / docs** → GitHub Issues (título `Task - ...` ou `Feat - ...`).
-
-## Fluxo de handoff (squad canônico SignallQ)
+## Fluxo de handoff (squad de 3)
 
 | Situação | De | Para |
 |---|---|---|
-| Demanda bruta → refino e breakdown | Usuário | Claudete |
-| Task visual/de fluxo, antes de implementar | Claudete | Juliana (gate condicional) |
-| Task de métrica/telemetria com spec de dados | Claudete | Gustavo (contribuinte) |
-| Task Android/Workers/Admin pronta para implementar | Claudete / Juliana / Gustavo | Camilo |
-| Implementação pronta → revisão independente | Camilo | Caio |
-| Reprovação (máx. 2 rodadas) | Caio | Camilo |
-| 3ª divergência no loop de revisão | Caio | Claudete (decide) |
-| Aprovação material (estratégia, marca, produção, custo, irreversível) | qualquer agente | Luiz |
+| Demanda bruta → refino | Usuário/Luiz | Claudete |
+| Task pronta para implementação | Claudete | Camilo |
+| Implementação pronta → revisão | Camilo | Caio |
+| Reprovação (máx 2 rodadas) | Caio | Camilo |
+| 3ª divergência | Caio | Claudete (decide) |
+| Aprovação material (estratégia/marca/produção/custo/irreversível/risco crítico) | qualquer | Luiz |
 
-Juliana entra **antes** da implementação apenas quando a mudança é visual/de fluxo (tela nova, layout, navegação, microcopy); bug/lógica pura pula Juliana.
+Design, growth, dados são **skills invocáveis pelo agente responsável**, não handoffs entre agentes:
 
-## Formato do handoff (comentário na issue)
+- Task visual → Camilo invoca `/design-check` durante a implementação.
+- Task com telemetria → Camilo invoca `/analytics-spec`.
+- Task de posicionamento/ASO → Claudete invoca `/growth-check`.
+
+## Formato do handoff
+
+Skill `/handoff` monta e posta:
 
 ```
-De: [agente] Para: [agente] — Decisão: [o que foi decidido]. Pendente: [o que falta]. Riscos: [riscos].
+**De: <agente> Para: <agente> — Decisão: <o que foi decidido>**
+
+- **Arquivos:** <lista>
+- **Validações:** <resultado dos checks automáticos>
+- **Pendências:** <o que falta>
+- **Riscos:** <riscos ou "nenhum identificado">
+- **Branch:** `<branch>` · **PR:** <url>
 ```
 
-Não repita contexto completo — apenas o delta relevante.
+## Agentes canônicos
 
-Todo handoff deve registrar (conforme [contrato operacional §8](../../../ai-governance/policies/agent-operating-contract.md)): contexto, decisão, arquivos afetados, validações realizadas, pendências, próximo responsável.
-
-## Agentes e definições canônicas
-
-| Agente | Arquivo canônico | Papel |
+| Agente | Arquivo | Papel |
 |---|---|---|
-| Claudete | [`ai-governance/agents/claudete.md`](../../../ai-governance/agents/claudete.md) | Produto e portfólio (líder) |
-| Camilo | [`ai-governance/agents/camilo.md`](../../../ai-governance/agents/camilo.md) | Mobile, backend, plataforma |
-| Juliana | [`ai-governance/agents/juliana.md`](../../../ai-governance/agents/juliana.md) | Design e UX |
-| Marcos | [`ai-governance/agents/marcos.md`](../../../ai-governance/agents/marcos.md) | Growth |
-| Gustavo | [`ai-governance/agents/gustavo.md`](../../../ai-governance/agents/gustavo.md) | Operações e dados |
-| Caio | [`ai-governance/agents/caio.md`](../../../ai-governance/agents/caio.md) | Revisão independente |
-
-Busca de código/docs = ferramentas nativas (Read/Grep/Glob) ou skills. Não há agente dedicado a busca.
+| Claudete | [`.claude/agents/claudete.md`](../agents/claudete.md) | Produto (PM) |
+| Camilo | [`.claude/agents/camilo.md`](../agents/camilo.md) | Engenharia (Dev) |
+| Caio | [`.claude/agents/caio.md`](../agents/caio.md) | Revisão independente |
 
 ## Referências
 
-- [`AGENT_WORKFLOW.md`](AGENT_WORKFLOW.md) — fluxo completo
-- [`TASK_BREAKDOWN.md`](TASK_BREAKDOWN.md) — decomposição de tasks
-- [`ai-governance/policies/demand-routing.md`](../../../ai-governance/policies/demand-routing.md) — roteamento por domínio
+- [`AGENT_WORKFLOW.md`](AGENT_WORKFLOW.md), [`TASK_BREAKDOWN.md`](TASK_BREAKDOWN.md)
+- [`ai-governance/policies/agent-operating-contract.md`](../../../ai-governance/policies/agent-operating-contract.md)

@@ -56,6 +56,11 @@ Em seguida, pergunte: **"Em que vamos trabalhar hoje?"**
 | `/protocolo-ci-android` | Falha de CI ou dependabot travado |
 | `/protocolo-ktlint` | Violação Ktlint ou supressão no editorconfig |
 
-## Squad canônico ([ADR-014](../../docs_ai/decisions/ADR-014-squad-canonico-ai-governance.md))
+## Squad canônico ([ADR-016](../../docs_ai/decisions/ADR-016-portfolio-buildea.md))
 
-Claudete (produto), Camilo (Android/Workers/Admin), Juliana (design), Marcos (growth), Gustavo (dados/observabilidade), Caio (revisão independente). Definições em [`ai-governance/agents/`](../../../ai-governance/agents/).
+3 agentes com personalidade, vivendo em [`.claude/agents/`](../agents/):
+- **[Claudete](../agents/claudete.md)** (PM) — produto, prioridade, roadmap
+- **[Camilo](../agents/camilo.md)** (Dev) — Android + Web + Workers + Admin
+- **[Caio](../agents/caio.md)** (Reviewer) — gate único de revisão independente
+
+Design, growth e dados são skills invocáveis (`/design-check`, `/growth-check`, `/analytics-spec`), não agentes permanentes.
