@@ -177,7 +177,7 @@ Tipos suportados: `module`, `screen`, `viewmodel`, `dao`, `service`, `component`
 3. Valide o nome contra as convenções (PascalCase, pt-BR, sem hifens).
 4. Gere o código completo seguindo os padrões acima.
 5. Informe o caminho exato onde o arquivo deve ser criado.
-6. Liste quais docs precisam de atualização (acione `/linka-docs impact`).
+6. Liste quais docs precisam de atualização (acione `/signallq-docs impact`).
 
 ### Modo `review <arquivo.kt>`
 
