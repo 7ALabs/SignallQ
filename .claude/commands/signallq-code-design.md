@@ -224,4 +224,4 @@ Pergunte ao usuário se está criando algo novo, revisando tela existente, ou co
 
 ## Agentes canônicos ([ADR-016](../../docs_ai/decisions/ADR-016-portfolio-buildea.md))
 
-Design system é conduzido pela **Juliana**; implementação em Compose por **Camilo**; revisão independente por **Caio**.
+Squad de 3: **Claudete** decide direção de design (microcopy, hierarquia, tokens novos); **Camilo** implementa em Compose invocando `/design-check` durante a implementação; **Caio** roda `/design-check` no gate antes de aprovar PR com mudança visual. Não há agente Design permanente — a função foi absorvida pela skill `/design-check` + skill `SignallQ-design` (biblioteca de tokens/componentes) + skill `/auditar-ux` (revisão profunda multi-tela sob demanda).
