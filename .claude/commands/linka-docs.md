@@ -54,7 +54,7 @@ Fonte da verdade completa da política: [`.claude/rules/politica-documentacao-vi
 
 ### Frontmatter obrigatório (docs_ai/)
 
-Todo documento vivo em `docs_ai/` (exceto `templates/`, `decisions/`, `pro-onhold/`) precisa de:
+Todo documento vivo em `docs_ai/` (exceto `templates/`, `decisions/`) precisa de:
 
 ```yaml
 ---
@@ -90,7 +90,8 @@ Ver [`.claude/rules/politica-documentacao-viva.md` §0](../rules/politica-docume
 
 Documento substituído é **removido** (o git é o arquivo), não movido para `_archive/`. Registrar substituição no doc que substituiu e citar o SHA anterior no commit. Ver [regra de higiene §10 "Remoção"](../rules/higiene-e-padronizacao-repositorio.md).
 
-Exceção: produto pausado (`docs_ai/pro-onhold/`) fica no lugar com README de selagem.
+Exceção: produto pausado fica no lugar com README de selagem — ver
+[regra de higiene §10 "Remoção"](../rules/higiene-e-padronizacao-repositorio.md).
 
 ---
 

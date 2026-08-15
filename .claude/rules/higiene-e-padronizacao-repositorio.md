@@ -438,7 +438,6 @@ docs_ai/
 ├── operations/
 ├── technical/                  (docs pontuais que não migraram para TECNICO.md/ARQUITETURA/)
 ├── templates/
-├── pro-onhold/                 (specs do SignallQ Pro — CONGELADAS, não manter)
 └── _archive/                   (vazia por decisão — só o README com instrução de recuperação)
 ```
 
@@ -456,7 +455,8 @@ tudo para dentro dela. `decisions/`, `functional/` (residual), `legal/`, `operat
 backend Cloudflare. O painel Admin vive em `buildea-admin` e o site/PWA em `signallq-web` — a
 documentação deles pertence aos repositórios deles, aqui só existe ponteiro. O worker
 `signallq-admin-worker` é exceção: é deste repositório, embora o painel que o consome não seja.
-O SignallQ Pro está **on hold** e suas specs estão congeladas em `pro-onhold/`.
+O SignallQ Pro está descontinuado permanentemente (ADR-016) — módulos `:pro:*`, docs e skill de
+design foram removidos do repositório nas Fases 4a-b do épico #1623.
 
 **Sem pasta de arquivo.** Documento substituído é **removido**, não movido para `_archive/`. O git
 é o arquivo — a pasta duplicava o histórico e poluía toda busca com versões antigas, que agentes e
@@ -527,7 +527,8 @@ Ao remover:
 
 Exceção: documento de **produto pausado** não é removido nem arquivado — fica onde está, com um
 README de selagem declarando o congelamento, a data, o estado no congelamento e a condição de
-retomada (modelo em `docs_ai/pro-onhold/README.md`).
+retomada. Se o pausado virar descontinuado permanente, o README de selagem some junto com o resto
+(modelo histórico: `docs_ai/pro-onhold/`, removido em 2026-08-15 — `git show 0daa424a:docs_ai/pro-onhold/README.md`).
 
 ---
 

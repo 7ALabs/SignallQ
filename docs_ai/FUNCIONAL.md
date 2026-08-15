@@ -4,7 +4,7 @@ description: "O que o app Android SignallQ (io.signallq.app) entrega ao usuário
 type: "funcional"
 status: "ativo"
 owner: "Claudete"
-last_updated: "2026-08-06"
+last_updated: "2026-08-15"
 ---
 
 - **Fonte de verdade:** o código do app consumer em `android/app/src/main/kotlin/io/veloo/app/kotlin/`
@@ -14,7 +14,7 @@ last_updated: "2026-08-06"
   e substitui integralmente a revisão anterior (2026-07-23).
 - **Escopo:** app consumer Android `io.signallq.app` — telas, navegação, funcionalidades,
   permissões e limitações visíveis ao usuário final.
-- **Fora do escopo:** SignallQ Pro (on hold, specs congeladas em `docs_ai/pro-onhold/`), painel
+- **Fora do escopo:** SignallQ Pro (descontinuado permanentemente, ver ADR-016), painel
   Admin (repositório `buildea-admin`), site/PWA (repositório `signallq-web`) e arquitetura interna
   (ver `docs_ai/TECNICO.md`).
 - **Responsável:** Claudete (documentação funcional). Implementação: Camilo. Revisão independente:
@@ -606,9 +606,9 @@ funcional para o usuário, mas confunde qualquer navegação por caminho.
 
 ## 8. Fora de escopo
 
-- **SignallQ Pro** — produto **on hold**; specs congeladas em `docs_ai/pro-onhold/`. Nada do Pro é
+- **SignallQ Pro** — produto **descontinuado permanentemente** (ADR-016). Nada do Pro é
   descrito aqui, mesmo quando uma ferramenta do consumer é declarada no código como "versão contida"
-  de um recurso do Pro (caso do Sinal WiFi / Walk Test).
+  de um recurso que existiu no Pro (caso do Sinal WiFi / Walk Test).
 - **Painel Admin** — repositório `buildea-admin`. O worker `signallq-admin-worker` é deste
   repositório, mas o painel que o consome não é.
 - **Site e PWA** — repositório `signallq-web`.

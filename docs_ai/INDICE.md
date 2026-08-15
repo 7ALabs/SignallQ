@@ -4,13 +4,13 @@ description: "Mapa de todos os documentos existentes em docs_ai, gerado a partir
 type: "índice"
 status: "ativo"
 owner: "Squad"
-last_updated: "2026-08-06"
+last_updated: "2026-08-15"
 ---
 
 # Índice da documentação
 
-**116 documentos.** Escopo: app consumer Android e backend Cloudflare. Perímetro e o que saiu em
-2026-08-06 estão em [`README.md`](README.md).
+**111 documentos.** Escopo: app consumer Android e backend Cloudflare. Perímetro e o que saiu em
+2026-08-06 e 2026-08-15 estão em [`README.md`](README.md).
 
 > ✅ **Canônicos regenerados do código em 2026-08-06 (PR 2).** `TECNICO.md` e
 > `ARQUITETURA/README.md` carregam um bloco de inventário **gerado** por
@@ -51,7 +51,6 @@ template: responsabilidade, dependências, consumidores, componentes principais,
 `feature-home` · `feature-settings` · `feature-speedtest` · `feature-wifi`.
 
 Os três que faltavam (`core-relatorio`, `core-diagnostico`, `core-featureflags`) foram criados.
-Módulos `:pro:*` não têm documento: estão on hold.
 
 Também em `ARQUITETURA/`: `AUDITORIA_1228_FASE0_INVENTARIO_COMPLETO.md`.
 
@@ -142,11 +141,6 @@ Markdown, por isso não aparece nas contagens de documento.
 
 `README.md` · `TEMPLATE_TECNICO.md` · `TEMPLATE_FUNCIONAL.md` · `TEMPLATE_ADR.md` ·
 `TEMPLATE_RUNBOOK.md`.
-
-## Congelado — `pro-onhold/` (7)
-
-Specs do SignallQ Pro, **on hold por tempo indeterminado** até a maturação do consumer em produção.
-Não manter. Ver [`pro-onhold/README.md`](pro-onhold/README.md).
 
 ## Vazio por decisão — `_archive/`
 
