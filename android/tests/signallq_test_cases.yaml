@@ -1,7 +1,7 @@
 ##############################################################################
 # SignallQ Android — Casos de Teste manuais / E2E
 # Versão do plano: 3.0 — estado atual do app
-# App: SignallQ — v0.16.0 (versionCode 46) — package io.veloo.app
+# App: SignallQ — v0.16.0 (versionCode 46) — package io.signallq.app
 # Navegação: 5 abas — Início, Velocidade, Sinal, Histórico, Ajustes
 # Assistente de IA: SignallQ (Worker Cloudflare, modelo padrão Qwen3 30B,
 #                   com fallback de diagnóstico local quando offline/Worker fora)

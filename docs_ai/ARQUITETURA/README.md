@@ -30,7 +30,7 @@ last_updated: "2026-08-15"
 | Workers Cloudflare | 5 | `integrations/cloudflare/*/wrangler.toml` |
 | Tabelas D1 | 38 — 20 admin + 18 diagnostic | `*/migrations/*.sql`, `*/schema.sql` |
 | Contratos OpenAPI | 7 contratos · **122** endpoints | `docs_ai/CONTRATOS/openapi/` |
-| Arquivos `.kt` em caminho legado `io/veloo` | 525 (sendo 361 em `src/main`) | dívida conhecida — higiene §4.1 |
+| Arquivos `.kt` em caminho legado `io/veloo` | 0 (sendo 0 em `src/main`) | dívida conhecida — higiene §4.1 |
 
 **Módulos (19):** :app :core:diagnostico :core:featureflags :core:relatorio :coreDatabase :coreDatastore :coreNetwork :corePermissions :coreRecommendation :coreTelephony :featureDevices :featureDiagnostico :featureDns :featureFibra :featureHistory :featureHome :featureSettings :featureSpeedtest :featureWifi
 
@@ -118,7 +118,7 @@ empurra a adaptação para `HomeMedicaoAdapter.kt`, em `:app`.
 | `:coreDatastore` | Preferências do usuário, credenciais de modem | DataStore `linkaPreferencias` |
 | `:corePermissions` | Fluxo de permissões de rede | Sem testes |
 | `:coreTelephony` | Rede móvel (RSRP/RSRQ/SINR) | Exige só `READ_PHONE_STATE`; não usa IMEI/IMSI |
-| `:coreRecommendation` | Motor de recomendação por tags | **Único módulo fisicamente em `io/signallq/`** |
+| `:coreRecommendation` | Motor de recomendação por tags | Nasceu em `io/signallq/` (módulo criado pós-rebrand) |
 | `:core:diagnostico` | Motor canônico de diagnóstico | Consumido por `:app`, `:featureSpeedtest`, `:featureDiagnostico` |
 | `:core:relatorio` | Paginação HTML→PDF | Consumido por `:app`, `:featureHistory`; 194 linhas, **zero testes** |
 | `:core:featureflags` | Flags remotas do consumer | 11 flags no catálogo |
@@ -144,7 +144,7 @@ Renomear os legados para `:core:network` é migração dedicada — afeta CI, sc
 ## 4. A inconsistência principal: UI fora das features
 
 **Nenhum dos 9 módulos `:feature*` contém um único `@Composable`.** Toda a interface vive em
-`android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/`.
+`android/app/src/main/kotlin/io/signallq/app/ui/screen/`.
 
 Consequência direta: as features viraram bibliotecas de motor e vocabulário, e `:app` concentra
 40.017 linhas em 150 arquivos, com dez acima de 800 linhas:
@@ -193,7 +193,6 @@ Contratos em `../CONTRATOS/openapi/`.
 |---|---|---|
 | UI monolítica em `:app` | 5 arquivos acima de 800 linhas, `SinalScreen.kt` com 3383 | Features anêmicas; mudança visual exige tocar arquivo gigante |
 | Feature→feature | 2 violações confirmadas (§2) | Grafo de dependências deixa de ser acíclico por camada |
-| Caminho físico legado `io/veloo` | Todos os módulos exceto `:coreRecommendation` | Duas árvores concorrentes; `:featureDiagnostico` já tem as duas no mesmo source set |
 | Três mecanismos de feature flag | `:core:featureflags` + `FeatureFlagProvider` legado em `:coreNetwork` + Firebase Remote Config | Colisão de nome e ambiguidade sobre qual vence |
 | Dois motores de PDF | `:featureHistory` usa `PdfDocument` e HTML→WebView via `:core:relatorio` | Manutenção dupla |
 | Versão de dependência fora do catálogo | `:featureDevices` fixa `okhttp:5.4.0` no build | Pode divergir do `libs.okhttp` dos demais |

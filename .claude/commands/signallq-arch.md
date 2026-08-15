@@ -13,12 +13,12 @@ allowed-tools: Read(*), Bash(*)
 !`cat "${CLAUDE_PROJECT_DIR:-.}/android/gradle/libs.versions.toml" 2>/dev/null`
 
 **Telas existentes (ui/screen/):**
-!`ls "${CLAUDE_PROJECT_DIR:-.}/android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/" 2>/dev/null`
+!`ls "${CLAUDE_PROJECT_DIR:-.}/android/app/src/main/kotlin/io/signallq/app/ui/screen/" 2>/dev/null`
 
 **Componentes reutilizáveis (ui/component/):**
-!`ls "${CLAUDE_PROJECT_DIR:-.}/android/app/src/main/kotlin/io/veloo/app/kotlin/ui/component/" 2>/dev/null`
+!`ls "${CLAUDE_PROJECT_DIR:-.}/android/app/src/main/kotlin/io/signallq/app/ui/component/" 2>/dev/null`
 
-> ⚠️ **Path físico legado:** os arquivos vivem em `io/veloo/app/kotlin/` apesar de declararem `package io.signallq.app.*`. Dívida conhecida (~460 arquivos), documentada em [regra de higiene §4.1](../rules/higiene-e-padronizacao-repositorio.md). Não criar novos arquivos em novos subdiretórios `io/veloo`; a migração para `io/signallq/` é tarefa dedicada.
+> Path físico e package Kotlin agora estão alinhados em `io/signallq/app/` (migração resolvida em 2026-08-15, ver [regra de higiene §4.1](../rules/higiene-e-padronizacao-repositorio.md)).
 
 ---
 

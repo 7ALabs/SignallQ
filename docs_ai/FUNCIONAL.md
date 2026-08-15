@@ -7,7 +7,7 @@ owner: "Claudete"
 last_updated: "2026-08-15"
 ---
 
-- **Fonte de verdade:** o código do app consumer em `android/app/src/main/kotlin/io/veloo/app/kotlin/`
+- **Fonte de verdade:** o código do app consumer em `android/app/src/main/kotlin/io/signallq/app/`
   (caminho físico legado; o package declarado é `io.signallq.app` — dívida conhecida, ver
   `.claude/rules/higiene-e-padronizacao-repositorio.md` seção 4.1), com os módulos `:core*` e
   `:feature*` consumidos por ele. Este documento foi reescrito do zero em 2026-08-06 lendo o código,
@@ -77,7 +77,7 @@ deixar a conexão monitorada em segundo plano com alertas.
 
 ## 4. Navegação
 
-Fonte única: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/AppShell.kt`. Não existe
+Fonte única: `android/app/src/main/kotlin/io/signallq/app/ui/screen/AppShell.kt`. Não existe
 navigation graph — a navegação é um índice de aba (`selectedTab`) mais uma pilha de overlays
 (`overlayStack`, `AppShell.kt:392`), tudo dentro de um `ModalNavigationDrawer`.
 
@@ -599,7 +599,7 @@ eventos de analytics: `app_aberto`, `app_session_start`, `app_session_end`, `scr
 `core/recommendation/.../RecommendationAnalytics.kt`.
 
 **Dívida estrutural que afeta quem lê o código:** todo o app consumer ainda mora fisicamente em
-`io/veloo/app/kotlin/...` apesar do package declarado ser `io.signallq.app`. Não é problema
+`io/signallq/app/...` apesar do package declarado ser `io.signallq.app`. Não é problema
 funcional para o usuário, mas confunde qualquer navegação por caminho.
 
 ---

@@ -23,7 +23,7 @@ This document outlines the deployment process for the SignallQ Android Kotlin ap
 - **Responsável:** Camilo (build/deploy), Rhodolfo (gate de release)
 
 > Namespace/applicationId atual: **`io.signallq.app`** (renomeado de `io.veloo.app`
-> em 2026-06-28; caminho fisico do codigo do `:app` continua `io/veloo/app/kotlin/`).
+> em 2026-06-28; caminho fisico do codigo do `:app` continua `io/signallq/app/`).
 > Demais identificadores tecnicos permanecem: repo `7ALabs/SignallQ`, worker
 > `linka-ai-diagnosis-worker`. Publicacao na Play Console e distribuicao Firebase sao
 > automatizadas via GitHub Actions — nao ha upload manual pela UI (ver abaixo).

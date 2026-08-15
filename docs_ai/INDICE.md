@@ -174,7 +174,7 @@ Ver [`_archive/README.md`](_archive/README.md) para recuperar qualquer documento
 | **#1587** | `auth.ts` duplicado byte-a-byte entre admin-worker e diagnostic-worker | `integrations/cloudflare/*/src/auth.ts` |
 | **#1588** | OpenAPI transversais a reconciliar com o código | `CONTRATOS/openapi/` |
 | — | `TECNICO.md` e `ARQUITETURA/README.md` com inventário defasado | PR 2 |
-| — | Caminho físico legado `io/veloo` em ~460 arquivos `.kt` | `.claude/rules/higiene…§4.1` |
+| — | ~~Caminho físico legado `io/veloo` em 525 arquivos `.kt`~~ — RESOLVIDO em 2026-08-15 (#1645) | `.claude/rules/higiene…§4.1` |
 
 ## Manutenção
 

@@ -1,3 +1,12 @@
+---
+title: "Release Process"
+description: "Runbook do processo de release do SignallQ Android — build, deploy, verificação pós-deploy."
+type: "runbook"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-15"
+---
+
 # Release Process
 
 ## Objective
@@ -15,7 +24,7 @@ This document outlines the process for releasing new versions of the SignallQ An
 
 > Namespace/applicationId atual: **`io.signallq.app`** (renomeado de `io.veloo.app`
 > em 2026-06-28). O caminho fisico do codigo do modulo `:app` continua sendo
-> `io/veloo/app/kotlin/` — nao alterar. Demais identificadores tecnicos de infra
+> `io/signallq/app/` — nao alterar. Demais identificadores tecnicos de infra
 > permanecem: repo `7ALabs/SignallQ`, worker `linka-ai-diagnosis-worker`.
 > Historico autoritativo de versoes Android: `android/CHANGELOG.md`.
 

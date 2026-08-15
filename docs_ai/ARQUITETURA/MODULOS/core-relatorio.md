@@ -88,5 +88,5 @@ Total: 2 arquivos, 194 linhas em `src/main`. Não há `src/test` nem `src/androi
 - **Limpeza de PDFs temporários não é de ninguém.** O KDoc de `RelatorioDiagnosticoExporter`
   (`:app`) registra explicitamente que política de limpeza de arquivos acumulados ficou fora de
   escopo; este módulo, por design, também não trata disso.
-- Caminho físico já correto (`src/main/kotlin/io/signallq/app/core/relatorio/`) — sem a dívida do
-  caminho legado `io/veloo`.
+- Caminho físico correto (`src/main/kotlin/io/signallq/app/core/relatorio/`) — módulo nasceu
+  direto no path novo, nunca passou por `io/veloo/`.

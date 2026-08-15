@@ -90,7 +90,7 @@ O comentário no código registra a correção de 2026-07-10: `wlan_status` vive
 
 ## Riscos e dívidas
 
-- **Caminho legado `io/veloo`.** Todos os 19 arquivos `main` e os 7 de teste vivem em `src/{main,test}/kotlin/io/veloo/app/kotlin/feature/fibra/` declarando `package io.signallq.app.feature.fibra`. Divergência conhecida (§4.1 da regra de higiene); migração é tarefa dedicada.
+- **Path físico alinhado ao package `io.signallq.app.*`** — migração de `io/signallq/app/kotlin/` concluída em 2026-08-15 (#1645).
 - **Dependência entre features:** nenhuma. O módulo depende só de `:coreNetwork` — está em conformidade com a regra.
 - **Regra de negócio em Composable:** não aplicável — 0 `@Composable` no módulo (verificado por grep). A classificação óptica está em `object` de funções puras, testado isoladamente.
 - **Arquivos acima de 800 linhas:** nenhum. O maior arquivo é `NokiaModemParser.kt` com **494 linhas** — acima do limiar de "revisar coesão" (400) da §7, mas abaixo do de extração obrigatória. Segundo maior: `NokiaModemClient.kt`, 275 linhas.

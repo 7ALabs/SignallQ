@@ -73,7 +73,7 @@ Total: 2033 linhas em `src/main` e 1487 em `src/test` (12 arquivos) — a melhor
 
 - **`ScannerDispositivosAndroid.kt` com 1117 linhas** — acima do limite de 800. Concentra cinco protocolos de descoberta (subnet/ARP, mDNS, SSDP, TCP probe, DNS reverso), controle de concorrência (`Mutex`, `Semaphore`, `ConcurrentHashMap`) e enriquecimento; não tem teste direto — os 12 testes cobrem as peças puras extraídas dele.
 - **Dependências de terceiros com versão hardcoded** fora do version catalog: `AndroidNetworkTools:0.4.5.3`, `jmdns:3.6.3` e `okhttp:5.4.0`. Esse último cria risco concreto de divergência de versão do OkHttp com os demais módulos, que usam `libs.okhttp`.
-- **Caminho legado `io/veloo`:** produção em `src/main/kotlin/io/veloo/app/kotlin/feature/devices/`.
-- **Árvore de teste divergente da de produção:** os testes ficam em `src/test/kotlin/io/veloo/app/feature/devices/` — **sem o segmento `kotlin`** que existe no `src/main`. Assimetria única entre os cinco módulos.
-- **Tela fora do módulo:** `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/DispositivosScreen.kt` tem **1380 linhas** e concentra a apresentação, incluindo mapeamento de ícones/rótulos por papel de topologia. O módulo não contém nenhum Composable.
+- **Path físico alinhado ao package `io.signallq.app.*`** — migração de `io/signallq/app/kotlin/` concluída em 2026-08-15 (#1645).
+- **Árvore de teste divergente da de produção:** os testes ficam em `src/test/kotlin/io/signallq/app/feature/devices/` — **sem o segmento `kotlin`** que existe no `src/main`. Assimetria única entre os cinco módulos.
+- **Tela fora do módulo:** `android/app/src/main/kotlin/io/signallq/app/kotlin/ui/screen/DispositivosScreen.kt` tem **1380 linhas** e concentra a apresentação, incluindo mapeamento de ícones/rótulos por papel de topologia. O módulo não contém nenhum Composable.
 - **Regra de dependência entre features: respeitada.** Só dependências `:core*`; o KDoc do `DevicesViewModel` registra explicitamente a decisão de não depender do `:app`.

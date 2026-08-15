@@ -56,7 +56,7 @@ O módulo tem 7 arquivos `main`, somando **203 linhas** de código de produção
 
 ## Riscos e dívidas
 
-- **Caminho legado `io/veloo`.** Todos os 7 arquivos `main` e os 5 de teste vivem em `src/{main,test}/kotlin/io/veloo/app/kotlin/feature/settings/` declarando `package io.signallq.app.feature.settings`. Divergência conhecida (§4.1); migração é tarefa dedicada.
+- **Path físico alinhado ao package `io.signallq.app.*`** — migração de `io/signallq/app/kotlin/` concluída em 2026-08-15 (#1645).
 - **Dependência entre features:** nenhuma. O módulo não depende de nada do monorepo — é o caso mais limpo dos quatro.
 - **Regra de negócio em Composable:** não aplicável — 0 `@Composable` no módulo (verificado por grep). Todas as regras são funções puras testáveis.
 - **Arquivos acima de 800 linhas:** nenhum. O maior arquivo do módulo inteiro é `src/test/.../DetectorDivergenciaPerfilConexaoTest.kt` com **59 linhas**; o maior de produção é `DetectorDivergenciaPerfilConexao.kt` com **46 linhas**. Todo o módulo soma 424 linhas de Kotlin (203 em `main`, 221 em `test`).

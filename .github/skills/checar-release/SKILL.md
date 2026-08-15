@@ -36,7 +36,7 @@ Claudete mais cedo no fluxo — os dois são complementares, não duplicados.
 
 ### Assinatura
 - [ ] APK/AAB assinado com keystore correto (não debug keystore)?
-- [ ] `io.veloo.app` preservado (package/applicationId/namespace nunca renomeados)?
+- [ ] `io.signallq.app` preservado (package/applicationId/namespace nunca renomeados)?
 
 ### Qualidade
 - [ ] Testes unitários passando (`.\android\gradlew.bat test`)?

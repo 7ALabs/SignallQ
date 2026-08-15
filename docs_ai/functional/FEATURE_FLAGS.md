@@ -1,3 +1,12 @@
+---
+title: "Feature Flags remotas"
+description: "Contrato de flags remotas do SignallQ Android + Admin Panel — rollout gradual, kill switch, gating de features."
+type: "funcional"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-01"
+---
+
 # Feature Flags remotas — SignallQ Android + Admin Panel
 
 - **Status:** ativo
@@ -102,7 +111,7 @@ totalmente distintos — não é uma única tabela com dois formatos de resposta
 
 ### RF-02 — Consumo Android (`FeatureFlagRepository`)
 
-Fonte: `android/app/src/main/kotlin/io/veloo/app/kotlin/featureflags/FeatureFlagRepository.kt`.
+Fonte: `android/app/src/main/kotlin/io/signallq/app/featureflags/FeatureFlagRepository.kt`.
 
 - `sincronizarFlags()`: busca **ambos** os endpoints (`/feature-flags` primeiro, depois `/flags`
   sobrescreve em caso de chave conflitante) e persiste o mapa mesclado via `FeatureFlagStore`.
@@ -176,7 +185,7 @@ uso do kill switch) em código ou doc ativa.
 
 - `docs_ai/TECNICO.md` seção 5.2 — mecanismo técnico completo das feature flags (compile-time e
   remotas).
-- `android/app/src/main/kotlin/io/veloo/app/kotlin/featureflags/FeatureFlagRepository.kt`,
+- `android/app/src/main/kotlin/io/signallq/app/featureflags/FeatureFlagRepository.kt`,
   `FeatureFlagManager.kt` — implementação Android.
 - `integrations/cloudflare/signallq-admin-worker/src/index.ts` (linhas ~3490-3580) — implementação
   dos endpoints.

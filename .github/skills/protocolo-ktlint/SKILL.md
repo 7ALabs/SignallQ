@@ -70,7 +70,7 @@ Se Ktlint bloqueia um PR de feature/refactor e não há tempo para cleanup compl
 
 ```ini
 # .editorconfig
-[app/src/main/kotlin/io/veloo/app/kotlin/...]
+[app/src/main/kotlin/io/signallq/app/...]
 # Tracked in Issue #XXX — cleanup pendente
 ktlint_standard_<regra> = disabled
 ```

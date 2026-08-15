@@ -1,3 +1,12 @@
+---
+title: "Contrato de Eventos — Firebase Analytics"
+description: "Funil principal SIG-155 (7 eventos implementados) + contrato mais amplo proposto (eventos por feature ainda não instrumentados)."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-07-05"
+---
+
 # Contrato de Eventos — Firebase Analytics
 
 **Status:** ativo (parcialmente implementado — ver "Estado atual" abaixo)
@@ -511,7 +520,7 @@ injetado via Hilt em `AppModule`). Pontos de disparo:
 | `ia_laudo_recebido` | `SignallQOrchestrator` | `callAi` (após `explainDiagnosis`, mesmos triggers) |
 
 Testes unitários do `FirebaseAnalyticsHelper` em
-`app/src/test/kotlin/io/veloo/app/kotlin/analytics/FirebaseAnalyticsHelperTest.kt`
+`app/src/test/kotlin/io/signallq/app/analytics/FirebaseAnalyticsHelperTest.kt`
 (MockK + Robolectric, cobrem os 7 eventos e omissão correta de parâmetros
 opcionais nulos).
 

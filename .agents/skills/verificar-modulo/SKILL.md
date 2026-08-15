@@ -58,7 +58,7 @@ fi
 
 ```bash
 NOME="$1"  # ex: GaugeVelocidade
-EXATO=$(find android/app/src/main/kotlin/io/veloo/app/kotlin/ui/component/ \
+EXATO=$(find android/app/src/main/kotlin/io/signallq/app/ui/component/ \
   -name "${NOME}.kt" 2>/dev/null)
 
 if [ -n "$EXATO" ]; then
@@ -68,7 +68,7 @@ fi
 
 # Match aproximado: raiz do nome (ex: "Gauge" em "GaugeVelocidade")
 ROOT=$(echo "$NOME" | grep -oE '^[A-Z][a-z]+')
-SIMILAR=$(find android/app/src/main/kotlin/io/veloo/app/kotlin/ui/component/ \
+SIMILAR=$(find android/app/src/main/kotlin/io/signallq/app/ui/component/ \
   -name "${ROOT}*.kt" 2>/dev/null)
 
 if [ -n "$SIMILAR" ]; then

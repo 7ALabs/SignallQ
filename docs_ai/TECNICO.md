@@ -29,7 +29,7 @@ last_updated: "2026-08-15"
 | Workers Cloudflare | 5 | `integrations/cloudflare/*/wrangler.toml` |
 | Tabelas D1 | 38 — 20 admin + 18 diagnostic | `*/migrations/*.sql`, `*/schema.sql` |
 | Contratos OpenAPI | 7 contratos · **122** endpoints | `docs_ai/CONTRATOS/openapi/` |
-| Arquivos `.kt` em caminho legado `io/veloo` | 525 (sendo 361 em `src/main`) | dívida conhecida — higiene §4.1 |
+| Arquivos `.kt` em caminho legado `io/veloo` | 0 (sendo 0 em `src/main`) | dívida conhecida — higiene §4.1 |
 
 **Módulos (19):** :app :core:diagnostico :core:featureflags :core:relatorio :coreDatabase :coreDatastore :coreNetwork :corePermissions :coreRecommendation :coreTelephony :featureDevices :featureDiagnostico :featureDns :featureFibra :featureHistory :featureHome :featureSettings :featureSpeedtest :featureWifi
 
@@ -80,10 +80,10 @@ contra desatualização.
 técnicos: banco `linkaKotlin.db`, DataStore `linkaPreferencias`, canais de notificação `linka_*`,
 Worker `linka-ai-diagnosis-worker`.
 
-**Caminho físico legado:** os arquivos `.kt` vivem em `.../kotlin/io/veloo/app/kotlin/...` embora
-declarem `package io.signallq.app`. Único módulo já alinhado: `:coreRecommendation`, fisicamente em
-`io/signallq/`. Dívida registrada em `.claude/rules/higiene-e-padronizacao-repositorio.md` §4.1 —
-migração é tarefa dedicada e atômica.
+**Path físico ↔ package Kotlin alinhados:** todos os arquivos `.kt` residem em
+`.../kotlin/io/signallq/app/...`, coerente com `package io.signallq.app`. Migração dos 525 arquivos
+legados que viviam em `io/signallq/app/` foi concluída em 2026-08-15 (issue #1645); dívida
+histórica em `.claude/rules/higiene-e-padronizacao-repositorio.md` §4.1 marcada RESOLVIDA.
 
 ### 2.2 Stack
 
@@ -256,7 +256,6 @@ Validações locais, a partir de `android/` (`gradlew.bat` no Windows):
 | Três mecanismos de feature flag | `:core:featureflags` (11 flags), `FeatureFlagProvider` legado em `:coreNetwork`, e Firebase Remote Config — com colisão de nome entre os dois primeiros |
 | Ausência de teste em pontos sensíveis | `:core:relatorio` (0 testes, compartilhado com o Pro), `:corePermissions` (0), `ExecutorSpeedtestCloudflare.kt` (1495 linhas, sem teste direto), `ExecutorFibra` e `NokiaModemCrypto` |
 | `:app` sem `androidTest` | Dependências de teste instrumentado declaradas, diretório inexistente |
-| Duas árvores físicas em `:featureDiagnostico` | `io/veloo` e `io/signallq` no mesmo source set |
 | `:core:diagnostico` não é Kotlin puro | Declara "zero `android.*`" mas `topology/` faz HTTP e `Runtime.exec("/system/bin/ping")` |
 | Fibra com um único driver | Só Nokia G-1425G-B em produção. TP-Link e Intelbras têm apenas mapa de reconhecimento documental em `technical/*_FIELD_MAP.md`, sem código |
 | `MetricClassifier` não usado em `SinalScreen.kt` | Limiares duplicados em três lugares — issue **#1586** |

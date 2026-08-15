@@ -49,11 +49,11 @@ No código do `:app`, os tipos do módulo aparecem em `di/AppModule.kt`, `ui/scr
 
 | Arquivo / classe | Linhas | Responsabilidade |
 |---|---|---|
-| `android/feature/wifi/src/main/kotlin/io/veloo/app/kotlin/feature/wifi/MontarResumoWifiUseCase.kt` | 46 | Mapeia `EstadoConexao` (wifi/móvel/ethernet/desconectado/desconhecido) em título + detalhe; monta a string técnica `ssid=… bssid=… rssi=… link=… freq=…`. |
-| `android/feature/wifi/src/main/kotlin/io/veloo/app/kotlin/feature/wifi/GrupoRedeWifi.kt` | 24 | `TipoTopologia` (roteador, roteador mesh, nó mesh, repetidor, ponto de acesso, desconhecido), `ConfiancaTopologia`, `RedeClassificada`, `GrupoRedeWifi`. |
-| `android/feature/wifi/src/main/kotlin/io/veloo/app/kotlin/feature/wifi/FeatureWifiModulo.kt` | 11 | Factories: `criarMontarResumoWifiUseCase()` e `criarScannerRedesWifi(context)` (delega a `:coreNetwork`). |
-| `android/feature/wifi/src/main/kotlin/io/veloo/app/kotlin/feature/wifi/ResumoWifi.kt` | 7 | Data class de saída (`titulo`, `detalhe`). |
-| `android/feature/wifi/src/main/kotlin/io/veloo/app/kotlin/feature/wifi/RedeVizinha.kt` | 5 | Apenas `typealias` para `io.signallq.app.core.network.contracts.wifi.{RedeVizinha, SegurancaWifi}` — compatibilidade de imports após a migração para `coreNetwork`. |
+| `android/feature/wifi/src/main/kotlin/io/signallq/app/kotlin/feature/wifi/MontarResumoWifiUseCase.kt` | 46 | Mapeia `EstadoConexao` (wifi/móvel/ethernet/desconectado/desconhecido) em título + detalhe; monta a string técnica `ssid=… bssid=… rssi=… link=… freq=…`. |
+| `android/feature/wifi/src/main/kotlin/io/signallq/app/kotlin/feature/wifi/GrupoRedeWifi.kt` | 24 | `TipoTopologia` (roteador, roteador mesh, nó mesh, repetidor, ponto de acesso, desconhecido), `ConfiancaTopologia`, `RedeClassificada`, `GrupoRedeWifi`. |
+| `android/feature/wifi/src/main/kotlin/io/signallq/app/kotlin/feature/wifi/FeatureWifiModulo.kt` | 11 | Factories: `criarMontarResumoWifiUseCase()` e `criarScannerRedesWifi(context)` (delega a `:coreNetwork`). |
+| `android/feature/wifi/src/main/kotlin/io/signallq/app/kotlin/feature/wifi/ResumoWifi.kt` | 7 | Data class de saída (`titulo`, `detalhe`). |
+| `android/feature/wifi/src/main/kotlin/io/signallq/app/kotlin/feature/wifi/RedeVizinha.kt` | 5 | Apenas `typealias` para `io.signallq.app.core.network.contracts.wifi.{RedeVizinha, SegurancaWifi}` — compatibilidade de imports após a migração para `coreNetwork`. |
 | `android/feature/wifi/src/main/AndroidManifest.xml` | — | `<manifest />` vazio. |
 
 Total de Kotlin no módulo: 93 linhas, todas em `src/main`.
@@ -61,8 +61,8 @@ Total de Kotlin no módulo: 93 linhas, todas em `src/main`.
 ## Riscos e dívidas
 
 - **Zero testes.** O módulo declara `testImplementation(libs.junit)` mas **não possui diretório `src/test`**. `MontarResumoWifiUseCase` é lógica pura, 100% testável, e está descoberta.
-- **Regra de negócio dentro de Composable, no `:app`.** O agrupamento e a classificação de redes que dão sentido a `GrupoRedeWifi`/`RedeClassificada` são montados dentro de `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/SinalScreen.kt` (**3383 linhas**) — inclusive a construção literal de `RedeClassificada(..., TipoTopologia.DESCONHECIDO, ConfiancaTopologia.BAIXA, motivo = "")` na linha 1078. O módulo `:featureWifi` fornece só os tipos; a decisão vive na tela. `SinalTopologiaHelpers.kt` (221 linhas) e `SinalWifiScreen.kt` (221 linhas) também moram no `:app`.
+- **Regra de negócio dentro de Composable, no `:app`.** O agrupamento e a classificação de redes que dão sentido a `GrupoRedeWifi`/`RedeClassificada` são montados dentro de `android/app/src/main/kotlin/io/signallq/app/kotlin/ui/screen/SinalScreen.kt` (**3383 linhas**) — inclusive a construção literal de `RedeClassificada(..., TipoTopologia.DESCONHECIDO, ConfiancaTopologia.BAIXA, motivo = "")` na linha 1078. O módulo `:featureWifi` fornece só os tipos; a decisão vive na tela. `SinalTopologiaHelpers.kt` (221 linhas) e `SinalWifiScreen.kt` (221 linhas) também moram no `:app`.
 - **Desequilíbrio de massa:** 93 linhas no módulo contra ~3600 linhas de tela Wi-Fi/Sinal no `:app`. Mesma inconsistência de `:featureHome`.
-- **Caminho legado `io/veloo`:** diretório `src/main/kotlin/io/veloo/app/kotlin/feature/wifi/` com pacote `io.signallq.app.feature.wifi`.
+- **Path físico alinhado ao package `io.signallq.app.*`** — migração de `io/signallq/app/kotlin/` concluída em 2026-08-15 (#1645).
 - **Regra de dependência entre features: respeitada.** Nenhum `project(":feature…")` no `build.gradle.kts`; a única dependência de projeto é `:coreNetwork`.
 - Nenhum arquivo acima de 800 linhas dentro do módulo.

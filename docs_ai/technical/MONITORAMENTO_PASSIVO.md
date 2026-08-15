@@ -1,7 +1,16 @@
+---
+title: "Monitoramento Passivo — MonitoramentoWorker"
+description: "Background monitoring de qualidade de rede (latência, DNS, Wi-Fi) e notificações de alerta."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-07-23"
+---
+
 # Monitoramento Passivo — MonitoramentoWorker
 
 **Status:** ativo
-**Última validação:** 2026-07-23 (contra `android/app/src/main/kotlin/io/veloo/app/kotlin/monitoramento/`)
+**Última validação:** 2026-07-23 (contra `android/app/src/main/kotlin/io/signallq/app/monitoramento/`)
 **Fonte de verdade:** código real — `MonitoramentoWorker.kt`, `MonitoramentoScheduler.kt`, `HisteresiHelper.kt`
 **Escopo:** background monitoring de qualidade de rede (latência, DNS, Wi-Fi) e notificações de alerta
 **Responsável:** Camilo (Backend Android)
@@ -110,7 +119,7 @@ GH#936 — ver `docs_ai/technical/SCREEN_MAP.md`), não em uma tela dedicada `Li
 
 ## 9. Testes
 
-`android/app/src/test/kotlin/io/veloo/app/kotlin/monitoramento/`:
+`android/app/src/test/kotlin/io/signallq/app/monitoramento/`:
 `MonitoramentoWorkerHistereseTest.kt` (transições de estado/thresholds) e
 `MonitoramentoWorkerMedicaoTest.kt` (persistência da medição sintética). Não confirmado o
 número exato de casos em cada um — `[a confirmar]` se precisar do total exato.

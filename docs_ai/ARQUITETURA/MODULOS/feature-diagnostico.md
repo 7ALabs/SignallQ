@@ -57,7 +57,7 @@ Nenhum outro módulo depende deste.
 
 ### Integração de rede — worker de IA (`AiDiagnosisRepository`)
 
-`android/feature/diagnostico/src/main/kotlin/io/veloo/app/kotlin/feature/diagnostico/ai/AiDiagnosisRepository.kt` (686 linhas).
+`android/feature/diagnostico/src/main/kotlin/io/signallq/app/kotlin/feature/diagnostico/ai/AiDiagnosisRepository.kt` (686 linhas).
 
 Cliente do worker `ai-diagnosis-worker`, instanciado como `@Singleton` em `DiagnosticoModule.provideAiDiagnosisRepository()` com `baseUrl = BuildConfig.AI_WORKER_URL` e `isAuthorized = { true }`.
 
@@ -75,7 +75,7 @@ Cliente do worker `ai-diagnosis-worker`, instanciado como `@Singleton` em `Diagn
 
 ### Integração de rede — worker admin (`AdminIngestRepository`)
 
-`android/feature/diagnostico/src/main/kotlin/io/veloo/app/kotlin/feature/diagnostico/ingest/AdminIngestRepository.kt` (283 linhas).
+`android/feature/diagnostico/src/main/kotlin/io/signallq/app/kotlin/feature/diagnostico/ingest/AdminIngestRepository.kt` (283 linhas).
 
 Envia telemetria ao `signallq-admin-worker`. `baseUrl` e `ingestKey` vêm de fora via `@Named("adminIngestUrl")`/`@Named("adminIngestKey")` (BuildConfig de `:app`), e o `OkHttpClient` dedicado (`@Named("adminIngestClient")`) usa connect/read/write de **10 s** — telemetria é best-effort, não bloqueia o usuário.
 
@@ -117,7 +117,7 @@ Confirmação e ordenação (GH#1332): o retorno `Boolean` só é `true` quando 
   - `.../pulse/SignallQOrchestrator.kt` — **1239 linhas**, acima do limiar de dívida crítica (1.200) da §7. Concentra speedtest, coleta de contexto, IA, ingest, analytics e filtro de conteúdo.
   - `.../ai/AiModels.kt` — **840 linhas**, acima do limiar de extração obrigatória (800). Agrega ~25 data classes do contrato de IA mais `DiagnosisAiContextFactory` e `AiFallbackFactory`; os dois `object` são candidatos naturais a arquivos próprios.
   - No source set de teste, `AiDiagnosisRepositoryTest.kt` tem 771 linhas e `RecomendacaoPraticaEngineTest.kt` 757 — abaixo do limiar, mas próximos.
-- **Caminho legado `io/veloo`.** A quase totalidade do módulo vive em `src/main/kotlin/io/veloo/app/kotlin/feature/diagnostico/...` declarando `package io.signallq.app.feature.diagnostico...`. Exceção: `src/main/kotlin/io/signallq/app/feature/diagnostico/recommendation/` (2 arquivos) e os testes correspondentes já nasceram no caminho correto — o módulo tem hoje **duas árvores físicas concorrentes**, exatamente o que §4.1 pede para evitar. A migração é tarefa dedicada e atômica.
+- **Path físico alinhado ao package `io.signallq.app.*`** — migração de `io/signallq/app/kotlin/` concluída em 2026-08-15 (#1645).
 - **Regra de negócio em Composable:** não aplicável — o módulo não contém nenhum `@Composable` (verificado por `grep -rn "@Composable"`, 0 ocorrências).
 - **Divergência entre `readTimeout` (90 s) e o teto de `withTimeoutOrNull` (40 s)** em `AiDiagnosisRepository.explainDiagnosis`: o comentário no construtor justifica os 90 s para dar margem à inferência, mas o teto de 40 s cancela antes. Só o caminho de streaming (`explainDiagnosisStream`, sem `withTimeoutOrNull`) usa de fato os 90 s. Comportamento não documentado no código; se for intencional, o comentário está desatualizado.
 - **Falta de teste:** os componentes de rede e mapeamento têm cobertura (há 28 arquivos de teste no módulo, incluindo `AiDiagnosisRepositoryTest`, `AdminIngestRepositoryTest`, `RemoteDiagnosticRepositoryTest`). Sem teste próprio: `SignallQOrchestrator` (o maior arquivo do módulo), `TopologyDiagnostic`, `SignallQInsightGenerator`, `ContextAccumulator`, `RotatingMessageProvider`, `GatewayResolver`, `MeshDetector`, `UpnpSoapClient` e o módulo Hilt.

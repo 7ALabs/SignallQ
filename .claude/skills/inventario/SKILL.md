@@ -24,7 +24,7 @@ Se o inventário retornar algo parecido, **ou reusa, ou justifica** por que não
 A skill lê o **estado real** do disco (não confia em doc que pode estar desatualizada):
 
 - Módulos: `android/settings.gradle.kts` (bloco `include(...)`)
-- Componentes UI: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/component/*.kt`
+- Componentes UI: `android/app/src/main/kotlin/io/signallq/app/ui/component/*.kt`
 - Utilitários compartilhados: `android/core/*/src/main/kotlin/**/*.kt` (grep por classes públicas)
 - Workers: `integrations/cloudflare/*/wrangler.toml`
 
@@ -47,7 +47,7 @@ Para cada módulo, tenta ler `docs_ai/ARQUITETURA/MODULOS/<modulo>.md` e citar 1
 ### `--componentes`
 
 ```bash
-ls android/app/src/main/kotlin/io/veloo/app/kotlin/ui/component/*.kt 2>/dev/null \
+ls android/app/src/main/kotlin/io/signallq/app/ui/component/*.kt 2>/dev/null \
   | xargs -I{} basename {} .kt \
   | sort
 ```
@@ -78,7 +78,7 @@ Filtra qualquer uma das listagens acima pelo termo (case-insensitive). Útil par
 
 ```bash
 # Exemplo — --componentes --grep gauge
-ls android/app/src/main/kotlin/io/veloo/app/kotlin/ui/component/*.kt 2>/dev/null \
+ls android/app/src/main/kotlin/io/signallq/app/ui/component/*.kt 2>/dev/null \
   | xargs -I{} basename {} .kt \
   | grep -i "gauge" \
   | sort
