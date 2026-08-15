@@ -1,7 +1,16 @@
+---
+title: "CI/CD Pipeline"
+description: "Pipeline de integração contínua e deploy automatizado do SignallQ via GitHub Actions"
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-15"
+---
+
 # CI/CD Pipeline — SignallQ
 
 - **Status:** ativo
-- **Última validação:** 2026-07-23
+- **Última validação:** 2026-08-15 (nota sobre discord_notify.sh/slack_notify.sh atualizada — Fase 4f do épico #1623)
 - **Fonte de verdade:** `.github/workflows/*.yml`
 - **Escopo:** CI (testes/lint/build) e CD (release/deploy) automatizados via GitHub Actions
 
@@ -158,8 +167,9 @@ Total por run: ~20-35 minutos.
 - E2E / UI tests em emulador
 - Performance profiling automatizado
 - Upload de resultados para dashboard externo
-- Notificação automática em Slack/Discord via GitHub App (parcialmente coberto por
-  `scripts/discord_notify.sh`/`slack_notify.sh`, chamados fora do CI hoje)
+- Notificação automática em Slack/Discord via GitHub App (os antigos `discord_notify.sh`/
+  `slack_notify.sh` foram removidos por dívida morta na Fase 4f do épico #1623 — GitHub já
+  notifica Slack diretamente; histórico via `git show 0daa424a:scripts/legacy/discord_notify.sh`)
 
 Release workflow (`release.yml`) e promoção de trilha (`promote-release.yml`) **já existem** —
 removido da lista de pendências.

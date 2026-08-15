@@ -34,7 +34,7 @@ Objetivo: melhor custo × benefício em velocidade, custo e qualidade.
 
 ## Handoff
 
-Estado do trabalho vive em **GitHub Issues** + **GitHub PR**. Skill `/handoff` (piloto #1620) formaliza. Scripts em `scripts/legacy/` estão depreciados.
+Estado do trabalho vive em **GitHub Issues** + **GitHub PR**. Skill `/handoff` (piloto #1620) formaliza. Os antigos scripts de notificação (`agent-handoff.sh` e afins) foram removidos na Fase 4f do épico #1623 — histórico via `git show 0daa424a:scripts/legacy/agent-handoff.sh`.
 
 Roteamento: **bug** → GitHub Issues (`type:bug`); **feature/task/refactor/docs** → GitHub Issues (`Task -` / `Feat -`).
 
