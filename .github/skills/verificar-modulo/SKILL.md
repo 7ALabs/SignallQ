@@ -5,6 +5,8 @@ argument-hint: "<tipo> <nome>  (tipo = modulo | servico | componente | utilitari
 allowed-tools: Bash(grep *), Bash(find *), Bash(sed *), Bash(head *), Bash(ls *), Bash(awk *), Bash(tr *)
 ---
 
+**Dono:** Camilo. **Modelo sugerido:** Haiku — checagem mecânica de nome/símbolo, sem julgamento.
+
 ## Quando usar
 
 Após `/inventario` mostrar o cenário geral, **antes de escrever a primeira linha** de:

@@ -10,6 +10,12 @@ allowed-tools:
   - Bash(node .claude/skills/impeccable/scripts/*)
 ---
 
+> **Contexto SignallQ:** skill vendorizada de terceiro, genérica (não específica a Kotlin/Compose).
+> Roda automaticamente como hook em Edit/Write/MultiEdit — não precisa ser invocada manualmente.
+> Divisão com skills locais (sem sobreposição real): `/SignallQ-design` gera UI nova a partir dos
+> tokens do produto; `/design-check` faz checagem pontual sob demanda contra esses mesmos tokens;
+> `/auditar-ux` audita profundamente múltiplas telas. Dono: Camilo (revisa achados do hook).
+
 Designs and iterates production-grade frontend interfaces. Real working code, committed design choices, exceptional craft.
 
 ## Setup

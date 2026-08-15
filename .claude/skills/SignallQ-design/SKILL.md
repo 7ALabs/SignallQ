@@ -4,6 +4,12 @@ description: Use this skill to generate well-branded interfaces and assets for S
 user-invocable: true
 ---
 
+**Dono:** Camilo (implementação) consulta ao construir UI nova; Claudete valida direção de produto.
+**Divisão de escopo com skills correlatas (sem sobreposição real — entrada e momento diferem):**
+esta skill **gera** UI SignallQ nova (create/prototype); `/design-check` faz checagem pontual de
+um arquivo/tela já implementado contra os tokens aqui definidos; `/auditar-ux` faz auditoria
+profunda multi-tela sob demanda; `impeccable` é o hook automático que roda em todo Edit/Write.
+
 Read the `README.md` file within this skill, and explore the other available files.
 
 Key files:

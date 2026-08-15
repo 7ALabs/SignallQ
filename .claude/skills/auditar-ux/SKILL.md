@@ -1,7 +1,12 @@
 ---
 name: auditar-ux
-description: Auditoria profunda de design system (tokens MD3, cores, tipografia, contraste WCAG) e de usabilidade (arquitetura de informação, fluxos, navegação, heurísticas mobile) do SignallQ Android. Conduzida por Juliana (design canônico — ver ADR-016).
+description: Auditoria profunda de design system (tokens MD3, cores, tipografia, contraste WCAG) e de usabilidade (arquitetura de informação, fluxos, navegação, heurísticas mobile) do SignallQ Android. Escopo multi-tela, sob demanda de Claudete ou Caio — não é checagem pontual de um arquivo (isso é `/design-check`).
 ---
+
+**Dono:** Claudete (produto/UX) e Caio (gate de release) invocam. Design deixou de ser agente
+permanente pós-ADR-016 — Juliana virou skill (`/design-check` para checagem pontual; esta skill
+para auditoria profunda). **Modelo sugerido:** Opus — análise multi-tela com julgamento de
+usabilidade, não checagem mecânica.
 
 ## Quando usar
 
@@ -335,8 +340,8 @@ Problemas críticos (contraste quebrado, touch target < 48dp, ARIA ausente em el
 - Não valida lógica de diagnóstico de rede — usar `/regras-diagnostico-rede`.
 - Não define novo design system do zero em uma task — auditar e propor incrementalmente.
 - Contraste: calcular com referência nos valores de cor declarados — sem depender de ferramentas externas de browser.
-- Não revisa microcopy em detalhe — usar `/revisar-ux`.
-- Não audita estados vazios isolados — usar `/revisar-ux`.
+- Não revisa microcopy em detalhe nem estados vazios isolados fora do fluxo auditado — decisão de
+  copy fica com Claudete no próprio review desta especificação, não há skill dedicada a microcopy.
 - Não avalia fluxo de diagnóstico em profundidade — usar `/motor-diagnostico`.
 - Testes com usuário real estão fora do escopo — esta skill avalia heurísticas, não comportamento observado.
 - Não bloqueia entrega por problema de melhoria — somente crítico bloqueia.

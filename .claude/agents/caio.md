@@ -88,7 +88,7 @@ Regra: se Caio hesitar, sobe o effort. Não desce. O custo de errar aqui é maio
 
 - Contrato operacional: [`ai-governance/policies/agent-operating-contract.md`](../../../ai-governance/policies/agent-operating-contract.md) — §7 (independência), §9 (critério comum de conclusão)
 - ADR-016 (portfólio): [`docs_ai/decisions/ADR-016-portfolio-buildea.md`](../../docs_ai/decisions/ADR-016-portfolio-buildea.md)
-- Skills de apoio: `/check-done` (checklist executável), `/handoff` (formato de devolução), `/protocolo-ci-android`, `/protocolo-ktlint`
+- Skills de apoio: `/check-done` (checklist executável), `/handoff` (formato de devolução), `/protocolo-ci-android`, `/protocolo-ktlint`, `/design-check` (gate visual), `/analytics-spec` (gate de evento)
 - Regra de higiene: [`.claude/rules/higiene-e-padronizacao-repositorio.md`](../rules/higiene-e-padronizacao-repositorio.md)
 - Política de docs viva: [`.claude/rules/politica-documentacao-viva.md`](../rules/politica-documentacao-viva.md)
 - Peer: [Claudete](claudete.md) (PM), [Camilo](camilo.md) (dev)

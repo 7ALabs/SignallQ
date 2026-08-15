@@ -3,6 +3,9 @@ name: reconhecimento-equipamento-rede
 description: Metodologia tática para mapear schema/capacidade de interfaces web administrativas de ONTs, roteadores e equipamentos de rede local (incluindo esquemas de autenticação proprietários por firmware), gerando documento de field-map read-only. Consultar antes de qualquer scan de reconhecimento em equipamento novo (ONT, roteador, AP, mesh).
 ---
 
+**Dono:** Camilo. **Modelo sugerido:** Sonnet (Opus se o firmware exigir engenharia reversa de
+criptografia proprietária não catalogada na tabela abaixo).
+
 ## Quando usar
 
 Antes de iniciar reconhecimento técnico (não implementação) da interface web de
@@ -13,10 +16,12 @@ de diagnóstico. Casos reais que geraram esta skill:
 e `docs_ai/technical/TPLINK_ARCHER_ROUTER_FIELD_MAP.md` (roteador TP-Link
 Archer, RSA duplo+AES/jsbn, família `stok-luci`).
 
-Para discovery em massa, scoring de confiança e priorização de família de
-protocolo/driver, ver `/protocolos-locais` (projeto NetHAL) — essa skill cobre
-a big picture; esta aqui cobre a execução tática de UM equipamento específico,
-já com credencial em mãos, até virar documento.
+Esta skill cobre a execução tática de UM equipamento específico, já com
+credencial em mãos, até virar documento — escopo é só o produto SignallQ. O
+projeto NetHAL (discovery em massa, catálogo cross-produto de drivers) foi
+descartado por [ADR-016](../../../docs_ai/decisions/ADR-016-portfolio-buildea.md)
+— não consultar nem contribuir para ele; a tabela de padrões catalogados
+abaixo é a fonte própria e suficiente desta skill.
 
 ## Princípios inegociáveis
 
@@ -83,9 +88,9 @@ encontrados):
 | TP-Link/Mercusys (`stok-luci`, Archer/A6/C6) | RSA1024 cifra senha + RSA512 assina (`sign`, chunks de 53 bytes) + AES-128-CBC com key/IV = strings de 16 dígitos decimais ASCII; `POST /cgi-bin/luci/;stok=/login?form=login`; resposta também vem envelopada em AES | `js/libs/tpEncrypt.js` + `js/libs/encrypt.js` (biblioteca jsbn/RSA de Tom Wu embutida inline); endpoints `?form=keys`/`?form=auth`/`?form=login` |
 
 Para outros fabricantes (FRITZ!Box TR-064, OpenWrt LuCI/ubus, MikroTik,
-Huawei HiLink, ZTE, Xiaomi MiWiFi, D-Link HNAP), consultar primeiro a tabela de
-heurísticas em `/protocolos-locais` (NetHAL) antes de investigar do zero — é
-bem provável que o protocolo já esteja catalogado lá.
+Huawei HiLink, ZTE, Xiaomi MiWiFi, D-Link HNAP) sem padrão catalogado na tabela
+acima, investigar do zero seguindo o passo 2 — não há catálogo externo a
+consultar (NetHAL, que cumpria esse papel, foi descartado por ADR-016).
 
 ### 3. Reproduzir a criptografia em Node.js nativo — nunca reimplementar BigInteger na mão
 
@@ -191,12 +196,11 @@ se houver endpoint óbvio de logout.
 
 ## Onde salvar
 
-- Documento final: `docs_ai/technical/<FABRICANTE>_<TIPO>_FIELD_MAP.md` no
-  repo do produto que vai consumir o dado (hoje, SignallQ).
+- Documento final: `docs_ai/technical/<FABRICANTE>_<TIPO>_FIELD_MAP.md`, neste
+  repositório (único produto ativo que consome este dado — ver ADR-016).
 - Se o achado for sobre um protocolo/família nova de driver ainda não
-  catalogada, também vale contribuir para
-  `C:\Projetos\SevenAgents\Nethal\docs\drivers\live-evidence\` (fora do escopo
-  de edição do Camilo — reportar para o squad do NetHAL decidir).
+  catalogada, adicionar uma linha na tabela do passo 2 desta própria skill —
+  não existe catálogo externo para contribuir (NetHAL foi descartado).
 
 ## Limites
 
