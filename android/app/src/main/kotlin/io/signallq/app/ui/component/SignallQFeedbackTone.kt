@@ -52,7 +52,7 @@ fun SignallQBanner(
             SignallQFeedbackTone.Error -> Triple(c.errorContainer, c.onErrorContainer, Icons.Outlined.ErrorOutline)
         }
     Surface(
-        modifier = modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+        modifier = modifier.fillMaxWidth(),
         color = visual.first,
         contentColor = visual.second,
         shape = MaterialTheme.shapes.medium,

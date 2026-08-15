@@ -1,5 +1,6 @@
 package io.signallq.app.ui.component
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.defaultMinSize
@@ -18,10 +19,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.signallq.app.ui.LkSpacing
@@ -40,17 +42,35 @@ fun SignallQButton(
     leadingIcon: ImageVector? = null,
 ) {
     val content: @Composable RowScope.() -> Unit = {
-        if (loading) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(LkSpacing.lg),
-                strokeWidth = 2.dp,
-            )
-        } else if (leadingIcon != null) {
-            Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(LkSpacing.lg))
+        Box(contentAlignment = Alignment.Center) {
+            Row(
+                modifier =
+                    Modifier
+                        .alpha(if (loading) 0f else 1f)
+                        .then(if (loading) Modifier.clearAndSetSemantics {} else Modifier),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (leadingIcon != null) {
+                    Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(LkSpacing.lg))
+                }
+                Text(text = label, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            if (loading) {
+                Box(modifier = Modifier.matchParentSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(LkSpacing.lg).clearAndSetSemantics {},
+                        strokeWidth = 2.dp,
+                    )
+                }
+            }
         }
-        Text(text = label, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
-    val buttonModifier = modifier.defaultMinSize(minHeight = LkSpacing.compositionLarge)
+    val buttonModifier =
+        modifier
+            .defaultMinSize(minHeight = LkSpacing.compositionLarge)
+            .semantics {
+                if (loading) stateDescription = "Carregando"
+            }
     when (style) {
         SignallQButtonStyle.Primary ->
             Button(
@@ -119,8 +139,7 @@ fun SignallQChoiceChip(
         onClick = onClick,
         modifier =
             modifier
-                .defaultMinSize(minHeight = LkSpacing.compositionLarge)
-                .semantics { role = Role.RadioButton },
+                .defaultMinSize(minHeight = LkSpacing.compositionLarge),
         enabled = enabled,
         label = { Text(label, maxLines = 2, overflow = TextOverflow.Ellipsis) },
         leadingIcon = leadingIcon?.let { { Icon(it, contentDescription = null) } },
