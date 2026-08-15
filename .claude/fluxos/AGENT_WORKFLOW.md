@@ -30,7 +30,7 @@ Aprovações materiais (estratégia, marca, produção, custo recorrente, mudan�
 
 ## Handoff
 
-Estado do trabalho vive em **GitHub Issues** (status da issue) + **GitHub PR**. Scripts `agent-handoff.sh`, `notify.sh`, `discord_notify.sh` estão **depreciados** — não são mecanismo de handoff.
+Estado do trabalho vive em **GitHub Issues** (status da issue) + **GitHub PR**. Scripts `agent-handoff.sh`, `notify.sh`, `discord_notify.sh`, `slack_notify.sh` foram movidos para `scripts/legacy/` em 2026-08-15 e permanecem depreciados — não são mecanismo de handoff. Ver [`scripts/legacy/README.md`](../../scripts/legacy/README.md).
 
 Roteamento: **bug** → GitHub Issues (`type:bug`); **feature/task/refactor/docs** → GitHub Issues (`Task - ...` ou `Feat - ...`).
 

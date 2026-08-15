@@ -131,7 +131,7 @@ gh issue comment N --repo buildea-labs/signallq --body \
 | `TASK` de documentação | Skill `/gerar-docs` ou agente responsável pelo domínio |
 | Qualquer PR pronta para revisão | **Caio** (gate único de revisão independente) |
 
-**Não** usar `scripts/agent-handoff.sh` — depreciado desde [ADR-006](../../docs_ai/decisions/ADR-006-workflow-squad-5-agentes.md) e não substituído. O comentário na issue é o handoff.
+**Não** usar `scripts/legacy/agent-handoff.sh` — depreciado desde [ADR-006](../../docs_ai/decisions/ADR-006-workflow-squad-5-agentes.md), movido para `scripts/legacy/` em 2026-08-15. O comentário na issue é o handoff — ver [`scripts/legacy/README.md`](../../scripts/legacy/README.md).
 
 ---
 

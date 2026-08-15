@@ -8,7 +8,7 @@
 
 O estado do trabalho vive em **GitHub Issues** (status da issue) + **GitHub PR**. O GitHub notifica o Slack diretamente — não criar fluxo manual paralelo. Migração de Linear para GitHub Issues aconteceu em 2026-07-09; IDs `SIG-XXX` continuam válidos como referência histórica, mas não são fonte da verdade de tarefas ativas.
 
-Os scripts `agent-handoff.sh`, `notify.sh`, `discord_notify.sh` e o board Discord estão **depreciados**: não são o mecanismo de handoff. Não documentar como fluxo.
+Os scripts `agent-handoff.sh`, `notify.sh`, `discord_notify.sh`, `slack_notify.sh` foram movidos para `scripts/legacy/` em 2026-08-15 e permanecem depreciados: não são o mecanismo de handoff. Não documentar como fluxo. Ver [`scripts/legacy/README.md`](../../scripts/legacy/README.md).
 
 Roteamento: **bug** → GitHub Issues (título `[BUG] ...`, label `type:bug`); **feature / task / refactor / docs** → GitHub Issues (título `Task - ...` ou `Feat - ...`).
 

@@ -50,7 +50,7 @@ Responda cada pergunta. Qualquer NÃO é um risco ativo — registre e decida an
 **Definição**
 - [ ] Tem critério de aceite claro e verificável?
   - NÃO → refinar antes de estimar. Não avançar.
-- [ ] Existe design aprovado pela Lia (se a issue tem impacto visual)?
+- [ ] Existe design aprovado pela Juliana (se a issue tem impacto visual)?
   - NÃO → bloquear até ter. Consultar `/SignallQ-design` como referência enquanto aguarda.
 
 **Arquitetura**
@@ -126,7 +126,7 @@ IMPACTO: Pequena · Risco Baixo · Milestone recomendado: M1 · Recomendação: 
 
 ```
 IMPACTO: Média · Risco Médio · Milestone recomendado: M1 · Recomendação: refinar primeiro
-- Sem design aprovado: bloquear até Lia validar estados visuais.
+- Sem design aprovado: bloquear até Juliana validar estados visuais.
 - Afeta Room DAO: planejar migration antes de iniciar.
 ```
 

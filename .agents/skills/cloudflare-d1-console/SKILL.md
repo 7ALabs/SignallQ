@@ -1,5 +1,5 @@
 ---
-description: Padrões de schema, migrations e queries D1 (Cloudflare) do SignallQ Console — baseado nas migrations reais em integrations/cloudflare/signallq-admin-worker/. Consultar antes de criar tabela, coluna, índice ou migration novos no Console. Camilo consulta antes de mudar schema; Lia não edita este código, só entende o dado real ao desenhar telas.
+description: Padrões de schema, migrations e queries D1 (Cloudflare) do SignallQ Console — baseado nas migrations reais em integrations/cloudflare/signallq-admin-worker/. Consultar antes de criar tabela, coluna, índice ou migration novos no Console. Camilo consulta antes de mudar schema; Juliana não edita este código, só entende o dado real ao desenhar telas.
 ---
 
 ## Quando usar
@@ -54,4 +54,4 @@ Antes de qualquer mudança de schema no SignallQ Console (`signallq-admin-worker
 
 ## Limites
 
-- Esta skill cobre schema/migration/query D1 — não cobre UI/React (ver design da Lia) nem arquitetura geral do Worker (endpoints, auth flow) além do que toca o banco.
+- Esta skill cobre schema/migration/query D1 — não cobre UI/React (ver design da Juliana) nem arquitetura geral do Worker (endpoints, auth flow) além do que toca o banco.

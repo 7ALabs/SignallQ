@@ -1,39 +1,39 @@
 ---
-description: Kickoff de sessão LINKA — orienta Claude sobre o estado atual do projeto (versão, pendências, fase, skills disponíveis). Use no início de qualquer sessão nova.
-allowed-tools: Read(*), Bash(*), PowerShell(*)
+description: Kickoff de sessão SignallQ — orienta Claude sobre o estado atual do projeto (versão, pendências, milestone, skills disponíveis). Use no início de qualquer sessão nova.
+allowed-tools: Read(*), Bash(*)
 ---
 
-## Estado Atual do Projeto (lido dos arquivos agora)
+## Estado atual do projeto (lido dos arquivos agora)
 
-**Versão Android (ativa):**
-!`cat "C:/Projetos/SignallQ/android/gradle/libs.versions.toml" 2>/dev/null | grep -E "versionName|versionCode"`
+**Versão Android:**
+!`grep -E "versionName|versionCode" "${CLAUDE_PROJECT_DIR:-.}/android/gradle/libs.versions.toml" 2>/dev/null | head -6`
 
-**Último release (topo do changelog):**
-!`cat "C:/Projetos/SignallQ/android/CHANGELOG.md" 2>/dev/null | head -25`
+**Últimas entradas do CHANGELOG:**
+!`head -25 "${CLAUDE_PROJECT_DIR:-.}/android/CHANGELOG.md" 2>/dev/null`
 
-**Milestones do projeto:**
-!`grep -A 6 "^## Milestones" "C:/Projetos/SignallQ/.claude/CLAUDE.md" 2>/dev/null`
+**Milestones:** ver [`docs_ai/RELEASES.md`](../../docs_ai/RELEASES.md) e a skill [`estimativa-impacto`](../skills/estimativa-impacto/) para o mapa vigente.
 
 ---
 
-## Sua Tarefa
+## Sua tarefa
 
 Com base nas informações acima, apresente ao usuário um briefing de sessão conciso:
 
-1. **Versão atual** — versionName + versionCode
-2. **Último release** — data e o que foi entregue (do CHANGELOG)
-3. **Milestone atual** — compare a data de hoje com a tabela de milestones e diga em qual estamos
-4. **Pendências críticas** — consulte o Linear (projeto SignallQ, backlog/cycle atual) pelas issues de maior prioridade e o GitHub Issues do repo por bugs abertos não triados; liste as 3 mais críticas combinando as duas fontes
+1. **Versão atual** — `versionName` + `versionCode` (consumer). Se relevante, também `proVersionName`/`proVersionCode`.
+2. **Último release** — data e o que foi entregue (do CHANGELOG).
+3. **Milestone atual** — comparar hoje com os alvos e dizer em qual estamos.
+4. **Pendências críticas** — consultar `gh issue list --repo buildea-labs/signallq --state open --limit 20` (bugs e tasks abertos) e listar as 3 mais críticas.
 
 Em seguida, pergunte: **"Em que vamos trabalhar hoje?"**
 
 ---
 
-## Skills e Comandos Disponíveis (para referência sua — não exibir ao usuário)
+## Skills e comandos disponíveis (referência sua — não exibir ao usuário)
 
 | Skill / Comando | Quando usar automaticamente |
-|-------|-----------------------------|
+|-----|-----|
 | `/linka` | Início de sessão nova sem contexto anterior |
+| `/task <descrição>` | Registrar demanda: cria issue e faz kickoff do squad |
 | `/SignallQ-design create` | Criar nova tela ou componente Compose |
 | `/SignallQ-design review` | Editar arquivo em `ui/screen/` ou `ui/component/` |
 | `/SignallQ-design tokens` | Dúvida sobre cor, espaçamento ou tipografia |
@@ -45,7 +45,17 @@ Em seguida, pergunte: **"Em que vamos trabalhar hoje?"**
 | `/linka-docs new` | Criar novo documento oficial |
 | `/linka-docs check` | Auditar docs de uma feature |
 | `/estimativa-impacto` | Avaliar tamanho/risco/milestone de uma issue antes do breakdown |
-| `/checar-release` | Checklist pré-release (Android + Cloudflare Pages), inclui validação executável de versionamento/build (fundida com `/validar-release` em 2026-07-23) |
+| `/checar-release` | Checklist pré-release (Android + Cloudflare) |
 | `/gerar-docs` | Gerar ou atualizar documentação funcional/técnica/testes |
-| `/auditar-ux` | Auditoria de design system e usabilidade |
+| `/auditar-ux` | Auditoria de design system e usabilidade (Juliana) |
 | `/motor-diagnostico` | Trabalho no engine de diagnóstico, speedtest ou IA |
+| `/cloudflare-d1-console` | Antes de mexer em schema/migration/query do Admin Worker |
+| `/regras-android` | Antes de mexer em permissão, Wi-Fi, DNS ou background |
+| `/regras-diagnostico-rede` | Thresholds e padrões técnicos brasileiros |
+| `/padroes-compose` | Padrões de Screen/ViewModel/StateFlow Compose |
+| `/protocolo-ci-android` | Falha de CI ou dependabot travado |
+| `/protocolo-ktlint` | Violação Ktlint ou supressão no editorconfig |
+
+## Squad canônico ([ADR-014](../../docs_ai/decisions/ADR-014-squad-canonico-ai-governance.md))
+
+Claudete (produto), Camilo (Android/Workers/Admin), Juliana (design), Marcos (growth), Gustavo (dados/observabilidade), Caio (revisão independente). Definições em [`ai-governance/agents/`](../../../ai-governance/agents/).

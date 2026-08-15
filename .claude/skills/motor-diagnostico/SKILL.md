@@ -7,12 +7,12 @@ Skill consolidada para tudo que envolve o diagnóstico do SignallQ: o motor (eng
 
 Thresholds de qualidade e padrões técnicos brasileiros: consulte sempre `/regras-diagnostico-rede`. **Não duplicar thresholds aqui.**
 
-Agentes recomendados por fase:
+Agentes recomendados por fase (squad canônico — ver ADR-014):
 - **Claudete** — planeja e mapeia impacto
 - **`/regras-android`** — valida comportamento real em device (DNS, Wi-Fi, NetworkCallback, OEM quirks)
 - **Camilo** — implementa Android
-- **Lia** — valida impacto visual, estados de UI e jornada (modo Sonnet em decisão de produto)
-- **Rhodolfo** — revisão final
+- **Juliana** — valida impacto visual, estados de UI e jornada
+- **Caio** — revisão independente final
 
 ---
 
@@ -95,7 +95,7 @@ Thresholds de resultado (Brasil): consulte `/regras-diagnostico-rede`.
 
 ## 3. Jornada do Usuário
 
-Ao modificar qualquer parte do fluxo de diagnóstico, revise pela perspectiva do usuário. Lia executa em modo Sonnet (decisão de produto).
+Ao modificar qualquer parte do fluxo de diagnóstico, revise pela perspectiva do usuário. Juliana valida a jornada quando o fluxo tem impacto visual.
 
 ### Passos
 1. Mapear estados do fluxo atual: idle → iniciando → coletando → analisando → resultado.
