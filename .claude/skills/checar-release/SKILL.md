@@ -3,8 +3,14 @@ name: checar-release
 description: Checklist pré-release por stack (Android e Cloudflare Pages) mais atualização de changelog.
 ---
 
+**Dono:** Camilo executa; Caio faz o gate final de release. **Modelo sugerido:** Sonnet.
+
 ## Quando usar
 Antes de gerar APK/AAB de release, fazer deploy no Cloudflare Pages ou submeter à loja. Cobre as stacks mais o changelog. Use só as seções relevantes à entrega.
+
+A seção "Play Store" abaixo é checklist técnico/mecânico (build, AAB, keystore). Verificação de
+**produto** da ficha da loja (copy, posicionamento, keywords) é `/growth-check`, invocada por
+Claudete mais cedo no fluxo — os dois são complementares, não duplicados.
 
 ---
 
