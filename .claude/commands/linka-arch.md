@@ -36,7 +36,6 @@ Grupos principais:
                       permissions, telephony, recommendation, featureflags)
 :feature:*            features do app (home, wifi, devices, dns, speedtest,
                       diagnostico, fibra, history, settings)
-:pro:*                módulos SignallQ Pro (on hold)
 ```
 
 ### Lei das dependências (nunca violar)

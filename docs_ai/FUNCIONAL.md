@@ -280,7 +280,7 @@ há Wi-Fi.
 **Sinal WiFi (ferramenta separada).** `SinalWifiScreen` é o indicador em tempo real, pensado para o
 usuário andar pela casa: barras de sinal ampliadas, RSSI em dBm, velocidade do link e um card com o
 padrão Wi-Fi (4/5/6/6E/7 ou "Não identificado") e badge de suporte a MU-MIMO. A amostragem só roda
-com a tela em foreground. É descrito no código como versão contida do Walk Test do SignallQ Pro.
+com a tela em foreground.
 
 ### 5.4 Dispositivos conectados
 

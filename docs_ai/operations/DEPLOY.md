@@ -5,7 +5,7 @@
 This document outlines the deployment process for the SignallQ Android Kotlin application, detailing how new versions are released to end-users.
 
 - **Status:** ativo
-- **Última validação:** 2026-07-23
+- **Última validação:** 2026-08-15
 - **Fonte de verdade:** versão real em `android/gradle/libs.versions.toml` (não fixar número
   aqui, muda a cada release); trilhas/canais reais em `.github/workflows/release.yml` e
   `promote-release.yml`
@@ -57,12 +57,11 @@ interativo, configurado uma vez com `gh secret set FIREBASE_TOKEN --repo
     -   O workflow builda, assina, cria o GitHub Release, e publica o AAB direto na trilha
         `internal` via `gradlew :app:publishReleaseBundle` (`gradle-play-publisher`, credencial
         `PLAY_SERVICE_ACCOUNT_JSON`).
-    -   **Desacoplamento de produtos** (desde 2026-07-20): o release do consumer (SignallQ)
-        é escopado exclusivamente ao módulo `:app`, evitando que mudanças ou problemas no
-        módulo `:pro:app` (SignallQ Pro) bloqueiem publicações do consumer. O workflow roda
-        `:app:assembleRelease`, `:app:bundleRelease`, `:app:uploadCrashlyticsMappingFileRelease`,
-        e `:app:publishReleaseBundle` em vez de taskname sem prefixo. O Pro terá seu próprio
-        pipeline de release quando precisar publicar.
+    -   O release do consumer (SignallQ) é escopado exclusivamente ao módulo `:app` — o
+        workflow roda `:app:assembleRelease`, `:app:bundleRelease`,
+        `:app:uploadCrashlyticsMappingFileRelease` e `:app:publishReleaseBundle` (taskname
+        prefixado, não o genérico), o que mantém o pipeline isolado de qualquer outro módulo
+        do monorepo.
 
 4.  **Manage Release Tracks** — fluxo real do produto, não o genérico:
     -   **`internal`** (Teste interno): destino de todo `release.yml` — só o Luiz valida,

@@ -63,7 +63,7 @@ android/core/featureflags/                       (:core:featureflags, novo módu
 ```
 
 `:core:featureflags` é consumido **apenas** por `:app` nesta fase (nenhum módulo `feature/*` ainda
-depende dele — isso é F4). Nunca é consumido por `:pro:*`.
+depende dele — isso é F4).
 
 ### Por que `src/main/resources/`, não `src/main/assets/`
 
