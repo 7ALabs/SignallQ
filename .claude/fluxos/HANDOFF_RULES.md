@@ -8,7 +8,7 @@
 
 **GitHub Issues** (status) + **GitHub PR** (execução). GitHub notifica Slack automaticamente. Skill `/handoff` formaliza pre-flight (git status, branch, PRs relacionadas) e posta o comentário canônico.
 
-Scripts em `scripts/legacy/` (`agent-handoff.sh`, `notify.sh`, `discord_notify.sh`, `slack_notify.sh`) estão depreciados — não são mecanismo de handoff.
+Os scripts de notificação/handoff (`agent-handoff.sh`, `notify.sh`, `discord_notify.sh`, `slack_notify.sh`) foram removidos por dívida morta na Fase 4f do épico #1623 — nunca foram mecanismo de handoff válido. Histórico recuperável via `git show 0daa424a:scripts/legacy/agent-handoff.sh` (e demais nomes de arquivo no mesmo commit).
 
 ## Fluxo de handoff (squad de 3)
 

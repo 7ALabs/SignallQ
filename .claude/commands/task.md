@@ -131,7 +131,7 @@ gh issue comment N --repo buildea-labs/signallq --body \
 | `TASK` de documentação | Claudete ou Camilo (conforme domínio) | `/gerar-docs` |
 | Qualquer PR pronta para revisão | **Caio** (gate único) | `/check-done` |
 
-**Não** usar `scripts/legacy/agent-handoff.sh` — depreciado (ex-ADR-006, hoje consolidado em [ADR-016](../../docs_ai/decisions/ADR-016-portfolio-buildea.md)), movido para `scripts/legacy/` em 2026-08-15. O comentário na issue é o handoff — ver [`scripts/legacy/README.md`](../../scripts/legacy/README.md).
+**Não** existe mais `agent-handoff.sh` — depreciado (ex-ADR-006, hoje consolidado em [ADR-016](../../docs_ai/decisions/ADR-016-portfolio-buildea.md)), removido de vez na Fase 4f do épico #1623 após confirmação de zero uso. O comentário na issue é o handoff. Histórico via `git show 0daa424a:scripts/legacy/agent-handoff.sh`.
 
 ---
 
