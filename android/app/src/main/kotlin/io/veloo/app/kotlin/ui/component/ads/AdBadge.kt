@@ -27,8 +27,7 @@ import io.signallq.app.ui.LocalLkTokens
  * Disclosure obrigatorio de anuncio nativo (Google native-ad UX guidelines) -- issue #555.
  *
  * Nunca omitido, nunca disfarcado de componente organico do app: icone + rotulo em
- * UPPERCASE dentro de um pill com contorno, mesmo padrao visual do protótipo da Lia
- * (`.claude/design-specs/2026-07-12-monetizacao-nativa-ads/ads.jsx`).
+ * UPPERCASE dentro de um pill com contorno.
  */
 @Composable
 fun AdBadge(
