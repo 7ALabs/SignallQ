@@ -13,7 +13,9 @@ last_updated: "2026-08-15"
 - **Última validação contra código:** 2026-08-15 — foundations 2.0 implementados como camada de
   compatibilidade na issue #1649: pares claro/escuro, preto-base, superfícies de card, scrim,
   escala 4–64 dp, shapes, state layers, elevação tonal e movimento. A migração das telas continua
-  incremental; este registro não declara a Jornada Android 2.0 integralmente entregue.
+  incremental. A issue #1650 adiciona uma biblioteca central opt-in de controles, contêineres,
+  feedback e estados de tela; somente o banner offline de Dispositivos é piloto. Este registro não
+  declara jornadas nem consumidores legados integralmente migrados.
 - **Fonte de verdade:** o *código* — `android/app/src/main/kotlin/io/signallq/app/ui/SignallQTheme.kt`
   (`LkColors`, `LkTokens`, `LkSpacing`, `LkRadius`, `LkStateLayer`, `LkElevation`, `LkMotion`,
   shapes e `signallQTypography`). Este documento é derivado
@@ -433,8 +435,26 @@ fatias verticais. Não fazer varredura oportunista nem inverter o default antes 
 
 ## 7. Biblioteca de componentes
 
-**Localização real:** `android/app/src/main/kotlin/io/signallq/app/ui/component/` (33
-arquivos + subpasta `ads/`, 8 arquivos).
+**Localização real:** `android/app/src/main/kotlin/io/signallq/app/ui/component/`. A biblioteca
+2.0 opt-in está separada por responsabilidade em `SignallQControls.kt`,
+`SignallQContainers.kt`, `SignallQFeedbackTone.kt` e `SignallQScreenState.kt`; o catálogo de previews
+claro/escuro vive em `SignallQComponentPreviews.kt`. Os componentes `Lk*`, `StatefulScreen`,
+`OfflineBanner` e `ConfirmacaoDialog` continuam disponíveis com seus contratos legados.
+
+### APIs centrais 2.0 opt-in
+
+- controles: `SignallQButton`, `SignallQTextField`, `SignallQChoiceChip` e `SignallQBadge`;
+- estrutura: `SignallQListRow`, `SignallQSurfaceCard`, `SignallQTopAppBar`,
+  `SignallQNavigationBar`, `SignallQSheet`, `SignallQDialog` e `SignallQExpandableDetails`;
+- feedback: `SignallQBanner`, `SignallQProgress`, `SignallQResultBlock`,
+  `SignallQTranslatedMetric` e `SignallQSkeleton`;
+- tela: `SignallQStatefulScreen`, com loading, conteúdo, vazio, offline, permissão necessária e
+  erro recuperável.
+
+Essas APIs usam Material 3 diretamente, têm alvo mínimo interativo de 48 dp, não dependem apenas
+de cor para comunicar feedback e aceitam texto multilinha. A adoção é incremental: nesta fatia,
+somente `DispositivosScreen` usa `SignallQOfflineBanner`; não houve alteração de navegação,
+ViewModel, telemetria, regra de negócio ou placement de anúncio.
 
 ### TopBar
 
@@ -638,7 +658,7 @@ usado, implementação real hoje.
 
 | Nome oficial (DS) | Finalidade | Variantes | Token usado | Implementação real |
 | --- | --- | --- | --- | --- |
-| `SignallQSurfaceCard` | Card base nível 1/2 | preenchido, com borda, selecionado | `surfaceContainer(High)`, `LkRadius.card` | `LkSurfaceCard` (`BaseComponents.kt:35`) |
+| `SignallQSurfaceCard` | Card base nível 1/2 opt-in | preenchido, elevado | `cardSurface`, `cardSurfaceElevated` | `SignallQSurfaceCard` (`BaseComponents.kt`) |
 | `SignallQSectionOverline` | Rótulo de seção UPPERCASE | — | `labelSmall`, `onSurfaceVariant` | `LkSectionOverline` (`BaseComponents.kt:58`) |
 | `SignallQPillBadge` | Badge/chip pill | status, neutro | `LkRadius.pill` | `LkPillBadge` (`BaseComponents.kt:73`) |
 | `SignallQStatusDot` | Indicador de status pontual | success/warning/error | `color.status.*` | `LkStatusDot` (`BaseComponents.kt:96`) |

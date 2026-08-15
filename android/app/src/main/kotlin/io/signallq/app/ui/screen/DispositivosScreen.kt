@@ -94,8 +94,8 @@ import io.signallq.app.ui.component.LkInfoCallout
 import io.signallq.app.ui.component.LkPillBadge
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkStatusDot
-import io.signallq.app.ui.component.OfflineBanner
 import io.signallq.app.ui.component.SheetDragHandle
+import io.signallq.app.ui.component.SignallQOfflineBanner
 import io.signallq.app.ui.component.ads.NativeAdListRow
 import io.signallq.app.ui.component.ads.NativeAdSource
 
@@ -181,7 +181,7 @@ fun DispositivosScreen(
                     .padding(padding),
         ) {
             if (!snapshotRede.conectado) {
-                OfflineBanner()
+                SignallQOfflineBanner()
             }
             Box(
                 modifier =
