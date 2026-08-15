@@ -20,7 +20,8 @@ last_updated: "2026-08-15"
   descontinuado permanentemente (ADR-016); docs e skill de design própria (`#0B6CFF`) removidos do
   repositório na Fase 4b do épico #1623 — nem o painel Admin, que vive no repositório `buildea-admin`
 - **Responsável:** Camilo (implementação Android). O papel de design não tem titular desde
-  2026-07-25 (ver `decisions/DECISAO_DEMISSAO_LIA_2026-07-25.md`)
+  2026-07-25 (decisão de squad registrada nessa data; documento removido em `docs_ai/decisions/`
+  na Fase 4d do épico #1623 — git preserva)
 - **Documentos substituídos:** consolidou `COLORS.md`, `COMPONENTS_ANDROID.md`, `DESIGN_TOKENS.md`,
   `MD3_GUIDELINES.md`, `SPACING.md` e `TYPOGRAPHY.md`, removidos da árvore em 2026-08-06
   (recuperáveis em `git show 10b2f05d:docs_ai/_archive/2026-07-16_COLORS.md` e equivalentes)
