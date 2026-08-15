@@ -1,6 +1,5 @@
 package io.signallq.app.ui.component
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -38,6 +37,32 @@ import io.signallq.app.ui.LocalLkTokens
 fun LkSurfaceCard(
     modifier: Modifier = Modifier,
     outlined: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val c = LocalLkTokens.current
+    Column(
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.surfaceContainer)
+                .then(
+                    if (outlined) {
+                        Modifier.border(1.dp, c.outlineVariant, RoundedCornerShape(LkRadius.card))
+                    } else {
+                        Modifier
+                    },
+                ).padding(LkSpacing.base),
+        content = content,
+    )
+}
+
+/**
+ * Superfície de card Foundations 2.0. A API separada torna a migração explicitamente opt-in;
+ * [LkSurfaceCard] permanece com assinatura e comportamento legados até cada fatia ser validada.
+ */
+@Composable
+fun SignallQSurfaceCard(
+    modifier: Modifier = Modifier,
     elevated: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -48,7 +73,6 @@ fun LkSurfaceCard(
         color = if (elevated) c.cardSurfaceElevated else c.cardSurface,
         tonalElevation = if (elevated) LkElevation.level2 else LkElevation.level0,
         shadowElevation = if (elevated) LkElevation.level1 else LkElevation.level0,
-        border = if (outlined) BorderStroke(1.dp, c.outlineVariant) else null,
     ) {
         Column(modifier = Modifier.padding(LkSpacing.cardContent), content = content)
     }

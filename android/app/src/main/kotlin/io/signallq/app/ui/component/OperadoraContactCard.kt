@@ -64,7 +64,7 @@ fun OperadoraContactCard(
     val c = LocalLkTokens.current
     val context = LocalContext.current
 
-    LkSurfaceCard(
+    SignallQSurfaceCard(
         modifier = modifier.fillMaxWidth(),
     ) {
         if (contato != null && contato.hasAnyContact) {

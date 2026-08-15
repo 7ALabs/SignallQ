@@ -423,9 +423,11 @@ Scrim (nível 3, fundo de dialog/bottom sheet modal) está disponível em `LkTok
 - Tema escuro não pode parecer uma coleção de retângulos cinza no mesmo plano.
 
 **Estado real de implementação:** a camada de foundations existe em Kotlin desde a issue #1649.
-`LkSurfaceCard` é o componente-piloto e usa `cardSurface` por padrão ou `cardSurfaceElevated` com
-elevação tonal/sombra discreta quando `elevated = true`. Os demais componentes e telas continuam
-no contrato legado até suas fatias verticais; não fazer varredura oportunista.
+`LkSurfaceCard` preserva integralmente assinatura e comportamento legados; seus consumidores não
+migram implicitamente. A variante opt-in `SignallQSurfaceCard` usa `cardSurface` por padrão ou
+`cardSurfaceElevated` com elevação tonal/sombra discreta quando `elevated = true`. O piloto isolado
+é `OperadoraContactCard`; os demais componentes e telas continuam no contrato legado até suas
+fatias verticais. Não fazer varredura oportunista nem inverter o default antes dessas validações.
 
 ---
 
