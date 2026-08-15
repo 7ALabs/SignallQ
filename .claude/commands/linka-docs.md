@@ -147,6 +147,6 @@ Pergunte ao usuário:
 - Quer auditar a documentação de uma feature?
 - Tem dúvida sobre onde um documento deve ficar?
 
-## Agentes canônicos ([ADR-014](../../docs_ai/decisions/ADR-014-squad-canonico-ai-governance.md))
+## Agentes canônicos ([ADR-016](../../docs_ai/decisions/ADR-016-portfolio-buildea.md))
 
 Documentação é conduzida por **Claudete** (funcional/produto), **Camilo** (técnica/arquitetura), **Juliana** (design/UX), **Gustavo** (operações/dados) e **Caio** (revisão independente + prontidão de release).

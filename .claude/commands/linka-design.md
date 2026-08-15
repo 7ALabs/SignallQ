@@ -222,6 +222,6 @@ Exiba uma tabela de referência rápida com todos os tokens disponíveis e seus 
 
 Pergunte ao usuário se está criando algo novo, revisando tela existente, ou com dúvida sobre qual token usar.
 
-## Agentes canônicos ([ADR-014](../../docs_ai/decisions/ADR-014-squad-canonico-ai-governance.md))
+## Agentes canônicos ([ADR-016](../../docs_ai/decisions/ADR-016-portfolio-buildea.md))
 
 Design system é conduzido pela **Juliana**; implementação em Compose por **Camilo**; revisão independente por **Caio**.

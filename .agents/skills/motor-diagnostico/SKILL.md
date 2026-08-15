@@ -7,7 +7,7 @@ Skill consolidada para tudo que envolve o diagnóstico do SignallQ: o motor (eng
 
 Thresholds de qualidade e padrões técnicos brasileiros: consulte sempre `/regras-diagnostico-rede`. **Não duplicar thresholds aqui.**
 
-Agentes recomendados por fase (squad canônico — ver ADR-014):
+Agentes recomendados por fase (squad canônico — ver ADR-016):
 - **Claudete** — planeja e mapeia impacto
 - **`/regras-android`** — valida comportamento real em device (DNS, Wi-Fi, NetworkCallback, OEM quirks)
 - **Camilo** — implementa Android
