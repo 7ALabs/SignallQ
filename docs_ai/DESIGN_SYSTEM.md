@@ -229,7 +229,7 @@ SemiBold, `700` Bold.
 | `labelSmall` | 11 sp | 16 sp | Medium | 0.4 | Overline (+ UPPERCASE) | 1 |
 
 `displayLarge`/`displayMedium`/`headlineMedium` foram removidos da escala (nenhuma tela usa
-estilo maior que `displaySmall`) — não reintroduzir sem validar com a Lia.
+estilo maior que `displaySmall`) — não reintroduzir sem validar com Claudete (via `/design-check`).
 
 ### Regras de uso
 
@@ -668,8 +668,9 @@ Card(
 
 **Nota de nomenclatura:** os nomes `SignallQ*` acima são **aliases documentais** desta tabela —
 o código real ainda usa o prefixo `Lk*` (herdado da marca anterior). Renomear os arquivos reais é
-dívida registrada ao final deste documento, não executada nesta consolidação (edição de código de
-produção está fora do escopo do trabalho da Lia).
+dívida registrada ao final deste documento, não executada nesta consolidação (a consolidação de
+tokens em 2026-07-13 tocou apenas documentação; a edição do código de produção fica para o
+Camilo, validada por Caio via `/design-check`).
 
 ---
 
