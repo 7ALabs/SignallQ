@@ -152,6 +152,15 @@ BLOCO
 status=0
 NOVO=$(bloco)
 
+# BSD awk (macOS default) recusa strings multi-linha em `-v var=...` com
+# `awk: newline in string ... at source line 1`; GNU awk (Linux CI) tolera.
+# Sem isso o guardrail falhava em toda maquina macOS e passava no CI — o
+# mesmo tipo de alarme falso que a nota de CRLF logo abaixo tenta prevenir.
+# Escrever o bloco em arquivo e ler por getline funciona em ambos.
+NOVO_ARQ=$(mktemp)
+trap 'rm -f "$NOVO_ARQ"' EXIT
+printf '%s\n' "$NOVO" > "$NOVO_ARQ"
+
 for alvo in "${ALVOS[@]}"; do
   if [[ ! -f "$alvo" ]]; then
     echo "alvo inexistente: $alvo" >&2
@@ -165,8 +174,12 @@ for alvo in "${ALVOS[@]}"; do
   fi
 
   tmp=$(mktemp)
-  awk -v novo="$NOVO" '
-    /INVENTARIO:INICIO/ { print novo; dentro=1; next }
+  awk -v novoArq="$NOVO_ARQ" '
+    /INVENTARIO:INICIO/ {
+      while ((getline linha < novoArq) > 0) print linha
+      close(novoArq)
+      dentro=1; next
+    }
     /INVENTARIO:FIM/    { dentro=0; next }
     !dentro             { print }
   ' "$alvo" > "$tmp"
