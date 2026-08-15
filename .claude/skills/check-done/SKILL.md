@@ -60,6 +60,31 @@ Depois **pergunta ao operador humano** (não decide sozinha): "O diff acima cobr
 
 `PASS` se `y`. `FAIL` se `n`. `SKIP` só com justificativa registrada.
 
+**Sub-check obrigatório — governança anti-duplicação (épico #1623 Fase 2):** se o diff acima cria
+um símbolo novo (módulo Gradle, serviço/Repository/UseCase/Manager, componente Composable
+reutilizável, ou função utilitária), verificar se há evidência de `/inventario` e
+`/verificar-modulo` terem sido consultados antes da criação:
+
+```bash
+# Detecta criação de símbolo novo no diff
+gh pr diff <PR> --repo buildea-labs/signallq --name-only \
+  | grep -E '^android/.*/(ui/component|core)/.*\.kt$|settings\.gradle\.kts$'
+
+# Procura evidência de consulta registrada (comentário na PR/issue ou anotação no corpo)
+gh pr view <PR> --json body,comments --repo buildea-labs/signallq \
+  --jq '[.body, (.comments[].body)] | join("\n")' \
+  | grep -iE '/inventario|/verificar-modulo|PASS — nada existente|WARN — existem candidatos'
+```
+
+- Se o diff **não** cria símbolo novo → não se aplica, seguir para o critério normal.
+- Se cria símbolo novo **e** há evidência de `/inventario`/`/verificar-modulo` registrada (output
+  colado em comentário, ou justificativa explícita de por que reusou/por que criou novo) →
+  sub-check `PASS`.
+- Se cria símbolo novo **sem** essa evidência → sub-check `FAIL` — o critério 1 inteiro vira `FAIL`
+  até o autor registrar a decisão (reusar existente, ou justificar por que o `WARN`/candidato
+  encontrado não se aplica). Não é suficiente o autor afirmar de memória que "não tinha nada
+  parecido" — precisa do output ou da justificativa registrada na PR/issue.
+
 ### 2. Critérios de aceite verificados
 
 Lê o bloco `## Critérios de aceitação` (ou `## Critérios de aceite`) da issue:
@@ -188,7 +213,7 @@ Implícito: se critérios 7 e 8 passaram (commit + merge em main), a tarefa pass
 ```
 ✓ check-done PASS — issue #<N> / PR #<M> pronta para fechar.
 
-  1. Escopo: PASS (confirmado por <operador>)
+  1. Escopo: PASS (confirmado por <operador>; /inventario+/verificar-modulo n/a — sem símbolo novo)
   2. Critérios de aceite: PASS (5/5)
   3. Testes: PASS (7 checks CI verdes, ./gradlew test OK)
   4. Docs: PASS (docs-CI: falhas: 0)
@@ -205,7 +230,8 @@ Pode fechar a issue e postar handoff final via /handoff.
 ```
 ✗ check-done FAIL — 2 itens bloqueando conclusão.
 
-  1. Escopo: PASS
+  1. Escopo: FAIL — diff cria android/feature/dispositivos/.../ScannerRedeUseCase.kt (símbolo
+       novo) sem evidência de /inventario ou /verificar-modulo registrada na PR/issue.
   2. Critérios de aceite: FAIL — 2 abertos:
        - [ ] Espelhos .agents/skills/ ressincronizados
        - [ ] scripts/legacy/README.md atualizado
@@ -218,6 +244,8 @@ Pode fechar a issue e postar handoff final via /handoff.
   9. Rastreável: (aguardando #8)
 
 Ações:
+  - Rodar /inventario + /verificar-modulo pra ScannerRedeUseCase e registrar o resultado num
+    comentário da PR (reuso decidido ou justificativa de por que criar novo).
   - Marcar os 2 critérios abertos ou remover da lista.
   - Rodar scripts/gerar-inventario-docs.sh e commitar.
   - Aguardar merge para conclusão total.
