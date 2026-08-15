@@ -66,6 +66,10 @@ internal fun tabModuleId(index: Int): String? =
 internal fun AppShellFeatureFlagsState.primeiraTabHabilitada(): Int =
     listOf(1, 0, 2, 3).firstOrNull { tabHabilitada(it) } ?: 4
 
+/** Fallback respeita as raízes expostas pelo shell ativo. */
+internal fun AppShellFeatureFlagsState.primeiraTabHabilitada(mode: AppShellMode): Int =
+    mode.roots().firstOrNull { tabHabilitada(it.legacyIndex) }?.legacyIndex ?: AppShellRoot.Tools.legacyIndex
+
 /**
  * Bloqueio de uma rota/overlay: registra `feature_blocked_remote` (sem dado pessoal) e
  * devolve `false` -- call sites usam o retorno pra decidir se abrem o overlay de verdade.

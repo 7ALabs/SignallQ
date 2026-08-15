@@ -168,6 +168,7 @@ data class AppShellAdsState(
  */
 @Stable
 data class AppShellFeatureFlagsState(
+    val guidedShell2Enabled: Boolean = false,
     val homeEnabled: Boolean = true,
     val speedtestEnabled: Boolean = true,
     val wifiEnabled: Boolean = true,
@@ -182,3 +183,6 @@ data class AppShellFeatureFlagsState(
      *  `analyticsTracker.registrarFeatureUsada` nos call sites de MainActivity. */
     val onFeatureBlocked: (moduleId: String) -> Unit = {},
 )
+
+internal val AppShellFeatureFlagsState.shellMode: AppShellMode
+    get() = if (guidedShell2Enabled) AppShellMode.Guided2 else AppShellMode.Legacy

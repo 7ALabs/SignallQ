@@ -41,6 +41,7 @@ import io.signallq.app.ui.SignallQTheme
 import io.signallq.app.ui.component.LgpdConsentDialog
 import io.signallq.app.ui.screen.AppShell
 import io.signallq.app.ui.screen.OnboardingScreen
+import io.signallq.app.ui.screen.shellMode
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -353,6 +354,7 @@ class MainActivity : ComponentActivity() {
                     )
                 } else {
                     AppShell(
+                        shellMode = featureFlagsState.shellMode,
                         snapshotRede = snapshotRede,
                         speedtest =
                             io.signallq.app.ui.screen.AppShellSpeedtestState(

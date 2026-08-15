@@ -77,30 +77,36 @@ deixar a conexão monitorada em segundo plano com alertas.
 
 ## 4. Navegação
 
-Fonte única: `android/app/src/main/kotlin/io/signallq/app/ui/screen/AppShell.kt`. Não existe
-navigation graph — a navegação é um índice de aba (`selectedTab`) mais uma pilha de overlays
-(`overlayStack`, `AppShell.kt:392`), tudo dentro de um `ModalNavigationDrawer`.
+Não existe Navigation Compose graph. `AppShellNavigation.kt` mantém a raiz selecionada e uma pilha
+de overlays independente por raiz, salva por `rememberSaveable`; `AppShell.kt` faz apenas o wiring
+das telas e callbacks existentes. O estado restaurado sobrevive à recriação do processo sem mover
+regras de negócio ou ViewModels para a shell.
 
-### 4.1 Barra inferior — 5 abas fixas
+### 4.1 Barra inferior — Jornada 2.0 e fallback legado
 
-`AppBottomNavBar` (`AppShell.kt:1504-1540`). Nomes de tela para analytics em `AppShell.kt:595`:
-`listOf("home", "speedtest", "sinal_wifi", "historico", "ferramentas")`.
+`AppShellBottomBar.kt` implementa os dois conjuntos reversíveis. A flag canônica
+`consumer.app_shell.guided_2_enabled` seleciona o modo; seu default local é `false`, portanto o
+fallback offline seguro é `Legacy`. Quando ativado via configuração já persistida pelo provider,
+`Guided2` expõe quatro raízes e abre em Início. O modo legado mantém cinco abas e cold start em
+Velocidade, sem depender de rede para rollback.
 
-| Índice | Rótulo | Tela | Observação |
+| Índice compatível | Rótulo | Tela | Jornada 2.0 |
 |---|---|---|---|
-| 0 | Início | `HomeScreen` | — |
-| 1 | Velocidade | `SpeedTestScreen` | **aba de cold start** (`AppShell.kt:390`) |
-| 2 | Sinal | `SinalScreen` | 3 abas internas |
-| 3 | Histórico | `HistoricoScreen` | back nesta aba volta para Início (`AppShell.kt:646-648`) |
-| 4 | Ferramentas | `FerramentasScreen` | hub; única aba nunca bloqueada por feature flag (`AppShell.kt:1535-1537`) |
+| 0 | Início | `HomeScreen` | cold start |
+| 1 | Velocidade | `SpeedTestScreen` | raiz |
+| 2 | Sinal | `SinalScreen` | somente fallback legado; no 2.0, Wi-Fi é fluxo profundo |
+| 3 | Histórico | `HistoricoScreen` | raiz; back volta para Início |
+| 4 | Ferramentas | `FerramentasScreen` | raiz; nunca bloqueada por feature flag |
 
-O app **não abre em Início**: o cold start cai sempre na aba Velocidade (índice 1), decisão de
-produto registrada em `AppShell.kt:387-390`. A barra inteira some enquanto o speedtest executa
-(`AppShell.kt:684`).
+Na Jornada 2.0, a barra fica oculta em qualquer overlay e durante a execução do speedtest. Trocar de
+raiz preserva a pilha da raiz anterior; Voltar desempilha apenas a raiz atual. Perfil é acessado
+pela ação da app bar nas quatro raízes. O drawer e a aba Sinal permanecem alcançáveis no fallback
+legado. Os nomes de analytics existentes (`home`, `speedtest`, `sinal_wifi`, `historico` e
+`ferramentas`) foram preservados.
 
 ### 4.2 Overlays
 
-Lista exata do enum `Overlay` (`AppShell.kt:111-160`) — 16 valores, todos empilháveis:
+Lista exata de `AppShellOverlay` (`AppShellNavigation.kt`) — 16 valores, todos empilháveis:
 
 | Valor do enum | Tela renderizada | Aberto a partir de |
 |---|---|---|
@@ -135,10 +141,10 @@ Notas de comportamento:
 - Uma tela **existe no diretório mas não é roteada**: `MinhaConexaoScreen.kt` — seu conteúdo é
   consumido como bottom sheet dentro de `AjustesScreen`, não como destino próprio.
 
-### 4.3 Menu lateral (Navigation Drawer)
+### 4.3 Menu lateral (fallback legado)
 
-`AppNavigationDrawerContent` (`AppShell.kt:1398-1470`), aberto pelo hambúrguer no TopBar das 5
-telas de aba. Cinco itens fixos mais a versão do app: **Ajustes** (`Overlay.Perfil`), **Ajuda e
+`AppNavigationDrawerContent`, aberto pelo hambúrguer nas cinco telas quando `shellMode = Legacy`.
+Cinco itens fixos mais a versão do app: **Ajustes** (`AppShellOverlay.Perfil`), **Ajuda e
 suporte** (`SimpleInfoSheet` com `suporte@signallq.com`, `AppShell.kt:1371-1379`), **Privacidade**
 (`Overlay.Privacidade`), **Termos de uso** (`Overlay.Termos`) e **Sobre o SignallQ**
 (`SobreSheet`). A navegação inferior não é duplicada aqui.
