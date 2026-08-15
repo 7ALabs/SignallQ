@@ -1,5 +1,6 @@
 package io.signallq.app.ui.component
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -27,6 +29,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.signallq.app.ui.LkElevation
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
@@ -35,23 +38,20 @@ import io.signallq.app.ui.LocalLkTokens
 fun LkSurfaceCard(
     modifier: Modifier = Modifier,
     outlined: Boolean = false,
+    elevated: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val c = LocalLkTokens.current
-    Column(
-        modifier =
-            modifier
-                .clip(RoundedCornerShape(LkRadius.card))
-                .background(c.surfaceContainer)
-                .then(
-                    if (outlined) {
-                        Modifier.border(1.dp, c.outlineVariant, RoundedCornerShape(LkRadius.card))
-                    } else {
-                        Modifier
-                    },
-                ).padding(LkSpacing.base),
-        content = content,
-    )
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.medium,
+        color = if (elevated) c.cardSurfaceElevated else c.cardSurface,
+        tonalElevation = if (elevated) LkElevation.level2 else LkElevation.level0,
+        shadowElevation = if (elevated) LkElevation.level1 else LkElevation.level0,
+        border = if (outlined) BorderStroke(1.dp, c.outlineVariant) else null,
+    ) {
+        Column(modifier = Modifier.padding(LkSpacing.cardContent), content = content)
+    }
 }
 
 @Composable

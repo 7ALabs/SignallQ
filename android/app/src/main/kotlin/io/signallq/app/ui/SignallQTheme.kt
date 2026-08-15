@@ -1,7 +1,10 @@
 package io.signallq.app.ui
 
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -45,6 +48,8 @@ object LkColors {
         val secondaryContainer = Color(0xFFDCE6FF)
         val onSecondaryContainer = Color(0xFF001A41)
         val surface = Color(0xFFFFFFFF)
+        val cardSurface = Color(0xFFF7F7F8)
+        val cardSurfaceElevated = Color(0xFFEEEEF0)
         val surfaceDim = Color(0xFFDED8E1)
         val surfaceContainerLowest = Color(0xFFFFFFFF)
         val surfaceContainerLow = Color(0xFFF8F5FB)
@@ -69,6 +74,7 @@ object LkColors {
         val onWarning = Color(0xFFFFFFFF)
         val warningContainer = Color(0xFFFFDDB3)
         val onWarningContainer = Color(0xFF2B1700)
+        val scrim = Color(0x80000000)
         val phaseLatencia = Color(0xFF2563EB)
         val phaseDownload = Color(0xFF146C2E)
         val phaseUpload = Color(0xFF8A5000)
@@ -91,14 +97,16 @@ object LkColors {
         val onSecondary = Color(0xFF002E69)
         val secondaryContainer = Color(0xFF1E427A)
         val onSecondaryContainer = Color(0xFFD9E2FF)
-        val surface = Color(0xFF131217)
-        val surfaceDim = Color(0xFF131217)
-        val surfaceContainerLowest = Color(0xFF0E0D12)
-        val surfaceContainerLow = Color(0xFF1D1B20)
-        val surfaceContainer = Color(0xFF211F26)
-        val surfaceContainerHigh = Color(0xFF2B2930)
-        val surfaceContainerHighest = Color(0xFF36343B)
-        val onSurface = Color(0xFFE6E0E9)
+        val surface = Color(0xFF000000)
+        val cardSurface = Color(0xFF161616)
+        val cardSurfaceElevated = Color(0xFF222222)
+        val surfaceDim = Color(0xFF000000)
+        val surfaceContainerLowest = Color(0xFF000000)
+        val surfaceContainerLow = Color(0xFF121212)
+        val surfaceContainer = Color(0xFF1E1E1E)
+        val surfaceContainerHigh = Color(0xFF2A2A2A)
+        val surfaceContainerHighest = Color(0xFF333333)
+        val onSurface = Color(0xFFF5F2F7)
         val onSurfaceVariant = Color(0xFFCAC4D0)
         val outline = Color(0xFF948F99)
         val outlineVariant = Color(0xFF49454F)
@@ -116,6 +124,7 @@ object LkColors {
         val onWarning = Color(0xFF4A2900)
         val warningContainer = Color(0xFF693D00)
         val onWarningContainer = Color(0xFFFFDDB3)
+        val scrim = Color(0x99000000)
         val phaseLatencia = Color(0xFFAAC7FF)
         val phaseDownload = Color(0xFF83DA99)
         val phaseUpload = Color(0xFFFFB870)
@@ -140,6 +149,8 @@ data class LkTokens(
     val secondaryContainer: Color,
     val onSecondaryContainer: Color,
     val surface: Color,
+    val cardSurface: Color,
+    val cardSurfaceElevated: Color,
     val surfaceDim: Color,
     val surfaceContainerLowest: Color,
     val surfaceContainerLow: Color,
@@ -164,6 +175,7 @@ data class LkTokens(
     val onWarning: Color,
     val warningContainer: Color,
     val onWarningContainer: Color,
+    val scrim: Color,
     val phaseLatencia: Color,
     val phaseDownload: Color,
     val phaseUpload: Color,
@@ -192,6 +204,8 @@ internal fun lightTokens() =
         secondaryContainer = LkColors.Light.secondaryContainer,
         onSecondaryContainer = LkColors.Light.onSecondaryContainer,
         surface = LkColors.Light.surface,
+        cardSurface = LkColors.Light.cardSurface,
+        cardSurfaceElevated = LkColors.Light.cardSurfaceElevated,
         surfaceDim = LkColors.Light.surfaceDim,
         surfaceContainerLowest = LkColors.Light.surfaceContainerLowest,
         surfaceContainerLow = LkColors.Light.surfaceContainerLow,
@@ -216,12 +230,13 @@ internal fun lightTokens() =
         onWarning = LkColors.Light.onWarning,
         warningContainer = LkColors.Light.warningContainer,
         onWarningContainer = LkColors.Light.onWarningContainer,
+        scrim = LkColors.Light.scrim,
         phaseLatencia = LkColors.Light.phaseLatencia,
         phaseDownload = LkColors.Light.phaseDownload,
         phaseUpload = LkColors.Light.phaseUpload,
     )
 
-private fun darkTokens() =
+internal fun darkTokens() =
     LkTokens(
         primary = LkColors.Dark.primary,
         onPrimary = LkColors.Dark.onPrimary,
@@ -232,6 +247,8 @@ private fun darkTokens() =
         secondaryContainer = LkColors.Dark.secondaryContainer,
         onSecondaryContainer = LkColors.Dark.onSecondaryContainer,
         surface = LkColors.Dark.surface,
+        cardSurface = LkColors.Dark.cardSurface,
+        cardSurfaceElevated = LkColors.Dark.cardSurfaceElevated,
         surfaceDim = LkColors.Dark.surfaceDim,
         surfaceContainerLowest = LkColors.Dark.surfaceContainerLowest,
         surfaceContainerLow = LkColors.Dark.surfaceContainerLow,
@@ -256,6 +273,7 @@ private fun darkTokens() =
         onWarning = LkColors.Dark.onWarning,
         warningContainer = LkColors.Dark.warningContainer,
         onWarningContainer = LkColors.Dark.onWarningContainer,
+        scrim = LkColors.Dark.scrim,
         phaseLatencia = LkColors.Dark.phaseLatencia,
         phaseDownload = LkColors.Dark.phaseDownload,
         phaseUpload = LkColors.Dark.phaseUpload,
@@ -272,6 +290,8 @@ object LkSpacing {
     val xl: Dp = 24.dp
     val xxl: Dp = 32.dp
     val xxxl: Dp = 40.dp
+    val compositionLarge: Dp = 48.dp
+    val compositionExtraLarge: Dp = 64.dp
     val cardContent: Dp = base
 }
 
@@ -283,6 +303,45 @@ object LkRadius {
     val dialog: Dp = 24.dp
     val pill: Dp = 999.dp
 }
+
+/** Opacidades oficiais para feedback de interação sobre a cor de conteúdo apropriada. */
+object LkStateLayer {
+    val hover = 0.08f
+    val focus = 0.10f
+    val pressed = 0.12f
+    val dragged = 0.16f
+    val disabled = 0.38f
+}
+
+/** Elevação é primeiro tonal; estes valores só reforçam elementos que realmente mudam de plano. */
+object LkElevation {
+    val level0: Dp = 0.dp
+    val level1: Dp = 1.dp
+    val level2: Dp = 3.dp
+    val level3: Dp = 6.dp
+}
+
+/** Durações e easing compartilhados. O chamador deve informar a preferência de movimento reduzido. */
+object LkMotion {
+    val microinteractionMillis = 200
+    val containerTransitionMillis = 300
+    val reducedMotionMillis = 0
+    val standardEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
+
+    fun durationMillis(
+        standardMillis: Int,
+        reducedMotion: Boolean,
+    ): Int = if (reducedMotion) reducedMotionMillis else standardMillis
+}
+
+private val signallQShapes =
+    Shapes(
+        extraSmall = RoundedCornerShape(LkRadius.input),
+        small = RoundedCornerShape(LkRadius.input),
+        medium = RoundedCornerShape(LkRadius.card),
+        large = RoundedCornerShape(LkRadius.dialog),
+        extraLarge = RoundedCornerShape(LkRadius.sheet),
+    )
 
 private val lightScheme =
     lightColorScheme(
@@ -300,6 +359,11 @@ private val lightScheme =
         onSurface = LkColors.Light.onSurface,
         surfaceVariant = LkColors.Light.surfaceContainer,
         onSurfaceVariant = LkColors.Light.onSurfaceVariant,
+        surfaceContainerLowest = LkColors.Light.surfaceContainerLowest,
+        surfaceContainerLow = LkColors.Light.surfaceContainerLow,
+        surfaceContainer = LkColors.Light.surfaceContainer,
+        surfaceContainerHigh = LkColors.Light.surfaceContainerHigh,
+        surfaceContainerHighest = LkColors.Light.surfaceContainerHighest,
         outline = LkColors.Light.outline,
         outlineVariant = LkColors.Light.outlineVariant,
         error = LkColors.Light.error,
@@ -308,6 +372,7 @@ private val lightScheme =
         onErrorContainer = LkColors.Light.onErrorContainer,
         inverseSurface = LkColors.Light.inverseSurface,
         inverseOnSurface = LkColors.Light.inverseOnSurface,
+        scrim = LkColors.Light.scrim,
     )
 
 private val darkScheme =
@@ -326,6 +391,11 @@ private val darkScheme =
         onSurface = LkColors.Dark.onSurface,
         surfaceVariant = LkColors.Dark.surfaceContainer,
         onSurfaceVariant = LkColors.Dark.onSurfaceVariant,
+        surfaceContainerLowest = LkColors.Dark.surfaceContainerLowest,
+        surfaceContainerLow = LkColors.Dark.surfaceContainerLow,
+        surfaceContainer = LkColors.Dark.surfaceContainer,
+        surfaceContainerHigh = LkColors.Dark.surfaceContainerHigh,
+        surfaceContainerHighest = LkColors.Dark.surfaceContainerHighest,
         outline = LkColors.Dark.outline,
         outlineVariant = LkColors.Dark.outlineVariant,
         error = LkColors.Dark.error,
@@ -334,6 +404,7 @@ private val darkScheme =
         onErrorContainer = LkColors.Dark.onErrorContainer,
         inverseSurface = LkColors.Dark.inverseSurface,
         inverseOnSurface = LkColors.Dark.inverseOnSurface,
+        scrim = LkColors.Dark.scrim,
     )
 
 @Suppress("FunctionNaming")
@@ -348,6 +419,7 @@ fun SignallQTheme(
         MaterialTheme(
             colorScheme = if (darkTheme) darkScheme else lightScheme,
             typography = signallQTypography,
+            shapes = signallQShapes,
             content = content,
         )
     }

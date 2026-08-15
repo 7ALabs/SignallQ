@@ -10,11 +10,13 @@ last_updated: "2026-08-15"
 # Design System — SignallQ (Android, consumer)
 
 - **Status:** ativo
-- **Última validação contra código:** 2026-08-06 — os 4 tokens de marca conferidos um a um em
-  `SignallQTheme.kt` (claro `primary` :39, `secondary` :43; escuro `primary` :86, `secondary` :90),
-  todos batendo. `#6C2BFF` confirmado morto: zero ocorrências em todo `android/`
+- **Última validação contra código:** 2026-08-15 — foundations 2.0 implementados como camada de
+  compatibilidade na issue #1649: pares claro/escuro, preto-base, superfícies de card, scrim,
+  escala 4–64 dp, shapes, state layers, elevação tonal e movimento. A migração das telas continua
+  incremental; este registro não declara a Jornada Android 2.0 integralmente entregue.
 - **Fonte de verdade:** o *código* — `android/app/src/main/kotlin/io/signallq/app/ui/SignallQTheme.kt`
-  (`LkColors`, `LkTokens`, `LkSpacing`, `LkRadius`, `signallQTypography`). Este documento é derivado
+  (`LkColors`, `LkTokens`, `LkSpacing`, `LkRadius`, `LkStateLayer`, `LkElevation`, `LkMotion`,
+  shapes e `signallQTypography`). Este documento é derivado
   dele. Não-negociáveis de produto ficam em `.claude/CLAUDE.md`, seção "Design System"
 - **Escopo:** app Android SignallQ consumer (`io.signallq.app`). Não cobre SignallQ Pro — produto
   descontinuado permanentemente (ADR-016); docs e skill de design própria (`#0B6CFF`) removidos do
@@ -121,6 +123,8 @@ não confundir contexto: numa fase de SpeedTest a cor identifica a *fase*, não 
 | Alias | Token real | Valor (claro) | Papel na hierarquia |
 | --- | --- | --- | --- |
 | `color.surface.background` | `surface` | `#FFFFFF` | Nível 0 — fundo da tela |
+| `color.surface.card` | `cardSurface` | `#F7F7F8` | Nível 1 — card necessário |
+| `color.surface.card-elevated` | `cardSurfaceElevated` | `#EEEEF0` | Conteúdo interno ou card elevado |
 | `color.surface.container` | `surfaceContainer` | `#F3EEFA` | Nível 1 — conteúdo agrupado |
 | `color.surface.container-high` | `surfaceContainerHigh` | `#ECE5F5` | Nível 2 — interativo/destacado |
 | `color.surface.container-highest` | `surfaceContainerHighest` | `#E6DDF2` | Nível 3 — sobreposto |
@@ -185,14 +189,16 @@ apêndice A ao final desta seção.
 | `onSecondary` | `#002E69` |
 | `secondaryContainer` | `#1E427A` |
 | `onSecondaryContainer` | `#D9E2FF` |
-| `surface` | `#131217` |
-| `surfaceDim` | `#131217` |
-| `surfaceContainerLowest` | `#0E0D12` |
-| `surfaceContainerLow` | `#1D1B20` |
-| `surfaceContainer` | `#211F26` |
-| `surfaceContainerHigh` | `#2B2930` |
-| `surfaceContainerHighest` | `#36343B` |
-| `onSurface` | `#E6E0E9` |
+| `surface` | `#000000` |
+| `cardSurface` | `#161616` |
+| `cardSurfaceElevated` | `#222222` |
+| `surfaceDim` | `#000000` |
+| `surfaceContainerLowest` | `#000000` |
+| `surfaceContainerLow` | `#121212` |
+| `surfaceContainer` | `#1E1E1E` |
+| `surfaceContainerHigh` | `#2A2A2A` |
+| `surfaceContainerHighest` | `#333333` |
+| `onSurface` | `#F5F2F7` |
 | `onSurfaceVariant` | `#CAC4D0` |
 | `outline` | `#948F99` |
 | `outlineVariant` | `#49454F` |
@@ -211,7 +217,8 @@ apêndice A ao final desta seção.
 Família única: **Google Sans Flex** (arquivos `.ttf` embutidos em
 `android/app/src/main/res/font/google_sans_flex_*.ttf`, licença SIL OFL 1.1). Nenhuma nova tela
 deve introduzir segunda família tipográfica. Pesos em uso: `400` Normal, `500` Medium, `600`
-SemiBold, `700` Bold.
+SemiBold, `700` Bold. Como a fonte é recurso local, a inicialização não depende de rede; o
+renderizador do Android mantém fallback de glifos para a fonte do sistema quando necessário.
 
 | Token | Tamanho | Line height | Peso | Tracking | Uso | Máx. linhas recomendado |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -246,7 +253,8 @@ estilo maior que `displaySmall`) — não reintroduzir sem validar com Claudete 
 
 ## 4. Espaçamento e grid
 
-**Fonte de verdade:** `LkSpacing` em `SignallQTheme.kt`. Grid de 8dp, 8 degraus:
+**Fonte de verdade:** `LkSpacing` em `SignallQTheme.kt`. Grid de 8dp, com degraus internos e de
+composição:
 
 | Token | Valor | Uso |
 | --- | --- | --- |
@@ -258,6 +266,8 @@ estilo maior que `displaySmall`) — não reintroduzir sem validar com Claudete 
 | `xl` | 24 dp | separações claras entre seções, distância acima da bottom nav |
 | `xxl` | 32 dp | grandes blocos ou respiros, espaço entre seções distintas |
 | `xxxl` | 40 dp | grandes aberturas verticais, CTA de onboarding, rodapés |
+| `compositionLarge` | 48 dp | separação entre grandes blocos |
+| `compositionExtraLarge` | 64 dp | separação máxima quando o viewport permitir |
 | `cardContent` | 16 dp | padding interno de card (alias de `base` para o caso específico) |
 
 ### Regras de aplicação
@@ -291,6 +301,9 @@ estilo maior que `displaySmall`) — não reintroduzir sem validar com Claudete 
 | Chip / Badge | `LkRadius.pill` | 999 dp |
 | Dialog | — | 24 dp |
 
+Esses papéis também alimentam `MaterialTheme.shapes`: input nos shapes pequenos, card no médio,
+dialog no grande e sheet no extra grande. `LkRadius` permanece disponível para compatibilidade.
+
 ### Quando usar card vs. borda vs. elevação vs. só diferença de superfície
 
 | Situação | Solução recomendada |
@@ -320,7 +333,8 @@ tabs e o conteúdo abaixo não têm profundidade diferente entre si) também é 
 Achado corrigido nesta revisão (não é débito, já resolvido): `Card` (React, `packages/design-system/src/layout/Card.tsx`)
 usava `background: bgCard` que, no tema claro, valia exatamente o mesmo `#FFFFFF` do fundo da tela
 (`bgPrimary`) — a única coisa que separava o card do fundo era a borda de 1px. Corrigido trocando o
-fundo para `depthLevel1Tint` (`#F3EEFA` claro / `#211F26` escuro) e removendo a borda. Mesmo padrão
+fundo para `depthLevel1Tint` (à época `#F3EEFA` claro / `#211F26` escuro) e removendo a borda. O
+par 2.0 dedicado para cards agora é `#F7F7F8` / `#161616`. Mesmo padrão
 corrigido em `BottomNav.tsx` (trocado `borderTop` por fundo `depthLevel1Tint`).
 
 ---
@@ -336,8 +350,8 @@ do consumer (`LkColors`/`colors_and_type.css`).
 | Nível | Papel | Token de superfície | Sombra/borda | Exemplo real no app |
 | --- | --- | --- | --- | --- |
 | **0 — Fundo da tela** | Plano base, não compete com o conteúdo | `surface` / `background` | Nenhuma | Fundo de `HomeScreen`, `SinalScreen` |
-| **1 — Conteúdo agrupado** | Cards comuns, métricas, listas | `surfaceContainer` | Sem sombra, ou quase imperceptível; **nunca borda** — separação é só pelo tint de superfície | Card de resumo, lista de dispositivos |
-| **2 — Conteúdo interativo/destacado** | Selecionado, recomendação prioritária, controles interativos | `surfaceContainerHigh` + `color.surface.selected` (novo — borda `primary`@25–30% quando selecionado) | Contraste tonal maior, pode ter borda de destaque suave e sombra discreta | `RecommendationEngineCard` em destaque, rede Wi-Fi conectada |
+| **1 — Conteúdo agrupado** | Cards comuns, métricas, listas | `cardSurface` | Sem sombra; **nunca borda** — separação é só pelo tint de superfície | Card de resumo, lista de dispositivos |
+| **2 — Conteúdo interativo/destacado** | Selecionado, recomendação prioritária, controles interativos | `cardSurfaceElevated` ou `surfaceContainerHigh` + `color.surface.selected` | Contraste tonal maior, pode ter borda de destaque suave e sombra discreta | `RecommendationEngineCard` em destaque, rede Wi-Fi conectada |
 | **3 — Sobreposto** | Dialogs, bottom sheets, menus, tooltips | `surfaceContainerHighest` | Sombra ou scrim controlado, contraste suficiente | `LkSheetFrame`, `ConfirmacaoDialog`, `LgpdConsentDialog` |
 
 `color.surface.selected` é o token que estava faltando — hoje o estado "selecionado" é resolvido
@@ -345,9 +359,8 @@ ad hoc por componente (ex.: cor de texto/ícone muda, mas a superfície nem semp
 Formalizado aqui: **seleção = diferença de superfície (`surfaceContainerHigh`) + cor de destaque
 (`primary`), nunca só sombra.**
 
-Scrim (nível 3, fundo de dialog/bottom sheet modal): documentado como token oficial, **ainda não
-implementado no Kotlin de produção** — hoje só existe no pacote React (`packages/design-system/src/tokens.ts`,
-campo `scrim`). Valor alvo: `rgba(0,0,0,.5)` claro / `rgba(0,0,0,.6)` escuro.
+Scrim (nível 3, fundo de dialog/bottom sheet modal) está disponível em `LkTokens.scrim`:
+`rgba(0,0,0,.5)` claro / `rgba(0,0,0,.6)` escuro.
 
 ### Regras de aplicação (obrigatórias)
 
@@ -380,8 +393,8 @@ campo `scrim`). Valor alvo: `rgba(0,0,0,.5)` claro / `rgba(0,0,0,.6)` escuro.
 
 ### Tema escuro
 
-- Superfícies mais elevadas ligeiramente mais claras que o fundo (nunca preto absoluto em toda
-  camada — confirmado: `surface = #131217`, não `#000000`).
+- Fundo-base em preto absoluto (`surface = #000000`) e superfícies mais elevadas progressivamente
+  mais claras; preto-base não significa usar a mesma cor em todas as camadas.
 - Contraste tonal progressivo entre os 4 níveis.
 - Sombra sutil, complementar — não a forma principal de separação.
 - Bordas com baixa opacidade.
@@ -409,12 +422,10 @@ campo `scrim`). Valor alvo: `rgba(0,0,0,.5)` claro / `rgba(0,0,0,.6)` escuro.
   lugar do app).
 - Tema escuro não pode parecer uma coleção de retângulos cinza no mesmo plano.
 
-**Estado real de implementação (dívida registrada ao final deste documento):** hoje esse sistema
-existe **só como documentação/CSS** (`colors_and_type.css`, tokens `--md-sys-elevation-level0-4`)
-— zero uso de `.shadow(`/`shadowElevation` em `android/app/`, e só 2 usos isolados de
-`tonalElevation` (`AppShell.kt` nav bar em `0.dp`, `LgpdConsentDialog.kt` em `2.dp`), sem relação
-com os 4 níveis documentados aqui. Scrim também não existe no Kotlin. Implementação real fica para
-tarefa dedicada de Camilo — ver "Débito a registrar" ao final.
+**Estado real de implementação:** a camada de foundations existe em Kotlin desde a issue #1649.
+`LkSurfaceCard` é o componente-piloto e usa `cardSurface` por padrão ou `cardSurfaceElevated` com
+elevação tonal/sombra discreta quando `elevated = true`. Os demais componentes e telas continuam
+no contrato legado até suas fatias verticais; não fazer varredura oportunista.
 
 ---
 
@@ -511,6 +522,12 @@ Regra: cor + ícone + palavra sempre juntos — nunca depender só de cor para c
 | `loading` | skeleton/shimmer no lugar do conteúdo final, nunca card vazio sem indicação |
 
 Vale para: card clicável, itens de lista/sheet, tabs, ações de TopBar, chips tocáveis.
+
+Os alphas vivem em `LkStateLayer`. Durações e easing vivem em `LkMotion`: microinterações usam
+200 ms, transições de container usam 300 ms e o easing padrão é `cubic-bezier(.2, 0, 0, 1)`.
+Consumidores devem chamar `durationMillis(..., reducedMotion = true)` quando a preferência de
+movimento reduzido estiver ativa, eliminando deslocamento temporal. A adoção componente a
+componente é rastreada pela #1169 e pelas fatias do épico #1647.
 
 ---
 
