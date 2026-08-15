@@ -1,3 +1,12 @@
+---
+title: "Decisão — Padrão único de TopBar"
+description: "Padrão de TopBar (ícone no título + scroll behavior) para as 16 telas Android com Scaffold(topBar=...)."
+type: "adr"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-07-17"
+---
+
 # Decisão — Padrão único de TopBar (ícone no título + scroll behavior)
 
 - **Status:** decidido, pronto para implementação

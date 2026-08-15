@@ -1,3 +1,12 @@
+---
+title: "Contrato de Eventos — Firebase Analytics"
+description: "Funil principal SIG-155 (7 eventos implementados) + contrato mais amplo proposto (eventos por feature ainda não instrumentados)."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-07-05"
+---
+
 # Contrato de Eventos — Firebase Analytics
 
 **Status:** ativo (parcialmente implementado — ver "Estado atual" abaixo)

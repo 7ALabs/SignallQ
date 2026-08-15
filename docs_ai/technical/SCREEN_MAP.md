@@ -1,3 +1,12 @@
+---
+title: "Screen Map — Android SignallQ"
+description: "Mapa de navegação do app consumer (tab bar + overlays) validado contra AppShell.kt."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-07-23"
+---
+
 # Screen Map — Android SignallQ
 
 **Status:** ativo

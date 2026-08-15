@@ -1,3 +1,12 @@
+---
+title: "Feature Flags remotas"
+description: "Contrato de flags remotas do SignallQ Android + Admin Panel — rollout gradual, kill switch, gating de features."
+type: "funcional"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-01"
+---
+
 # Feature Flags remotas — SignallQ Android + Admin Panel
 
 - **Status:** ativo

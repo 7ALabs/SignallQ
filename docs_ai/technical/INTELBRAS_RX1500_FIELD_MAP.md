@@ -1,3 +1,12 @@
+---
+title: "Mapeamento de campos — Intelbras RX1500"
+description: "Levantamento estático do firmware Intelbras RX1500/RAX1500 — insumo de reconhecimento de equipamento de rede."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-07-23"
+---
+
 **Status:** ativo (documento de reconhecimento, não de produto — ver skill `/reconhecimento-equipamento-rede`)
 **Última validação:** 2026-07-23 — confirmado que "Intelbras" no código só existe como fabricante no catálogo OUI (ver correção abaixo), sem parser de interface web
 **Escopo:** levantamento estático do firmware Intelbras RX1500/RAX1500, insumo de reconhecimento

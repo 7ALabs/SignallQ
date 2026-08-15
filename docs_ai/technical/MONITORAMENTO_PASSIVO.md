@@ -1,3 +1,12 @@
+---
+title: "Monitoramento Passivo — MonitoramentoWorker"
+description: "Background monitoring de qualidade de rede (latência, DNS, Wi-Fi) e notificações de alerta."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-07-23"
+---
+
 # Monitoramento Passivo — MonitoramentoWorker
 
 **Status:** ativo

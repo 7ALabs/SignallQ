@@ -1,3 +1,12 @@
+---
+title: "Release Process"
+description: "Runbook do processo de release do SignallQ Android — build, deploy, verificação pós-deploy."
+type: "runbook"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-15"
+---
+
 # Release Process
 
 ## Objective
