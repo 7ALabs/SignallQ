@@ -1,4 +1,4 @@
-﻿package io.signallq.app.kotlin.feature.speedtest
+﻿package io.signallq.app.feature.speedtest
 
 import io.signallq.app.feature.speedtest.ModoSpeedtest
 import org.junit.Assert.assertEquals
