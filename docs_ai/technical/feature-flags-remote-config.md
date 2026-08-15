@@ -1,3 +1,13 @@
+---
+title: "Feature Flags do Consumer — Firebase Remote Config"
+description: "Mecanismo técnico do módulo :core:featureflags: catálogo tipado, FeatureFlagProvider e integração com Firebase Remote Config."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-15"
+version: "1.0.0"
+---
+
 # Fundação de Feature Flags do Consumer — Firebase Remote Config (`:core:featureflags`)
 
 - **Status:** ativo

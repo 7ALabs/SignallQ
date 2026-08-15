@@ -1,3 +1,13 @@
+---
+title: "Deployment"
+description: "Processo de release do app Android SignallQ: build assinado, distribuição Firebase, publicação automatizada na Play Console e trilhas de release."
+type: "runbook"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-15"
+version: "1.0.0"
+---
+
 # Deployment
 
 ## Objective
