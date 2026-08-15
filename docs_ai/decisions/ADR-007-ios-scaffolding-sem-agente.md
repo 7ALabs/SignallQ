@@ -1,5 +1,11 @@
 # ADR-007 — iOS: scaffolding criado, agente adiado
 
+> **⚠️ SUPERSEDED por [ADR-014](ADR-014-squad-canonico-ai-governance.md) em 2026-08-15.**
+> A decisão de não criar agente iOS continua válida (app descontinuado desde 2026-07-04),
+> mas a regra de "quando iOS voltar, cria camilo-ios" foi absorvida pelo ADR-014: iOS,
+> se retomado, é responsabilidade natural de Camilo; nova persona só surge por decisão
+> explícita do Luiz.
+>
 > **Nota (2026-07-04):** o app iOS foi descontinuado; este ADR é mantido como
 > registro histórico da decisão.
 >
@@ -7,7 +13,7 @@
 > ADR-005-custo-ia-free-tier-fallback.md. Conteúdo inalterado.
 
 **Data:** 2026-06-24
-**Status:** Aceito
+**Status:** Superseded (2026-08-15) — originalmente Aceito em 2026-06-24
 
 ## Contexto
 

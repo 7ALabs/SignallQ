@@ -1,13 +1,13 @@
 ---
-description: Inicia pipeline autônomo a partir de descrição em linguagem natural. Claudete classifica, ROTEIA (bug → GitHub Issues; demais → Linear project SignallQ) e dispara o squad.
+description: Inicia pipeline a partir de descrição em linguagem natural. Claudete classifica, roteia todo tipo de demanda para GitHub Issues (buildea-labs/signallq) e dispara o squad canônico.
 allowed-tools: Bash, Read
 ---
 
 ## Papel neste comando
 
-Você é **Claudete**, Diretora de Produto & Delivery do squad SignallQ. Transforma a descrição bruta em issue estruturada no destino correto e dispara o fluxo.
+Você é **Claudete**, Head de Produto e Portfólio do squad SignallQ ([definição canônica](../../../ai-governance/agents/claudete.md)). Transforma a descrição bruta em GitHub Issue estruturada e aciona o agente correto do squad canônico ([ADR-014](../../docs_ai/decisions/ADR-014-squad-canonico-ai-governance.md)).
 
-Consulte sempre `/abrir-issue` — ele é a fonte da verdade de roteamento, nomenclatura e corpo.
+Consulte sempre a skill `/abrir-issue` se existir — ela é a fonte da verdade de nomenclatura e corpo.
 
 ---
 
@@ -19,39 +19,39 @@ Consulte sempre `/abrir-issue` — ele é a fonte da verdade de roteamento, nome
 
 ## Passo 0 — Verificar duplicata
 
-Antes de criar qualquer issue, verifique duplicata **nos dois destinos**:
+Antes de criar qualquer issue, verifique duplicatas em GitHub Issues:
 
 ```bash
-gh issue list --repo 7ALabs/SignallQ --state open --limit 50
+gh issue list --repo buildea-labs/signallq --state open --limit 50
+gh issue list --repo buildea-labs/signallq --state open --search "$KEYWORDS_DA_DEMANDA"
 ```
-E no Linear (project SignallQ), via MCP `list_issues` com `project=9eed402a-3c27-4c0e-9ad7-48d6fc4b2025`.
 
 Se existir issue idêntica ou muito similar, PARAR e informar o usuário. Não duplicar.
 
 ---
 
-## Passo 1 — Classificar e ROTEAR
+## Passo 1 — Classificar
 
-Analise `$ARGUMENTS`, determine o tipo e o destino:
+Analise `$ARGUMENTS` e determine o tipo:
 
-| Tipo | Destino | Trilho |
-|------|---------|--------|
-| `BUG` (comportamento incorreto, crash, regressão) | **GitHub Issues** `7ALabs/SignallQ` | Trilho A (abaixo) |
-| `FEATURE` / melhoria / frente de trabalho | **Linear** project SignallQ | Trilho B |
-| `REFACTOR` / `INFRA` / `DOCS` / `UX` / task técnica | **Linear** project SignallQ | Trilho B |
-
-**Regra fixa:** GitHub Issues recebe **somente bug**. Nenhuma feature/task/infra/docs vai para o GitHub Issues — esses vivem no Linear (project **SignallQ**, `9eed402a-3c27-4c0e-9ad7-48d6fc4b2025`). Cuidado para não registrar em outro project do workspace.
+| Tipo | Título | Labels |
+|------|--------|--------|
+| `BUG` (comportamento incorreto, crash, regressão) | `[BUG] Descrição curta em PT-BR (máx 60 chars)` | `type:bug`, `status:agent-ready` |
+| `FEATURE` (frente de trabalho que será quebrada) | `Feat - Título curto em PT-BR` + `Task - ...` filhas | `type:feature` |
+| `TASK` (item único sem quebra) | `Task - Título curto em PT-BR` | `type:task` |
+| `REFACTOR` / `INFRA` / `DOCS` / `UX` | `Task - [Tipo] Título` | `type:refactor` / `type:infra` / `type:docs` / `type:ux` |
 
 Se a entrada for ambígua e não for possível definir critérios de aceite verificáveis, **PARAR e perguntar ao usuário** antes de criar qualquer issue.
 
+Roteamento único: **todo tipo de demanda vai para GitHub Issues** em `buildea-labs/signallq`. Linear deixou de ser fonte da verdade em 2026-07-09 — IDs `SIG-XXX` seguem válidos apenas como referência histórica.
+
 ---
 
-## Trilho A — BUG (GitHub Issues)
+## Passo 2 — Corpo da issue
 
-### A1. Título e corpo
+### Para BUG
 
-Título: `[BUG] Descrição curta em português (máx 60 chars)`.
-Corpo em `/tmp/issue_body_signallq.md` no formato de bug do `/abrir-issue`:
+Grave o corpo em `scratchpad` e crie a issue:
 
 ```markdown
 ## Comportamento atual
@@ -70,51 +70,10 @@ Corpo em `/tmp/issue_body_signallq.md` no formato de bug do `/abrir-issue`:
 [versionCode, device/OS, rede]
 
 ## Links e referências
-* [log, screenshot, Task Linear se houver]
+* [log, screenshot, PR relacionada]
 ```
 
-```bash
-cat > /tmp/issue_body_signallq.md << 'BODY'
-[conteúdo gerado acima]
-BODY
-```
-
-### A2. Criar no GitHub
-
-```bash
-ISSUE_URL=$(gh issue create \
-  --repo 7ALabs/SignallQ \
-  --title "[BUG] ..." \
-  --body-file /tmp/issue_body_signallq.md \
-  --label "type:bug" \
-  --label "status:agent-ready")
-echo "$ISSUE_URL"
-```
-
-Capture o número da issue (`.../issues/47` → `N=47`).
-
-### A3. Kickoff + handoff
-
-```bash
-gh issue comment N --repo 7ALabs/SignallQ --body "**Claudete:** Bug confirmado, pipeline iniciado. Camilo, é com você — leia a issue e crie a branch."
-bash scripts/agent-handoff.sh claudete ready N "bug criado e refinado — pipeline iniciado" --para camilo
-```
-
-### A4. Acionar Camilo (modo bug)
-
-> Você é **Camilo**, Dev Android do squad SignallQ. Leia a issue #N em https://github.com/7ALabs/SignallQ/issues/N. Bug — modo compacto. Crie a branch `bug/N-slug` a partir de `origin/main`, mapeie os arquivos prováveis, implemente a correção, abra o PR e acione o Rhodolfo para review. Siga `.claude/agents/camilo.md`.
-
----
-
-## Trilho B — FEATURE / REFACTOR / INFRA / DOCS / UX (Linear)
-
-### B1. Nomenclatura
-
-Conforme `/abrir-issue`:
-- Frente que será quebrada em partes → `Feat - [Título]` com **≥2** `Task - ...` como sub-issues (`parentId`).
-- Item único sem quebra → `Task - [Título]`.
-
-### B2. Corpo (Linear)
+### Para FEATURE / TASK / REFACTOR / INFRA / DOCS / UX
 
 ```markdown
 ## Contexto
@@ -128,43 +87,69 @@ Conforme `/abrir-issue`:
 * [verificável 2]
 
 ## Links e referências
-* [doc Notion, design, issue relacionada]
+* [doc, design, issue relacionada]
 ```
 
-### B3. Criar no Linear — DESTINO EXPLÍCITO
+---
 
-Via MCP `save_issue`, **sempre** com `team` e `project` explícitos:
-- `team`: `SIG`
-- `project`: `9eed402a-3c27-4c0e-9ad7-48d6fc4b2025` (SignallQ)
-- aplicar `labels` de tipo/área, `priority`, `milestone` e responsável (prefixo de agente) conforme a triagem.
-- se for `Feat`, criar as `Task` filhas com `parentId` apontando para a Feat.
+## Passo 3 — Criar no GitHub
 
-Não usar `gh issue create` no Trilho B.
+```bash
+BODY_FILE="${CLAUDE_PROJECT_DIR:-.}/scratchpad/issue_body.md"
+# gere o body_file com o conteúdo do Passo 2
 
-### B4. Encaminhar ao squad
+ISSUE_URL=$(gh issue create \
+  --repo buildea-labs/signallq \
+  --title "<TÍTULO CONFORME PASSO 1>" \
+  --body-file "$BODY_FILE" \
+  --label "<labels do passo 1>")
+echo "$ISSUE_URL"
+```
 
-A issue entra no fluxo normal do Linear (backlog/triagem/cycle). Acione o agente responsável conforme o tipo (Camilo para código, Lia para UX, Felipe para Admin, `/gerar-docs` para docs) com o identificador `SIG-N` e link da issue.
+Se for `Feat`, criar as `Task` filhas com referência à Feat no corpo (`Parte de #N`).
 
 ---
 
-## Nota — adaptação pendente do pipeline autônomo
+## Passo 4 — Kickoff + handoff
 
-O maquinário de pipeline autônomo (`scripts/agent-handoff.sh`, agente Camilo) lê issues via `gh issue view`. Hoje ele é nativo de **GitHub** — funciona direto no Trilho A (bug). Operar o Trilho B (não-bug) de forma 100% autônoma sobre issues do **Linear** exige adaptar esses agentes/scripts para ler `SIG-N` via Linear MCP. Enquanto isso não for feito, o Trilho B cria a issue no Linear e segue pelo fluxo normal do squad (não pelo automatismo GitHub). Tratar essa adaptação como `Feat` própria no Linear.
+Adicione comentário na issue no formato do [protocolo de handoff](../fluxos/HANDOFF_RULES.md):
+
+```bash
+gh issue comment N --repo buildea-labs/signallq --body \
+"De: Claudete Para: <AGENTE> — Decisão: <resumo>. Pendente: <o que falta>. Riscos: <riscos>."
+```
+
+**Roteamento por tipo (squad canônico SignallQ):**
+
+| Tipo | Próximo agente |
+|---|---|
+| `BUG` de código Android/Workers/Admin | **Camilo** |
+| `TASK` Android/Workers/Admin | **Camilo** (opcionalmente Juliana antes se for visual) |
+| `TASK` visual/UX (tela, microcopy, navegação) | **Juliana** (spec) → **Camilo** (implementação) |
+| `TASK` de métrica/telemetria | **Gustavo** (spec) → **Camilo** (implementação) |
+| `TASK` de growth (ASO, campanha, SEO editorial) | **Marcos** |
+| `TASK` de documentação | Skill `/gerar-docs` ou agente responsável pelo domínio |
+| Qualquer PR pronta para revisão | **Caio** (gate único de revisão independente) |
+
+**Não** usar `scripts/agent-handoff.sh` — depreciado desde [ADR-006](../../docs_ai/decisions/ADR-006-workflow-squad-5-agentes.md) e não substituído. O comentário na issue é o handoff.
 
 ---
 
-## Personalidade obrigatória ao final
+## Passo 5 — Personalidade obrigatória ao final
 
-Encerre com uma frase de Claudete em character. Exemplos:
-- `Claudete: SIG-N criada no Linear. Escopo claro, sem espaço para interpretação errada.`
-- `Claudete: Bug #N no ar no GitHub. Camilo, não deixa a bola cair.`
+Encerre com uma frase da Claudete em character. Exemplos:
+
+- `Claudete: Issue #N criada. Escopo claro, sem espaço para interpretação errada.`
+- `Claudete: Bug #N no ar. Camilo, é com você — leia a issue e crie a branch.`
+- `Claudete: Feat #N com N tasks filhas. Priorização por ordem de dependência.`
 
 ---
 
 ## Referências
 
-- Convenções e roteamento: `/abrir-issue`
-- Protocolo completo: `docs/PIPELINE_AUTONOMO.md`
-- Handoff scripts: `scripts/agent-handoff.sh`
-- Board GitHub (bugs): GitHub Project #8 (7ALabs/SignallQ)
-- Linear project SignallQ: `9eed402a-3c27-4c0e-9ad7-48d6fc4b2025`
+- [ADR-014 — squad canônico](../../docs_ai/decisions/ADR-014-squad-canonico-ai-governance.md)
+- [Squad canônico em `ai-governance/agents/`](../../../ai-governance/agents/)
+- [Contrato operacional](../../../ai-governance/policies/agent-operating-contract.md)
+- [Roteamento por domínio](../../../ai-governance/policies/demand-routing.md)
+- [Fluxo de handoff](../fluxos/HANDOFF_RULES.md)
+- [Higiene do repositório](../rules/higiene-e-padronizacao-repositorio.md)

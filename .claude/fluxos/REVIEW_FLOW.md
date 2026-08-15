@@ -1,37 +1,44 @@
 # Review Flow for Agents
 
-> **Fonte da verdade:** `.claude/CLAUDE.md` + `.claude/agents/*.md`. Este arquivo é um resumo apontador.
-> Decisão de fluxo: `docs_ai/decisions/ADR-006-workflow-squad-5-agentes.md`.
-> Versão: v0.23.0 · 2026-07-05.
+> **Fonte da verdade:** [`ai-governance/agents/caio.md`](../../../ai-governance/agents/caio.md) e [`ai-governance/policies/agent-operating-contract.md`](../../../ai-governance/policies/agent-operating-contract.md). Este arquivo é um resumo apontador.
+> **Decisão canônica:** [ADR-014](../../docs_ai/decisions/ADR-014-squad-canonico-ai-governance.md).
+> **Última atualização:** 2026-08-15.
 
-## Gate único: Rhodolfo
+## Revisor independente: Caio
 
-**Rhodolfo** é o gate único de Done: review de código, QA, release e higiene. Não há revisor de arquitetura separado (Claudete absorveu a decisão de arquitetura) nem revisor de docs separado (Rhodolfo absorveu Nina/Taisa).
+**Caio** é o revisor independente do squad. Faz parecer sobre riscos, critérios de aceite, segurança, testes, regressão, qualidade de código e prontidão de release. **Não implementa a entrega que revisa** — devolve bloqueios ao autor.
+
+Revisão é obrigatória quando houver: código, segurança, produção, regressão, arquitetura ou risco relevante ([contrato operacional §6 e §9](../../../ai-governance/policies/agent-operating-contract.md)).
 
 ## Processo
 
-1. **Gatilho** — Camilo, Felipe ou Lia concluem a implementação.
-2. **Checks** — `.\android\gradlew.bat lint` e `test` (Android) ou `npm run lint`/`npm run build` (Admin) devem passar.
-3. **Review do Rhodolfo** — bugs, regressões, risco técnico, testes faltando, aderência ao design system e higiene (changelog, bump de versão, docs).
-4. **UX condicional** — Lia valida o entregável visual quando a mudança foi de tela/fluxo.
+1. **Gatilho** — Camilo conclui a implementação e abre PR para revisão.
+2. **Checks automáticos** — devem passar antes de acionar Caio: `./android/gradlew ktlintCheck detekt test` (Android) ou `npm run lint && npm run build` (Admin/Workers).
+3. **Revisão do Caio** — bugs, regressões, risco técnico, aderência a critérios de aceite, testes faltando, segurança, qualidade de código.
+4. **UX condicional** — Juliana valida o entregável visual quando a mudança foi de tela/fluxo (segundo momento de Juliana; primeiro foi antes da implementação).
 5. **Veredito** — `Aprovado` / `Aprovado com ressalvas` / `Reprovado`.
 
 ## Limite de loop
 
-Ciclo Rhodolfo → implementador tem no máximo **2 rodadas**. Na 3ª divergência, escala para a **Claudete** decidir (aceitar débito, repriorizar ou reescopar). Evita ping-pong infinito.
+Ciclo Caio ↔ Camilo tem no máximo **2 rodadas**. Na 3ª divergência, escala para **Claudete** decidir (aceitar débito, repriorizar ou reescopar). Evita ping-pong infinito.
 
-## O que o Rhodolfo não faz
+## Escalação ao Luiz
+
+Caio eleva ao Luiz quando o parecer envolver: aceite de risco crítico, exceção de segurança, redução de cobertura crítica, publicação sem evidência suficiente ou mudança material de controles ([ai-governance/agents/caio.md](../../../ai-governance/agents/caio.md)).
+
+## O que Caio não faz
 
 - Não implementa correções — devolve ao implementador.
-- Decisão de arquitetura vai para a Claudete.
+- Decisão de produto/prioridade vai para Claudete.
+- Decisão de arquitetura material vai para Claudete + Camilo com escalação ao Luiz.
 
-## O que a Lia não faz
+## O que Juliana não faz
 
-- Não edita lógica de negócio — apenas UI e layout.
+- Não edita lógica de negócio — apenas spec de UI e microcopy.
 - Não aprova UX de feature visual que não passou por ela antes da implementação.
 
 ## Referências
 
-- `ai/AGENT_WORKFLOW.md` — fluxo completo
-- `DESIGN_SYSTEM.md` — referência de revisão visual
-- `ARQUITETURA/README.md` — referência de revisão técnica
+- [`AGENT_WORKFLOW.md`](AGENT_WORKFLOW.md) — fluxo completo
+- [`docs_ai/DESIGN_SYSTEM.md`](../../docs_ai/DESIGN_SYSTEM.md) — referência de revisão visual
+- [`docs_ai/ARQUITETURA/README.md`](../../docs_ai/ARQUITETURA/README.md) — referência de revisão técnica

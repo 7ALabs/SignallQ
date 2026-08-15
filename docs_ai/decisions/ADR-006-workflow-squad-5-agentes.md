@@ -1,6 +1,13 @@
 # ADR-006 — Redesign do fluxo do squad de 5 agentes
 
-- Status: Aceito
+> **⚠️ SUPERSEDED por [ADR-014](ADR-014-squad-canonico-ai-governance.md) em 2026-08-15.**
+> O squad de 5 (Claudete, Camilo, Felipe, Lia, Gema) documentado aqui deixou de ser vigente.
+> Felipe foi demitido em 2026-07-09, Lia em 2026-07-25; Gema nunca foi formalizada em
+> `ai-governance/`. A fonte da verdade atual é `ai-governance/agents/` (6 agentes aplicáveis
+> ao SignallQ: Claudete, Camilo, Juliana, Marcos, Gustavo, Caio). Este ADR permanece como
+> registro histórico da decisão original.
+
+- Status: Superseded (2026-08-15) — originalmente Aceito em 2026-07-05
 - Data: 2026-07-05
 - Autor: Claudete (PM & Tech Lead)
 - Contexto de versão: v0.23.0

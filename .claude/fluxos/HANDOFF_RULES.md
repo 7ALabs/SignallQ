@@ -1,32 +1,33 @@
 # Handoff Rules
 
-> **Fonte da verdade:** `.claude/CLAUDE.md` + `.claude/agents/*.md`. Este arquivo é um resumo apontador.
-> Decisão de fluxo: `docs_ai/decisions/ADR-006-workflow-squad-5-agentes.md`.
-> Versão: v0.25.0 · 2026-07-16.
+> **Fonte da verdade:** [`ai-governance/policies/agent-operating-contract.md`](../../../ai-governance/policies/agent-operating-contract.md), seção 8. Este arquivo é um resumo apontador.
+> **Decisão canônica:** [ADR-014](../../docs_ai/decisions/ADR-014-squad-canonico-ai-governance.md).
+> **Última atualização:** 2026-08-15.
 
 ## Onde vive o handoff
 
-O estado do trabalho vive no **GitHub Issues** (status da issue) + **GitHub** (PR). O GitHub notifica o Slack diretamente — não criar fluxo manual paralelo. (Correção 2026-07-16: migração de Linear para GitHub Issues em 2026-07-09 — ver `.claude/CLAUDE.md` seção "Fontes da Verdade".)
+O estado do trabalho vive em **GitHub Issues** (status da issue) + **GitHub PR**. O GitHub notifica o Slack diretamente — não criar fluxo manual paralelo. Migração de Linear para GitHub Issues aconteceu em 2026-07-09; IDs `SIG-XXX` continuam válidos como referência histórica, mas não são fonte da verdade de tarefas ativas.
 
 Os scripts `agent-handoff.sh`, `notify.sh`, `discord_notify.sh` e o board Discord estão **depreciados**: não são o mecanismo de handoff. Não documentar como fluxo.
 
-Roteamento: **bug → GitHub Issues** (formato `[BUG]`); **feature / task → GitHub Issues** (título `Task - <descrição>`). Linear deixou de ser fonte da verdade de tarefas em 2026-07-09; issues anteriores a essa data (IDs `SIG-XXX`) continuam válidas como referência histórica.
+Roteamento: **bug** → GitHub Issues (título `[BUG] ...`, label `type:bug`); **feature / task / refactor / docs** → GitHub Issues (título `Task - ...` ou `Feat - ...`).
 
-## Fluxo de handoff (squad de 5)
+## Fluxo de handoff (squad canônico SignallQ)
 
 | Situação | De | Para |
 |---|---|---|
 | Demanda bruta → refino e breakdown | Usuário | Claudete |
-| Task visual/de fluxo, antes de implementar | Claudete | Lia (gate condicional) |
-| Task Android pronta para implementar | Claudete | Camilo |
-| Task Admin Panel / análise de dados | Claudete | Felipe |
-| Implementação pronta → gate de Done | Camilo / Felipe / Lia | Gema |
-| Reprovação (máx. 2 rodadas) | Gema | implementador |
-| 3ª divergência no loop de review | Gema | Claudete (decide) |
+| Task visual/de fluxo, antes de implementar | Claudete | Juliana (gate condicional) |
+| Task de métrica/telemetria com spec de dados | Claudete | Gustavo (contribuinte) |
+| Task Android/Workers/Admin pronta para implementar | Claudete / Juliana / Gustavo | Camilo |
+| Implementação pronta → revisão independente | Camilo | Caio |
+| Reprovação (máx. 2 rodadas) | Caio | Camilo |
+| 3ª divergência no loop de revisão | Caio | Claudete (decide) |
+| Aprovação material (estratégia, marca, produção, custo, irreversível) | qualquer agente | Luiz |
 
-Lia entra **antes** só quando a mudança é visual/de fluxo; bug/lógica pura pula a Lia.
+Juliana entra **antes** da implementação apenas quando a mudança é visual/de fluxo (tela nova, layout, navegação, microcopy); bug/lógica pura pula Juliana.
 
-## Formato do handoff (no comentário da issue)
+## Formato do handoff (comentário na issue)
 
 ```
 De: [agente] Para: [agente] — Decisão: [o que foi decidido]. Pendente: [o que falta]. Riscos: [riscos].
@@ -34,19 +35,23 @@ De: [agente] Para: [agente] — Decisão: [o que foi decidido]. Pendente: [o que
 
 Não repita contexto completo — apenas o delta relevante.
 
-## Agentes e arquivos
+Todo handoff deve registrar (conforme [contrato operacional §8](../../../ai-governance/policies/agent-operating-contract.md)): contexto, decisão, arquivos afetados, validações realizadas, pendências, próximo responsável.
 
-| Agente | Arquivo | Papel |
+## Agentes e definições canônicas
+
+| Agente | Arquivo canônico | Papel |
 |---|---|---|
-| Claudete | `.claude/agents/claudete.md` | PM & Tech Lead |
-| Camilo | `.claude/agents/camilo.md` | Dev Android |
-| Felipe | `.claude/agents/felipe.md` | Admin Panel & dados |
-| Lia | `.claude/agents/lia.md` | UX & Design |
-| Gema | `.claude/agents/gema.md` | QA, Release & Higiene |
+| Claudete | [`ai-governance/agents/claudete.md`](../../../ai-governance/agents/claudete.md) | Produto e portfólio (líder) |
+| Camilo | [`ai-governance/agents/camilo.md`](../../../ai-governance/agents/camilo.md) | Mobile, backend, plataforma |
+| Juliana | [`ai-governance/agents/juliana.md`](../../../ai-governance/agents/juliana.md) | Design e UX |
+| Marcos | [`ai-governance/agents/marcos.md`](../../../ai-governance/agents/marcos.md) | Growth |
+| Gustavo | [`ai-governance/agents/gustavo.md`](../../../ai-governance/agents/gustavo.md) | Operações e dados |
+| Caio | [`ai-governance/agents/caio.md`](../../../ai-governance/agents/caio.md) | Revisão independente |
 
 Busca de código/docs = ferramentas nativas (Read/Grep/Glob) ou skills. Não há agente dedicado a busca.
 
 ## Referências
 
-- `ai/AGENT_WORKFLOW.md` — fluxo completo
-- `ai/TASK_BREAKDOWN.md` — decomposição de tasks
+- [`AGENT_WORKFLOW.md`](AGENT_WORKFLOW.md) — fluxo completo
+- [`TASK_BREAKDOWN.md`](TASK_BREAKDOWN.md) — decomposição de tasks
+- [`ai-governance/policies/demand-routing.md`](../../../ai-governance/policies/demand-routing.md) — roteamento por domínio

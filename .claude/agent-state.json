@@ -1,8 +1,0 @@
-{
-  "agente": "Camilo",
-  "issue": "74",
-  "titulo": "[BUG] Botão 'Conversar com IA' abre SignallQScreen em vez do chat inline",
-  "etapa": "investigando",
-  "branch": "fix/74-conversar-ia-chat-inline",
-  "atualizado": "2026-05-26T00:00:00Z"
-}

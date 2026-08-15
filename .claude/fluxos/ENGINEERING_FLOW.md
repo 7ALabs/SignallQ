@@ -1,47 +1,49 @@
 # Engineering Flow for Agents
 
-> **Fonte da verdade:** `.claude/CLAUDE.md` + `.claude/agents/*.md`. Este arquivo é um resumo apontador.
-> Decisão de fluxo: `docs_ai/decisions/ADR-006-workflow-squad-5-agentes.md`.
-> Versão: v0.23.0 · 2026-07-05.
+> **Fonte da verdade:** [`ai-governance/agents/*.md`](../../../ai-governance/agents/) e as políticas em [`ai-governance/policies/`](../../../ai-governance/policies/). Este arquivo é um resumo apontador.
+> **Decisão canônica:** [ADR-014](../../docs_ai/decisions/ADR-014-squad-canonico-ai-governance.md).
+> **Última atualização:** 2026-08-15.
 
 ## Objetivos
 
-- Código de alta qualidade nos módulos `:app`, `:core*`, `:feature*` (Android) e no `SignallQ Admin/` (React/TS).
-- Seguir padrões documentados em `technical/`.
+- Código de alta qualidade nos módulos `:app`, `:core*`, `:feature*` (Android) e nos Workers Cloudflare.
+- Seguir os padrões documentados em [`docs_ai/TECNICO.md`](../../docs_ai/TECNICO.md) e [`docs_ai/ARQUITETURA/`](../../docs_ai/ARQUITETURA/).
 - Código performático, testável e documentado.
 
 ## Workflow
 
-1. **Recebimento** — o implementador recebe task pequena e clara da Claudete (ou direto do usuário em bugfix simples).
-2. **Análise** — ler codebase via Read/Grep/Glob (ferramentas nativas; não há mais agente de busca).
+1. **Recebimento** — Camilo recebe task pequena e clara da Claudete (ou direto do usuário em bugfix simples).
+2. **Análise** — ler codebase via Read/Grep/Glob (ferramentas nativas; não há agente dedicado a busca).
 3. **Planejamento** — mapear arquivos afetados, risco de regressão, ordem de execução.
-4. **Implementação** — Camilo nos módulos Android (MVVM + Compose); Felipe no Admin Panel.
+4. **Implementação** — Camilo em Android (MVVM + Compose), Admin (React/TS) e Workers Cloudflare.
 5. **Testes** — escrever/atualizar testes em `test/` e `androidTest/`.
-6. **Build** — `.\android\gradlew.bat build`, lint, test.
-7. **Handoff para Gema** — review + QA + release + higiene (changelog, bump de versão). Loop de correção: máximo 2 rodadas.
+6. **Build** — `./android/gradlew ktlintCheck detekt test assembleDebug` (mínimo aplicável).
+7. **Handoff para Caio** — revisão independente de código, segurança, testes e regressão. Loop máx. 2 rodadas.
 
-Skills de plataforma: `/regras-android`, `/regras-diagnostico-rede`, `/motor-diagnostico`, `/padroes-compose`.
+Skills de plataforma disponíveis: `/regras-android`, `/regras-diagnostico-rede`, `/motor-diagnostico`, `/padroes-compose`, `/cloudflare-d1-console`, `/protocolo-ci-android`, `/protocolo-ktlint`.
 
 ## Implementadores
 
 | Agente | Responsabilidade |
 |---|---|
-| Camilo | Android (Kotlin, Compose, MVVM, Room, Coroutines, integração IA) |
-| Felipe | Admin Panel (React/TS/Vite/Tailwind) e análise de dados de app |
-| Lia | UI/layout/microcopy quando a task é visual |
-| Gema | Review, QA, regressão, release, higiene — gate único de Done |
+| Camilo | Android (Kotlin, Compose, MVVM, Room, Coroutines, integração IA), Admin (React/TS/Vite/Tailwind), Workers Cloudflare |
+| Juliana | Spec de UI/layout/microcopy quando a task é visual (não edita código Kotlin diretamente) |
+| Gustavo | Especifica métricas e observabilidade quando aplicável (não edita código de app) |
+| Caio | Revisão independente de código, segurança, testes, regressão — gate único de Done |
 
 ## Comandos de build
 
-```powershell
-.\android\gradlew.bat build   # Build completo
-.\android\gradlew.bat lint    # Análise estática
-.\android\gradlew.bat test    # Testes unitários
+```bash
+./android/gradlew ktlintCheck detekt   # análise estática
+./android/gradlew test                  # testes unitários
+./android/gradlew assembleDebug         # build debug
 ```
+
+Em Windows: `.\android\gradlew.bat ...`.
 
 ## Referências
 
-- `TECNICO.md` — sistema de build, dependências
-- `ARQUITETURA/README.md` — arquitetura do sistema
-- `TECNICO.md / ARQUITETURA/MODULOS/` — módulos e responsabilidades
-- `ai/TASK_BREAKDOWN.md` — decomposição de tasks
+- [`docs_ai/TECNICO.md`](../../docs_ai/TECNICO.md) — sistema de build, dependências
+- [`docs_ai/ARQUITETURA/README.md`](../../docs_ai/ARQUITETURA/README.md) — arquitetura do sistema
+- [`docs_ai/ARQUITETURA/MODULOS/`](../../docs_ai/ARQUITETURA/MODULOS/) — módulos e responsabilidades
+- [`.claude/fluxos/TASK_BREAKDOWN.md`](TASK_BREAKDOWN.md) — decomposição de tasks

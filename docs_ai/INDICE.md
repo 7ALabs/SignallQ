@@ -74,17 +74,20 @@ código real é a issue **#1588**.
 
 ## Decisões — `decisions/` · **preservadas, não regeneráveis**
 
-**ADRs (13):** `ADR-001` Timber · `ADR-002` Ktlint/Detekt · `ADR-003` DispatcherProvider ·
-`ADR-004` estrutura multi-módulo · `ADR-005` custo de IA e fallback · `ADR-006` workflow do squad ·
-`ADR-007` iOS adiado · `ADR-008` features D1-only · `ADR-009` vocabulário de diagnóstico ·
-`ADR-010` monetização do consumer · `ADR-011` motor canônico fase 0 · `ADR-012` executionId/
-rulesVersion · `ADR-013` unificação latência/perda/upload.
+**ADRs (14):** `ADR-001` Timber · `ADR-002` Ktlint/Detekt · `ADR-003` DispatcherProvider ·
+`ADR-004` estrutura multi-módulo · `ADR-005` custo de IA e fallback · `ADR-006` workflow do squad
+*(superseded por ADR-014)* · `ADR-007` iOS adiado *(superseded por ADR-014)* · `ADR-008` features
+D1-only · `ADR-009` vocabulário de diagnóstico · `ADR-010` monetização do consumer · `ADR-011`
+motor canônico fase 0 · `ADR-012` executionId/rulesVersion · `ADR-013` unificação latência/perda/
+upload · `ADR-014` squad canônico em `ai-governance/agents/`.
 
 **Decisões de negócio (9):** consolidação do squad, cronograma de lançamento, modelo de dados de
 avaliações Google Play, modelo de dados de integrações Play/Firebase, status de credenciais,
-mudanças de equipe, e `NOTA_DIVERGENCIA_GITHUB_PROJECTS`.
+mudanças de equipe, e `NOTA_DIVERGENCIA_GITHUB_PROJECTS`. As decisões de squad (demissões e
+consolidação 7ALabs) permanecem como registro histórico — a governança operacional atual é
+definida por `ADR-014` + `ai-governance/agents/`.
 
-> Próximo número livre de ADR: **014**.
+> Próximo número livre de ADR: **015**.
 
 ## Operações — `operations/` (26)
 
