@@ -81,20 +81,20 @@ Nenhum. `:app` é o topo do grafo do Consumer — a busca por `project(":app")` 
 
 | Arquivo / classe | Responsabilidade |
 |---|---|
-| `app/src/main/kotlin/io/veloo/app/kotlin/SignallQApplication.kt` | `@HiltAndroidApp`, `Configuration.Provider` do WorkManager; inicializa Timber/Crashlytics, feature flags legadas e do novo `FeatureFlagProvider`, coordenador de persistência de speedtest, `AdsFlagsManager` e agendamento de sync com o admin worker |
-| `app/src/main/kotlin/io/veloo/app/kotlin/MainActivity.kt` | Activity única (`@AndroidEntryPoint`), 640 linhas; monta `SignallQTheme { AppShell(...) }` e trata permissões contextuais |
-| `app/src/main/kotlin/io/veloo/app/kotlin/MainViewModel.kt` | ViewModel raiz que orquestra os serviços e expõe os `StateFlow` das telas — **2438 linhas** |
-| `app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/AppShell.kt` | Navegação, bottom bar e composição das telas — 1670 linhas |
-| `app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/AppShellFeatureGating.kt` | Aplica o gate de navegação por flag remota nos 9 módulos feature (F4/#1480) |
-| `app/src/main/kotlin/io/veloo/app/kotlin/di/AppModule.kt` | Módulo Hilt único (393 linhas) — provê tudo, inclusive a lambda `() -> FirebaseRemoteConfig` e o `FeatureFlagProvider` de `:core:featureflags` |
-| `app/src/main/kotlin/io/veloo/app/kotlin/FeatureFlags.kt` | Flags de compilação (`BuildConfig.FEATURE_*`) — mecanismo por build type, distinto das flags remotas |
-| `app/src/main/kotlin/io/veloo/app/kotlin/featureflags/ConsumerFeatureGateCoordinator.kt` | Deriva `AppShellFeatureFlagsState` reativo a partir do `FeatureFlagProvider` remoto |
-| `app/src/main/kotlin/io/veloo/app/kotlin/featureflags/FeatureFlagManager.kt` / `FeatureFlagRepository.kt` | Mecanismo legado de flags via HTTP `GET /flags` (SIG-13) |
-| `app/src/main/kotlin/io/veloo/app/kotlin/ui/relatorio/` (4 arquivos, 349 linhas) | `RelatorioDiagnosticoSnapshot` → `RelatorioDiagnosticoHtmlBuilder` (puro) → `RelatorioDiagnosticoExporter`, que delega a paginação para `:core:relatorio` |
-| `app/src/main/kotlin/io/veloo/app/kotlin/ads/` (7 arquivos) | `AdSlot`, `AdUnitIds` (real vs teste conforme `-PplayTrack`), `ConsentManager` (UMP), `AdsRemoteConfigRepository` |
-| `app/src/main/kotlin/io/veloo/app/kotlin/monitoramento/` (7 arquivos) | `MonitoramentoWorker`/`Scheduler`, `AdminSyncWorker`/`Scheduler`, `AnalyticsOutboxProcessor`, `HisteresiHelper` |
-| `app/src/main/kotlin/io/veloo/app/kotlin/analytics/` (5 arquivos) | `CompositeAnalyticsTracker`, `FirebaseAnalyticsTracker`, `AnalyticsOutboxFunnelTracker`, `DistributionChannel` |
-| `app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/` | 56 arquivos de tela/estado — inclui `SinalScreen.kt` (3383), `HomeScreen.kt` (2967), `DispositivosScreen.kt` (1380) |
+| `app/src/main/kotlin/io/signallq/app/SignallQApplication.kt` | `@HiltAndroidApp`, `Configuration.Provider` do WorkManager; inicializa Timber/Crashlytics, feature flags legadas e do novo `FeatureFlagProvider`, coordenador de persistência de speedtest, `AdsFlagsManager` e agendamento de sync com o admin worker |
+| `app/src/main/kotlin/io/signallq/app/MainActivity.kt` | Activity única (`@AndroidEntryPoint`), 640 linhas; monta `SignallQTheme { AppShell(...) }` e trata permissões contextuais |
+| `app/src/main/kotlin/io/signallq/app/MainViewModel.kt` | ViewModel raiz que orquestra os serviços e expõe os `StateFlow` das telas — **2438 linhas** |
+| `app/src/main/kotlin/io/signallq/app/ui/screen/AppShell.kt` | Navegação, bottom bar e composição das telas — 1670 linhas |
+| `app/src/main/kotlin/io/signallq/app/ui/screen/AppShellFeatureGating.kt` | Aplica o gate de navegação por flag remota nos 9 módulos feature (F4/#1480) |
+| `app/src/main/kotlin/io/signallq/app/di/AppModule.kt` | Módulo Hilt único (393 linhas) — provê tudo, inclusive a lambda `() -> FirebaseRemoteConfig` e o `FeatureFlagProvider` de `:core:featureflags` |
+| `app/src/main/kotlin/io/signallq/app/FeatureFlags.kt` | Flags de compilação (`BuildConfig.FEATURE_*`) — mecanismo por build type, distinto das flags remotas |
+| `app/src/main/kotlin/io/signallq/app/featureflags/ConsumerFeatureGateCoordinator.kt` | Deriva `AppShellFeatureFlagsState` reativo a partir do `FeatureFlagProvider` remoto |
+| `app/src/main/kotlin/io/signallq/app/featureflags/FeatureFlagManager.kt` / `FeatureFlagRepository.kt` | Mecanismo legado de flags via HTTP `GET /flags` (SIG-13) |
+| `app/src/main/kotlin/io/signallq/app/ui/relatorio/` (4 arquivos, 349 linhas) | `RelatorioDiagnosticoSnapshot` → `RelatorioDiagnosticoHtmlBuilder` (puro) → `RelatorioDiagnosticoExporter`, que delega a paginação para `:core:relatorio` |
+| `app/src/main/kotlin/io/signallq/app/ads/` (7 arquivos) | `AdSlot`, `AdUnitIds` (real vs teste conforme `-PplayTrack`), `ConsentManager` (UMP), `AdsRemoteConfigRepository` |
+| `app/src/main/kotlin/io/signallq/app/monitoramento/` (7 arquivos) | `MonitoramentoWorker`/`Scheduler`, `AdminSyncWorker`/`Scheduler`, `AnalyticsOutboxProcessor`, `HisteresiHelper` |
+| `app/src/main/kotlin/io/signallq/app/analytics/` (5 arquivos) | `CompositeAnalyticsTracker`, `FirebaseAnalyticsTracker`, `AnalyticsOutboxFunnelTracker`, `DistributionChannel` |
+| `app/src/main/kotlin/io/signallq/app/ui/screen/` | 56 arquivos de tela/estado — inclui `SinalScreen.kt` (3383), `HomeScreen.kt` (2967), `DispositivosScreen.kt` (1380) |
 | `app/src/main/AndroidManifest.xml` | 8 permissões, `FileProvider`, App ID do AdMob, remoção do `WorkManagerInitializer` automático |
 
 Versão declarada em `android/gradle/libs.versions.toml`: `versionCode = 72`, `versionName = 0.31.0`
@@ -102,11 +102,9 @@ Versão declarada em `android/gradle/libs.versions.toml`: `versionCode = 72`, `v
 
 ## Riscos e dívidas
 
-- **Caminho físico legado `io/veloo/app/kotlin/`.** Os 150 arquivos `.kt` de `src/main` (e os 73
-  de `src/test`) vivem sob `io/veloo/`, mas **todos os 150 declaram `package io.signallq.*`** —
-  verificado por grep, zero arquivos com `package io.veloo`. Só um arquivo
-  (`io/signallq/app/analytics/FirebaseRecommendationAnalyticsTracker.kt`) está no caminho correto.
-  Divergência conhecida entre caminho e package, ainda não migrada.
+- **Path físico alinhado ao package `io.signallq.app.*`** — os 150 arquivos `.kt` de `src/main` e
+  os 73 de `src/test` vivem em `io/signallq/app/` desde 2026-08-15 (#1645); migração de 221
+  arquivos legados fisicamente em `io/veloo/app/kotlin/` concluída em uma única PR (§4.1 da higiene).
 - **Arquivos acima de 800 linhas em `src/main`** (contagem real, `wc -l`):
   `ui/screen/SinalScreen.kt` 3383, `ui/screen/HomeScreen.kt` 2967, `MainViewModel.kt` 2438,
   `ui/screen/AppShell.kt` 1670, `ui/screen/DispositivosScreen.kt` 1380,

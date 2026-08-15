@@ -49,7 +49,7 @@ No código do `:app`, os tipos aparecem em `di/AppModule.kt`, `MainViewModel.kt`
 
 | Arquivo / classe | Linhas | Responsabilidade |
 |---|---|---|
-| `android/feature/dns/src/main/kotlin/io/veloo/app/kotlin/feature/dns/BenchmarkDnsDoh.kt` | 428 | Implementação da suíte: monta a query DNS binária, consulta por DoH cada provedor, aplica warm-up + rounds avaliados, timeout global (`TIMEOUT_SUITE_DNS_MS = 25_000`), detecta resolvedor ativo e emite progresso no `snapshotFlow`. |
+| `android/feature/dns/src/main/kotlin/io/signallq/app/kotlin/feature/dns/BenchmarkDnsDoh.kt` | 428 | Implementação da suíte: monta a query DNS binária, consulta por DoH cada provedor, aplica warm-up + rounds avaliados, timeout global (`TIMEOUT_SUITE_DNS_MS = 25_000`), detecta resolvedor ativo e emite progresso no `snapshotFlow`. |
 | `.../feature/dns/OrientadorConfiguracaoDns.kt` | 69 | Sugere primário/secundário/hostname de DNS privado por provedor; devolve `null` quando o ativo já é o melhor e não há alerta de coerência. |
 | `.../feature/dns/AvaliadorCoerenciaDns.kt` | 66 | Janela deslizante (5 amostras) de divergências entre DNS esperado e observado; produz `NivelAlertaCoerenciaDns` (`none`/`attention`/`critical`). |
 | `.../feature/dns/DetectorEnderecoIpPrivado.kt` | 50 | Classifica IP do resolvedor como privado/local via `InetAddress` — IPv4 RFC-1918/link-local/loopback e IPv6 `::1`, `fe80::/10`, `fc00::/7`. Unificou duas implementações duplicadas (uma aqui, outra em `DnsScreen.kt`). |
@@ -65,7 +65,7 @@ Total: 725 linhas em `src/main` e 277 em `src/test` (3 arquivos).
 
 - **Lacunas de teste.** Só 3 dos 10 arquivos de produção têm teste (`AvaliadorRecomendacaoDnsTest`, `BenchmarkDnsDohTest`, `DetectorEnderecoIpPrivadoTest`). Ficam descobertos `AvaliadorCoerenciaDns` (janela deslizante e contagem de consecutivas — lógica pura e com estado) e `OrientadorConfiguracaoDns` (mapa de provedores e regra de supressão da sugestão), ambos triviais de testar.
 - **`BenchmarkDnsDoh.kt` com 428 linhas** — abaixo do limite de 800, mas é o único ponto do módulo que concentra rede, encoding de pacote DNS, política de rounds e agregação estatística. Nenhum arquivo do módulo excede 800 linhas.
-- **Regra de negócio dentro de Composable, no `:app`.** `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/DnsScreen.kt` tem **815 linhas** e já foi a casa de uma segunda implementação do detector de IP privado (duplicação eliminada em GH#1212 item 10, conforme o KDoc de `DetectorEnderecoIpPrivado`). Vale vigiar a reincidência: a tela é o consumidor direto dos resultados e a fronteira entre apresentação e regra é tênue aqui.
+- **Regra de negócio dentro de Composable, no `:app`.** `android/app/src/main/kotlin/io/signallq/app/kotlin/ui/screen/DnsScreen.kt` tem **815 linhas** e já foi a casa de uma segunda implementação do detector de IP privado (duplicação eliminada em GH#1212 item 10, conforme o KDoc de `DetectorEnderecoIpPrivado`). Vale vigiar a reincidência: a tela é o consumidor direto dos resultados e a fronteira entre apresentação e regra é tênue aqui.
 - **Sem ViewModel próprio.** Diferente de `:featureSpeedtest` e `:featureDevices`, o estado do benchmark é consumido direto pelo `MainViewModel` do `:app`, o que engorda o ViewModel monolítico em vez de seguir o padrão de ViewModel por feature já adotado nos outros dois módulos.
-- **Caminho legado `io/veloo`:** produção e testes em `src/main|test/kotlin/io/veloo/app/kotlin/feature/dns/` com pacote `io.signallq.app.feature.dns`.
+- **Path físico alinhado ao package `io.signallq.app.*`** — migração de `io/signallq/app/kotlin/` concluída em 2026-08-15 (#1645).
 - **Regra de dependência entre features: respeitada.** Nenhum `project(":feature…")` — na prática, nenhuma dependência de projeto sequer.

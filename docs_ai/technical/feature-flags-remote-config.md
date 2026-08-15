@@ -250,11 +250,11 @@ chave `enabled` de cada módulo — sub-flags mais finas (ex.: `consumer.diagnos
 `consumer.settings.privacidade_enabled`) não fazem parte desta Feature.
 
 **Onde vive a lógica:**
-- `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/AppShellFeatureGating.kt` — funções
+- `android/app/src/main/kotlin/io/signallq/app/ui/screen/AppShellFeatureGating.kt` — funções
   puras (`tabHabilitada`, `tabModuleId`, `primeiraTabHabilitada`, `permitirOuBloquear`) + o
   placeholder `FeatureDisabledContent`. Extraído de `AppShell.kt` (já dívida crítica em linhas) em
   vez de crescer o arquivo ainda mais.
-- `android/app/src/main/kotlin/io/veloo/app/kotlin/featureflags/ConsumerFeatureGateCoordinator.kt`
+- `android/app/src/main/kotlin/io/signallq/app/featureflags/ConsumerFeatureGateCoordinator.kt`
   — `@Singleton` que combina os 9 `FeatureFlagProvider.observe(...)` num único
   `StateFlow<AppShellFeatureFlagsState>`, e centraliza o disparo de `feature_blocked_remote`.
   `MainViewModel` só expõe `featureFlagsState` delegando pro coordinator (regra de higiene —

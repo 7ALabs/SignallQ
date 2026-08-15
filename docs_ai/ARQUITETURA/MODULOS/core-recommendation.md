@@ -56,7 +56,7 @@ Estratégia de decisão (issue #790): 1) recomendação gratuita quando resolve;
 
 ### Único módulo nascido em `io/signallq/`
 
-**Confirmado:** todos os 13 arquivos `.kt` deste módulo (12 em `src/main`, 1 em `src/test`) estão sob `.../kotlin/io/signallq/app/core/recommendation/` — zero arquivos em `io/veloo/`. É o único dos seis módulos `core` flat legados em que caminho físico e pacote já coincidem; os outros cinco têm de 6 a 67 arquivos ainda sob `io/veloo/`. Também é o único cujo `build.gradle.kts` não começa com BOM UTF-8, sinal de que nasceu depois da migração de nome.
+**Confirmado:** todos os 13 arquivos `.kt` deste módulo (12 em `src/main`, 1 em `src/test`) estão sob `.../kotlin/io/signallq/app/core/recommendation/`. Módulo nasceu depois do rebrand — sinal disso é o `build.gradle.kts` sem BOM UTF-8 (todos os outros herdados ainda têm). Após a migração de 2026-08-15 (#1645), todos os 16 módulos têm path físico alinhado ao package.
 
 ## Riscos e dívidas
 

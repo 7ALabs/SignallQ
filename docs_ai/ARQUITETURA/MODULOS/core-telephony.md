@@ -57,17 +57,17 @@ Regras registradas no próprio manifesto e no KDoc de `MonitorTelephonyImpl`:
 
 | Arquivo/classe | Responsabilidade |
 |---|---|
-| `src/main/kotlin/io/veloo/app/kotlin/core/telephony/MonitorTelephony.kt` | contrato: `snapshotFlow`, `iniciar()`/`encerrar()` idempotentes, `captureSimsAtivos(context)` |
-| `src/main/kotlin/io/veloo/app/kotlin/core/telephony/MonitorTelephonyImpl.kt` (655 linhas) | implementação Android: `registerTelephonyCallback` na API 31+, fallback `PhoneStateListener` até a API 30; executor single-thread daemon; `SecurityException` capturada em toda chamada |
-| `src/main/kotlin/io/veloo/app/kotlin/core/telephony/MovelSnapshot.kt` | snapshot da célula servidora — todos os campos opcionais, sem PII |
-| `src/main/kotlin/io/veloo/app/kotlin/core/telephony/MovelSimSnapshot.kt` | snapshot por SIM ativo (subId, slot, operadora, tecnologia, RSRP/RSRQ/SINR, roaming, rádio desligado) |
-| `src/main/kotlin/io/veloo/app/kotlin/core/telephony/CoreTelephonyModulo.kt` | fábrica manual `criarMonitorTelephony(context)` |
-| `src/test/kotlin/io/veloo/app/kotlin/core/telephony/MonitorTelephonyFake.kt` | fake do contrato para uso em teste |
+| `src/main/kotlin/io/signallq/app/core/telephony/MonitorTelephony.kt` | contrato: `snapshotFlow`, `iniciar()`/`encerrar()` idempotentes, `captureSimsAtivos(context)` |
+| `src/main/kotlin/io/signallq/app/core/telephony/MonitorTelephonyImpl.kt` (655 linhas) | implementação Android: `registerTelephonyCallback` na API 31+, fallback `PhoneStateListener` até a API 30; executor single-thread daemon; `SecurityException` capturada em toda chamada |
+| `src/main/kotlin/io/signallq/app/core/telephony/MovelSnapshot.kt` | snapshot da célula servidora — todos os campos opcionais, sem PII |
+| `src/main/kotlin/io/signallq/app/core/telephony/MovelSimSnapshot.kt` | snapshot por SIM ativo (subId, slot, operadora, tecnologia, RSRP/RSRQ/SINR, roaming, rádio desligado) |
+| `src/main/kotlin/io/signallq/app/core/telephony/CoreTelephonyModulo.kt` | fábrica manual `criarMonitorTelephony(context)` |
+| `src/test/kotlin/io/signallq/app/core/telephony/MonitorTelephonyFake.kt` | fake do contrato para uso em teste |
 
 ## Riscos e dívidas
 
 - **`MonitorTelephonyImpl.kt` com 655 linhas** (abaixo de 800, mas é 83% das 792 linhas de `src/main` do módulo): concentra dois caminhos de API (31+ e ≤30), extração de LTE e NR, `SubscriptionManager` e toda a tolerância a `SecurityException` em OEMs. Difícil de testar em unidade — a suíte JVM cobre o contrato via `MonitorTelephonyFake`, não a implementação real.
-- **Caminho físico legado `io/veloo/`:** todos os 7 arquivos `.kt` do módulo estão sob `io/veloo/app/kotlin/core/telephony/` embora declarem `package io.signallq.app.core.telephony`.
+- **Path físico alinhado ao package `io.signallq.app.*`** — migração de `io/signallq/app/kotlin/` concluída em 2026-08-15 (#1645).
 - **Sem teste instrumentado:** `androidTest` vazio; comportamento em device real (MIUI, dual SIM, modo avião) só é validado manualmente.
 - **Checagem de permissão duplicada:** o módulo reimplementa a verificação com `ContextCompat` em vez de reutilizar `:corePermissions`; o snapshot de permissões do app e o deste módulo podem divergir.
 - Uso de `@SuppressLint` para contornar avisos de permissão exige que o contrato "nunca lança" continue verdadeiro em cada nova chamada de API adicionada.

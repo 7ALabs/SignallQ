@@ -7,7 +7,7 @@
 > **Verificado em 2026-07-23:** o app tem AdMob/`NativeAd` integrado no código (issue #555), mas
 > `AdsFlagsManager`/`AdsRemoteConfigRepository` mantêm a chave mestra `ads_native_enabled` desligada
 > por padrão até Luiz criar as chaves no Firebase Remote Config (ver comentário em
-> `android/app/src/main/kotlin/io/veloo/app/kotlin/ads/AdsRemoteConfigRepository.kt`) — nenhum
+> `android/app/src/main/kotlin/io/signallq/app/ads/AdsRemoteConfigRepository.kt`) — nenhum
 > usuário vê anúncio hoje. **"Sem anúncios" abaixo é verdade no estado atual.** Atualizar este FAQ,
 > `PLAY_STORE_LISTING.md`, `docs_ai/legal/TERMS_OF_USE.md` e `TermosDeUsoScreen.kt` no dia em que as
 > chaves forem ligadas — não antes.

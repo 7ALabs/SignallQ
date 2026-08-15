@@ -123,10 +123,10 @@ Reflete o estado atual do app (5ª aba Ferramentas, Ajustes/Perfil pelo avatar,
 package `io.signallq.app`) e traz colunas de status (Não iniciado / Em execução
 / Passou / Falhou / Bloqueado) com resumo agregado por grupo.
 
-> **`signallq_test_cases.yaml` está desatualizado** — ainda referencia
-> `io.veloo.app` e a navegação antiga de 5 abas com Ajustes (a 5ª aba hoje é
-> Ferramentas). Mantido por ora como roteiro histórico/YAML; reconciliar ou
-> arquivar é decisão do Rhodolfo (dono de QA/docs), não decidida nesta edição.
+> **`signallq_test_cases.yaml`** referencia `io.signallq.app` (atualizado
+> em 2026-08-15, #1645). Ainda descreve a navegação antiga de 5 abas com
+> Ajustes (a 5ª aba hoje é Ferramentas); reconciliar essa parte é decisão
+> de QA em outro ciclo.
 
 Cobre, em PT-BR, os fluxos das 5 abas (Início, Velocidade, Sinal, Histórico,
 Ajustes) e as ferramentas associadas:

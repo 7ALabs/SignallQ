@@ -9,9 +9,9 @@ responsável: Camilo (issue #1442, parte de #952)
 
 ## Contexto
 
-`RecommendationEngine.kt` (`android/feature/diagnostico/src/main/kotlin/io/veloo/app/kotlin/feature/diagnostico/RecommendationEngine.kt`)
+`RecommendationEngine.kt` (`android/feature/diagnostico/src/main/kotlin/io/signallq/app/feature/diagnostico/RecommendationEngine.kt`)
 gera 14 regras de recomendação prática (REC-01..REC-14), congeladas como casos dourados em
-`RecommendationEngineTest.kt` (`android/feature/diagnostico/src/test/kotlin/io/veloo/app/kotlin/feature/diagnostico/RecommendationEngineTest.kt`,
+`RecommendationEngineTest.kt` (`android/feature/diagnostico/src/test/kotlin/io/signallq/app/feature/diagnostico/RecommendationEngineTest.kt`,
 756 linhas, 33 testes).
 
 O worker expõe dois mecanismos de avaliação, ambos relevantes para a paridade:

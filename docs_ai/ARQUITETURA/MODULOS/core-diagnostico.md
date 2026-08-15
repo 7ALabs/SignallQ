@@ -100,5 +100,5 @@ Total: 31 arquivos em `src/main` (6051 linhas) e 29 arquivos em `src/test` (4856
   mas nenhum diretório `src/androidTest` — as dependências não têm código correspondente. A
   cobertura JVM, por outro lado, é boa (29 arquivos de teste, incluindo testes de caracterização
   para congelar comportamento antes de refactors).
-- Caminho físico já correto (`src/main/kotlin/io/signallq/app/core/diagnostico/`) — este módulo
-  **não** carrega a dívida do caminho legado `io/veloo`.
+- Caminho físico correto (`src/main/kotlin/io/signallq/app/core/diagnostico/`) — módulo nasceu
+  direto no path novo, nunca passou por `io/veloo/`.

@@ -13,7 +13,7 @@ last_updated: "2026-08-15"
 - **Última validação contra código:** 2026-08-06 — os 4 tokens de marca conferidos um a um em
   `SignallQTheme.kt` (claro `primary` :39, `secondary` :43; escuro `primary` :86, `secondary` :90),
   todos batendo. `#6C2BFF` confirmado morto: zero ocorrências em todo `android/`
-- **Fonte de verdade:** o *código* — `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/SignallQTheme.kt`
+- **Fonte de verdade:** o *código* — `android/app/src/main/kotlin/io/signallq/app/ui/SignallQTheme.kt`
   (`LkColors`, `LkTokens`, `LkSpacing`, `LkRadius`, `signallQTypography`). Este documento é derivado
   dele. Não-negociáveis de produto ficam em `.claude/CLAUDE.md`, seção "Design System"
 - **Escopo:** app Android SignallQ consumer (`io.signallq.app`). Não cobre SignallQ Pro — produto
@@ -420,7 +420,7 @@ tarefa dedicada de Camilo — ver "Débito a registrar" ao final.
 
 ## 7. Biblioteca de componentes
 
-**Localização real:** `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/component/` (33
+**Localização real:** `android/app/src/main/kotlin/io/signallq/app/ui/component/` (33
 arquivos + subpasta `ads/`, 8 arquivos).
 
 ### TopBar
@@ -717,13 +717,13 @@ novo para ela. Tokens residuais podem continuar no código por legado/compatibil
 
 Confirmado em código:
 
-- Arquivo: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/SignallQTheme.kt`
+- Arquivo: `android/app/src/main/kotlin/io/signallq/app/ui/SignallQTheme.kt`
 - Objetos: `LkColors` (cores claro/escuro), `LkTokens`, `LkSpacing`, `LkRadius`,
   `signallQTypography`
 - Consumo em componentes confirmado via grep de `LkColors` em múltiplos arquivos de
   `ui/component/` (ex.: `BaseComponents.kt`, `ads/AdBadge.kt`, `OperadoraBottomSheet.kt`)
 
-**Nota de caminho físico:** o arquivo mora fisicamente em `io/veloo/app/kotlin/...` embora
+**Nota de caminho físico:** o arquivo mora fisicamente em `io/signallq/app/...` embora
 declare `package io.signallq.app...` — é a divergência conhecida de ~460 arquivos `.kt`
 documentada em `.claude/rules/higiene-e-padronizacao-repositorio.md` (seção 4.1). Não é
 específica deste design system; é dívida estrutural do repo inteiro.

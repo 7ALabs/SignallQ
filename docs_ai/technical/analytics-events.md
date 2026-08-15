@@ -511,7 +511,7 @@ injetado via Hilt em `AppModule`). Pontos de disparo:
 | `ia_laudo_recebido` | `SignallQOrchestrator` | `callAi` (após `explainDiagnosis`, mesmos triggers) |
 
 Testes unitários do `FirebaseAnalyticsHelper` em
-`app/src/test/kotlin/io/veloo/app/kotlin/analytics/FirebaseAnalyticsHelperTest.kt`
+`app/src/test/kotlin/io/signallq/app/analytics/FirebaseAnalyticsHelperTest.kt`
 (MockK + Robolectric, cobrem os 7 eventos e omissão correta de parâmetros
 opcionais nulos).
 

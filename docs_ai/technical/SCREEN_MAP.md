@@ -2,7 +2,7 @@
 
 **Status:** ativo
 **Última validação:** 2026-07-23 (contra `AppShell.kt`)
-**Fonte de verdade:** código real (`android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/AppShell.kt`)
+**Fonte de verdade:** código real (`android/app/src/main/kotlin/io/signallq/app/ui/screen/AppShell.kt`)
 **Escopo:** navegação do app consumer (tab bar + overlays)
 **Responsável:** Lia (Frontend & Design)
 
@@ -10,7 +10,7 @@
 > GH#930 (Fase 1 do plano MD3 To-Be, arquivado em `docs_ai/_archive/2026-07-23_TOBE_MD3_APP_PLANO_IMPLEMENTACAO.md`).
 > A tab bar atual usa `Ferramentas`; Ajustes virou overlay `Perfil`, acessado pelo avatar no TopBar.
 
-Todas as telas residem em: `app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/`
+Todas as telas residem em: `app/src/main/kotlin/io/signallq/app/ui/screen/`
 
 ---
 

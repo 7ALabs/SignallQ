@@ -138,7 +138,7 @@ sugeria como preferível por padrão):**
 | Velocidade (idle, `SpeedTestScreen.kt`) | `TopAppBarDefaults.enterAlwaysScrollBehavior()` + `Modifier.nestedScroll(...)` + `scrollBehavior` no `CenterAlignedTopAppBar` | Remove os três — `CenterAlignedTopAppBar` sem `scrollBehavior`, `Scaffold` sem `nestedScroll` |
 | Demais 11 telas | Nenhum comportamento | Sem mudança |
 
-**Arquivo a remover por completo:** `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/component/TopBarAlpha.kt`
+**Arquivo a remover por completo:** `android/app/src/main/kotlin/io/signallq/app/ui/component/TopBarAlpha.kt`
 (as duas extensions `LazyListState.rememberTopBarAlpha()` / `ScrollState.rememberTopBarAlpha()`,
 depois de remover as 4 chamadas). Confirmar com `grep -r rememberTopBarAlpha` que não sobra
 nenhum uso antes de apagar o arquivo — parte da validação obrigatória de higiene ao remover código.

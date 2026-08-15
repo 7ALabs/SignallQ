@@ -106,5 +106,5 @@ Total: 17 arquivos Kotlin em `src/main` (711 linhas) + o catálogo JSON, e 4 arq
   Remote Config nem refresh periódico — o "reativo" do `ConsumerFeatureGateCoordinator` só se
   concretiza no próximo `refresh()`.
 - **Nenhum arquivo acima de 800 linhas** — o maior é `RemoteConfigFeatureFlagProvider.kt` com 168.
-- Caminho físico já correto (`src/main/kotlin/io/signallq/app/core/featureflags/`) — sem a dívida
-  do caminho legado `io/veloo`.
+- Caminho físico correto (`src/main/kotlin/io/signallq/app/core/featureflags/`) — módulo nasceu
+  direto no path novo, nunca passou por `io/veloo/`.

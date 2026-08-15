@@ -15,7 +15,7 @@ This document outlines the process for releasing new versions of the SignallQ An
 
 > Namespace/applicationId atual: **`io.signallq.app`** (renomeado de `io.veloo.app`
 > em 2026-06-28). O caminho fisico do codigo do modulo `:app` continua sendo
-> `io/veloo/app/kotlin/` — nao alterar. Demais identificadores tecnicos de infra
+> `io/signallq/app/` — nao alterar. Demais identificadores tecnicos de infra
 > permanecem: repo `7ALabs/SignallQ`, worker `linka-ai-diagnosis-worker`.
 > Historico autoritativo de versoes Android: `android/CHANGELOG.md`.
 

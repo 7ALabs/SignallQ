@@ -217,7 +217,7 @@ Busca no código do SignallQ (`grep` em `android/`) mostra que "Intelbras"
 hoje só existe como **fabricante no lookup de OUI** (mesmo padrão já visto no
 documento do TP-Link):
 
-- `android/core/network/src/main/kotlin/io/veloo/app/core/network/topologia/oui/OuiCatalog.kt`
+- `android/core/network/src/main/kotlin/io/signallq/app/core/network/topologia/oui/OuiCatalog.kt`
   (**correção 2026-07-23**: os arquivos `MeshOuiDatabase.kt`/`OuiDatabase.kt` citados
   originalmente aqui foram unificados neste `OuiCatalog.kt` — ver
   `docs_ai/_archive/2026-07-23_PLANO_UNIFICACAO_TOPOLOGIA_WIFI_2026-07-15.md`, Fase 1)
