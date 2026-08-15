@@ -197,4 +197,4 @@ Atualizar após aprovar a entrega, antes do build final.
 
 ## Limites
 - Esta skill orienta, não implementa.
-- Build/release Android → Camilo. Changelog → Rhodolfo.
+- Build/release Android → Camilo. Changelog e prontidão de release → Caio.
