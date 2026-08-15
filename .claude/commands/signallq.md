@@ -32,18 +32,18 @@ Em seguida, pergunte: **"Em que vamos trabalhar hoje?"**
 
 | Skill / Comando | Quando usar automaticamente |
 |-----|-----|
-| `/linka` | Início de sessão nova sem contexto anterior |
+| `/signallq` | Início de sessão nova sem contexto anterior |
 | `/task <descrição>` | Registrar demanda: cria issue e faz kickoff do squad |
 | `/SignallQ-design create` | Criar nova tela ou componente Compose |
 | `/SignallQ-design review` | Editar arquivo em `ui/screen/` ou `ui/component/` |
 | `/SignallQ-design tokens` | Dúvida sobre cor, espaçamento ou tipografia |
-| `/linka-arch create` | Criar módulo, ViewModel, DAO, serviço ou repositório |
-| `/linka-arch review` | Revisão arquitetural de arquivo Kotlin |
-| `/linka-arch map` | Dúvida sobre onde implementar algo |
-| `/linka-docs impact` | Após qualquer mudança de código — sempre |
-| `/linka-docs update` | Atualizar doc específico |
-| `/linka-docs new` | Criar novo documento oficial |
-| `/linka-docs check` | Auditar docs de uma feature |
+| `/signallq-arch create` | Criar módulo, ViewModel, DAO, serviço ou repositório |
+| `/signallq-arch review` | Revisão arquitetural de arquivo Kotlin |
+| `/signallq-arch map` | Dúvida sobre onde implementar algo |
+| `/signallq-docs impact` | Após qualquer mudança de código — sempre |
+| `/signallq-docs update` | Atualizar doc específico |
+| `/signallq-docs new` | Criar novo documento oficial |
+| `/signallq-docs check` | Auditar docs de uma feature |
 | `/estimativa-impacto` | Avaliar tamanho/risco/milestone de uma issue antes do breakdown |
 | `/checar-release` | Checklist pré-release (Android + Cloudflare) |
 | `/gerar-docs` | Gerar ou atualizar documentação funcional/técnica/testes |
