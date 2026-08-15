@@ -1,10 +1,21 @@
+---
+title: "ADR-007 — iOS: scaffolding criado, agente adiado"
+description: "Superseded por ADR-014 e reforçado por ADR-015 em 2026-08-15. Registro histórico da decisão de 2026-06-24 de não criar agente iOS enquanto o app estava adiado; hoje iOS está permanentemente fora do escopo da marca."
+type: "adr"
+status: "deprecated"
+owner: "Luiz (CEO)"
+last_updated: "2026-08-15"
+version: "2.0.0"
+---
+
 # ADR-007 — iOS: scaffolding criado, agente adiado
 
-> **⚠️ SUPERSEDED por [ADR-014](ADR-014-squad-canonico-ai-governance.md) em 2026-08-15.**
-> A decisão de não criar agente iOS continua válida (app descontinuado desde 2026-07-04),
-> mas a regra de "quando iOS voltar, cria camilo-ios" foi absorvida pelo ADR-014: iOS,
-> se retomado, é responsabilidade natural de Camilo; nova persona só surge por decisão
-> explícita do Luiz.
+> **⚠️ SUPERSEDED por [ADR-014](ADR-014-squad-canonico-ai-governance.md) em 2026-08-15
+> e reforçado por [ADR-015](ADR-015-plataformas-android-webapp.md) na mesma data.**
+> A decisão de "iOS adiado" evoluiu para **iOS fora do escopo permanente da marca
+> SignallQ** — ADR-015 declara Android + Webapp como as únicas plataformas do
+> portfólio. A porta que este ADR deixava aberta ("Quando criar o agente iOS")
+> está fechada; só é reaberta por novo ADR do Luiz que superseda ADR-015.
 >
 > **Nota (2026-07-04):** o app iOS foi descontinuado; este ADR é mantido como
 > registro histórico da decisão.

@@ -11,6 +11,7 @@
 
 - **Pertence ao repositório:** aplicativo Android SignallQ e SignallQ Pro, módulos Gradle, Workers Cloudflare, contratos e documentação técnica relacionados.
 - **Não pertence:** aplicação Buildea Admin, que pertence ao repositório `buildea-admin`; site e PWA, que pertencem ao repositório `signallq-web`; projetos pessoais.
+- **Plataformas da marca SignallQ:** exclusivamente **Android** (este repo) e **Webapp** (`signallq.com`, repo `signallq-web`) — para Consumer, Pro e qualquer futuro produto. iOS/macOS/desktop/wearable/embedded ficam permanentemente fora. Ver [ADR-015](docs_ai/decisions/ADR-015-plataformas-android-webapp.md).
 
 ## Arquitetura comprovada
 
