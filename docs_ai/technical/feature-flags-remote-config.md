@@ -1,3 +1,13 @@
+---
+title: "Feature Flags do Consumer — Firebase Remote Config"
+description: "Mecanismo técnico do módulo :core:featureflags: catálogo tipado, FeatureFlagProvider e integração com Firebase Remote Config."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-15"
+version: "1.0.0"
+---
+
 # Fundação de Feature Flags do Consumer — Firebase Remote Config (`:core:featureflags`)
 
 - **Status:** ativo
@@ -63,7 +73,7 @@ android/core/featureflags/                       (:core:featureflags, novo módu
 ```
 
 `:core:featureflags` é consumido **apenas** por `:app` nesta fase (nenhum módulo `feature/*` ainda
-depende dele — isso é F4). Nunca é consumido por `:pro:*`.
+depende dele — isso é F4).
 
 ### Por que `src/main/resources/`, não `src/main/assets/`
 

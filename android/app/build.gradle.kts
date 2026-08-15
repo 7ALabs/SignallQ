@@ -320,9 +320,9 @@ dependencies {
     // Dominio de causa-raiz extraido de :featureDiagnostico (issue #1157 Fase 1a) — DiagnosticReport/
     // DiagnosticInput/DiagnosticStatus etc sao consumidos direto por telas e ViewModels do :app.
     implementation(project(":core:diagnostico"))
-    // GH#1219 — motor generico HTML->PDF (WebView.createPrintDocumentAdapter), ja usado pelo
-    // Pro (:pro:feature:laudo) e por :featureHistory. Unifica ResultadoPdfGenerator/LaudoScreen
-    // no mesmo renderer, com paginacao real em vez de Canvas manual.
+    // GH#1219 — motor generico HTML->PDF (WebView.createPrintDocumentAdapter), consumido por
+    // :app e por :featureHistory. Unifica ResultadoPdfGenerator/LaudoScreen no mesmo renderer,
+    // com paginacao real em vez de Canvas manual.
     implementation(project(":core:relatorio"))
     // Fundacao de Feature Flags do Consumer via Firebase Remote Config (issue #1477, Epico
     // #1347) — catalogo tipado + FeatureFlagProvider. So :app consome nesta fase (F4/#1480

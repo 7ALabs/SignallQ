@@ -4,7 +4,7 @@ description: "Avaliação do estado das permissões de rede (localização fina 
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-15"
 ---
 
 # `:corePermissions`
@@ -34,8 +34,6 @@ Não é dele: **solicitar** permissão ao usuário — quem dispara o launcher e
 | Módulo | Tipo |
 |---|---|
 | `:app` | `implementation` |
-| `:pro:feature:auth` | `implementation` |
-| `:pro:feature:medicao-diagnostico` | `implementation` |
 
 Observação: nenhum módulo `:feature*` do Consumer depende dele diretamente — o consumo passa por `:app`.
 

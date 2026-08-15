@@ -4,7 +4,7 @@ description: "Descoberta de dispositivos na rede local (ARP, subnet, mDNS, SSDP,
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-15"
 ---
 
 # `:featureDevices`
@@ -45,7 +45,7 @@ Extraídas de `android/feature/devices/build.gradle.kts`.
 |---|---|
 | `:app` | `android/app/build.gradle.kts:313` |
 
-Nenhum outro módulo consome — inclusive nenhum módulo `:pro:*`.
+Nenhum outro módulo consome.
 
 ## Componentes principais
 

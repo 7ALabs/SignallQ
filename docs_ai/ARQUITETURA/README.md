@@ -4,7 +4,7 @@ description: "Visão de sistema, módulos Gradle e dependências, do código rea
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-15"
 ---
 
 # Arquitetura — SignallQ consumer
@@ -12,8 +12,8 @@ last_updated: "2026-08-06"
 - **Fonte de verdade:** o código. Este documento é derivado dele, não o contrário. Os números do
   bloco de inventário abaixo são **gerados** por `scripts/gerar-inventario-docs.sh`.
 - **Escopo:** app consumer Android (`io.signallq.app`) e sua relação com o backend Cloudflare.
-  Não cobre SignallQ Pro (on hold — `../pro-onhold/`), Admin (`buildea-admin`) nem web
-  (`signallq-web`).
+  Não cobre SignallQ Pro (descontinuado permanentemente, ver ADR-016), Admin (`buildea-admin`)
+  nem web (`signallq-web`).
 - **Detalhe por módulo:** `MODULOS/` — um documento por módulo Gradle consumer.
 
 <!-- INVENTARIO:INICIO — gerado por scripts/gerar-inventario-docs.sh, nao editar a mao -->
@@ -93,14 +93,12 @@ Quatro camadas:
    contrato normalizado em um `core`.
 2. `:core*` não depende de `:feature*`.
 3. `:app` pode depender de tudo.
-4. `:core:featureflags` é exclusivo do consumer — proibido para `:pro:*`.
 
-**Duas violações da regra 1 existem hoje:**
+**Uma violação da regra 1 existe hoje:**
 
 | Violação | Onde | Uso real |
 |---|---|---|
 | `:featureDiagnostico` → `:featureSpeedtest` | `android/feature/diagnostico/build.gradle.kts:62` | `SignallQOrchestrator.kt` importa `ExecutorSpeedtest`, `ResultadoSpeedtest`, `ModoSpeedtest`, `SpeedtestQualityClassifier` |
-| `:pro:feature:medicao-diagnostico` → `:featureSpeedtest` | `android/pro/feature/medicao-diagnostico/build.gradle.kts:69` | mesma dependência, do lado Pro (on hold) |
 
 Não são acidentes de import: o acoplamento é profundo. O destino correto é extrair o contrato de
 speedtest para um `core` — tarefa dedicada, não correção oportunista.
@@ -115,15 +113,15 @@ empurra a adaptação para `HomeMedicaoAdapter.kt`, em `:app`.
 
 | Módulo | Papel | Observação |
 |---|---|---|
-| `:coreNetwork` | Sondagens de rede, contratos de analytics | **Sem lib HTTP** — `HttpURLConnection`/`Socket`/`InetAddress` amarrados à `Network` sob análise. Maior e mais consumido: 9 consumidores |
+| `:coreNetwork` | Sondagens de rede, contratos de analytics | **Sem lib HTTP** — `HttpURLConnection`/`Socket`/`InetAddress` amarrados à `Network` sob análise. Maior e mais consumido: 7 consumidores |
 | `:coreDatabase` | Room — histórico, outbox de analytics | Schema **v18**, 8 entidades, 7 DAOs, 17 migrations encadeadas |
 | `:coreDatastore` | Preferências do usuário, credenciais de modem | DataStore `linkaPreferencias` |
 | `:corePermissions` | Fluxo de permissões de rede | Sem testes |
 | `:coreTelephony` | Rede móvel (RSRP/RSRQ/SINR) | Exige só `READ_PHONE_STATE`; não usa IMEI/IMSI |
 | `:coreRecommendation` | Motor de recomendação por tags | **Único módulo fisicamente em `io/signallq/`** |
-| `:core:diagnostico` | Motor canônico de diagnóstico | Compartilhado com o Pro |
-| `:core:relatorio` | Paginação HTML→PDF | Compartilhado com o Pro; 194 linhas, **zero testes** |
-| `:core:featureflags` | Flags remotas do consumer | 11 flags no catálogo; proibido para `:pro:*` |
+| `:core:diagnostico` | Motor canônico de diagnóstico | Consumido por `:app`, `:featureSpeedtest`, `:featureDiagnostico` |
+| `:core:relatorio` | Paginação HTML→PDF | Consumido por `:app`, `:featureHistory`; 194 linhas, **zero testes** |
+| `:core:featureflags` | Flags remotas do consumer | 11 flags no catálogo |
 
 Os seis primeiros são **aliases flat legados** (`:coreNetwork`) com `projectDir` remapeado para
 pasta hierárquica (`core/network`). Os três últimos nasceram já hierárquicos (`:core:diagnostico`).

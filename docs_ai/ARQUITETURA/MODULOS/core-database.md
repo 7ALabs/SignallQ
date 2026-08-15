@@ -4,7 +4,7 @@ description: "Banco Room local do Consumer: 8 entidades, 7 DAOs, schema na vers�
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-15"
 ---
 
 # `:coreDatabase`
@@ -17,7 +17,7 @@ last_updated: "2026-08-06"
 
 Define o banco Room local do app Consumer (`SignallQDatabase`), suas Entities, Daos e toda a cadeia de migrations, além da fábrica `CoreDatabaseModulo.criarBanco(context)`. É a única fonte de persistência estruturada/relacional do Consumer.
 
-Não é dele: preferências chave-valor (`:coreDatastore`), regras de negócio sobre os dados persistidos (ficam nas features e em `:core:diagnostico`), nem a persistência do app Pro — que tem banco próprio em `:pro:core:database`. Também não expõe Repository: os Daos são consumidos diretamente pelas camadas acima.
+Não é dele: preferências chave-valor (`:coreDatastore`), regras de negócio sobre os dados persistidos (ficam nas features e em `:core:diagnostico`). Também não expõe Repository: os Daos são consumidos diretamente pelas camadas acima.
 
 ## Dependências
 
@@ -40,8 +40,6 @@ Nenhuma dependência de outro módulo do monorepo.
 |---|---|
 | `:app` | `implementation` |
 | `:featureDevices`, `:featureDiagnostico`, `:featureHistory`, `:featureSpeedtest` | `implementation` |
-
-Nenhum módulo `:pro:*` depende deste — o Pro usa `:pro:core:database`.
 
 ## Componentes principais
 

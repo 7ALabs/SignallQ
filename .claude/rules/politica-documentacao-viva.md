@@ -40,9 +40,8 @@ bash scripts/validar-docs.sh --base origin/main   # como na PR
 bash scripts/validar-docs.sh --relatorio          # cobertura, nunca falha
 ```
 
-Isenções: `docs_ai/pro-onhold/` (congelado), `docs_ai/templates/` e
-`docs_ai/decisions/` (vocabulário próprio de status), e tudo fora de `docs_ai/`
-— `SKILL.md` usa o cabeçalho exigido pelo carregador de skills.
+Isenções: `docs_ai/templates/` e `docs_ai/decisions/` (vocabulário próprio de status), e tudo
+fora de `docs_ai/` — `SKILL.md` usa o cabeçalho exigido pelo carregador de skills.
 
 ---
 

@@ -4,7 +4,7 @@ description: "Cores, tipografia, espaçamento, componentes e tokens do app Andro
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-15"
 ---
 
 # Design System — SignallQ (Android, consumer)
@@ -16,9 +16,9 @@ last_updated: "2026-08-06"
 - **Fonte de verdade:** o *código* — `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/SignallQTheme.kt`
   (`LkColors`, `LkTokens`, `LkSpacing`, `LkRadius`, `signallQTypography`). Este documento é derivado
   dele. Não-negociáveis de produto ficam em `.claude/CLAUDE.md`, seção "Design System"
-- **Escopo:** app Android SignallQ consumer (`io.signallq.app`). Não cobre SignallQ Pro — que está
-  **on hold** e tem identidade azul própria (`#0B6CFF`, skill `/signallq-pro-design`, specs
-  congeladas em `pro-onhold/`) — nem o painel Admin, que vive no repositório `buildea-admin`
+- **Escopo:** app Android SignallQ consumer (`io.signallq.app`). Não cobre SignallQ Pro — produto
+  descontinuado permanentemente (ADR-016); docs e skill de design própria (`#0B6CFF`) removidos do
+  repositório na Fase 4b do épico #1623 — nem o painel Admin, que vive no repositório `buildea-admin`
 - **Responsável:** Camilo (implementação Android). O papel de design não tem titular desde
   2026-07-25 (ver `decisions/DECISAO_DEMISSAO_LIA_2026-07-25.md`)
 - **Documentos substituídos:** consolidou `COLORS.md`, `COMPONENTS_ANDROID.md`, `DESIGN_TOKENS.md`,
@@ -741,7 +741,6 @@ cópias redundantes entre si mesmo compartilhando os mesmos tokens visuais (refe
 | `docs_ai/design-system/` (histórico) | Android (app real) | Os seis documentos-fonte consolidados aqui — movidos para `docs_ai/_archive/` |
 | `DESIGN.md` / `PRODUCT.md` (raiz do repo) | Android (app real) | Spec no formato da skill `impeccable`, North Star "The Calm Translator" |
 | `SignallQ Admin/DESIGN.md` / `PRODUCT.md` | SignallQ Console (Admin) | Mesmo formato impeccable, mas do Console — North Star e paleta próprias, não confundir com o app Android |
-| `docs_ai/pro-onhold/08..11_*` + skill `/signallq-pro-design` | SignallQ Pro | Design do Pro — identidade azul, projeto [SignallQ PRO - Design System](https://claude.ai/design/p/77a19317-ea64-4e47-b55c-578eca776c09), não misturar com este documento |
 
 Não criar artefato de design novo sem checar se já existe em algum destes.
 

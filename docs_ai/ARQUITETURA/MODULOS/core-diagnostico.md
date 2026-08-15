@@ -1,10 +1,10 @@
 ---
 title: "Módulo :core:diagnostico"
-description: "Motor determinístico de causa-raiz, classificação de métricas e score da conexão, compartilhado entre Consumer e Pro."
+description: "Motor determinístico de causa-raiz, classificação de métricas e score da conexão, compartilhado entre :app, :featureDiagnostico e :featureSpeedtest."
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-15"
 ---
 
 # `:core:diagnostico`
@@ -52,17 +52,15 @@ dependência justamente para manter `RecomendacaoPraticaEngine` fora deste módu
 | `:app` | Usa `DiagnosticReport`/`DiagnosticInput`/`DiagnosticStatus` direto em telas e ViewModels |
 | `:featureDiagnostico` | Orquestra o `DiagnosticRunner` e o shadow mode |
 | `:featureSpeedtest` | Classificação de qualidade a partir do resultado do teste |
-| `:pro:feature:medicao-diagnostico` | **SignallQ Pro — on hold.** Módulo compartilhado entre os dois produtos; mudanças de contrato aqui afetam o Pro quando ele voltar |
 
-Módulo compartilhado Consumer + Pro por decisão explícita da issue #1157 — foi extraído
-precisamente para permitir esse reuso. O Pro está atualmente **on hold**, então na prática só os
-consumidores do Consumer exercitam o código hoje.
+Extraído de `:featureDiagnostico` na issue #1157 precisamente para permitir reuso entre múltiplos
+consumidores do Consumer — hoje `:app`, `:featureDiagnostico` e `:featureSpeedtest`.
 
 ## Componentes principais
 
 | Arquivo / classe | Responsabilidade |
 |---|---|
-| `DiagnosticRunner.kt` (151 linhas) | Executor puro do diagnóstico — orquestra os engines por `DiagnosticArea` e monta o `DiagnosticReport`. Recebe `gerarRecomendacoes` por injeção (default vazio, seguro para o Pro) |
+| `DiagnosticRunner.kt` (151 linhas) | Executor puro do diagnóstico — orquestra os engines por `DiagnosticArea` e monta o `DiagnosticReport`. Recebe `gerarRecomendacoes` por injeção (default vazio, seguro para qualquer caller que não gera recomendação) |
 | `FindingEngine.kt` (**745 linhas**) | Motor de achados: avalia regras candidatas com confiança declarada, escolhe achado principal/secundários e registra hipóteses descartadas por evidência mais forte |
 | `MetricClassifier.kt` (243 linhas) | Ponto único de classificação de RSSI/latência/jitter/RSRP/RSRQ/SINR etc., com vocabulário `MetricStatus` de 6 valores |
 | `ScoreEngine.kt` (228 linhas) + `ScoreEvidenceBuilder.kt` (219) | Score 0–100 por média ponderada de dimensões, com reponderação quando falta dado e teto por métrica crítica |
@@ -102,9 +100,5 @@ Total: 31 arquivos em `src/main` (6051 linhas) e 29 arquivos em `src/test` (4856
   mas nenhum diretório `src/androidTest` — as dependências não têm código correspondente. A
   cobertura JVM, por outro lado, é boa (29 arquivos de teste, incluindo testes de caracterização
   para congelar comportamento antes de refactors).
-- **Contrato compartilhado com produto on hold.** Mudanças de assinatura em `DiagnosticInput`/
-  `DiagnosticReport` quebram `:pro:feature:medicao-diagnostico` sem que ninguém perceba enquanto o
-  Pro estiver parado — não há build ou CI do Pro exercitando essa fronteira de forma contínua
-  (não determinado nesta revisão se o CI compila os módulos `:pro:*`).
 - Caminho físico já correto (`src/main/kotlin/io/signallq/app/core/diagnostico/`) — este módulo
   **não** carrega a dívida do caminho legado `io/veloo`.

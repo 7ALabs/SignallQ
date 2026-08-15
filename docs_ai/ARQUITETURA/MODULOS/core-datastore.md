@@ -4,7 +4,7 @@ description: "Preferências do app em DataStore Preferences e credenciais do mod
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-15"
 ---
 
 # `:coreDatastore`
@@ -38,7 +38,6 @@ Nenhuma dependência de outro módulo do monorepo.
 |---|---|
 | `:app` | `implementation` |
 | `:featureDevices`, `:featureDiagnostico`, `:featureSpeedtest` | `implementation` |
-| `:pro:app` | `implementation` |
 
 ## Componentes principais
 

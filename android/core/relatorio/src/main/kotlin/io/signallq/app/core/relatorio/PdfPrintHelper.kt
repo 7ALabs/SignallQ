@@ -22,8 +22,8 @@ import java.io.File
  * minSdk do projeto = 24 — PrintDocumentAdapter disponível desde API 19.
  *
  * Movido de :featureHistory para :core:relatorio (issue #1157 Fase 1b) — zero acoplamento a
- * MedicaoEntity ou qualquer schema do consumidor, reuso direto pelo Pro na Fase 3
- * (:pro:feature:laudo).
+ * MedicaoEntity ou qualquer schema do consumidor, reuso compartilhado entre :app e
+ * :featureHistory.
  */
 internal object PdfPrintHelper {
 

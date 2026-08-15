@@ -4,7 +4,7 @@ description: "Motor de medição de velocidade (Cloudflare), amostragem de ping,
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-15"
 ---
 
 # `:featureSpeedtest`
@@ -47,8 +47,6 @@ Extraídas de `android/feature/speedtest/build.gradle.kts`.
 |---|---|---|
 | `:app` | `android/app/build.gradle.kts:315` | legítimo (composição no app) |
 | `:featureDiagnostico` | `android/feature/diagnostico/build.gradle.kts:62` | **violação da regra feature → feature** |
-| `:pro:app` | `android/pro/app/build.gradle.kts:110` | legítimo (outro app) |
-| `:pro:feature:medicao-diagnostico` | `android/pro/feature/medicao-diagnostico/build.gradle.kts:69` | **violação da regra feature → feature** |
 
 ## Componentes principais
 

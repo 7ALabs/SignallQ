@@ -4,7 +4,7 @@ description: "Ponto de entrada da documentação do app consumer Android e do ba
 type: "índice"
 status: "ativo"
 owner: "Claudete (processo) · Camilo (técnico)"
-last_updated: "2026-08-09"
+last_updated: "2026-08-15"
 ---
 
 # Documentação — SignallQ
@@ -32,7 +32,7 @@ last_updated: "2026-08-09"
 | **Backend Cloudflare** (5 Workers, D1) | `integrations/cloudflare/` neste repo | aqui |
 | SignallQ Admin | repo **`buildea-admin`** | no repo dele |
 | Site / PWA | repo **`signallq-web`** (Next 16 + PWA) | no repo dele |
-| SignallQ Pro | `android/pro/` neste repo, **on hold** | selada em [`pro-onhold/`](./pro-onhold/) |
+| SignallQ Pro | **descontinuado permanentemente** (ver [ADR-016](decisions/ADR-016-portfolio-buildea.md)) | removida — módulos, docs e skill saíram do repo nas Fases 4a-b do épico #1623 |
 | SignallQ Nethal | repo separado | fora deste repositório |
 
 O `signallq-admin-worker` é **deste** repositório, embora o painel Admin que o consome não seja.
@@ -65,7 +65,6 @@ O `signallq-admin-worker` é **deste** repositório, embora o painel Admin que o
 | `design-system/` | Decisões de design (tokens, paleta, topbar) — conteúdo vigente em `DESIGN_SYSTEM.md` |
 | `legal/` | Política de privacidade e termos de uso — **instrumentos jurídicos, não editar sem revisão** |
 | `templates/` | Modelos para documento novo (técnico, funcional, ADR, runbook) |
-| `pro-onhold/` | Specs do Pro **congeladas** — não manter enquanto o produto estiver parado |
 | `_archive/` | Vazia por decisão — ver [`_archive/README.md`](./_archive/README.md) |
 
 Assets de marca vivem em `brand/` na raiz do repositório, não aqui.
@@ -87,6 +86,16 @@ Removidos da árvore; recuperáveis via git a partir do commit `10b2f05d` (instr
 | `design-system/_archive/` | 1 | Mesma regra do `_archive/` |
 
 **235 → 116 documentos.**
+
+## O que saiu em 2026-08-15
+
+Removidos da árvore; recuperáveis via git a partir do commit `0daa424a`.
+
+| Removido | Qtd | Motivo |
+|---|---:|---|
+| `pro-onhold/` | 7 | SignallQ Pro descontinuado permanentemente (ADR-016); Fase 4b do épico #1623 |
+
+**116 → 111 documentos.**
 
 ## Regra a partir de agora
 
