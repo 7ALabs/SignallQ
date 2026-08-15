@@ -9,8 +9,7 @@
 // com 5000+ linhas (ver .claude/rules/higiene-e-padronizacao-repositorio.md, seção 7).
 //
 // Scope "https://www.googleapis.com/auth/cloud-platform" já cobre a Firebase Remote Config
-// REST API (confirmado via chamada real em 2026-07-24, ver docs_ai/decisions/
-// DECISAO_STATUS_CREDENCIAIS_GOOGLE_PLAY_FIREBASE_2026-07-24.md) — não estreitado aqui pra não
+// REST API (confirmado via chamada real em 2026-07-24, 200 na API) — não estreitado aqui pra não
 // regredir nenhuma integração já em produção que depende desta mesma função.
 
 export interface FirebaseServiceAccountEnv {

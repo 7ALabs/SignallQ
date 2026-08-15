@@ -1,3 +1,12 @@
+---
+title: "Runbook de Lançamento"
+description: "Passo a passo operacional do lançamento do SignallQ Android, da versão candidata ao rollout de produção"
+type: "runbook"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-15"
+---
+
 # Runbook de Lançamento — SignallQ Android
 
 **Projeto:** SignallQ (diagnóstico de conectividade)

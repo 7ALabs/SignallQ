@@ -1,3 +1,12 @@
+---
+title: "Transição Closed Beta → Open Beta → Produção"
+description: "Fases de rollout do SignallQ Android — tracks da Play Store, audiência e duração mínima por etapa"
+type: "runbook"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-15"
+---
+
 # Transição Closed Beta → Open Beta → Produção
 
 - **Status:** ativo

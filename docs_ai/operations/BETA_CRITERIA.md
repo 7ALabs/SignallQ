@@ -1,3 +1,12 @@
+---
+title: "Critérios do Beta Program"
+description: "Critérios de entrada e saída de cada fase de beta do SignallQ Android"
+type: "runbook"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-15"
+---
+
 # Critérios do Beta Program — SignallQ
 
 - **Status:** ativo

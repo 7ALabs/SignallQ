@@ -1,3 +1,12 @@
+---
+title: "Checklist Go/No-Go"
+description: "Critérios técnicos de avanço entre fases de lançamento do SignallQ Android"
+type: "runbook"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-15"
+---
+
 # Checklist Go/No-Go — SignallQ
 
 - **Status:** ativo
