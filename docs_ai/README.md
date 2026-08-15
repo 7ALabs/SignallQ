@@ -59,6 +59,7 @@ O `signallq-admin-worker` é **deste** repositório, embora o painel Admin que o
 | Pasta | Conteúdo |
 |---|---|
 | `decisions/` | ADRs (`ADR-001`…`ADR-013`) e decisões de negócio — **preservados, não regeneráveis** |
+| `foundation-linka/` | Material provisório do produto Linka (ADR-016) — migra para o repo `buildea-labs/linka` quando ele nascer |
 | `operations/` | Runbooks: release, deploy, hotfix, rollback, assinatura, custos |
 | `technical/` | Referências técnicas pontuais: schema da Admin API, mapas de campo de equipamento (Intelbras, Nokia, TP-Link), fluxo de IA, ping executor |
 | `functional/` | Specs funcionais que não migraram para `FUNCIONAL.md` |

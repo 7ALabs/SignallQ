@@ -9,7 +9,8 @@ last_updated: "2026-08-15"
 
 # Índice da documentação
 
-**111 documentos.** Escopo: app consumer Android e backend Cloudflare. Perímetro e o que saiu em
+**114 documentos.** Escopo: app consumer Android e backend Cloudflare, mais a foundation do produto
+Linka em preparação (`foundation-linka/`, ver seção própria abaixo). Perímetro e o que saiu em
 2026-08-06 e 2026-08-15 estão em [`README.md`](README.md).
 
 > ✅ **Canônicos regenerados do código em 2026-08-06 (PR 2).** `TECNICO.md` e
@@ -98,6 +99,17 @@ e `017_gh1341_google_play_reviews.sql`; o cronograma de lançamento vive na issu
 [#1222](https://github.com/buildea-labs/signallq/issues/1222).
 
 > Próximo número livre de ADR: **017**.
+
+## Foundation Linka — `foundation-linka/` (3)
+
+Material provisório do produto Linka (ADR-016), preparado na Fase 8 do épico
+[#1623](https://github.com/buildea-labs/signallq/issues/1623) para migrar quando o repositório
+`buildea-labs/linka` for criado. Nada aqui executa neste repo — é template e checklist.
+
+`README.md` (propósito da pasta e instruções de migração) · `AGENTS.md.template` (template do
+`AGENTS.md` do repo Linka — extensão `.md.template`, não conta na contagem de documentos) ·
+`squad-template.md` (rascunho das 3 personas do squad Linka) ·
+`skills-apple-checklist.md` (skills Apple a criar no repo novo).
 
 ## Operações — `operations/` (26)
 
