@@ -38,7 +38,7 @@ Responda cada critério com SIM ou NÃO e some os pontos.
 | 9+ ou qualquer critério sensível | Sensível | Parar — escalar para o Luiz |
 
 **Critérios que tornam Sensível automaticamente (independente de pontos):**
-- Mudança de package (`io.veloo.app`)
+- Mudança de package (`io.signallq.app`)
 - Mudança de marca ou rebrand
 - Custo novo ou integração paga
 - Publicação em loja (Play Console)

@@ -7,15 +7,13 @@ allowed-tools: Read(*), Bash(*)
 ## Sistema de design atual (lido em tempo real)
 
 **Theme e tokens vivos:**
-!`cat "${CLAUDE_PROJECT_DIR:-.}/android/app/src/main/kotlin/io/veloo/app/kotlin/ui/SignallQTheme.kt" 2>/dev/null || echo "(SignallQTheme.kt não encontrado no path esperado)"`
+!`cat "${CLAUDE_PROJECT_DIR:-.}/android/app/src/main/kotlin/io/signallq/app/ui/SignallQTheme.kt" 2>/dev/null || echo "(SignallQTheme.kt não encontrado no path esperado)"`
 
 **Componentes reutilizáveis disponíveis:**
-!`ls "${CLAUDE_PROJECT_DIR:-.}/android/app/src/main/kotlin/io/veloo/app/kotlin/ui/component/" 2>/dev/null | grep ".kt" || echo "(diretório não encontrado)"`
+!`ls "${CLAUDE_PROJECT_DIR:-.}/android/app/src/main/kotlin/io/signallq/app/ui/component/" 2>/dev/null | grep ".kt" || echo "(diretório não encontrado)"`
 
 **Telas existentes (referência de padrão):**
-!`ls "${CLAUDE_PROJECT_DIR:-.}/android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/" 2>/dev/null | grep ".kt" || echo "(diretório não encontrado)"`
-
-> ⚠️ Path físico `io/veloo/` é dívida conhecida ([higiene §4.1](../rules/higiene-e-padronizacao-repositorio.md)). Package Kotlin declarado é `io.signallq.app.*`.
+!`ls "${CLAUDE_PROJECT_DIR:-.}/android/app/src/main/kotlin/io/signallq/app/ui/screen/" 2>/dev/null | grep ".kt" || echo "(diretório não encontrado)"`
 
 ---
 
