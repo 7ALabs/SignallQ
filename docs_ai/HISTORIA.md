@@ -4,7 +4,7 @@ description: "Origem, propósito e princípios que explicam por que o SignallQ e
 type: "produto"
 status: "ativo"
 owner: "Luiz"
-last_updated: "2026-08-09"
+last_updated: "2026-08-15"
 ---
 
 # A história do SignallQ
@@ -64,6 +64,13 @@ Não apenas medir a conexão.
 O diagnóstico passou a ser uma parte fundamental do produto. A tecnologia pode analisar dezenas de informações, mas o usuário deve receber uma resposta simples, humana e direta.
 
 Sem transformar todo mundo em técnico de redes só porque o Wi-Fi resolveu ficar uma porcaria naquela noite.
+
+---
+
+> **Nota (2026-08-15):** hoje "Linka" é o nome de outro produto do portfólio Buildea — exclusivo do
+> ecossistema Apple, pago desde o lançamento (ver [ADR-016](decisions/ADR-016-portfolio-buildea.md)).
+> A menção acima é sobre o nome anterior do próprio SignallQ, numa fase antes do rebrand para Velu e,
+> depois, SignallQ — não tem relação com o produto Linka atual.
 
 ## Um produto que eu gostaria que existisse
 
@@ -130,3 +137,29 @@ A pergunta que continua guiando o produto desde o começo é a mesma:
 > Tá, mas o que está acontecendo com a minha internet?
 
 O SignallQ existe para responder.
+
+---
+
+## Estado atual (para agentes futuros)
+
+*(Seção adicionada em 2026-08-15, curadoria pós-ADR-016 — não faz parte do relato original do Luiz
+acima; é só orientação factual objetiva.)*
+
+**O que o SignallQ é hoje:** app de diagnóstico de conectividade em Android (Kotlin/Compose) e Web
+(PWA em `signallq-web`), modelo freemium sustentado por publicidade não invasiva — núcleo gratuito,
+sem assinatura obrigatória.
+
+**O que o SignallQ não é (mais):**
+- "Linka" é hoje outro produto do portfólio Buildea — exclusivo Apple (iOS/iPadOS/macOS), pago desde
+  o lançamento, repositório próprio. Não confundir com o nome antigo citado na narrativa acima.
+- SignallQ Pro, SignallQ ISP e Nethal foram descontinuados permanentemente — não retomar sem ADR
+  novo do Luiz.
+
+**Portfólio Buildea:** guarda-chuva comercial, não stack técnica. Dois produtos ativos — SignallQ
+(Android+Web, freemium/ads, usuário doméstico brasileiro) e Linka (Apple, pago, diagnóstico
+profissional). Squads, repositórios e governança separados; não compartilham código.
+
+**Squad SignallQ:** Claudete (produto), Camilo (dev único — Android/Web/Workers/Admin), Caio
+(revisor único) — design e growth viram skills, não agentes permanentes.
+
+**Fonte canônica atualizada:** [ADR-016 — Portfólio Buildea](decisions/ADR-016-portfolio-buildea.md).
