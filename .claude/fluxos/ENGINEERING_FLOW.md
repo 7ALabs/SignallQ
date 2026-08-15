@@ -1,35 +1,27 @@
-# Engineering Flow for Agents
+# Engineering Flow
 
-> **Fonte da verdade:** [`ai-governance/agents/*.md`](../../../ai-governance/agents/) e as políticas em [`ai-governance/policies/`](../../../ai-governance/policies/). Este arquivo é um resumo apontador.
-> **Decisão canônica:** [ADR-014](../../docs_ai/decisions/ADR-014-squad-canonico-ai-governance.md).
+> **Fonte da verdade:** [`.claude/agents/camilo.md`](../agents/camilo.md).
+> **Decisão canônica:** [ADR-016](../../docs_ai/decisions/ADR-016-portfolio-buildea.md).
 > **Última atualização:** 2026-08-15.
 
 ## Objetivos
 
-- Código de alta qualidade nos módulos `:app`, `:core*`, `:feature*` (Android) e nos Workers Cloudflare.
-- Seguir os padrões documentados em [`docs_ai/TECNICO.md`](../../docs_ai/TECNICO.md) e [`docs_ai/ARQUITETURA/`](../../docs_ai/ARQUITETURA/).
-- Código performático, testável e documentado.
+- Código de alta qualidade em `:app`, `:core:*`, `:feature:*` (Android) e nos Workers Cloudflare.
+- Padrões documentados em [`docs_ai/TECNICO.md`](../../docs_ai/TECNICO.md) e [`docs_ai/ARQUITETURA/`](../../docs_ai/ARQUITETURA/).
+- Zero duplicação — reuso via módulos `:core:*` compartilhados, nunca monolítico.
 
-## Workflow
+## Workflow (Camilo)
 
-1. **Recebimento** — Camilo recebe task pequena e clara da Claudete (ou direto do usuário em bugfix simples).
-2. **Análise** — ler codebase via Read/Grep/Glob (ferramentas nativas; não há agente dedicado a busca).
-3. **Planejamento** — mapear arquivos afetados, risco de regressão, ordem de execução.
-4. **Implementação** — Camilo em Android (MVVM + Compose), Admin (React/TS) e Workers Cloudflare.
-5. **Testes** — escrever/atualizar testes em `test/` e `androidTest/`.
-6. **Build** — `./android/gradlew ktlintCheck detekt test assembleDebug` (mínimo aplicável).
-7. **Handoff para Caio** — revisão independente de código, segurança, testes e regressão. Loop máx. 2 rodadas.
+1. **Recebimento** — task via `/handoff` da Claudete (ou direto do Luiz em urgência).
+2. **Inventário** — obrigatório antes de código novo: `/inventario` + `/verificar-modulo <nome>`. Se algo parecido existe, ou reusa, ou justifica.
+3. **Análise** — Read/Grep/Glob para mapear arquivos afetados e risco de regressão.
+4. **Implementação** — Android (Kotlin/Compose/MVVM), Web/Workers (TS), Admin (React/TS).
+5. **Testes** — unitários e instrumentados; escreve antes de dizer "concluído".
+6. **Build local** — `./android/gradlew ktlintCheck detekt test assembleDebug` (mínimo aplicável).
+7. **Handoff para Caio** — `/handoff` com resultado dos checks. Loop máx 2 rodadas.
+8. **`/check-done`** antes de fechar issue ou mergear.
 
-Skills de plataforma disponíveis: `/regras-android`, `/regras-diagnostico-rede`, `/motor-diagnostico`, `/padroes-compose`, `/cloudflare-d1-console`, `/protocolo-ci-android`, `/protocolo-ktlint`.
-
-## Implementadores
-
-| Agente | Responsabilidade |
-|---|---|
-| Camilo | Android (Kotlin, Compose, MVVM, Room, Coroutines, integração IA), Admin (React/TS/Vite/Tailwind), Workers Cloudflare |
-| Juliana | Spec de UI/layout/microcopy quando a task é visual (não edita código Kotlin diretamente) |
-| Gustavo | Especifica métricas e observabilidade quando aplicável (não edita código de app) |
-| Caio | Revisão independente de código, segurança, testes, regressão — gate único de Done |
+Skills de plataforma: `/regras-android`, `/regras-diagnostico-rede`, `/motor-diagnostico`, `/padroes-compose`, `/cloudflare-d1-console`, `/protocolo-ci-android`, `/protocolo-ktlint`.
 
 ## Comandos de build
 
@@ -39,11 +31,18 @@ Skills de plataforma disponíveis: `/regras-android`, `/regras-diagnostico-rede`
 ./android/gradlew assembleDebug         # build debug
 ```
 
-Em Windows: `.\android\gradlew.bat ...`.
+Windows: `.\android\gradlew.bat ...`.
+
+## Model / effort (Camilo)
+
+- Sonnet default (implementação, bugfix médio, refactor local, teste).
+- Opus (arquitetura material, security-sensitive, contrato novo, migração com risco de regressão ampla).
+- Haiku (bugfix trivial, chore de dependência, comentário de PR com contexto claro).
+
+Regra: se o pior caso é "quebra 1 tela até o próximo commit", Haiku basta. Se é "quebra o app em produção", Opus.
 
 ## Referências
 
-- [`docs_ai/TECNICO.md`](../../docs_ai/TECNICO.md) — sistema de build, dependências
-- [`docs_ai/ARQUITETURA/README.md`](../../docs_ai/ARQUITETURA/README.md) — arquitetura do sistema
-- [`docs_ai/ARQUITETURA/MODULOS/`](../../docs_ai/ARQUITETURA/MODULOS/) — módulos e responsabilidades
-- [`.claude/fluxos/TASK_BREAKDOWN.md`](TASK_BREAKDOWN.md) — decomposição de tasks
+- [`docs_ai/TECNICO.md`](../../docs_ai/TECNICO.md), [`docs_ai/ARQUITETURA/`](../../docs_ai/ARQUITETURA/)
+- [`TASK_BREAKDOWN.md`](TASK_BREAKDOWN.md)
+- [`.claude/rules/higiene-e-padronizacao-repositorio.md`](../rules/higiene-e-padronizacao-repositorio.md)

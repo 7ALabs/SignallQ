@@ -1,41 +1,35 @@
-# UX Flow for Agents
+# UX Flow
 
-> **Fonte da verdade:** [`ai-governance/agents/juliana.md`](../../../ai-governance/agents/juliana.md) + design system em [`docs_ai/DESIGN_SYSTEM.md`](../../docs_ai/DESIGN_SYSTEM.md) e skill [`SignallQ-design`](../skills/SignallQ-design/). Este arquivo é um resumo apontador.
-> **Decisão canônica:** [ADR-014](../../docs_ai/decisions/ADR-014-squad-canonico-ai-governance.md).
+> **Fonte da verdade:** design system em [`docs_ai/DESIGN_SYSTEM.md`](../../docs_ai/DESIGN_SYSTEM.md) + skill [`SignallQ-design`](../skills/SignallQ-design/) e skill `/design-check` (piloto Fase 6 do épico #1623).
+> **Decisão canônica:** [ADR-016](../../docs_ai/decisions/ADR-016-portfolio-buildea.md).
 > **Última atualização:** 2026-08-15.
+
+## Sem agente Design dedicado
+
+Design deixou de ser agente permanente ([ADR-016](../../docs_ai/decisions/ADR-016-portfolio-buildea.md)). Direção visual é responsabilidade da **Claudete**; implementação é responsabilidade do **Camilo**; validação de qualidade fica com **Caio** no gate.
+
+Skills que substituem o papel:
+
+- **`/design-check`** — Camilo invoca durante a implementação para validar contra tokens, hierarquia, acessibilidade.
+- **`SignallQ-design`** — biblioteca de tokens, componentes, wireframes, para gerar UI on-brand.
+- **`auditar-ux`** — auditoria profunda de design system e usabilidade (invocada por Claudete ou Caio antes de release).
 
 ## Objetivos de UX
 
 - **Consistência**: aderência estrita a Material Design 3 ([`docs_ai/DESIGN_SYSTEM.md`](../../docs_ai/DESIGN_SYSTEM.md)).
-- **Acessibilidade**: contraste WCAG AA e targets de toque adequados.
+- **Acessibilidade**: contraste WCAG AA, targets de toque adequados.
 - **Clareza de diagnóstico**: métrica crua sempre com veredito humano (Excelente / Bom / Regular / Fraco / Forte).
 
-## Gate de UX condicional
+## Momento das skills
 
-**Juliana** entra **antes** da implementação **apenas** quando a mudança é visual/de fluxo:
+1. **Antes da implementação** — Claudete decide direção (microcopy, hierarquia, estado visual novo).
+2. **Durante a implementação** — Camilo invoca `/design-check` para validar cada tela ou componente.
+3. **Pós-implementação** — Caio confirma no gate que a UI não introduz regressão nem inconsistência.
 
-- Tela nova ou modificação de tela existente.
-- Estado visual novo: loading, vazio, erro, sucesso, thinking.
-- Texto/microcopy visível ao usuário (incluindo resposta de IA/diagnóstico).
-- Mudança de fluxo de navegação.
-
-Bug ou lógica pura, e mudanças em `:core*` sem reflexo visual, **pulam Juliana** — reduz latência sem perder qualidade onde importa.
-
-## Dois momentos de Juliana
-
-1. **Antes da implementação** — valida que estados visuais e microcopy estão mapeados na spec.
-2. **Pós-implementação** — confirma o entregável real (junto ao gate de revisão do Caio).
-
-## Papéis
-
-| Agente | Responsabilidade |
-|---|---|
-| Juliana | UI, MD3, microcopy, acessibilidade, estados visuais — produz spec e revisa; não edita código Kotlin diretamente |
-| Camilo | Implementa a UI Android e Admin conforme spec da Juliana |
-| Caio | Valida no gate final que a implementação não introduz bug/regressão e que os critérios de aceite estão atendidos |
+Bug ou lógica pura sem impacto visual **pula** todas as skills de design.
 
 ## Referências
 
-- [`docs_ai/DESIGN_SYSTEM.md`](../../docs_ai/DESIGN_SYSTEM.md) — tokens, tipografia, cores, componentes
-- [`docs_ai/FUNCIONAL.md`](../../docs_ai/FUNCIONAL.md) — apresentação de respostas de IA e fluxo de diagnóstico
-- Skills: [`SignallQ-design`](../skills/SignallQ-design/), [`auditar-ux`](../skills/auditar-ux/), [`impeccable`](../skills/impeccable/)
+- [`docs_ai/DESIGN_SYSTEM.md`](../../docs_ai/DESIGN_SYSTEM.md) — tokens, tipografia, cores, componentes.
+- [`docs_ai/FUNCIONAL.md`](../../docs_ai/FUNCIONAL.md) — apresentação de respostas de IA e fluxo de diagnóstico.
+- Skills: [`SignallQ-design`](../skills/SignallQ-design/), [`auditar-ux`](../skills/auditar-ux/), [`impeccable`](../skills/impeccable/).

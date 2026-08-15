@@ -1,53 +1,51 @@
 # Task Breakdown
 
-> **Fonte da verdade:** [`ai-governance/agents/claudete.md`](../../../ai-governance/agents/claudete.md) + [`ai-governance/policies/demand-routing.md`](../../../ai-governance/policies/demand-routing.md). Este arquivo é um resumo apontador.
-> **Decisão canônica:** [ADR-014](../../docs_ai/decisions/ADR-014-squad-canonico-ai-governance.md).
+> **Fonte da verdade:** [`.claude/agents/claudete.md`](../agents/claudete.md).
+> **Decisão canônica:** [ADR-016](../../docs_ai/decisions/ADR-016-portfolio-buildea.md).
 > **Última atualização:** 2026-08-15.
 
 ## Quem quebra
 
-**Claudete** refina e quebra toda demanda. Consolida decisões de produto e critérios de aceite. Skill de apoio: [`estimativa-impacto`](../skills/estimativa-impacto/).
+**Claudete** refina e quebra toda demanda. Skill de apoio: [`estimativa-impacto`](../skills/estimativa-impacto/).
 
 ## Princípios
 
-- **Modularidade** — alinhe com os módulos `:app`, `:core*`, `:feature*` (Android) e com os Workers Cloudflare em `integrations/cloudflare/`.
+- **Modularidade** — alinha com `:app`, `:core:*`, `:feature:*` e com os Workers Cloudflare.
 - **Responsabilidade única** — cada sub-task tem objetivo verificável.
-- **Independência** — tasks devem poder rodar em trilhas paralelas por agentes diferentes.
-- **Dependências** — rastreie bloqueios e ordem de execução.
+- **Independência** — tasks devem poder rodar em paralelo por agentes diferentes (embora este squad tenha 1 dev único, tasks paralelas ajudam a serializar sem bloquear).
+- **Anti-duplicação** — Camilo roda `/inventario` antes de código novo (Fase 2 do épico #1623). Se algo parecido existe, ou reusa, ou justifica.
 
 ## Processo
 
-1. **Analise** a task e colete contexto de [`docs_ai/`](../../docs_ai/) e do código (Read/Grep/Glob).
-2. **Estime escopo** — se grande/arquitetural, proponha plano antes (skill [`estimativa-impacto`](../skills/estimativa-impacto/)).
-3. **Decomponha** — prefira várias tasks pequenas a uma gigante.
-4. **Atribua** ao agente correto (tabela abaixo).
-5. **Mapeie dependências** e ordene.
-6. **Roteie** — bug → GitHub Issues (`type:bug`); feature/task → GitHub Issues (`Task -` / `Feat -`).
+1. **Analisa** a demanda e coleta contexto ([`docs_ai/`](../../docs_ai/), Read/Grep/Glob).
+2. **Estima escopo** com [`estimativa-impacto`](../skills/estimativa-impacto/).
+3. **Decompõe** em tasks pequenas. Prefere várias pequenas a uma gigante.
+4. **Atribui** ao agente correto (tabela abaixo).
+5. **Mapeia dependências** e ordena.
+6. **Roteia** — bug → GitHub Issues (`type:bug`); feature/task/refactor/docs → GitHub Issues (`Task -` / `Feat -`).
 
 ## Regra de granularidade
 
-- Bugfix simples (≤5 arquivos, sem mudança de contrato) → Camilo direto, sem breakdown formal.
+- Bugfix simples (≤5 arquivos, sem mudança de contrato) → Camilo direto (Haiku), sem breakdown formal.
 - Tasks médias/grandes → Claudete decompõe antes de acionar Camilo.
-- WIP: máximo 1 task In Progress por agente.
+- WIP: máx 1 task In Progress por agente.
 
-## Mapeamento de agentes (SignallQ)
+## Mapeamento (squad de 3)
 
-| Tipo de task | Agente |
-|---|---|
-| Refino, priorização, decomposição, critérios de aceite | Claudete |
-| Implementação Android (Kotlin, Compose, MVVM, Room, Coroutines) | Camilo |
-| Implementação Workers Cloudflare, Admin (React/TS) | Camilo |
-| UX, design, MD3, microcopy (task visual) — spec e revisão | Juliana |
-| Métrica, telemetria, observabilidade — spec | Gustavo |
-| Growth, ASO, campanhas | Marcos |
-| Revisão independente (código, segurança, testes, regressão) | Caio |
-| Escalação (estratégia, marca, produção, custo, irreversível) | Luiz |
+| Tipo de task | Agente | Skill invocada durante |
+|---|---|---|
+| Refino, priorização, decomposição, critérios de aceite | Claudete | `/estimativa-impacto` |
+| Implementação Android (Kotlin/Compose/MVVM/Room/Coroutines) | Camilo | `/regras-android`, `/padroes-compose` |
+| Implementação Workers/Admin (TS/React) | Camilo | `/cloudflare-d1-console` |
+| Task visual (tela, microcopy, navegação) | Camilo | `/design-check` |
+| Task com telemetria/métrica | Camilo | `/analytics-spec` |
+| Task de growth (ASO, copy de store, campanha) | Claudete | `/growth-check` |
+| Revisão independente | Caio | `/check-done` |
+| Escalação (estratégia/marca/produção/custo/irreversível/risco crítico) | Luiz | — |
 
-Busca de código/docs = ferramentas nativas (Read/Grep/Glob) ou skills; sem agente dedicado.
+Busca de código/docs = ferramentas nativas (Read/Grep/Glob) ou skills.
 
 ## Referências
 
-- [`AGENT_WORKFLOW.md`](AGENT_WORKFLOW.md) — fluxo completo
-- [`HANDOFF_RULES.md`](HANDOFF_RULES.md) — protocolo de handoff
-- [`docs_ai/ARQUITETURA/MODULOS/`](../../docs_ai/ARQUITETURA/MODULOS/) — módulos Android
-- [`ai-governance/policies/demand-routing.md`](../../../ai-governance/policies/demand-routing.md) — roteamento por domínio
+- [`AGENT_WORKFLOW.md`](AGENT_WORKFLOW.md), [`HANDOFF_RULES.md`](HANDOFF_RULES.md)
+- [`docs_ai/ARQUITETURA/MODULOS/`](../../docs_ai/ARQUITETURA/MODULOS/)
