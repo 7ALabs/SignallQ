@@ -7,6 +7,29 @@
 - **Classificação:** produto.
 - **Estado atual:** monorepo ativo com Android Kotlin/Compose em `android/`, Workers Cloudflare em `integrations/cloudflare/`, scripts e documentação viva em `docs_ai/`.
 
+## Posicionamento de produto obrigatório
+
+O SignallQ **não é mais um teste de velocidade**. É um produto de diagnóstico de conectividade que
+analisa a rede, explica o que está acontecendo em linguagem amigável e orienta a pessoa sobre o que
+fazer em seguida. O speed test é uma fonte de evidência do diagnóstico, não a categoria, a promessa
+principal nem o fim da jornada.
+
+Toda decisão de produto, design, conteúdo e implementação para Android ou Web/PWA deve seguir a
+fonte canônica [`docs_ai/POSICIONAMENTO_PRODUTO.md`](docs_ai/POSICIONAMENTO_PRODUTO.md). Em resumo:
+**entender → diagnosticar → resolver → confirmar**. Métricas técnicas continuam disponíveis, mas a
+experiência padrão deve priorizar conclusão compreensível, causa provável, nível de confiança e
+próximo passo concreto para quem não entende de redes.
+
+A direção visual e de experiência futura está formalizada no draft
+[`docs_ai/design-system/SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md`](docs_ai/design-system/SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md).
+Até a migração terminar, `docs_ai/DESIGN_SYSTEM.md` continua descrevendo o Android implementado; não
+tratar o draft 2.0 como código já entregue.
+
+A arquitetura futura da jornada Android está no draft
+[`docs_ai/functional/JORNADA_ANDROID_GUIADA_2_SPEC.md`](docs_ai/functional/JORNADA_ANDROID_GUIADA_2_SPEC.md).
+Ela orienta protótipos e planejamento; `docs_ai/FUNCIONAL.md` continua sendo a verdade do fluxo
+implementado até a migração.
+
 ## Escopo e exclusões
 
 - **Pertence ao repositório:** aplicativo Android SignallQ, módulos Gradle, Workers Cloudflare, contratos e documentação técnica relacionados.
@@ -74,6 +97,9 @@ sobre instrução local em segurança, autorização e governança.
 
 ## Fontes complementares
 
+- `docs_ai/POSICIONAMENTO_PRODUTO.md`
+- `docs_ai/design-system/SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md`
+- `docs_ai/functional/JORNADA_ANDROID_GUIADA_2_SPEC.md`
 - `docs_ai/README.md`
 - `android/settings.gradle.kts`
 - `android/gradle/libs.versions.toml`

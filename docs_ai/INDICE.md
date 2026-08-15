@@ -9,7 +9,7 @@ last_updated: "2026-08-15"
 
 # Índice da documentação
 
-**114 documentos.** Escopo: app consumer Android e backend Cloudflare, mais a foundation do produto
+**111 documentos.** Escopo: app consumer Android e backend Cloudflare, mais a foundation do produto
 Linka em preparação (`foundation-linka/`, ver seção própria abaixo). Perímetro e o que saiu em
 2026-08-06 e 2026-08-15 estão em [`README.md`](README.md).
 
@@ -23,10 +23,14 @@ Linka em preparação (`foundation-linka/`, ver seção própria abaixo). Perím
 ## Começar por aqui
 
 1. [`../AGENTS.md`](../AGENTS.md) — o que é o SignallQ, stack, agentes
-2. [`README.md`](README.md) — perímetro e mapa das pastas
-3. [`FUNCIONAL.md`](FUNCIONAL.md) — o que o app faz
-4. [`TECNICO.md`](TECNICO.md) — como é construído
-5. [`ARQUITETURA/README.md`](ARQUITETURA/README.md) — módulos e dependências
+2. [`POSICIONAMENTO_PRODUTO.md`](POSICIONAMENTO_PRODUTO.md) — posicionamento obrigatório para Android e Web/PWA
+3. [`design-system/SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md`](design-system/SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md) — direção futura de identidade e experiência
+4. [`functional/JORNADA_ANDROID_GUIADA_2_SPEC.md`](functional/JORNADA_ANDROID_GUIADA_2_SPEC.md) — arquitetura futura da jornada Android
+5. [`prototypes/open-design-signallq-android-v2/`](prototypes/open-design-signallq-android-v2/) — pacote para a primeira rodada no Open Design
+6. [`README.md`](README.md) — perímetro e mapa das pastas
+7. [`FUNCIONAL.md`](FUNCIONAL.md) — o que o app faz
+8. [`TECNICO.md`](TECNICO.md) — como é construído
+9. [`ARQUITETURA/README.md`](ARQUITETURA/README.md) — módulos e dependências
 
 ---
 
@@ -34,6 +38,7 @@ Linka em preparação (`foundation-linka/`, ver seção própria abaixo). Perím
 
 | Documento | Estado |
 |---|---|
+| [POSICIONAMENTO_PRODUTO.md](POSICIONAMENTO_PRODUTO.md) | ✅ diretriz de produto aprovada para Android e Web/PWA |
 | [TECNICO.md](TECNICO.md) | ✅ reescrito do código · inventário gerado |
 | [ARQUITETURA/README.md](ARQUITETURA/README.md) | ✅ reescrito do código · inventário gerado |
 | [FUNCIONAL.md](FUNCIONAL.md) | ✅ reescrito do código · 5 abas, 16 overlays, 77 citações de código |
@@ -135,15 +140,23 @@ Processo: `PROCESSO_PR_E_AGENTES_2026-07-16.md`, `WORKFLOW_BOARD.md`, `FAQ_USERS
 `INTELBRAS_RX1500_FIELD_MAP.md` · `NOKIA_GPON_FIELD_MAP.md` · `TPLINK_ARCHER_ROUTER_FIELD_MAP.md`
 · `MATRIZ_DIAGNOSTICO_2026-07-03.xlsx`.
 
-## Funcional pontual — `functional/` (2)
+## Funcional pontual — `functional/` (3)
 
-`FEATURE_FLAGS.md` · `DIAGNOSTICO_GUIADO_MODO_GAMER_SPEC.md`.
+`FEATURE_FLAGS.md` · `DIAGNOSTICO_GUIADO_MODO_GAMER_SPEC.md` ·
+`JORNADA_ANDROID_GUIADA_2_SPEC.md` (draft da jornada futura orientada por sintomas).
 
-## Design — `design-system/` (11)
+## Design — `design-system/` (12)
 
 Decisões de design de 2026-07: alinhamento TOBE, cores do console, container de logo, topbar padrão,
 renomeação SignallQ Design, separação DS/protótipos, três seções do console, tokens MD3, plano de
-aplicação, auditoria de telas, endosso de marca. Conteúdo vigente consolidado em `DESIGN_SYSTEM.md`.
+aplicação, auditoria de telas, endosso de marca. Conteúdo implementado no Android consolidado em
+`DESIGN_SYSTEM.md`; direção futura compartilhada em `SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md` (draft).
+
+## Protótipos — `prototypes/` (0 documentos na raiz; 3 no pacote Android 2.0)
+
+`open-design-signallq-android-v2/README.md` · `PROMPT_INICIAL.md` ·
+`CHECKLIST_REVISAO.md`. Pacote operacional para gerar e revisar a primeira rodada no Open Design;
+não substitui as especificações canônicas.
 
 ## Legal — `legal/` (2) · **não editar sem revisão**
 

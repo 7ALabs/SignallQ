@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>SignallQ Design System 2.0 — Prancha visual</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="foundations.css" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="board-header">
+      <img class="brand-lockup brand-light" src="signallq-lockup-light-bg.png" alt="SignallQ" />
+      <img class="brand-lockup brand-dark" src="signallq-lockup-dark-bg.png" alt="SignallQ" />
+      <div class="header-copy">
+        <p class="eyebrow">DESIGN SYSTEM 2.0 · PRANCHA 01</p>
+        <h1>Um guia calmo para uma rede confusa.</h1>
+        <p>Foundations e componentes centrais para a UI de produto.</p>
+      </div>
+      <div class="theme-switcher" role="group" aria-label="Tema da prancha">
+        <a class="board-link" href="brand.html">Ver marca</a>
+        <button class="theme-option is-active" type="button" data-theme="light">Claro</button>
+        <button class="theme-option" type="button" data-theme="dark">Escuro</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="board-section" aria-labelledby="foundations-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">01 · FOUNDATIONS</p>
+            <h2 id="foundations-title">Uma base restrita, sem ruído visual</h2>
+          </div>
+          <p>Violeta orienta ação. Semântica explica o estado. Espaço organiza a leitura.</p>
+        </div>
+
+        <div class="foundation-grid">
+          <article class="foundation-card color-foundation">
+            <div class="card-heading">
+              <h3>Cor</h3>
+              <span>Roles, não decoração</span>
+            </div>
+            <div class="swatch-grid">
+              <div class="swatch swatch-primary"><span>Primary</span><code>#5B21D6</code></div>
+              <div class="swatch swatch-primary-container"><span>Primary container</span><code>#EAE0FF</code></div>
+              <div class="swatch swatch-success"><span>Success</span><code>#146C2E</code></div>
+              <div class="swatch swatch-warning"><span>Warning</span><code>#8A5000</code></div>
+              <div class="swatch swatch-error"><span>Error</span><code>#BA1A1A</code></div>
+              <div class="swatch swatch-neutral"><span>Surface</span><code>Neutral</code></div>
+            </div>
+          </article>
+
+          <article class="foundation-card type-foundation">
+            <div class="card-heading">
+              <h3>Tipografia</h3>
+              <span>Google Sans Flex</span>
+            </div>
+            <div class="type-specimens">
+              <div><span>Headline large · 26/32</span><strong>Conexão instável</strong></div>
+              <div><span>Title medium · 16/22</span><b>O Wi-Fi oscila neste cômodo</b></div>
+              <div><span>Body large · 16/24</span><p>A distância do roteador está afetando sua conexão.</p></div>
+              <div><span>Label large · 14/20</span><small>Ver como melhorar</small></div>
+            </div>
+          </article>
+
+          <article class="foundation-card spacing-foundation">
+            <div class="card-heading">
+              <h3>Espaço e forma</h3>
+              <span>Grid-base 8</span>
+            </div>
+            <div class="spacing-scale" aria-label="Escala de espaçamento">
+              <div><i style="--size: 4px"></i><span>4</span></div>
+              <div><i style="--size: 8px"></i><span>8</span></div>
+              <div><i style="--size: 12px"></i><span>12</span></div>
+              <div><i style="--size: 16px"></i><span>16</span></div>
+              <div><i style="--size: 24px"></i><span>24</span></div>
+              <div><i style="--size: 32px"></i><span>32</span></div>
+              <div><i style="--size: 48px"></i><span>48</span></div>
+              <div><i style="--size: 64px"></i><span>64</span></div>
+            </div>
+            <div class="shape-row">
+              <div class="shape shape-field">12</div>
+              <div class="shape shape-card">16</div>
+              <div class="shape shape-button">20</div>
+              <div class="shape shape-dialog">24</div>
+              <div class="shape shape-sheet">28</div>
+              <div class="shape shape-pill">Pill</div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="board-section" aria-labelledby="components-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">02 · COMPONENTES CENTRAIS</p>
+            <h2 id="components-title">Familiaridade Android, aplicada ao diagnóstico</h2>
+          </div>
+          <p>Estados completos e uma única ação dominante em cada contexto.</p>
+        </div>
+
+        <div class="component-grid">
+          <article class="component-panel panel-buttons">
+            <div class="card-heading"><h3>Botões</h3><span>48 dp touch target</span></div>
+            <div class="button-stack">
+              <button class="button button-filled" type="button">Analisar minha rede</button>
+              <button class="button button-tonal" type="button">Ver detalhes</button>
+              <button class="button button-outlined" type="button">Testar novamente</button>
+              <button class="button button-text" type="button">Agora não</button>
+              <button class="button button-filled" type="button" disabled>Continuar</button>
+            </div>
+          </article>
+
+          <article class="component-panel panel-inputs">
+            <div class="card-heading"><h3>Campos e seleção</h3><span>Label sempre visível</span></div>
+            <label class="field">
+              <span>Onde o problema acontece?</span>
+              <input type="text" value="Sala" />
+              <small>Isso ajuda a comparar o sinal entre cômodos.</small>
+            </label>
+            <label class="field field-error">
+              <span>Nome da rede</span>
+              <input type="text" value="" aria-invalid="true" />
+              <small>Selecione uma rede Wi-Fi para continuar.</small>
+            </label>
+            <div class="chip-row" aria-label="Filtros de frequência">
+              <button class="chip is-selected" type="button">Todas</button>
+              <button class="chip" type="button">2,4 GHz</button>
+              <button class="chip" type="button">5 GHz</button>
+            </div>
+          </article>
+
+          <article class="component-panel panel-status">
+            <div class="card-heading"><h3>Status e feedback</h3><span>Texto + ícone + cor</span></div>
+            <div class="badge-row">
+              <span class="badge badge-success"><i class="material-symbols-outlined">check_circle</i>Boa</span>
+              <span class="badge badge-warning"><i class="material-symbols-outlined">warning</i>Atenção</span>
+              <span class="badge badge-error"><i class="material-symbols-outlined">error</i>Crítico</span>
+              <span class="badge badge-info"><i class="material-symbols-outlined">info</i>Informação</span>
+            </div>
+            <div class="banner banner-warning">
+              <i class="material-symbols-outlined">wifi_off</i>
+              <div><strong>O Wi-Fi está desligado</strong><span>Ative o Wi-Fi para analisar a rede deste local.</span></div>
+              <button type="button">Abrir ajustes</button>
+            </div>
+            <div class="banner banner-neutral">
+              <i class="material-symbols-outlined">cloud_off</i>
+              <div><strong>Sem acesso à internet</strong><span>A análise continua com os dados disponíveis.</span></div>
+            </div>
+          </article>
+
+          <article class="component-panel panel-list">
+            <div class="card-heading"><h3>Listas</h3><span>Padrão para escolhas</span></div>
+            <div class="list" role="list">
+              <button class="list-row" type="button">
+                <i class="material-symbols-outlined">slow_motion_video</i>
+                <span><strong>Vídeos travam</strong><small>Streaming para ou perde qualidade</small></span>
+                <i class="material-symbols-outlined trailing">chevron_right</i>
+              </button>
+              <button class="list-row" type="button">
+                <i class="material-symbols-outlined">wifi_tethering_error</i>
+                <span><strong>Internet cai</strong><small>A conexão interrompe e volta</small></span>
+                <i class="material-symbols-outlined trailing">chevron_right</i>
+              </button>
+              <button class="list-row" type="button">
+                <i class="material-symbols-outlined">sports_esports</i>
+                <span><strong>Jogos atrasam</strong><small>Comandos demoram para responder</small></span>
+                <i class="material-symbols-outlined trailing">chevron_right</i>
+              </button>
+            </div>
+          </article>
+
+          <article class="component-panel panel-result">
+            <div class="card-heading"><h3>Bloco de resultado</h3><span>Conclusão antes da métrica</span></div>
+            <div class="result-card">
+              <div class="result-icon"><i class="material-symbols-outlined">wifi_find</i></div>
+              <span class="confidence">CONFIANÇA MÉDIA</span>
+              <h3>O Wi-Fi oscila neste cômodo</h3>
+              <p>A distância do roteador provavelmente está causando as interrupções.</p>
+              <div class="metric-row">
+                <div><strong>−78</strong><span>dBm</span><small>Sinal fraco</small></div>
+                <div><strong>42</strong><span>ms</span><small>Resposta instável</small></div>
+              </div>
+              <div class="next-step">
+                <i class="material-symbols-outlined">near_me</i>
+                <span><small>PRÓXIMO PASSO</small><strong>Aproxime-se do roteador e teste novamente.</strong></span>
+              </div>
+              <button class="button button-filled" type="button">Ver como melhorar</button>
+              <button class="details-trigger" type="button" aria-expanded="false">
+                Detalhes técnicos <i class="material-symbols-outlined">expand_more</i>
+              </button>
+            </div>
+          </article>
+
+          <article class="component-panel panel-states">
+            <div class="card-heading"><h3>Estados de tela</h3><span>Situação + próximo passo</span></div>
+            <div class="state-preview">
+              <div class="state-icon"><i class="material-symbols-outlined">history</i></div>
+              <strong>Nenhuma análise ainda</strong>
+              <p>Quando você analisar sua rede, os resultados aparecerão aqui.</p>
+              <button class="button button-tonal" type="button">Analisar agora</button>
+            </div>
+            <div class="skeleton-preview" aria-label="Conteúdo carregando">
+              <div class="skeleton skeleton-icon"></div>
+              <div><div class="skeleton skeleton-line wide"></div><div class="skeleton skeleton-line"></div></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="board-section principles-section" aria-labelledby="rules-title">
+        <div class="section-heading">
+          <div><p class="eyebrow">03 · REGRAS DE COMPOSIÇÃO</p><h2 id="rules-title">O sistema em seis decisões</h2></div>
+        </div>
+        <ol class="principle-grid">
+          <li><span>01</span><strong>Veredito antes da métrica</strong><p>A pessoa entende o resultado sem interpretar números.</p></li>
+          <li><span>02</span><strong>Uma ação principal</strong><p>O próximo passo não compete com ações secundárias.</p></li>
+          <li><span>03</span><strong>Complexidade progressiva</strong><p>Detalhes técnicos aparecem quando forem úteis.</p></li>
+          <li><span>04</span><strong>Cards com função</strong><p>Container só quando o conteúdo for uma unidade real.</p></li>
+          <li><span>05</span><strong>Confiança explícita</strong><p>Fato, indício e hipótese usam linguagem diferente.</p></li>
+          <li><span>06</span><strong>Estado sempre acionável</strong><p>Vazio, erro e offline indicam o que fazer em seguida.</p></li>
+        </ol>
+      </section>
+    </main>
+
+    <footer><span>SignallQ Design System 2.0</span><span>Foundations + core components · draft visual</span></footer>
+    <script>
+      const options = document.querySelectorAll("[data-theme]");
+      options.forEach((option) => {
+        option.addEventListener("click", () => {
+          const isDark = option.dataset.theme === "dark";
+          document.documentElement.classList.toggle("dark", isDark);
+          options.forEach((item) => item.classList.toggle("is-active", item === option));
+        });
+      });
+    </script>
+  </body>
+</html>
