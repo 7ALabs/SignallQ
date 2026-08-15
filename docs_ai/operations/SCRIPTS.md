@@ -1,3 +1,12 @@
+---
+title: "Scripts Oficiais"
+description: "Scripts PowerShell/shell oficiais em scripts/ para build, versionamento e ambiente do SignallQ Android"
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-15"
+---
+
 # Scripts Oficiais
 
 - **Status:** ativo

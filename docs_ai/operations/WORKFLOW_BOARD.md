@@ -1,3 +1,12 @@
+---
+title: "Workflow do Board (histórico)"
+description: "Registro histórico de como a automação de board via agent-handoff.sh funcionava antes de ser superseded por GitHub Issues + PR"
+type: "técnico"
+status: "deprecated"
+owner: "Camilo"
+last_updated: "2026-08-15"
+---
+
 # Workflow do Board — Como os agentes movimentam as issues (histórico)
 
 - **Status:** deprecated

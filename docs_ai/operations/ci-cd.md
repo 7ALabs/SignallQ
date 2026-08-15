@@ -1,3 +1,12 @@
+---
+title: "CI/CD Pipeline"
+description: "Pipeline de integração contínua e deploy automatizado do SignallQ via GitHub Actions"
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-15"
+---
+
 # CI/CD Pipeline — SignallQ
 
 - **Status:** ativo
