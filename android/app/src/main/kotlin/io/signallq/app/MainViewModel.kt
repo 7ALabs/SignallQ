@@ -1321,8 +1321,13 @@ class MainViewModel
         }
 
         fun iniciarDiagnostico() {
+            solicitarDiagnostico()
+        }
+
+        fun solicitarDiagnostico(): Long? {
+            val reserva = diagnosticOrchestrator.tentarReservar() ?: return null
             viewModelScope.launch {
-                diagnosticOrchestrator.executarPreparando {
+                diagnosticOrchestrator.executarReservada(reserva) {
                     // Acao explicita do usuario ("Analisar problema") — vale coletar a
                     // topologia agora se ainda nao rodou nesta sessao (SIG-279).
                     if (!topologiaColetada) {
@@ -1359,6 +1364,7 @@ class MainViewModel
                     )
                 }
             }
+            return reserva.geracao
         }
 
         fun reconectarFibra(

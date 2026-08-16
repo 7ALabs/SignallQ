@@ -11,8 +11,8 @@ import io.signallq.app.core.network.NetworkCapabilitiesProvider
 import io.signallq.app.core.network.NoOpAnalyticsHelper
 import io.signallq.app.core.diagnostico.ConnectionType
 import io.signallq.app.core.diagnostico.DiagnosticInput
+import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
-import io.signallq.app.feature.diagnostico.EstadoDiagnostico
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 import io.signallq.app.feature.diagnostico.ai.AI_PROMPT_VERSION
@@ -42,7 +42,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 import java.util.UUID
 
@@ -219,19 +218,17 @@ class SignallQOrchestrator(
                 )
             }
 
-        withContext(Dispatchers.Default) {
+        val resultadoDiagnostico = withContext(Dispatchers.Default) {
             // GH#1228 (Fase 3) — executionId ja existente do resultado recebido, nunca
             // gerado aqui.
-            diagnosticOrchestrator.executar(internetInput, wifiInput, executionId = resultado.executionId)
+            diagnosticOrchestrator.executarSolicitacao(internetInput, wifiInput, executionId = resultado.executionId)
         }
-
-        val relatorio =
-            withTimeoutOrNull(5_000L) {
-                diagnosticOrchestrator.snapshotFlow
-                    .first {
-                        it.estado == EstadoDiagnostico.concluido || it.estado == EstadoDiagnostico.erro
-                    }.relatorio
-            }
+        val relatorio = resultadoDiagnostico.relatorioCorrelacionado()
+        if (relatorio == null) {
+            cancelarRotacaoMensagens()
+            emit(SignallQState.Idle, focoDiagnostico = focoDiagnostico)
+            return
+        }
 
         val contextInicial =
             ContextAccumulator.buildInitial(
@@ -438,17 +435,15 @@ class SignallQOrchestrator(
                 )
             }
 
-        withContext(Dispatchers.Default) {
-            diagnosticOrchestrator.executar(internetInput, wifiInput, executionId = executionIdAtual)
+        val resultadoDiagnostico = withContext(Dispatchers.Default) {
+            diagnosticOrchestrator.executarSolicitacao(internetInput, wifiInput, executionId = executionIdAtual)
         }
-
-        val relatorio =
-            withTimeoutOrNull(5_000L) {
-                diagnosticOrchestrator.snapshotFlow
-                    .first {
-                        it.estado == EstadoDiagnostico.concluido || it.estado == EstadoDiagnostico.erro
-                    }.relatorio
-            }
+        val relatorio = resultadoDiagnostico.relatorioCorrelacionado()
+        if (relatorio == null) {
+            cancelarRotacaoMensagens()
+            emit(SignallQState.Idle, focoDiagnostico = focoDiagnostico)
+            return
+        }
 
         val contextInicial =
             ContextAccumulator.buildInitial(
@@ -1237,3 +1232,6 @@ class SignallQOrchestrator(
         }
     }
 }
+
+internal fun DiagnosticOrchestrator.ResultadoSolicitacao.relatorioCorrelacionado(): DiagnosticReport? =
+    (this as? DiagnosticOrchestrator.ResultadoSolicitacao.Aceita)?.snapshot?.relatorio

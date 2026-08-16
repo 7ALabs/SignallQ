@@ -19,7 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
@@ -38,19 +38,15 @@ import io.signallq.app.ui.component.SignallQTopAppBar
 @Composable
 internal fun Inicio2Screen(
     uiState: Inicio2UiState,
-    onAnalisarConexao: () -> Unit,
+    onAnalisarConexao: () -> Long?,
     onAbrirPerfil: () -> Unit,
 ) {
     val c = LocalLkTokens.current
-    var solicitacaoEmAndamento by rememberSaveable { mutableStateOf(false) }
-    var geracaoAoSolicitar by rememberSaveable { mutableStateOf(0L) }
+    var geracaoSolicitada by remember { mutableStateOf<Long?>(null) }
     LaunchedEffect(uiState.geracaoDiagnostico, uiState.analise) {
-        if (
-            solicitacaoEmAndamento &&
-            uiState.geracaoDiagnostico > geracaoAoSolicitar &&
-            (uiState.analise is Inicio2Analise.EstadoConhecido || uiState.analise is Inicio2Analise.Interrompida)
-        ) {
-            solicitacaoEmAndamento = false
+        val geracao = geracaoSolicitada
+        if (geracao != null && uiState.geracaoDiagnostico == geracao && uiState.analise !is Inicio2Analise.Carregando) {
+            geracaoSolicitada = null
         }
     }
     Scaffold(
@@ -93,14 +89,12 @@ internal fun Inicio2Screen(
                 SignallQButton(
                     label = "Analisar minha conexão",
                     onClick = {
-                        if (!solicitacaoEmAndamento) {
-                            solicitacaoEmAndamento = true
-                            geracaoAoSolicitar = uiState.geracaoDiagnostico
-                            onAnalisarConexao()
+                        if (geracaoSolicitada == null) {
+                            geracaoSolicitada = onAnalisarConexao()
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    loading = uiState.analise is Inicio2Analise.Carregando || solicitacaoEmAndamento,
+                    loading = uiState.analise is Inicio2Analise.Carregando || geracaoSolicitada != null,
                 )
             }
         }
@@ -169,7 +163,7 @@ private fun Inicio2ScreenPreview() {
     SignallQTheme {
         Inicio2Screen(
             uiState = Inicio2UiState(Inicio2Conexao.Wifi, "Casa", Inicio2Analise.SemAnalise),
-            onAnalisarConexao = {},
+            onAnalisarConexao = { null },
             onAbrirPerfil = {},
         )
     }
@@ -181,7 +175,7 @@ private fun Inicio2ScreenDarkPreview() {
     SignallQTheme {
         Inicio2Screen(
             uiState = Inicio2UiState(Inicio2Conexao.Offline, null, Inicio2Analise.Interrompida("Seu contexto foi preservado.")),
-            onAnalisarConexao = {},
+            onAnalisarConexao = { null },
             onAbrirPerfil = {},
         )
     }

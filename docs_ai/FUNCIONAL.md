@@ -178,7 +178,11 @@ veredito da Início, portanto essa superfície não classifica resultados como v
 reutiliza `onIniciarDiagnostico`, portanto mantém motor e analytics existentes sem evento paralelo.
 O ciclo single-flight vem do `DiagnosticOrchestrator`: cada solicitação aceita recebe uma geração
 monotônica e termina como concluída, erro ou cancelada, inclusive quando a preparação do input falha.
-Assim, recomposição, restauração e um veredito repetido não duplicam nem bloqueiam a próxima sessão.
+O terminal só é publicado depois do fechamento da telemetria e da liberação atômica do gate. O
+Pulse consome o resultado tipado da própria geração e abandona uma solicitação rejeitada, sem aguardar
+terminal global. A UI mantém apenas uma guarda transitória até observar a aceitação canônica; ela não
+persiste geração em recriação do produtor. Assim, recomposição e veredito repetido não duplicam nem
+bloqueiam a próxima sessão.
 Não há grade técnica, catálogo de ferramentas, diagnóstico completo nem placement AdMob na Início.
 A issue #1601 continua responsável pelo acesso direto ao resultado persistido exato; esta fatia
 somente apresenta sua existência sem duplicar essa navegação.

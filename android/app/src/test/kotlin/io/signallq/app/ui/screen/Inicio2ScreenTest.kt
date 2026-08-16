@@ -39,7 +39,10 @@ class Inicio2ScreenTest {
                 CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) {
                     Inicio2Screen(
                         uiState = Inicio2UiState(Inicio2Conexao.Offline, null, Inicio2Analise.SemAnalise),
-                        onAnalisarConexao = { analyses++ },
+                        onAnalisarConexao = {
+                            analyses++
+                            1L
+                        },
                         onAbrirPerfil = {},
                     )
                 }
@@ -67,7 +70,10 @@ class Inicio2ScreenTest {
             SignallQTheme {
                 Inicio2Screen(
                     uiState = state.value,
-                    onAnalisarConexao = { analyses++ },
+                    onAnalisarConexao = {
+                        analyses++
+                        1L
+                    },
                     onAbrirPerfil = {},
                 )
             }
@@ -103,6 +109,7 @@ class Inicio2ScreenTest {
     @Test
     fun `mesmo veredito falha precoce e cancelamento liberam pela geracao`() {
         var analyses = 0
+        var proximaGeracao = 5L
         val state =
             mutableStateOf(
                 Inicio2UiState(
@@ -116,7 +123,10 @@ class Inicio2ScreenTest {
             SignallQTheme {
                 Inicio2Screen(
                     uiState = state.value,
-                    onAnalisarConexao = { analyses++ },
+                    onAnalisarConexao = {
+                        analyses++
+                        proximaGeracao++
+                    },
                     onAbrirPerfil = {},
                 )
             }
@@ -158,14 +168,17 @@ class Inicio2ScreenTest {
     }
 
     @Test
-    fun `restauracao durante solicitacao preserva single flight`() {
+    fun `recriacao do produtor nao restaura latch efemero da composicao`() {
         var analyses = 0
         val restorationTester = StateRestorationTester(composeRule)
         restorationTester.setContent {
             SignallQTheme {
                 Inicio2Screen(
                     uiState = Inicio2UiState(Inicio2Conexao.Wifi, "Casa", Inicio2Analise.SemAnalise),
-                    onAnalisarConexao = { analyses++ },
+                    onAnalisarConexao = {
+                        analyses++
+                        1L
+                    },
                     onAbrirPerfil = {},
                 )
             }
@@ -173,8 +186,9 @@ class Inicio2ScreenTest {
 
         composeRule.onNodeWithText("Analisar minha conexão").performClick()
         restorationTester.emulateSavedInstanceStateRestore()
-        composeRule.onNode(hasStateDescription("Carregando")).assertIsNotEnabled()
-        assertEquals(1, analyses)
+        composeRule.onNodeWithText("Analisar minha conexão").assertIsEnabled().performClick()
+        composeRule.waitForIdle()
+        assertEquals(2, analyses)
     }
 
     @Test
@@ -184,7 +198,7 @@ class Inicio2ScreenTest {
             SignallQTheme {
                 Inicio2Screen(
                     uiState = Inicio2UiState(Inicio2Conexao.Wifi, "Casa", Inicio2Analise.Interrompida("Contexto preservado.")),
-                    onAnalisarConexao = {},
+                    onAnalisarConexao = { null },
                     onAbrirPerfil = { profiles++ },
                 )
             }

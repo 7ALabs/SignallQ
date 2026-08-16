@@ -19,7 +19,6 @@ import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -164,19 +163,20 @@ class DiagnosticOrchestratorTest {
     fun `falha precoce e cancelamento finalizam a geracao canonica`() = runTest {
         val orchestrator = DiagnosticOrchestrator()
 
-        orchestrator.executarPreparando { error("falha antes do input") }
+        orchestrator.executarSolicitacao { error("falha antes do input") }
         assertEquals(EstadoDiagnostico.erro, orchestrator.snapshotFlow.value.estado)
         assertEquals(1L, orchestrator.snapshotFlow.value.geracao)
 
         var cancelamentoPropagado = false
         try {
-            orchestrator.executarPreparando { throw CancellationException("cancelado") }
+            orchestrator.executarSolicitacao { throw CancellationException("cancelado") }
         } catch (_: CancellationException) {
             cancelamentoPropagado = true
         }
         assertTrue(cancelamentoPropagado)
         assertEquals(EstadoDiagnostico.cancelado, orchestrator.snapshotFlow.value.estado)
         assertEquals(2L, orchestrator.snapshotFlow.value.geracao)
+        assertNotNull(orchestrator.tentarReservar())
     }
 
     @Test
@@ -196,7 +196,7 @@ class DiagnosticOrchestratorTest {
         val orchestrator = DiagnosticOrchestrator(analyticsHelper = analytics)
         val primeira =
             async {
-                orchestrator.executarPreparando {
+                orchestrator.executarSolicitacao {
                     liberar.await()
                     snapshotSaudavelInput()
                 }
@@ -204,10 +204,54 @@ class DiagnosticOrchestratorTest {
 
         yield()
         assertEquals(EstadoDiagnostico.executando, orchestrator.snapshotFlow.value.estado)
-        assertFalse(orchestrator.executarPreparando { snapshotSaudavelInput() })
+        assertTrue(
+            orchestrator.executarSolicitacao { snapshotSaudavelInput() } is
+                DiagnosticOrchestrator.ResultadoSolicitacao.Rejeitada,
+        )
         assertEquals(1L, orchestrator.snapshotFlow.value.geracao)
         liberar.complete(Unit)
         primeira.await()
         assertEquals(1, diagnosticosIniciados)
+    }
+
+    @Test
+    fun `terminal de sucesso so e publicado depois de analytics e com gate liberado`() = runTest {
+        var analyticsFechado = false
+        val analytics =
+            object : AnalyticsHelper by NoOpAnalyticsHelper {
+                override fun registrarDiagConcluido(
+                    tipoConexao: String,
+                    statusGeral: String,
+                    decisaoId: String,
+                    scoreConexao: Long,
+                    confianca: Double,
+                    nResultadosCriticos: Long?,
+                    nResultadosAttention: Long?,
+                ) {
+                    analyticsFechado = true
+                }
+            }
+        val orchestrator = DiagnosticOrchestrator(analyticsHelper = analytics)
+
+        orchestrator.executar(snapshotSaudavelInput())
+
+        assertTrue(analyticsFechado)
+        assertEquals(EstadoDiagnostico.concluido, orchestrator.snapshotFlow.value.estado)
+        assertNotNull(orchestrator.tentarReservar())
+    }
+
+    @Test
+    fun `overloads legados preservam retorno Unit`() = runTest {
+        val orchestrator = DiagnosticOrchestrator()
+
+        val retornoInput: Unit = orchestrator.executar(snapshotSaudavelInput())
+        val retornoLegado: Unit =
+            orchestrator.executar(
+                snapshotSaudavelInput().internet,
+                snapshotSaudavelInput().wifi,
+            )
+
+        assertEquals(Unit, retornoInput)
+        assertEquals(Unit, retornoLegado)
     }
 }

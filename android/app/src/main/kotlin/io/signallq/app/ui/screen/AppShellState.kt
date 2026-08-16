@@ -109,6 +109,10 @@ sealed class AnalisadorState {
 data class AppShellDiagnosticoState(
     val snapshotDiagnostico: SnapshotDiagnostico,
     val onIniciarDiagnostico: () -> Unit,
+    val onSolicitarDiagnostico: () -> Long? = {
+        onIniciarDiagnostico()
+        null
+    },
     val analisadorState: AnalisadorState = AnalisadorState.Inativo,
     /** `problema = null` quando acionado automaticamente pela tela 1a (sem sintoma
      *  escolhido); `problema` preenchido quando vem do fluxo com objetivo escolhido

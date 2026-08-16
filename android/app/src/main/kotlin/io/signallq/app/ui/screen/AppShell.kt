@@ -304,6 +304,7 @@ fun AppShell(
 
     val snapshotDiagnostico = diagnostico.snapshotDiagnostico
     val onIniciarDiagnostico = diagnostico.onIniciarDiagnostico
+    val onSolicitarDiagnostico = diagnostico.onSolicitarDiagnostico
     val analisadorState = diagnostico.analisadorState
     val onAnalisarProblema = diagnostico.onAnalisarProblema
     val onResetarAnalisador = diagnostico.onResetarAnalisador
@@ -697,7 +698,7 @@ fun AppShell(
                                                 diagnostico = snapshotDiagnostico,
                                                 medicao = medicaoHomeResolvida,
                                             ),
-                                        onAnalisarConexao = onIniciarDiagnostico,
+                                        onAnalisarConexao = onSolicitarDiagnostico,
                                         onAbrirPerfil = onAbrirPerfilOverlay,
                                     )
                                 } else {
