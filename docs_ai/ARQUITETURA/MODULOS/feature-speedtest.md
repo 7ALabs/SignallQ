@@ -4,7 +4,7 @@ description: "Motor de medição de velocidade (Cloudflare), amostragem de ping,
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-15"
+last_updated: "2026-08-16"
 ---
 
 # `:featureSpeedtest`
@@ -71,10 +71,14 @@ Total: 2740 linhas em `src/main` e 962 em `src/test` (8 arquivos de teste).
 
 ## Riscos e dívidas
 
-- **Violação da regra "feature nunca depende de feature" — duas ocorrências confirmadas:**
-  - `android/feature/diagnostico/build.gradle.kts:62` → `implementation(project(":featureSpeedtest"))`. O uso é real e profundo: `feature/diagnostico/src/main/kotlin/io/signallq/app/kotlin/feature/diagnostico/pulse/SignallQOrchestrator.kt` importa `ExecutorSpeedtest`, `ResultadoSpeedtest`, `ModoSpeedtest`, `EstadoExecucaoSpeedtest`, `DiagnosticoFasesSpeedtest` e `SpeedtestQualityClassifier`.
-  - `android/pro/feature/medicao-diagnostico/build.gradle.kts:69` → mesma dependência, cruzando ainda a fronteira Consumer/Pro.
-  - O caminho correto seria extrair o contrato do motor (`ExecutorSpeedtest` + tipos de resultado) para um módulo `core` — exatamente o movimento já feito em GH#1228 para os thresholds (`:core:diagnostico`) e em `:featureHome` (struct genérica adaptada no `:app`).
+- **Violação da regra "feature nunca depende de feature" — nenhuma ocorrência conhecida hoje.**
+  As duas anteriores já foram resolvidas: `android/feature/diagnostico/build.gradle.kts:62`
+  (`implementation(project(":featureSpeedtest"))`, usada só por
+  `feature/diagnostico/.../pulse/SignallQOrchestrator.kt`) foi removida em GH#1682 junto com o
+  motor SignallQ Pulse, órfão sem consumidor de UI; `android/pro/feature/medicao-diagnostico/
+  build.gradle.kts` não existe mais — o módulo `:pro:*` inteiro foi removido nas Fases 4a-b do
+  épico #1623 (SignallQ Pro descontinuado permanentemente, ADR-016). Reavaliar esta seção se
+  `grep -rn 'project(":feature' feature/*/build.gradle.kts` voltar a encontrar algo.
 - **`ExecutorSpeedtestCloudflare.kt` com 1495 linhas** — muito acima do limite de 800. É o maior arquivo dos cinco módulos, concentra rede, concorrência, estatística e construção do resultado, e **não tem teste direto**: os testes cobrem as peças puras extraídas dele (`AnalisadorAmostragemPing`, `ValidadorBaselineLatencia`, `SpeedtestQualityClassifier`, `PingExecutor`) e o pacote `connectivity`.
 - **Path físico alinhado ao package `io.signallq.app.*`** — migração de `io/signallq/app/kotlin/` concluída em 2026-08-15 (#1645).
 - **Pacote de teste divergente:** `src/test/kotlin/io/signallq/app/kotlin/feature/speedtest/SpeedtestMbEstimativaTest.kt` declara pacote `io.signallq.app.kotlin.feature.speedtest` (com `.kotlin.`), diferente dos demais — visível no nome do relatório JUnit gerado.

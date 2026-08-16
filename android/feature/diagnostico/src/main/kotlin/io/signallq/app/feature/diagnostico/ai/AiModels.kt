@@ -472,7 +472,8 @@ object DiagnosisAiContextFactory {
 
     /**
      * Overload media — recebe tambem o `DiagnosticInput` (metricas crus do
-     * speedtest + Wi-Fi). Usada hoje pelo SignallQOrchestrator.
+     * speedtest + Wi-Fi). Producao usa `fromRaw` (MainViewModel.analisarProblema);
+     * este overload e exercitado hoje pelos testes de `DiagnosisAiContextFactory`.
      */
     fun from(
         report: DiagnosticReport,
@@ -722,8 +723,8 @@ object DiagnosisAiContextFactory {
 
 /**
  * Contexto adicional bruto que o app coleta fora do `DiagnosticInput` mas
- * agrega ao payload v3. Chamada via lambda do SignallQOrchestrator pra manter
- * o feature module desacoplado do MainViewModel/host.
+ * agrega ao payload v3. Montado por `MainViewModel.coletarContextoAdicionalIa()`
+ * e repassado a `DiagnosisAiContextFactory.fromRaw` em `analisarProblema()`.
  */
 data class AdditionalAiContext(
     val ispNome: String? = null,

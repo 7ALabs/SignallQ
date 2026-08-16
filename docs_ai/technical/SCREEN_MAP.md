@@ -4,7 +4,7 @@ description: "Mapa de navegação do app consumer (tab bar + overlays) validado 
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-07-23"
+last_updated: "2026-08-16"
 ---
 
 # Screen Map — Android SignallQ
@@ -66,12 +66,14 @@ ordem de desenho que não seguia a ordem de empilhamento).
 | `Privacidade` | `PrivacidadeScreen` | `PrivacidadeScreen.kt` | Perfil → Privacidade | Perfil |
 | `Novidades` | `NovidadesScreen` | `NovidadesScreen.kt` | Perfil → Novidades | Perfil |
 
-**Telas de IA** (`SignallQScreen`/`SignallQPulseScreen`/`LLMChatScreen`, citadas em versão
-anterior deste documento) — `[a confirmar]`: não foram encontradas referências no `Overlay`
-enum atual de `AppShell.kt`. Podem ter sido removidas (decisão #2 do plano MD3 arquivado previa
-isso) ou substituídas por telas dentro do fluxo de diagnóstico (`DiagnosticoScreen`/
-`ChatDiagnosticoIaScreen`, ver `docs_ai/technical/AI_FLOW.md`). Confirmar antes de reintroduzir
-qualquer rota para essas telas em documentação nova.
+**Telas de IA** (`SignallQScreen`/`SignallQPulseScreen`/`LLMChatScreen`/`ChatDiagnosticoIaScreen`,
+citadas em versão anterior deste documento) — confirmado: nenhuma existe no código nem no
+`Overlay` enum de `AppShell.kt`. `SignallQScreen` foi removida na Fase 8 MD3 (GH#937). As demais
+nunca chegaram a ter consumidor de UI — eram parte do motor de chat "SignallQ Pulse"
+(`SignallQOrchestrator` e as telas `ContextualQuestionCard`/`PulseResultCard`), removido em
+GH#1682 por decisão de produto (o app não tem e não terá chat conversacional — #564). O fluxo de
+IA real hoje é a "Análise avançada" (`LaudoScreen`, ver `docs_ai/technical/AI_FLOW.md`). Não
+reintroduzir rota para nenhuma dessas telas.
 
 ---
 

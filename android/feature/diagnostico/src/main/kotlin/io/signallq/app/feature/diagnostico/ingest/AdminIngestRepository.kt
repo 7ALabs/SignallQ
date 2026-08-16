@@ -47,7 +47,7 @@ class AdminIngestRepository(
         }.getOrDefault(false)
 
     // GH#1332 — `ai_usage.session_id` tem FOREIGN KEY REFERENCES diagnostic_sessions(id)
-    // no signallq-admin-worker (schema.sql). SignallQOrchestrator dispara sendDiagnostic()
+    // no signallq-admin-worker (schema.sql). O caller dispara sendDiagnostic()
     // e sendAiUsage() da MESMA sessao em coroutines independentes (dois `scope.launch`
     // separados, sem join entre si) — quando o POST de ai-usage vencia a corrida e chegava
     // no D1 antes do de diagnostic, a sessao pai ainda nao existia e o insert falhava com

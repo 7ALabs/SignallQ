@@ -7,7 +7,8 @@ import java.util.UUID
 import org.json.JSONObject
 
 // ---------------------------------------------------------------------------
-// Utilitarios de serialização — usados por SignallQOrchestrator ao montar payloads.
+// Utilitarios de serialização — usados por AdminSyncWorker/SpeedtestPersistenceCoordinator
+// e demais callers ao montar payloads para o signallq-admin-worker.
 // ---------------------------------------------------------------------------
 
 /**

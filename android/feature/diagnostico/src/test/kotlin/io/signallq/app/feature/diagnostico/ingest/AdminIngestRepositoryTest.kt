@@ -62,7 +62,7 @@ class AdminIngestRepositoryTest {
 
         // sendAiUsage() e chamado primeiro (mesma ordem do bug real: dispararIngestAiUsage
         // roda dentro de callAi(), que termina ANTES de dispararIngestDiagnostico ser
-        // chamado no SignallQOrchestrator) — sem a correlacao, isso perderia a corrida.
+        // chamado pelo caller) — sem a correlacao, isso perderia a corrida.
         val aiUsageJob = async {
             repository.sendAiUsage(aiUsagePayload(id = "ai-1", sessionId = "sessao-1"))
         }

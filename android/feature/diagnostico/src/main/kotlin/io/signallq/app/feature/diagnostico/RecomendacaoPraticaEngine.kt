@@ -83,8 +83,8 @@ object RecomendacaoPraticaEngine {
     //
     // #897: a versao anterior EXIGIA rede 5GHz do mesmo SSID no scan de
     // vizinhanca como pre-requisito obrigatorio — mas o wifiScan nao e
-    // preenchido no fluxo de producao (SignallQOrchestrator so roda o scan de
-    // vizinhanca em telas dedicadas de Wi-Fi), entao a recomendacao nunca
+    // preenchido no fluxo de producao (o scan de vizinhanca so roda em telas
+    // dedicadas de Wi-Fi), entao a recomendacao nunca
     // aparecia de verdade. Alem disso, muitos roteadores usam SSID diferente
     // para a banda de 5GHz (ex.: "Casa" e "Casa_5G"), entao exigir SSID igual
     // tambem excluia esse cenario comum mesmo com scan disponivel. Scan

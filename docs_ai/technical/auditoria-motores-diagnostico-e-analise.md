@@ -29,7 +29,7 @@ Baseado em leitura direta do código-fonte (não de documentação — ver seç�
 | `DiagnosticOrchestrator` | Monta input, chama `RemoteDiagnosticRepository.evaluateShadow()`, publica `StateFlow`. |
 | `RemoteDiagnosticRepository` | Cliente do worker `signallq-diagnostic`. Modo produção = **shadow**: motor local sempre decide; avaliação remota roda em paralelo só para telemetria de divergência. |
 | `RecomendacaoPraticaEngine` | Gera recomendações práticas (REC-01..14) a partir do achado principal. Renomeado no passado por colidir com o motor abaixo. |
-| `SignallQOrchestrator` (pulse) | Camada de chat/IA — **compõe** `DiagnosticOrchestrator` (não concorre com ele), chama `ai-diagnosis-worker` para o laudo em linguagem natural. |
+| ~~`SignallQOrchestrator` (pulse)~~ | **Removido em GH#1682** (posterior a esta auditoria) — era a camada de chat/IA, sem nenhum consumidor de UI. O laudo em linguagem natural hoje vem de `MainViewModel.analisarProblema()` chamando `AiDiagnosisRepository` direto, sem orquestrador. |
 
 ### `core/recommendation` — motor separado, propósito comercial (não técnico)
 

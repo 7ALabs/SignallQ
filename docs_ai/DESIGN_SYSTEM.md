@@ -4,7 +4,7 @@ description: "Cores, tipografia, espaçamento, componentes e tokens do app Andro
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-15"
+last_updated: "2026-08-16"
 ---
 
 # Design System — SignallQ (Android, consumer)
@@ -480,14 +480,17 @@ CTA primário sólido (`primary`), CTA secundário outline, CTA texto/link, bot�
 reduzida, sem cor semântica), botão de anúncio nativo (outline violeta, nunca sólido — ver seção
 10), segmented button (seletor Rápido/Completo/Triplo do SpeedTest), FAB (quando aplicável).
 
-### Cards (variantes, 10)
+### Cards (variantes, 8)
 
 Card de resumo/métrica, card de recomendação (`RecommendationEngineCard`), card de rede Wi-Fi
 (conectada/disponível), card de dispositivo, card de status de conexão, card informativo
 (`LkInfoCallout`), card de anúncio nativo (`NativeAdCard`), card de oferta simulada
-(`SimulatedOfferCard`), card de pergunta contextual (`ContextualQuestionCard`), card de resultado
-pulsante (`PulseResultCard`). Não misturar padrões entre eles — cada card variante tem seu próprio
-arquivo/composable, não reimplementar visualmente um dos 10 sem reaproveitar o componente.
+(`SimulatedOfferCard`). Não misturar padrões entre eles — cada card variante tem seu próprio
+arquivo/composable, não reimplementar visualmente um dos 8 sem reaproveitar o componente.
+
+GH#1682 — `ContextualQuestionCard`/`PulseResultCard` (card de pergunta contextual/resultado
+pulsante do motor de chat SignallQ Pulse) foram removidos por não terem consumidor de UI; não
+recriar esse padrão visual — o app não tem chat conversacional (decisão de produto #564).
 
 ### Chips / Tabs / Segmented / Badges
 
