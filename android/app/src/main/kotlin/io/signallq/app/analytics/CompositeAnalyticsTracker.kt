@@ -17,6 +17,7 @@ import io.signallq.app.feature.diagnostico.ingest.toOutboxJson
 import io.signallq.app.monitoramento.AdminSyncScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -144,42 +145,59 @@ class CompositeAnalyticsTracker
             // registrarSessionEnd() limpar o estado, mas o evento já pertence à sessão atual.
             val eventSessionId = sessionIdOverride ?: currentSessionId()
             applicationScope.launch {
-                val distChannel = distributionChannel(context)
-                val deviceId =
-                    runCatching {
-                        preferenciasAppRepository.buscarOuGerarAnonDeviceId()
-                    }.getOrDefault("unknown")
-                val payload =
-                    AnalyticsEventIngestPayload(
-                        id = UUID.randomUUID().toString(),
-                        name = name,
-                        sessionId = eventSessionId,
-                        appVersion = BuildConfig.VERSION_NAME,
-                        featureId = featureId,
-                        screenName = screenName,
-                        errorType = errorType,
-                        batteryLevel = batteryLevel,
-                        batteryCharging = batteryCharging,
-                        environment = environmentFor(distChannel),
-                        distChannel = distChannel,
-                        buildType = BuildConfig.BUILD_TYPE,
-                        versionCode = BuildConfig.VERSION_CODE,
-                        deviceId = deviceId,
-                        durationMs = durationMs,
-                    )
-                if (!adminIngestRepository.canSendTelemetry()) return@launch
-                val enqueueResult =
-                    analyticsOutboxDao.enqueue(
-                        AnalyticsOutboxEntity(
-                            id = payload.id,
-                            payloadJson = payload.toOutboxJson(),
-                            createdAtEpochMs = System.currentTimeMillis(),
-                        ),
-                    )
-                if (enqueueResult != -1L) {
-                    outboxFunnelTracker.registrar(AnalyticsOutboxFunnelTracker.Stage.CREATED)
+                // GH#1684 (bloqueio 1 da revisão do Caio na PR #1688) — este corpo roda dentro do
+                // mesmo applicationScope que o CoroutineExceptionHandler dele relata via
+                // registrarFeatureCrash -> enviarEvento -> este mesmo launch. Sem contenção
+                // aqui, uma falha real (ex.: WorkManager.getInstance(context) em
+                // AdminSyncScheduler.agendarEntregaAnalytics, sem guarda) reentraria no próprio
+                // handler que a relatou, girando em ciclo sem limite, backoff ou dedup — cada
+                // volta gera coroutine, recordException e evento de analytics novos. runCatching
+                // fecha o ciclo na origem: telemetria nunca pode derrubar nem realimentar o
+                // escopo que ela mesma reporta.
+                runCatching {
+                    val distChannel = distributionChannel(context)
+                    val deviceId =
+                        runCatching {
+                            preferenciasAppRepository.buscarOuGerarAnonDeviceId()
+                        }.getOrDefault("unknown")
+                    val payload =
+                        AnalyticsEventIngestPayload(
+                            id = UUID.randomUUID().toString(),
+                            name = name,
+                            sessionId = eventSessionId,
+                            appVersion = BuildConfig.VERSION_NAME,
+                            featureId = featureId,
+                            screenName = screenName,
+                            errorType = errorType,
+                            batteryLevel = batteryLevel,
+                            batteryCharging = batteryCharging,
+                            environment = environmentFor(distChannel),
+                            distChannel = distChannel,
+                            buildType = BuildConfig.BUILD_TYPE,
+                            versionCode = BuildConfig.VERSION_CODE,
+                            deviceId = deviceId,
+                            durationMs = durationMs,
+                        )
+                    if (!adminIngestRepository.canSendTelemetry()) return@runCatching
+                    val enqueueResult =
+                        analyticsOutboxDao.enqueue(
+                            AnalyticsOutboxEntity(
+                                id = payload.id,
+                                payloadJson = payload.toOutboxJson(),
+                                createdAtEpochMs = System.currentTimeMillis(),
+                            ),
+                        )
+                    if (enqueueResult != -1L) {
+                        outboxFunnelTracker.registrar(AnalyticsOutboxFunnelTracker.Stage.CREATED)
+                    }
+                    AdminSyncScheduler.agendarEntregaAnalytics(context)
+                }.onFailure { throwable ->
+                    // Timber.w (não .e): em release, ReleaseTree.log ainda encaminha pro
+                    // Crashlytics via recordException (visível), mas só reentra em
+                    // registrarFeatureCrash quando priority >= Log.ERROR — WARN preserva a
+                    // visibilidade e quebra o ciclo.
+                    Timber.w(throwable, "Falha ao processar evento de analytics ($name) — não propagada")
                 }
-                AdminSyncScheduler.agendarEntregaAnalytics(context)
             }
         }
     }

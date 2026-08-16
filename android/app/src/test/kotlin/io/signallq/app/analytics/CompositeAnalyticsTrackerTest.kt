@@ -1,5 +1,9 @@
+@file:Suppress("ForbiddenImport") // Mesma justificativa de ReleaseTree.kt: so as constantes de
+// prioridade (Log.WARN/Log.ERROR) para replicar o contrato dela em teste, nao logging direto.
+
 package io.signallq.app.analytics
 
+import android.util.Log
 import androidx.test.core.app.ApplicationProvider
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -12,6 +16,7 @@ import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
 import io.signallq.app.feature.diagnostico.ingest.AnalyticsEventIngestPayload
 import io.signallq.app.feature.diagnostico.ingest.analyticsPayloadFromOutboxJson
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,6 +33,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import timber.log.Timber
 
 /**
  * Testes unitarios de [CompositeAnalyticsTracker] (GH#759) — cobertura que ficou
@@ -217,5 +223,88 @@ class CompositeAnalyticsTrackerTest {
         coVerify(exactly = 2) { adminIngestRepository.sendAnalyticsEvent(capture(slots)) }
         assertEquals(slots[0].sessionId, slots[1].sessionId)
         assertTrue(slots[0].sessionId!!.isNotBlank())
+    }
+
+    // GH#1684 (bloqueio 1 da revisao do Caio na PR #1688) -- prova que uma falha real dentro do
+    // corpo do applicationScope.launch de enviarEvento (ex.: analyticsOutboxDao.enqueue lancando,
+    // como um WorkManager.getInstance(context) sem guarda faria em AdminSyncScheduler) fica
+    // contida por runCatching e NAO escapa para o CoroutineExceptionHandler do escopo. Sem essa
+    // contencao, a excecao chegaria ao applicationScopeExceptionHandler (AppModule.kt) que a
+    // reporta via Timber -> ReleaseTree -> registrarFeatureCrash -> enviarEvento -> este mesmo
+    // launch -- um ciclo sem limite, backoff ou dedup, invisivel em debug e nos 580 testes porque
+    // so existe com ReleaseTree plantada.
+    @Test
+    fun `falha real dentro de enviarEvento fica contida e nao realimenta o applicationScope`() {
+        coEvery { analyticsOutboxDao.enqueue(any()) } throws RuntimeException("falha simulada de outbox")
+        var excecaoVazadaParaOEscopo: Throwable? = null
+        val handlerDoEscopo = CoroutineExceptionHandler { _, throwable -> excecaoVazadaParaOEscopo = throwable }
+        val trackerComHandlerNoEscopo =
+            CompositeAnalyticsTracker(
+                firebaseTracker = firebaseTracker,
+                adminIngestRepository = adminIngestRepository,
+                preferenciasAppRepository = preferenciasAppRepository,
+                analyticsOutboxDao = analyticsOutboxDao,
+                outboxFunnelTracker = outboxFunnelTracker,
+                context = ApplicationProvider.getApplicationContext(),
+                applicationScope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob() + handlerDoEscopo),
+            )
+
+        trackerComHandlerNoEscopo.registrarFeatureUsada("wifi_scan")
+
+        assertNull(excecaoVazadaParaOEscopo)
+    }
+
+    // GH#1684 (bloqueio 1, RODADA 2 da revisao do Caio na PR #1688) -- o teste acima prova que a
+    // excecao fica contida (nao escapa do applicationScope), mas isso sozinho NAO prova que o
+    // ciclo esta quebrado: com o runCatching intacto e Timber.e (em vez de Timber.w) no
+    // onFailure, o ciclo original reabre por INTEIRO -- so que roteado pelo ReleaseTree em vez do
+    // CoroutineExceptionHandler -- porque Timber.e tem prioridade >= Log.ERROR, e e exatamente
+    // essa prioridade que faz ReleaseTree.log() chamar registrarFeatureCrash -> enviarEvento ->
+    // o MESMO applicationScope.launch de novo. Uma excecao nunca "escapa" nesse cenario -- ela so
+    // reentra indefinidamente dentro do proprio escopo, entao o teste acima nao pega essa
+    // regressao. Este teste trava a escolha especifica (Timber.w, nao so "algum runCatching"):
+    // planta uma replica do contrato de ReleaseTree.log() (prioridade >= Log.ERROR chama
+    // registrarFeatureCrash, senao nao) e afirma que, com enqueue sempre lancando, ele roda
+    // EXATAMENTE uma vez -- se `Timber.w` de enviarEvento virar `Timber.e`, a replica chama
+    // registrarFeatureCrash de novo, o ciclo reabre, e o enqueue roda mais de uma vez (na
+    // pratica, recursao sem limite -- sob Dispatchers.Unconfined isso se manifesta como
+    // OutOfMemoryError antes de uma contagem de chamada estavel ser observavel -- confirmado
+    // mutando manualmente Timber.w -> Timber.e nesta suite: falha, restaurado depois. Qualquer um
+    // dos dois desfechos [OutOfMemoryError ou coVerify != 1] basta pra travar a regressao.
+    //
+    // Nao usamos o ReleaseTree real (io.signallq.app.logging.ReleaseTree) aqui: ele chama
+    // FirebaseCrashlytics.getInstance() sem guarda, que lanca sob Robolectric -- e por isso que
+    // SignallQApplication.onCreate() so o planta quando `!BuildConfig.DEBUG`, e builds de teste
+    // sao sempre debug (`Timber.plant(Timber.DebugTree())` no outro branch). Os 580+ testes
+    // normais nunca passam pelo ReleaseTree de verdade; a replica reproduz so o que importa pro
+    // invariante sob teste, sem tocar Firebase.
+    @Test
+    fun `Timber_w no onFailure de enviarEvento nao reabre o ciclo via um ReleaseTree equivalente`() {
+        coEvery { analyticsOutboxDao.enqueue(any()) } throws RuntimeException("falha simulada de outbox")
+        val arvoreReplicaReleaseTree =
+            object : Timber.Tree() {
+                override fun log(
+                    priority: Int,
+                    tag: String?,
+                    message: String,
+                    t: Throwable?,
+                ) {
+                    if (priority < Log.WARN) return
+                    if (priority >= Log.ERROR) {
+                        tracker.registrarFeatureCrash(tag ?: "desconhecido", t?.javaClass?.simpleName ?: "Erro")
+                    }
+                }
+            }
+        Timber.plant(arvoreReplicaReleaseTree)
+
+        try {
+            tracker.registrarFeatureUsada("wifi_scan")
+
+            coVerify(exactly = 1) { analyticsOutboxDao.enqueue(any()) }
+        } finally {
+            // Timber.Forest e estado global do processo -- exatamente a classe de problema desta
+            // issue. Nunca deixar uma arvore plantada por um teste vazar para os outros.
+            Timber.uproot(arvoreReplicaReleaseTree)
+        }
     }
 }

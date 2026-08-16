@@ -4,7 +4,7 @@ description: "Stack, build, persistência, integrações Cloudflare, analytics e
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-15"
+last_updated: "2026-08-16"
 ---
 
 # Documentação técnica — SignallQ consumer
@@ -245,6 +245,19 @@ Validações locais, a partir de `android/` (`gradlew.bat` no Windows):
 ./gradlew detekt
 ./gradlew test
 ./gradlew assembleDebug
+```
+
+**Suspeita de poluição entre testes no `:app`** (estado que vaza de um teste pra outro, ex.
+`kotlinx.coroutines.test.UncaughtExceptionsBeforeTest`): o Gradle `Test` task deste módulo (JUnit4
+puro, sem `useJUnitPlatform()`) não embaralha a ordem das classes nativamente — a ordem é
+determinística (varredura do diretório de `.class`). `SuiteEmbaralhadaTest`
+(`app/src/test/kotlin/io/signallq/app/SuiteEmbaralhadaTest.kt`) descobre e embaralha as classes de
+teste do módulo em runtime, rodando todas na mesma JVM — único jeito de reproduzir poluição de
+estado estático entre classes (ver GH#1684). Não roda no CI por padrão:
+
+```
+./gradlew :app:testDebugUnitTest --tests "io.signallq.app.SuiteEmbaralhadaTest" --rerun \
+    -PsuiteEmbaralhada -Dsuite.embaralhada.seed=<long opcional>
 ```
 
 ## 9. Riscos técnicos

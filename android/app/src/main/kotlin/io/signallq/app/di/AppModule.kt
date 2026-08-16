@@ -57,10 +57,12 @@ import io.signallq.app.featureflags.FeatureFlagManager
 import io.signallq.app.featureflags.FeatureFlagRepository
 import io.signallq.app.network.IspInfoCache
 import io.signallq.app.speedtest.SpeedtestPersistenceCoordinator
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import okhttp3.OkHttpClient
+import timber.log.Timber
 import java.util.concurrent.TimeUnit
 import javax.inject.Named
 import javax.inject.Qualifier
@@ -70,6 +72,36 @@ import io.signallq.app.core.network.FeatureFlagProvider as LegacyHttpFeatureFlag
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class ApplicationScope
+
+/**
+ * GH#1684 -- sem handler, uma falha em qualquer coroutine solta em [ApplicationScope] (ex.:
+ * `AdminSyncScheduler.agendar`, `migrarCredenciaisSeNecessario`, `consumerFeatureFlagProvider.refresh`
+ * em `SignallQApplication.onCreate`) sobe pro `Thread.UncaughtExceptionHandler` padrao da JVM/
+ * Android -- em producao isso derruba o processo (SupervisorJob isola os filhos entre si, mas nao
+ * engole excecao sem handler); em unit test com Robolectric, `RobolectricTestRunner` recria a
+ * `SignallQApplication` (via Hilt) e reroda esse `onCreate()` a CADA metodo de teste do :app, sem
+ * cancelar o [CoroutineScope] anterior -- como o [Dispatchers.Default] eh um pool real,
+ * compartilhado por toda a JVM do worker de teste, uma falha tardia de uma execucao anterior surge
+ * de forma assincrona durante um teste completamente diferente. Sem handler no contexto, essa
+ * excecao e roteada pelo `kotlinx.coroutines.test.internal.ExceptionCollectorAsService`
+ * (registrado via ServiceLoader como `CoroutineExceptionHandler` global do processo) e reaparece
+ * como `UncaughtExceptionsBeforeTest` no proximo `runTest {}` de QUALQUER classe da suite --
+ * vitima aleatoria, sem relacao com quem realmente vazou. Logar aqui fecha os dois problemas.
+ *
+ * ATENCAO (bloqueio 1 da revisao do Caio na PR #1688): `Timber.e` chega ao Crashlytics via
+ * `ReleaseTree` e, por ser `priority >= Log.ERROR`, tambem chama
+ * `analyticsTracker.registrarFeatureCrash(...)` -- que e o [io.signallq.app.analytics.
+ * CompositeAnalyticsTracker], cujo `enviarEvento` despacha OUTRO `applicationScope.launch`. Sem
+ * contencao no corpo desse segundo launch, uma falha real (ex.: WorkManager sem guarda em
+ * `AdminSyncScheduler`) reentraria neste mesmo handler, girando em ciclo sem limite. A contencao
+ * que fecha esse ciclo fica em `CompositeAnalyticsTracker.enviarEvento` (runCatching + Timber.w),
+ * nao aqui -- os dois pontos sao complementares, nao intercambiaveis; nao remova um assumindo que
+ * o outro basta.
+ */
+private val applicationScopeExceptionHandler =
+    CoroutineExceptionHandler { _, throwable ->
+        Timber.e(throwable, "Excecao nao tratada em coroutine de ApplicationScope")
+    }
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -184,7 +216,8 @@ object AppModule {
     @Provides
     @Singleton
     @ApplicationScope
-    fun provideApplicationScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    fun provideApplicationScope(): CoroutineScope =
+        CoroutineScope(SupervisorJob() + Dispatchers.Default + applicationScopeExceptionHandler)
 
     /**
      * URL base do signallq-admin-worker para ingest de telemetria.
