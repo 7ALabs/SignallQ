@@ -181,7 +181,7 @@ private fun Inicio2ScreenPreview() {
                             Inicio2TrailNode("Internet", "Conectada"),
                             Inicio2TrailNode("Equipamento", "Roteador ou modem", Inicio2TrailRoute.Equipamento),
                             Inicio2TrailNode("Wi-Fi", "Casa", Inicio2TrailRoute.Wifi),
-                            Inicio2TrailNode("Este aparelho", "Dispositivo conectado", Inicio2TrailRoute.Dispositivos),
+                            Inicio2TrailNode("Este aparelho", "Conectado por Wi-Fi"),
                         ),
                     supportingMessage = null,
                 ),
@@ -202,11 +202,9 @@ private fun Inicio2ScreenDarkPreview() {
                     nodes =
                         listOf(
                             Inicio2TrailNode("Internet", "Sem acesso"),
-                            Inicio2TrailNode("Equipamento", "Roteador ou modem", Inicio2TrailRoute.Equipamento),
-                            Inicio2TrailNode("Wi-Fi", "Rede local", Inicio2TrailRoute.Wifi),
-                            Inicio2TrailNode("Este aparelho", "Dispositivo conectado", Inicio2TrailRoute.Dispositivos),
+                            Inicio2TrailNode("Este aparelho", "Sem conexão ativa"),
                         ),
-                    supportingMessage = "A trilha mostra apenas o contexto local enquanto você está offline.",
+                    supportingMessage = "Conecte-se a uma rede para completar a trilha.",
                 ),
         )
     }

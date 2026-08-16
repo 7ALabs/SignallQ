@@ -16,8 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.core.network.contracts.topologia.NivelConfianca
@@ -27,7 +25,7 @@ import io.signallq.app.core.network.wifi.EstadoScanWifi
 import io.signallq.app.core.network.wifi.SnapshotScanWifi
 import io.signallq.app.ui.LkSpacing
 
-internal enum class Inicio2TrailRoute { Equipamento, Wifi, Dispositivos }
+internal enum class Inicio2TrailRoute { Equipamento, Wifi, SinalMovel }
 
 internal data class Inicio2TrailNode(
     val title: String,
@@ -47,6 +45,9 @@ internal object Inicio2ConnectionTrailMapper {
         temPermissaoLocalizacao: Boolean,
         temConfirmacaoRoteadorCentral: Boolean = false,
     ): Inicio2ConnectionTrailState {
+        if (snapshotRede.estadoConexao != EstadoConexao.wifi) {
+            return mapSemWifi(snapshotRede.estadoConexao)
+        }
         val classificacoes =
             if (temPermissaoLocalizacao && snapshotWifi.estado == EstadoScanWifi.concluido) {
                 TopologiaRedeEngine.classificar(
@@ -58,15 +59,15 @@ internal object Inicio2ConnectionTrailMapper {
                 emptyList()
             }
         val meshConfirmado =
-            classificacoes.any { (_, classificacao) ->
-                classificacao.papelProvavel == PapelTopologia.NO_MESH &&
-                    classificacao.confianca == NivelConfianca.ALTA &&
-                    classificacao.conflitos.isEmpty()
-            }
-        val conectado = snapshotRede.estadoConexao != EstadoConexao.desconectado
+            temConfirmacaoRoteadorCentral &&
+                classificacoes.any { (_, classificacao) ->
+                    classificacao.papelProvavel == PapelTopologia.NO_MESH &&
+                        classificacao.confianca == NivelConfianca.ALTA &&
+                        classificacao.conflitos.isEmpty()
+                }
         val nodes =
             buildList {
-                add(Inicio2TrailNode("Internet", if (conectado) "Conectada" else "Sem acesso"))
+                add(Inicio2TrailNode("Internet", "Conectada"))
                 add(Inicio2TrailNode("Equipamento", "Roteador ou modem", Inicio2TrailRoute.Equipamento))
                 if (meshConfirmado) add(Inicio2TrailNode("Mesh", "Nó confirmado pela topologia"))
                 add(
@@ -76,18 +77,61 @@ internal object Inicio2ConnectionTrailMapper {
                         Inicio2TrailRoute.Wifi,
                     ),
                 )
-                add(Inicio2TrailNode("Este aparelho", "Dispositivo conectado", Inicio2TrailRoute.Dispositivos))
+                add(Inicio2TrailNode("Este aparelho", "Conectado por Wi-Fi"))
             }
         val supportingMessage =
             when {
                 !temPermissaoLocalizacao -> "Permita redes próximas para completar a trilha."
                 snapshotWifi.estado == EstadoScanWifi.scanning -> "Atualizando os detalhes da rede…"
                 snapshotWifi.estado == EstadoScanWifi.erro -> "Alguns detalhes da rede não estão disponíveis."
-                !conectado -> "A trilha mostra apenas o contexto local enquanto você está offline."
                 else -> null
             }
         return Inicio2ConnectionTrailState(nodes, supportingMessage)
     }
+
+    private fun mapSemWifi(estado: EstadoConexao): Inicio2ConnectionTrailState =
+        when (estado) {
+            EstadoConexao.movel ->
+                Inicio2ConnectionTrailState(
+                    nodes =
+                        listOf(
+                            Inicio2TrailNode("Internet", "Conectada"),
+                            Inicio2TrailNode("Rede móvel", "Dados móveis ativos", Inicio2TrailRoute.SinalMovel),
+                            Inicio2TrailNode("Este aparelho", "Conectado pela rede móvel"),
+                        ),
+                    supportingMessage = null,
+                )
+            EstadoConexao.ethernet ->
+                Inicio2ConnectionTrailState(
+                    nodes =
+                        listOf(
+                            Inicio2TrailNode("Internet", "Conectada"),
+                            Inicio2TrailNode("Equipamento", "Roteador ou modem", Inicio2TrailRoute.Equipamento),
+                            Inicio2TrailNode("Ethernet", "Rede cabeada"),
+                            Inicio2TrailNode("Este aparelho", "Conectado por cabo"),
+                        ),
+                    supportingMessage = null,
+                )
+            EstadoConexao.desconectado ->
+                Inicio2ConnectionTrailState(
+                    nodes =
+                        listOf(
+                            Inicio2TrailNode("Internet", "Sem acesso"),
+                            Inicio2TrailNode("Este aparelho", "Sem conexão ativa"),
+                        ),
+                    supportingMessage = "Conecte-se a uma rede para completar a trilha.",
+                )
+            EstadoConexao.desconhecido ->
+                Inicio2ConnectionTrailState(
+                    nodes =
+                        listOf(
+                            Inicio2TrailNode("Conexão", "Verificando tipo de rede"),
+                            Inicio2TrailNode("Este aparelho", "Aguardando identificação"),
+                        ),
+                    supportingMessage = "Aguarde enquanto identificamos a conexão.",
+                )
+            EstadoConexao.wifi -> error("Wi-Fi é mapeado pelo fluxo principal")
+        }
 }
 
 @Composable
@@ -107,10 +151,12 @@ internal fun Inicio2ConnectionTrail(
                             .defaultMinSize(minHeight = LkSpacing.compositionLarge)
                             .then(
                                 node.route?.let { route ->
-                                    Modifier.clickable(role = Role.Button) { onOpenRoute(route) }
+                                    Modifier.clickable(
+                                        role = Role.Button,
+                                        onClickLabel = "Abrir detalhes de ${node.title}",
+                                    ) { onOpenRoute(route) }
                                 } ?: Modifier,
-                            ).semantics { stateDescription = node.detail }
-                            .padding(vertical = LkSpacing.sm),
+                            ).padding(vertical = LkSpacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
                 ) {

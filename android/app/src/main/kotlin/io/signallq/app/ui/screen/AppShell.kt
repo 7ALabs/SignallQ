@@ -710,7 +710,7 @@ fun AppShell(
                                             when (route) {
                                                 Inicio2TrailRoute.Equipamento -> onAbrirEquipamentoInternetOverlay()
                                                 Inicio2TrailRoute.Wifi -> onAbrirSinalWifiOverlay()
-                                                Inicio2TrailRoute.Dispositivos -> onAbrirDispositivosOverlay()
+                                                Inicio2TrailRoute.SinalMovel -> onAbrirSinalCanaisOverlay()
                                             }
                                         },
                                     )

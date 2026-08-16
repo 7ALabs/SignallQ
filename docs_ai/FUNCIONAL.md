@@ -185,12 +185,15 @@ persiste geração em recriação do produtor. Assim, recomposição e veredito 
 bloqueiam a próxima sessão.
 O `Job` proprietário também registra cleanup idempotente: cancelamento antes do primeiro dispatch
 publica `cancelado` e libera apenas a mesma reserva, sem afetar uma geração posterior.
-Ainda no modo Guided2, a Início projeta a trilha **Internet → equipamento → mesh opcional →
-Wi-Fi → este aparelho** a partir de `SnapshotRede`, `SnapshotScanWifi` e do
-`TopologiaRedeEngine`. O nó mesh só aparece para `NO_MESH` com confiança `ALTA`, sem conflito e
-com confirmação independente de roteador central; SSID igual, `SISTEMA_MESH_PROVAVEL` e confiança
-média/baixa nunca viram afirmação na Início. Sem permissão, durante scan, em erro ou offline a
-trilha permanece parcial e textual. Equipamento, Wi-Fi e aparelho reutilizam os overlays canônicos.
+Ainda no modo Guided2, a Início projeta trilhas próprias para Wi-Fi, rede móvel, Ethernet, offline
+e transporte ainda desconhecido a partir de `SnapshotRede`. Apenas a trilha Wi-Fi consulta
+`SnapshotScanWifi` e o `TopologiaRedeEngine`; scan anterior nunca produz mesh fora desse transporte.
+O nó mesh só aparece para `NO_MESH` com confiança `ALTA`, sem conflito **e** com confirmação
+independente de roteador central; SSID igual, BSSID único com OUI de fabricante mesh,
+`SISTEMA_MESH_PROVAVEL` e confiança média/baixa nunca viram afirmação na Início. Sem permissão,
+durante scan, em erro ou offline a trilha permanece parcial e textual. Equipamento, Wi-Fi e sinal
+móvel reutilizam overlays canônicos somente quando aplicáveis. Como não existe detalhe dedicado do
+aparelho local, “Este aparelho” permanece textual nesta fatia em vez de abrir a lista geral da LAN.
 Não há grade técnica, catálogo de ferramentas, diagnóstico completo nem placement AdMob na Início.
 A issue #1601 continua responsável pelo acesso direto ao resultado persistido exato; esta fatia
 somente apresenta sua existência sem duplicar essa navegação.
