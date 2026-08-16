@@ -32,6 +32,7 @@ internal data class Inicio2UiState(
     val conexao: Inicio2Conexao,
     val nomeConexao: String?,
     val analise: Inicio2Analise,
+    val geracaoDiagnostico: Long = 0L,
 )
 
 internal object Inicio2UiStateMapper {
@@ -53,8 +54,11 @@ internal object Inicio2UiStateMapper {
         val analise =
             when {
                 estadoSpeedtest == EstadoExecucaoSpeedtest.executando -> Inicio2Analise.Carregando
+                diagnostico.estado == EstadoDiagnostico.executando -> Inicio2Analise.Carregando
                 estadoSpeedtest == EstadoExecucaoSpeedtest.erro ->
                     Inicio2Analise.Interrompida("A análise foi interrompida. Seu contexto foi preservado.")
+                diagnostico.estado == EstadoDiagnostico.cancelado ->
+                    Inicio2Analise.Interrompida("A análise foi cancelada. Você pode tentar novamente.")
                 diagnostico.estado == EstadoDiagnostico.erro ->
                     Inicio2Analise.Interrompida(diagnostico.erroMensagem ?: "Não foi possível concluir a análise.")
                 diagnostico.estado == EstadoDiagnostico.concluido && relatorio != null ->
@@ -67,6 +71,7 @@ internal object Inicio2UiStateMapper {
             conexao = conexao,
             nomeConexao = snapshotRede.wifiLinkSnapshot?.ssid?.ifBlank { null },
             analise = analise,
+            geracaoDiagnostico = diagnostico.geracao,
         )
     }
 }

@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasStateDescription
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -87,12 +88,93 @@ class Inicio2ScreenTest {
         composeRule.onNode(hasStateDescription("Carregando")).assertIsNotEnabled()
         assertEquals(1, analyses)
 
-        state.value = state.value.copy(analise = Inicio2Analise.EstadoConhecido("Bom"))
+        state.value =
+            state.value.copy(
+                analise = Inicio2Analise.EstadoConhecido("Bom"),
+                geracaoDiagnostico = 1L,
+            )
         composeRule.waitForIdle()
         val novoCta = composeRule.onNodeWithText("Analisar minha conexão").assertIsEnabled()
         val novaClickAction = novoCta.fetchSemanticsNode().config[SemanticsActions.OnClick].action
         composeRule.runOnIdle { novaClickAction?.invoke() }
         assertEquals(2, analyses)
+    }
+
+    @Test
+    fun `mesmo veredito falha precoce e cancelamento liberam pela geracao`() {
+        var analyses = 0
+        val state =
+            mutableStateOf(
+                Inicio2UiState(
+                    Inicio2Conexao.Wifi,
+                    "Casa",
+                    Inicio2Analise.EstadoConhecido("Bom"),
+                    geracaoDiagnostico = 4L,
+                ),
+            )
+        composeRule.setContent {
+            SignallQTheme {
+                Inicio2Screen(
+                    uiState = state.value,
+                    onAnalisarConexao = { analyses++ },
+                    onAbrirPerfil = {},
+                )
+            }
+        }
+
+        fun clicarCta() {
+            val action =
+                composeRule
+                    .onNodeWithText("Analisar minha conexão")
+                    .fetchSemanticsNode()
+                    .config[SemanticsActions.OnClick]
+                    .action
+            composeRule.runOnIdle { action?.invoke() }
+        }
+
+        clicarCta()
+        state.value = state.value.copy(geracaoDiagnostico = 5L)
+        composeRule.waitForIdle()
+        clicarCta()
+        assertEquals(2, analyses)
+
+        state.value =
+            state.value.copy(
+                analise = Inicio2Analise.Interrompida("Falha antes de coletar dados."),
+                geracaoDiagnostico = 6L,
+            )
+        composeRule.waitForIdle()
+        clicarCta()
+        assertEquals(3, analyses)
+
+        state.value =
+            state.value.copy(
+                analise = Inicio2Analise.Interrompida("A análise foi cancelada."),
+                geracaoDiagnostico = 7L,
+            )
+        composeRule.waitForIdle()
+        clicarCta()
+        assertEquals(4, analyses)
+    }
+
+    @Test
+    fun `restauracao durante solicitacao preserva single flight`() {
+        var analyses = 0
+        val restorationTester = StateRestorationTester(composeRule)
+        restorationTester.setContent {
+            SignallQTheme {
+                Inicio2Screen(
+                    uiState = Inicio2UiState(Inicio2Conexao.Wifi, "Casa", Inicio2Analise.SemAnalise),
+                    onAnalisarConexao = { analyses++ },
+                    onAbrirPerfil = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Analisar minha conexão").performClick()
+        restorationTester.emulateSavedInstanceStateRestore()
+        composeRule.onNode(hasStateDescription("Carregando")).assertIsNotEnabled()
+        assertEquals(1, analyses)
     }
 
     @Test

@@ -176,6 +176,9 @@ resultado anterior, carregamento e análise interrompida; e exatamente um CTA **
 Os timestamps e o contexto de rede disponíveis não possuem contrato canônico de validade para o
 veredito da Início, portanto essa superfície não classifica resultados como válidos ou expirados. O CTA
 reutiliza `onIniciarDiagnostico`, portanto mantém motor e analytics existentes sem evento paralelo.
+O ciclo single-flight vem do `DiagnosticOrchestrator`: cada solicitação aceita recebe uma geração
+monotônica e termina como concluída, erro ou cancelada, inclusive quando a preparação do input falha.
+Assim, recomposição, restauração e um veredito repetido não duplicam nem bloqueiam a próxima sessão.
 Não há grade técnica, catálogo de ferramentas, diagnóstico completo nem placement AdMob na Início.
 A issue #1601 continua responsável pelo acesso direto ao resultado persistido exato; esta fatia
 somente apresenta sua existência sem duplicar essa navegação.

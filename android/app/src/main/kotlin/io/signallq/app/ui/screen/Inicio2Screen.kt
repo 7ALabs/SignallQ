@@ -43,9 +43,11 @@ internal fun Inicio2Screen(
 ) {
     val c = LocalLkTokens.current
     var solicitacaoEmAndamento by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(uiState.analise) {
+    var geracaoAoSolicitar by rememberSaveable { mutableStateOf(0L) }
+    LaunchedEffect(uiState.geracaoDiagnostico, uiState.analise) {
         if (
             solicitacaoEmAndamento &&
+            uiState.geracaoDiagnostico > geracaoAoSolicitar &&
             (uiState.analise is Inicio2Analise.EstadoConhecido || uiState.analise is Inicio2Analise.Interrompida)
         ) {
             solicitacaoEmAndamento = false
@@ -93,6 +95,7 @@ internal fun Inicio2Screen(
                     onClick = {
                         if (!solicitacaoEmAndamento) {
                             solicitacaoEmAndamento = true
+                            geracaoAoSolicitar = uiState.geracaoDiagnostico
                             onAnalisarConexao()
                         }
                     },

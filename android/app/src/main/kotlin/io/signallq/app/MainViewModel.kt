@@ -1322,28 +1322,28 @@ class MainViewModel
 
         fun iniciarDiagnostico() {
             viewModelScope.launch {
-                // Acao explicita do usuario ("Analisar problema") — vale coletar a
-                // topologia agora se ainda nao rodou nesta sessao (SIG-279).
-                if (!topologiaColetada) {
-                    topologiaColetada = true
-                    coletarTopologiaRede()
-                }
-                val internetInput = speedtestResultToInternetInput()
-                val executionIdAtual = executionIdAtual()
-                val wifiSnapshot = monitorRede.snapshotFlow.value.wifiLinkSnapshot
-                val wifiInput =
-                    wifiSnapshot?.let { ws ->
-                        WifiDiagnosticInput(
-                            rssiDbm = ws.rssiDbm,
-                            linkSpeedMbps = ws.linkSpeedMbps,
-                            frequenciaMhz = ws.frequenciaMhz,
-                            wifiStandard = ws.padraoWifi,
-                            dispositivosNaRede =
-                                scannerDispositivos.snapshotFlow.value.dispositivos.size
-                                    .takeIf { it > 0 },
-                        )
+                diagnosticOrchestrator.executarPreparando {
+                    // Acao explicita do usuario ("Analisar problema") — vale coletar a
+                    // topologia agora se ainda nao rodou nesta sessao (SIG-279).
+                    if (!topologiaColetada) {
+                        topologiaColetada = true
+                        coletarTopologiaRede()
                     }
-                diagnosticOrchestrator.executar(
+                    val internetInput = speedtestResultToInternetInput()
+                    val executionIdAtual = executionIdAtual()
+                    val wifiSnapshot = monitorRede.snapshotFlow.value.wifiLinkSnapshot
+                    val wifiInput =
+                        wifiSnapshot?.let { ws ->
+                            WifiDiagnosticInput(
+                                rssiDbm = ws.rssiDbm,
+                                linkSpeedMbps = ws.linkSpeedMbps,
+                                frequenciaMhz = ws.frequenciaMhz,
+                                wifiStandard = ws.padraoWifi,
+                                dispositivosNaRede =
+                                    scannerDispositivos.snapshotFlow.value.dispositivos.size
+                                        .takeIf { it > 0 },
+                            )
+                        }
                     DiagnosticInput(
                         connectionType =
                             monitorRede.snapshotFlow.value.estadoConexao
@@ -1356,8 +1356,8 @@ class MainViewModel
                         velocidadeContratadaMbps = montarVelocidadeContratadaMbps(),
                         natStatus = natStatusAtual,
                         executionId = executionIdAtual,
-                    ),
-                )
+                    )
+                }
             }
         }
 

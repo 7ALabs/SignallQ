@@ -42,6 +42,11 @@ class Inicio2UiStateTest {
     fun `execucao e erro preservam loading e interrompido`() {
         assertTrue(map(rede(EstadoConexao.wifi), idle, estado = EstadoExecucaoSpeedtest.executando).analise is Inicio2Analise.Carregando)
         assertTrue(map(rede(EstadoConexao.wifi), idle, estado = EstadoExecucaoSpeedtest.erro).analise is Inicio2Analise.Interrompida)
+        val executando = SnapshotDiagnostico(EstadoDiagnostico.executando, null, null, geracao = 8L)
+        assertTrue(map(rede(EstadoConexao.wifi), executando).analise is Inicio2Analise.Carregando)
+        assertEquals(8L, map(rede(EstadoConexao.wifi), executando).geracaoDiagnostico)
+        val cancelado = SnapshotDiagnostico(EstadoDiagnostico.cancelado, null, null, geracao = 9L)
+        assertTrue(map(rede(EstadoConexao.wifi), cancelado).analise is Inicio2Analise.Interrompida)
     }
 
     @Test

@@ -11,10 +11,13 @@ import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.NoOpAnalyticsHelper
 import io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository
-import timber.log.Timber
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import timber.log.Timber
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * [remoteDiagnosticRepository] — GH#969 ligou o motor remoto (worker
@@ -41,6 +44,9 @@ class DiagnosticOrchestrator(
     )
 
     val snapshotFlow: StateFlow<SnapshotDiagnostico> = mutableSnapshotFlow.asStateFlow()
+
+    private val emExecucao = AtomicBoolean(false)
+    private val proximaGeracao = AtomicLong(0L)
 
     suspend fun executar(
         internetInput: InternetDiagnosticInput?,
@@ -70,56 +76,89 @@ class DiagnosticOrchestrator(
     suspend fun executar(
         input: DiagnosticInput,
         enabledAreas: Set<DiagnosticArea> = DiagnosticArea.entries.toSet(),
+    ) = executarPreparando(enabledAreas) { input }
+
+    /**
+     * Inclui a preparação do input no ciclo canônico e rejeita solicitações concorrentes.
+     * Retorna `false` quando já existe uma execução em andamento.
+     */
+    suspend fun executarPreparando(
+        enabledAreas: Set<DiagnosticArea> = DiagnosticArea.entries.toSet(),
+        prepararInput: suspend () -> DiagnosticInput,
+    ): Boolean {
+        if (!emExecucao.compareAndSet(false, true)) return false
+        val geracao = proximaGeracao.incrementAndGet()
+        mutableSnapshotFlow.value =
+            SnapshotDiagnostico(EstadoDiagnostico.executando, null, null, geracao = geracao)
+        return try {
+            executarProtegido(prepararInput(), enabledAreas, geracao)
+            true
+        } catch (cancelamento: CancellationException) {
+            mutableSnapshotFlow.value =
+                SnapshotDiagnostico(EstadoDiagnostico.cancelado, null, null, geracao = geracao)
+            throw cancelamento
+        } catch (t: Throwable) {
+            Timber.e(t, "erro no diagnostico: ${t.message}")
+            mutableSnapshotFlow.value =
+                SnapshotDiagnostico(
+                    estado = EstadoDiagnostico.erro,
+                    relatorio = null,
+                    erroMensagem = t.message ?: "erroDiagnostico",
+                    geracao = geracao,
+                )
+            true
+        } finally {
+            emExecucao.set(false)
+        }
+    }
+
+    private suspend fun executarProtegido(
+        input: DiagnosticInput,
+        enabledAreas: Set<DiagnosticArea>,
+        geracao: Long,
     ) {
         analyticsHelper.registrarDiagIniciado(
             tipoConexao = input.connectionType.name,
             areasHabilitadas = enabledAreas.joinToString(",") { it.name.lowercase() },
             temSpeedtest = input.internet != null,
         )
-        try {
-            Timber.i(
-                "iniciando diagnostico tipo=${input.connectionType} dl=${input.internet?.downloadMbps} ul=${input.internet?.uploadMbps} lat=${input.internet?.latencyMs} rssi=${input.wifi?.rssiDbm} fibra=${input.fibra?.isUp} dnsMs=${input.dns?.currentDnsLatencyMs}",
-            )
+        Timber.i(
+            "iniciando diagnostico tipo=${input.connectionType} dl=${input.internet?.downloadMbps} ul=${input.internet?.uploadMbps} lat=${input.internet?.latencyMs} rssi=${input.wifi?.rssiDbm} fibra=${input.fibra?.isUp} dnsMs=${input.dns?.currentDnsLatencyMs}",
+        )
 
-            val relatorio = remoteDiagnosticRepository.evaluateShadow(input, enabledAreas)
+        val relatorio = remoteDiagnosticRepository.evaluateShadow(input, enabledAreas)
 
-            Timber.i(
-                "diagnostico concluido decisao=${relatorio.decisao.id}(${relatorio.decisao.status}) " +
-                    "wifi=${relatorio.wifiResultados.map { "${it.id}:${it.status}" }} " +
-                    "internet=${relatorio.internetResultados.map { "${it.id}:${it.status}" }} " +
-                    "mobile=${relatorio.mobileResultados.map { "${it.id}:${it.status}" }} " +
-                    "fibra=${relatorio.fibraResultados.map { "${it.id}:${it.status}" }} " +
-                    "dns=${relatorio.dnsResultados.map { "${it.id}:${it.status}" }} " +
-                    "hist=${relatorio.historicoResultados.map { "${it.id}:${it.status}" }}",
-            )
+        Timber.i(
+            "diagnostico concluido decisao=${relatorio.decisao.id}(${relatorio.decisao.status}) " +
+                "wifi=${relatorio.wifiResultados.map { "${it.id}:${it.status}" }} " +
+                "internet=${relatorio.internetResultados.map { "${it.id}:${it.status}" }} " +
+                "mobile=${relatorio.mobileResultados.map { "${it.id}:${it.status}" }} " +
+                "fibra=${relatorio.fibraResultados.map { "${it.id}:${it.status}" }} " +
+                "dns=${relatorio.dnsResultados.map { "${it.id}:${it.status}" }} " +
+                "hist=${relatorio.historicoResultados.map { "${it.id}:${it.status}" }}",
+        )
 
-            mutableSnapshotFlow.value = SnapshotDiagnostico(
+        mutableSnapshotFlow.value =
+            SnapshotDiagnostico(
                 estado = EstadoDiagnostico.concluido,
                 relatorio = relatorio,
                 erroMensagem = null,
                 input = input,
+                geracao = geracao,
             )
 
-            val todosResultados =
-                relatorio.wifiResultados + relatorio.internetResultados + relatorio.mobileResultados +
-                    relatorio.fibraResultados + relatorio.dnsResultados + relatorio.historicoResultados +
-                    relatorio.wifiCanalResultados + relatorio.redeResultados
-            analyticsHelper.registrarDiagConcluido(
-                tipoConexao = input.connectionType.name,
-                statusGeral = relatorio.decisao.status.name,
-                decisaoId = relatorio.decisao.id,
-                scoreConexao = relatorio.scoreConexao.toLong(),
-                confianca = relatorio.confianca,
-                nResultadosCriticos = todosResultados.count { it.status == DiagnosticStatus.critical }.toLong(),
-                nResultadosAttention = todosResultados.count { it.status == DiagnosticStatus.attention }.toLong(),
-            )
-        } catch (t: Throwable) {
-            Timber.e(t, "erro no diagnostico: ${t.message}")
-            mutableSnapshotFlow.value = SnapshotDiagnostico(
-                estado = EstadoDiagnostico.erro,
-                relatorio = null,
-                erroMensagem = t.message ?: "erroDiagnostico",
-            )
-        }
+        val todosResultados =
+            relatorio.wifiResultados + relatorio.internetResultados + relatorio.mobileResultados +
+                relatorio.fibraResultados + relatorio.dnsResultados + relatorio.historicoResultados +
+                relatorio.wifiCanalResultados + relatorio.redeResultados
+        analyticsHelper.registrarDiagConcluido(
+            tipoConexao = input.connectionType.name,
+            statusGeral = relatorio.decisao.status.name,
+            decisaoId = relatorio.decisao.id,
+            scoreConexao = relatorio.scoreConexao.toLong(),
+            confianca = relatorio.confianca,
+            nResultadosCriticos = todosResultados.count { it.status == DiagnosticStatus.critical }.toLong(),
+            nResultadosAttention = todosResultados.count { it.status == DiagnosticStatus.attention }.toLong(),
+        )
     }
 }
