@@ -282,6 +282,36 @@ kotlin {
     }
 }
 
+// GH#1684 -- expoe os diretorios de .class de teste como system property, so para
+// permitir que SuiteEmbaralhadaTest descubra e reordene as classes em runtime (Gradle
+// + JUnit4 sem useJUnitPlatform() nao tem flag nativa de embaralhamento de ordem de
+// classe). Custo zero em builds normais: so grava uma string, nao muda comportamento
+// a menos que a suite seja explicitamente selecionada.
+//
+// A propria SuiteEmbaralhadaTest e excluida do run PADRAO: sem isso, o Gradle a descobre
+// como qualquer outra classe de teste e ela roda a suite inteira DE NOVO por dentro
+// (dobraria ~580 testes pra ~1160 em todo `test`/CI). `TestFilter` publico do Gradle nao
+// expoe os padroes de `--tests` da linha de comando (so `includePatterns`/`excludePatterns`
+// configurados no build) -- um `excludeTestsMatching` incondicional bloquearia tambem a
+// selecao explicita via `--tests`, porque include (CLI) e exclude (build) se combinam com
+// AND, sem precedencia automatica do CLI. Por isso o gate usa uma property Gradle dedicada:
+// `-PsuiteEmbaralhada` precisa vir junto do `--tests` pra rodar a suite de verdade.
+tasks.withType<Test>().configureEach {
+    // Lido em tempo de CONFIGURACAO (nao dentro do doFirst): `project.hasProperty(...)` em tempo
+    // de execucao quebra com configuration cache ("Invocation of 'Task.project' by task ... at
+    // execution time is unsupported with the configuration cache").
+    val suiteEmbaralhadaSolicitada = project.hasProperty("suiteEmbaralhada")
+    doFirst {
+        systemProperty(
+            "suite.embaralhada.classesDirs",
+            testClassesDirs.files.joinToString(File.pathSeparator) { it.absolutePath },
+        )
+        if (!suiteEmbaralhadaSolicitada) {
+            filter.excludeTestsMatching("io.signallq.app.SuiteEmbaralhadaTest")
+        }
+    }
+}
+
 kapt {
     correctErrorTypes = true
 }

@@ -18,6 +18,7 @@ import io.signallq.app.notificacao.SignallQNotificationHelper
 import io.signallq.app.speedtest.SpeedtestPersistenceCoordinator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -126,5 +127,16 @@ class SignallQApplication :
                 firebaseAnalytics.setAnalyticsCollectionEnabled(consentimento == true)
             }
         }
+    }
+
+    // GH#1684 -- onTerminate() nao roda em producao real (a doc da API e explicita: e so pra
+    // ambiente de teste/emulador), mas o Robolectric CHAMA isso ao desmontar a Application
+    // simulada entre metodos de teste do :app. Cancelar aqui interrompe o quanto antes as
+    // coroutines soltas em applicationScope (agendamentos, flags, migracao de credenciais, o
+    // collect infinito do consentimento LGPD) em vez de deixa-las rodando no Dispatchers.Default
+    // compartilhado por toda a JVM do worker, competindo com o proximo teste.
+    override fun onTerminate() {
+        applicationScope.cancel()
+        super.onTerminate()
     }
 }
