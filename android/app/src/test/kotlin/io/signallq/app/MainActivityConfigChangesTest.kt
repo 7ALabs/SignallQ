@@ -48,6 +48,7 @@ class MainActivityConfigChangesTest {
                 "locale (GH#1690 -- troca de idioma)" to ActivityInfo.CONFIG_LOCALE,
                 "fontScale (GH#1690 -- tamanho de fonte do sistema)" to ActivityInfo.CONFIG_FONT_SCALE,
                 "density (GH#1690 -- densidade de tela)" to ActivityInfo.CONFIG_DENSITY,
+                "layoutDirection (GH#1690 -- direcao de layout)" to ActivityInfo.CONFIG_LAYOUT_DIRECTION,
                 // Ja declarados antes do GH#1690 -- preservados para nao reintroduzir
                 // recriacao destrutiva em rotacao/redimensionamento/teclado.
                 "orientation" to ActivityInfo.CONFIG_ORIENTATION,
