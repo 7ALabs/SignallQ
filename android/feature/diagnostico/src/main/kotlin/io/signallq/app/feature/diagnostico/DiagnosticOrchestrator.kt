@@ -65,6 +65,24 @@ class DiagnosticOrchestrator(
             reserva
         }
 
+    /**
+     * Libera uma reserva cujo Job terminou antes ou durante a execução. Idempotente:
+     * nunca altera uma geração posterior nem publica um segundo terminal.
+     */
+    fun cancelarReserva(reserva: ReservaDiagnostico): Boolean =
+        synchronized(gate) {
+            if (reservaAtiva !== reserva) return@synchronized false
+            reservaAtiva = null
+            mutableSnapshotFlow.value =
+                SnapshotDiagnostico(
+                    estado = EstadoDiagnostico.cancelado,
+                    relatorio = null,
+                    erroMensagem = null,
+                    geracao = reserva.geracao,
+                )
+            true
+        }
+
     suspend fun executar(
         internetInput: InternetDiagnosticInput?,
         wifiInput: WifiDiagnosticInput?,

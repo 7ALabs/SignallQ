@@ -19,6 +19,7 @@ import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -253,5 +254,23 @@ class DiagnosticOrchestratorTest {
 
         assertEquals(Unit, retornoInput)
         assertEquals(Unit, retornoLegado)
+    }
+
+    @Test
+    fun `cancel before start libera somente a reserva proprietaria e cleanup e idempotente`() {
+        val orchestrator = DiagnosticOrchestrator()
+        val primeira = requireNotNull(orchestrator.tentarReservar())
+
+        assertTrue(orchestrator.cancelarReserva(primeira))
+        assertEquals(EstadoDiagnostico.cancelado, orchestrator.snapshotFlow.value.estado)
+        assertEquals(primeira.geracao, orchestrator.snapshotFlow.value.geracao)
+
+        val segunda = requireNotNull(orchestrator.tentarReservar())
+        assertTrue(segunda.geracao > primeira.geracao)
+        assertFalse(orchestrator.cancelarReserva(primeira))
+        assertFalse(orchestrator.cancelarReserva(primeira))
+        assertEquals(EstadoDiagnostico.executando, orchestrator.snapshotFlow.value.estado)
+        assertEquals(segunda.geracao, orchestrator.snapshotFlow.value.geracao)
+        assertTrue(orchestrator.cancelarReserva(segunda))
     }
 }

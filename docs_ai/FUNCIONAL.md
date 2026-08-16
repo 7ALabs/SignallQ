@@ -183,6 +183,8 @@ Pulse consome o resultado tipado da própria geração e abandona uma solicitaç
 terminal global. A UI mantém apenas uma guarda transitória até observar a aceitação canônica; ela não
 persiste geração em recriação do produtor. Assim, recomposição e veredito repetido não duplicam nem
 bloqueiam a próxima sessão.
+O `Job` proprietário também registra cleanup idempotente: cancelamento antes do primeiro dispatch
+publica `cancelado` e libera apenas a mesma reserva, sem afetar uma geração posterior.
 Não há grade técnica, catálogo de ferramentas, diagnóstico completo nem placement AdMob na Início.
 A issue #1601 continua responsável pelo acesso direto ao resultado persistido exato; esta fatia
 somente apresenta sua existência sem duplicar essa navegação.

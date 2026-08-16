@@ -1326,42 +1326,48 @@ class MainViewModel
 
         fun solicitarDiagnostico(): Long? {
             val reserva = diagnosticOrchestrator.tentarReservar() ?: return null
-            viewModelScope.launch {
-                diagnosticOrchestrator.executarReservada(reserva) {
-                    // Acao explicita do usuario ("Analisar problema") — vale coletar a
-                    // topologia agora se ainda nao rodou nesta sessao (SIG-279).
-                    if (!topologiaColetada) {
-                        topologiaColetada = true
-                        coletarTopologiaRede()
-                    }
-                    val internetInput = speedtestResultToInternetInput()
-                    val executionIdAtual = executionIdAtual()
-                    val wifiSnapshot = monitorRede.snapshotFlow.value.wifiLinkSnapshot
-                    val wifiInput =
-                        wifiSnapshot?.let { ws ->
-                            WifiDiagnosticInput(
-                                rssiDbm = ws.rssiDbm,
-                                linkSpeedMbps = ws.linkSpeedMbps,
-                                frequenciaMhz = ws.frequenciaMhz,
-                                wifiStandard = ws.padraoWifi,
-                                dispositivosNaRede =
-                                    scannerDispositivos.snapshotFlow.value.dispositivos.size
-                                        .takeIf { it > 0 },
-                            )
+            val job =
+                viewModelScope.launch {
+                    diagnosticOrchestrator.executarReservada(reserva) {
+                        // Acao explicita do usuario ("Analisar problema") — vale coletar a
+                        // topologia agora se ainda nao rodou nesta sessao (SIG-279).
+                        if (!topologiaColetada) {
+                            topologiaColetada = true
+                            coletarTopologiaRede()
                         }
-                    DiagnosticInput(
-                        connectionType =
-                            monitorRede.snapshotFlow.value.estadoConexao
-                                .paraConnectionType(),
-                        internet = internetInput,
-                        wifi = wifiInput,
-                        mobile = montarMobileInput(),
-                        dns = montarDnsInput(),
-                        wifiScan = montarWifiScanInput(),
-                        velocidadeContratadaMbps = montarVelocidadeContratadaMbps(),
-                        natStatus = natStatusAtual,
-                        executionId = executionIdAtual,
-                    )
+                        val internetInput = speedtestResultToInternetInput()
+                        val executionIdAtual = executionIdAtual()
+                        val wifiSnapshot = monitorRede.snapshotFlow.value.wifiLinkSnapshot
+                        val wifiInput =
+                            wifiSnapshot?.let { ws ->
+                                WifiDiagnosticInput(
+                                    rssiDbm = ws.rssiDbm,
+                                    linkSpeedMbps = ws.linkSpeedMbps,
+                                    frequenciaMhz = ws.frequenciaMhz,
+                                    wifiStandard = ws.padraoWifi,
+                                    dispositivosNaRede =
+                                        scannerDispositivos.snapshotFlow.value.dispositivos.size
+                                            .takeIf { it > 0 },
+                                )
+                            }
+                        DiagnosticInput(
+                            connectionType =
+                                monitorRede.snapshotFlow.value.estadoConexao
+                                    .paraConnectionType(),
+                            internet = internetInput,
+                            wifi = wifiInput,
+                            mobile = montarMobileInput(),
+                            dns = montarDnsInput(),
+                            wifiScan = montarWifiScanInput(),
+                            velocidadeContratadaMbps = montarVelocidadeContratadaMbps(),
+                            natStatus = natStatusAtual,
+                            executionId = executionIdAtual,
+                        )
+                    }
+                }
+            job.invokeOnCompletion { causa ->
+                if (causa is CancellationException) {
+                    diagnosticOrchestrator.cancelarReserva(reserva)
                 }
             }
             return reserva.geracao
