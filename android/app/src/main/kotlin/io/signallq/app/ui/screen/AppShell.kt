@@ -700,6 +700,19 @@ fun AppShell(
                                             ),
                                         onAnalisarConexao = onSolicitarDiagnostico,
                                         onAbrirPerfil = onAbrirPerfilOverlay,
+                                        connectionTrail =
+                                            Inicio2ConnectionTrailMapper.map(
+                                                snapshotRede = snapshotRede,
+                                                snapshotWifi = snapshotWifi,
+                                                temPermissaoLocalizacao = temPermissaoLocalizacao,
+                                            ),
+                                        onAbrirTrailRoute = { route ->
+                                            when (route) {
+                                                Inicio2TrailRoute.Equipamento -> onAbrirEquipamentoInternetOverlay()
+                                                Inicio2TrailRoute.Wifi -> onAbrirSinalWifiOverlay()
+                                                Inicio2TrailRoute.Dispositivos -> onAbrirDispositivosOverlay()
+                                            }
+                                        },
                                     )
                                 } else {
                                     HomeScreen(
