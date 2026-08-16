@@ -5,20 +5,31 @@ import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.network.AssistAbandonado
 import io.signallq.app.core.network.AssistObjetivoSelecionado
 import io.signallq.app.core.network.AssistPerguntaRespondida
+import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnapshot
+import io.signallq.app.feature.dns.SnapshotBenchmarkDns
 import io.signallq.app.feature.speedtest.ResultadoSpeedtest
 
 /**
  * Ponto de extensão de overlays do [AppShell] (issue #1695, épico #1647).
  *
  * `AppShell.kt` cresceu em 5 das últimas 6 fatias do épico mesmo com cada uma cumprindo a
- * letra da regra de extração (higiene §4.3): a fiação de push/pop de overlay novo sempre
- * voltava para dentro do arquivo central. Esta issue generaliza o padrão que
- * `AppShellAssistOverlay.kt` (issue #1656) já provou — overlay com Composable e callbacks
- * próprios, em arquivo dedicado — para todo overlay do [AppShellOverlay.Companion] tocado
- * aqui, e cria o único ponto de agregação: este arquivo.
+ * letra da regra de extração (higiene §4.3). Mas medir de onde vieram as ~226 linhas que essas
+ * 5 fatias devolveram ao arquivo mostra que os blocos `AnimatedVisibility` de overlay — a única
+ * coisa que este registro resolve — respondem por só ~30-40 linhas (~15%). O resto (100% de
+ * wiring de root content em duas fatias, lambda de regra de negócio numa terceira, estado
+ * hoisted numa quarta) não passa por aqui e continua sendo risco de crescimento do arquivo — ver
+ * `docs_ai/technical/appshell-overlay-registry.md`, seção "O que este registro não resolve".
+ * Dentro do que resolve, generaliza o padrão que `AppShellAssistOverlay.kt` (issue #1656) já
+ * provou — overlay com Composable e callbacks próprios, em arquivo dedicado — para os demais
+ * overlays do [AppShellOverlay.Companion] migrados aqui, e cria o único ponto de agregação: este
+ * arquivo.
  *
- * ## Como plugar um overlay/rota novo SEM editar `AppShell.kt`
+ * ## Como plugar um overlay novo quase sempre sem editar `AppShell.kt`
+ *
+ * Cobre apenas overlays empilhados via [AppShellOverlay]/`overlayStack`. Não cobre rota — a
+ * navegação entre as raízes (tabs) segue com `when`/`Screen(` inline em `AppShell.kt`, fora do
+ * escopo deste registro.
  *
  * 1. adicione o valor em `AppShellOverlay` (`AppShellNavigation.kt`) — continua sendo a
  *    ÚNICA fonte de verdade de quais overlays existem e como a pilha por raiz
@@ -29,22 +40,23 @@ import io.signallq.app.feature.speedtest.ResultadoSpeedtest
  *    punhado de callbacks/dados estreitos, exatamente como `AppShellAssistOverlay.kt`;
  * 3. adicione uma chamada para ele dentro de [AppShellOverlayRegistry] abaixo — a ordem de
  *    declaração aqui NÃO decide o z-index visual (isso é [rememberOverlayZIndex], baseado na
- *    posição real em `overlayStack`; ver KDoc dela em `AppShellAssistOverlay.kt`), então a
- *    entrada nova pode ir em qualquer lugar da lista;
- * 4. se o overlay precisar de um dado que `AppShell.kt` já expõe (os grupos `AppShellXxxState`
- *    de `AppShellState.kt`, `overlayStack`, `navigator` etc.), repasse-o como parâmetro novo
- *    de [AppShellOverlayRegistry] e no único call site em `AppShell.kt` — uma linha alterada
- *    num arquivo que só assembla dependências, não a reforma de sempre.
+ *    posição real em `overlayStack`; ver KDoc dela em `AppShell.kt`), então a entrada nova pode
+ *    ir em qualquer lugar da lista;
+ * 4. se o overlay precisar de um dado que `AppShell.kt` **ainda não expõe** (não está em nenhum
+ *    dos grupos `AppShellXxxState` de `AppShellState.kt`, `overlayStack`, `navigator` etc.),
+ *    esse dado precisa circular por `AppShell.kt` primeiro — repasse-o como parâmetro novo de
+ *    [AppShellOverlayRegistry] e no único call site em `AppShell.kt`. Nesse caso o arquivo
+ *    central muda uma linha; se o overlay só precisa do que já está exposto, não muda nada.
  *
  * Overlays com estado hoisted fora da pilha (`showMonitoramentoSheet`,
  * `showEquipamentoCredenciaisSheet` etc. — sheets sem back-stack) ficam fora deste registro por
  * enquanto; migrá-los é trabalho futuro das 17 fatias restantes, não escopo desta issue.
  *
- * Migrados nesta issue (prova de conceito, 6 overlays): [AppShellOverlay.Assist] (rewire do
- * que #1656 já extraiu), [AppShellOverlay.Termos], [AppShellOverlay.Novidades],
- * [AppShellOverlay.Privacidade], [AppShellOverlay.DetalhesTecnicos], [AppShellOverlay.SinalWifi]
- * e [AppShellOverlay.Ping]. Os demais overlays (Ajustes, Perfil, Ferramentas, Dispositivos,
- * Fibra/EquipamentoInternet, Laudo, Dns, SinalCanais, ResultadoVelocidade, DiagnosticoGuiado,
+ * Migrados nesta issue (7 overlays): [AppShellOverlay.Assist] (rewire do que #1656 já extraiu),
+ * [AppShellOverlay.Termos], [AppShellOverlay.Novidades], [AppShellOverlay.Privacidade],
+ * [AppShellOverlay.DetalhesTecnicos], [AppShellOverlay.SinalWifi], [AppShellOverlay.Ping] e
+ * [AppShellOverlay.Dns]. Os demais overlays (Ajustes, Perfil, Ferramentas, Dispositivos,
+ * Fibra/EquipamentoInternet, Laudo, SinalCanais, ResultadoVelocidade, DiagnosticoGuiado,
  * ModoGamer) continuam inline em `AppShell.kt` — migração de cada um é responsabilidade de
  * quem tocar essa área numa fatia futura (ver `docs_ai/technical/appshell-overlay-registry.md`).
  */
@@ -68,6 +80,11 @@ internal fun AppShellOverlayRegistry(
     temPermissaoLocalizacao: Boolean,
     localizacaoBloqueadaPermanentemente: Boolean,
     onSolicitarPermissaoLocalizacao: () -> Unit,
+    // Dns — benchmark de resolvedor (GH#933, Fase 4).
+    snapshotDns: SnapshotBenchmarkDns,
+    dnsResolverIp: String?,
+    snapshotRede: SnapshotRede,
+    onIniciarBenchmarkDns: () -> Unit,
 ) {
     AppShellAssistOverlay(
         overlayStack = overlayStack,
@@ -93,4 +110,11 @@ internal fun AppShellOverlayRegistry(
         onSolicitarPermissaoLocalizacao = onSolicitarPermissaoLocalizacao,
     )
     AppShellPingOverlay(overlayStack = overlayStack)
+    AppShellDnsOverlay(
+        overlayStack = overlayStack,
+        snapshotDns = snapshotDns,
+        dnsResolverIp = dnsResolverIp,
+        snapshotRede = snapshotRede,
+        onIniciarBenchmark = onIniciarBenchmarkDns,
+    )
 }

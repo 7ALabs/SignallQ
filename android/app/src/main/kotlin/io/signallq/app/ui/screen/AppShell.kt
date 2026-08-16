@@ -938,6 +938,10 @@ fun AppShell(
                 temPermissaoLocalizacao = temPermissaoLocalizacao,
                 localizacaoBloqueadaPermanentemente = localizacaoBloqueadaPermanentemente,
                 onSolicitarPermissaoLocalizacao = onSolicitarPermissaoLocalizacao,
+                snapshotDns = snapshotDns,
+                dnsResolverIp = dnsResolverIp,
+                snapshotRede = snapshotRede,
+                onIniciarBenchmarkDns = onDispararBenchmarkDns,
             )
 
             AnimatedVisibility(
@@ -1180,22 +1184,7 @@ fun AppShell(
                 )
             }
 
-            // GH#933 — Fase 4: DNS migrou de ModalBottomSheet (showDnsSheet) para tela cheia
-            // roteada — lógica de benchmark preservada, ver DnsScreen.kt.
-            AnimatedVisibility(
-                visible = Overlay.Dns in overlayStack,
-                modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.Dns, overlayStack)),
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-            ) {
-                DnsScreen(
-                    snapshotDns = snapshotDns,
-                    dnsResolverIp = dnsResolverIp,
-                    snapshotRede = snapshotRede,
-                    onIniciarBenchmark = onDispararBenchmarkDns,
-                    onVoltar = { overlayStack.remove(Overlay.Dns) },
-                )
-            }
+            // GH#1695 — Dns migrou para AppShellOverlayRegistry.
 
             // Issue #1487 — fluxo legado "Jogos" (GH#935, 5 etapas) removido: fundido no Modo
             // gamer (Overlay.ModoGamer acima), acessado pelo mesmo card "Jogos" em
