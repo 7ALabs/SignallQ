@@ -525,6 +525,9 @@ class MainActivity : ComponentActivity() {
                         },
                         operadorasDisponiveisHistorico = operadorasDisponiveisHistorico,
                         onScreenView = { screenName -> analyticsTracker.registrarScreenView(screenName) },
+                        onAssistObjetivo = analyticsTracker::registrarAssistObjetivo,
+                        onAssistResposta = analyticsTracker::registrarAssistResposta,
+                        onAssistAbandono = analyticsTracker::registrarAssistAbandono,
                         onCompartilharResultadoVelocidade = {
                             analyticsTracker.registrarFeatureUsada("speedtest_compartilhou")
                         },

@@ -40,4 +40,16 @@ interface AnalyticsTracker {
      * completa do catalogo nem qualquer dado do usuario.
      */
     fun registrarFeatureBloqueadaRemota(featureId: String)
+
+    /**
+     * Issue #1656 — funil do SignallQ Assist (objetivo/pergunta contextual/abandono).
+     * Sem corpo default: os outros métodos desta interface são todos abstratos, e um
+     * default `= Unit` aqui deixaria uma implementação futura perder estes 3 eventos em
+     * silêncio, sem erro de compilação (review da PR #1683).
+     */
+    fun registrarAssistObjetivo(evento: AssistObjetivoSelecionado)
+
+    fun registrarAssistResposta(evento: AssistPerguntaRespondida)
+
+    fun registrarAssistAbandono(evento: AssistAbandonado)
 }

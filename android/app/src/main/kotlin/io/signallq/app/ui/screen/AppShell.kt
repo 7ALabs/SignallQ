@@ -70,7 +70,11 @@ import io.signallq.app.bssidElegivelParaAutoconexao
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.datastore.ConnectionProfilePersistido
 import io.signallq.app.core.datastore.ModoGamerPadraoPersistido
+import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.diagnostico.topology.model.NatStatus
+import io.signallq.app.core.network.AssistAbandonado
+import io.signallq.app.core.network.AssistObjetivoSelecionado
+import io.signallq.app.core.network.AssistPerguntaRespondida
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.core.network.contracts.gateway.GatewayConnectionResultado
@@ -117,7 +121,7 @@ private typealias Overlay = AppShellOverlay
  * de continuar visível por cima até terminar.
  */
 @Composable
-private fun rememberOverlayZIndex(
+internal fun rememberOverlayZIndex(
     overlay: Overlay,
     overlayStack: List<Overlay>,
 ): Float {
@@ -237,6 +241,9 @@ fun AppShell(
     onFiltroOperadoraHistoricoChange: (String?) -> Unit = {},
     operadorasDisponiveisHistorico: List<String> = emptyList(),
     onScreenView: (screenName: String) -> Unit = {},
+    onAssistObjetivo: (AssistObjetivoSelecionado) -> Unit = {},
+    onAssistResposta: (AssistPerguntaRespondida) -> Unit = {},
+    onAssistAbandono: (AssistAbandonado) -> Unit = {},
     // GH#784 — etapa "compartilhou" do funil do teste de velocidade.
     onCompartilharResultadoVelocidade: () -> Unit = {},
     // GH#970 — resolucao de identidade/contato de operadora: nivel 1 (catalogo local,
@@ -568,6 +575,13 @@ fun AppShell(
     var showSobreAppSheet by remember { mutableStateOf(false) }
     var testeAtivo by remember { mutableStateOf(false) }
     var mostrarConcluido by remember { mutableStateOf(false) }
+    // Issue #1656 — objetivo/resposta escolhidos no SignallQ Assist (overlay pré-teste),
+    // repassados ao DiagnosticoGuiadoScreen quando o usuário abre o "plano existente"
+    // depois do resultado, pra não perguntar a mesma coisa duas vezes. Zerados sempre que
+    // o usuário sai desse fluxo pós-teste (voltar ao início ou testar de novo) — ver
+    // onTestarNovamente/onIrParaHome abaixo.
+    var assistObjetivoPreSelecionado by remember { mutableStateOf<ObjetivoDiagnostico?>(null) }
+    var assistRespostaPreSelecionada by remember { mutableStateOf<Int?>(null) }
     // GH#1223 RF-05 — resolução explícita do último resultado por timestamp, não implícita
     // por posição na lista (frágil se a ordenação da query/filtro mudar no futuro). A query
     // real (MedicaoDao.observarUltimas) já é ORDER BY timestampEpochMs DESC, então isso não
@@ -712,6 +726,9 @@ fun AppShell(
                                                 Inicio2TrailRoute.Wifi -> onAbrirSinalWifiOverlay()
                                                 Inicio2TrailRoute.SinalMovel -> onAbrirSinalCanaisOverlay()
                                             }
+                                        },
+                                        onAbrirAssist = {
+                                            if (Overlay.Assist !in overlayStack) overlayStack.add(Overlay.Assist)
                                         },
                                     )
                                 } else {
@@ -899,6 +916,18 @@ fun AppShell(
                 }
             }
 
+            AppShellAssistOverlay(
+                overlayStack = overlayStack,
+                onAssistObjetivo = onAssistObjetivo,
+                onAssistResposta = onAssistResposta,
+                onAssistAbandono = onAssistAbandono,
+                onPreSelecaoParaDiagnosticoGuiado = { objetivoSelecionado, respostaSelecionada ->
+                    assistObjetivoPreSelecionado = objetivoSelecionado
+                    assistRespostaPreSelecionada = respostaSelecionada
+                },
+                onSolicitarDiagnostico = onSolicitarDiagnostico,
+            )
+
             AnimatedVisibility(
                 visible = Overlay.ResultadoVelocidade in overlayStack && snapshotSpeedtest.resultado != null,
                 modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.ResultadoVelocidade, overlayStack)),
@@ -909,9 +938,16 @@ fun AppShell(
                     ResultadoVelocidadeScreen(
                         resultado = resultado,
                         snapshotDiagnostico = snapshotDiagnostico,
-                        onTestarNovamente = { overlayStack.remove(Overlay.ResultadoVelocidade) },
+                        onTestarNovamente = {
+                            overlayStack.remove(Overlay.ResultadoVelocidade)
+                            // Issue #1656 — novo teste invalida a pré-seleção do Assist do teste anterior.
+                            assistObjetivoPreSelecionado = null
+                            assistRespostaPreSelecionada = null
+                        },
                         onIrParaHome = {
                             overlayStack.remove(Overlay.ResultadoVelocidade)
+                            assistObjetivoPreSelecionado = null
+                            assistRespostaPreSelecionada = null
                             navigator.select(AppShellRoot.Home)
                         },
                         onVoltar = { overlayStack.remove(Overlay.ResultadoVelocidade) },
@@ -945,6 +981,8 @@ fun AppShell(
                     DiagnosticoGuiadoScreen(
                         input = snapshotDiagnostico.input,
                         resultadoValidoParaConclusao = resultado.status.liberaConclusaoCompleta,
+                        objetivoPreSelecionado = assistObjetivoPreSelecionado,
+                        respostaPreSelecionadaPasso0 = assistRespostaPreSelecionada,
                         analisadorState = analisadorState,
                         onAnalisarProblema = onAnalisarProblema,
                         onResetarAnalisador = onResetarAnalisador,
@@ -952,6 +990,8 @@ fun AppShell(
                         onIrParaHome = {
                             overlayStack.remove(Overlay.DiagnosticoGuiado)
                             overlayStack.remove(Overlay.ResultadoVelocidade)
+                            assistObjetivoPreSelecionado = null
+                            assistRespostaPreSelecionada = null
                             navigator.select(AppShellRoot.Home)
                         },
                         categoria = snapshotDiagnostico.relatorio?.decisao?.categoriaOrigem,

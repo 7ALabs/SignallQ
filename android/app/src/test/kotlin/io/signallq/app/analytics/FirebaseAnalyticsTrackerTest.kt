@@ -4,8 +4,14 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.google.firebase.analytics.FirebaseAnalytics
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import io.signallq.app.BuildConfig
+import io.signallq.app.core.network.AssistAbandonado
+import io.signallq.app.core.network.AssistEtapa
+import io.signallq.app.core.network.AssistObjetivoSelecionado
+import io.signallq.app.core.network.AssistOrigem
+import io.signallq.app.core.network.AssistPerguntaRespondida
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -61,5 +67,48 @@ class FirebaseAnalyticsTrackerTest {
         tracker.registrarFeatureBloqueadaRemota("wifi")
 
         verify { firebaseAnalytics.logEvent("feature_blocked_remote", any()) }
+    }
+
+    @Test
+    fun `eventos Assist usam apenas ids fechados e propriedades especificadas`() {
+        val objetivoBundle = slot<android.os.Bundle>()
+        val respostaBundle = slot<android.os.Bundle>()
+
+        tracker.registrarAssistObjetivo(AssistObjetivoSelecionado("jogos_com_lag", AssistOrigem.Inicio2, false))
+        tracker.registrarAssistResposta(AssistPerguntaRespondida("jogos_com_lag", "conexao_jogo", "opcao_2", false))
+
+        verify { firebaseAnalytics.logEvent("diagnostico_objetivo_selecionado", capture(objetivoBundle)) }
+        verify { firebaseAnalytics.logEvent("diagnostico_pergunta_respondida", capture(respostaBundle)) }
+        assert(objetivoBundle.captured.keySet() == setOf("objetivo", "origem", "retomada"))
+        assert(respostaBundle.captured.keySet() == setOf("objetivo", "pergunta_id", "resposta_id", "retomada"))
+    }
+
+    // Review da PR #1683 — registrarAssistAbandono é o único dos 3 eventos do Assist com forma
+    // de bundle variável (objetivo é opcional: nulo quando abandona ainda na lista de sintomas,
+    // preenchido quando abandona na pergunta contextual). Os outros 2 eventos sempre têm o mesmo
+    // conjunto de chaves, então a trava de keySet() já bastava; este precisa cobrir os dois casos.
+    @Test
+    fun `registrarAssistAbandono na lista de sintomas nao inclui a chave objetivo`() {
+        val bundle = slot<android.os.Bundle>()
+
+        tracker.registrarAssistAbandono(AssistAbandonado(AssistEtapa.Objetivo, objetivoId = null, retomavel = false))
+
+        verify { firebaseAnalytics.logEvent("diagnostico_guiado_abandonado", capture(bundle)) }
+        assert(bundle.captured.keySet() == setOf("etapa", "retomavel"))
+    }
+
+    @Test
+    fun `registrarAssistAbandono com objetivo preenchido inclui a chave objetivo`() {
+        val bundle = slot<android.os.Bundle>()
+
+        // AssistScreen hoje só abandona de fato na lista (voltar na pergunta contextual volta
+        // um passo em vez de abandonar — review da PR #1683, bloqueios 1/2), então
+        // objetivoId preenchido não é produzido em produção agora; o mapeamento do tracker
+        // continua correto pra essa forma do dado, e a interface não impede outro chamador
+        // futuro de reintroduzir o caso.
+        tracker.registrarAssistAbandono(AssistAbandonado(AssistEtapa.Contexto, objetivoId = "jogos_com_lag", retomavel = false))
+
+        verify { firebaseAnalytics.logEvent("diagnostico_guiado_abandonado", capture(bundle)) }
+        assert(bundle.captured.keySet() == setOf("etapa", "objetivo", "retomavel"))
     }
 }

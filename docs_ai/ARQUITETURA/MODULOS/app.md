@@ -4,7 +4,7 @@ description: "Aplicação Android do SignallQ Consumer — composição de featu
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-15"
+last_updated: "2026-08-16"
 ---
 
 # `:app`
@@ -107,8 +107,8 @@ Versão declarada em `android/gradle/libs.versions.toml`: `versionCode = 72`, `v
   arquivos legados fisicamente em `io/veloo/app/kotlin/` concluída em uma única PR (§4.1 da higiene).
 - **Arquivos acima de 800 linhas em `src/main`** (contagem real, `wc -l`):
   `ui/screen/SinalScreen.kt` 3383, `ui/screen/HomeScreen.kt` 2967, `MainViewModel.kt` 2438,
-  `ui/screen/AppShell.kt` 1670, `ui/screen/DispositivosScreen.kt` 1380,
-  `ui/component/LocalDeviceSection.kt` 1248, `ui/screen/DiagnosticoGuiadoScreen.kt` 895,
+  `ui/screen/AppShell.kt` 1703, `ui/screen/DispositivosScreen.kt` 1380,
+  `ui/component/LocalDeviceSection.kt` 1248, `ui/screen/DiagnosticoGuiadoScreen.kt` 916,
   `ui/screen/SpeedTestScreen.kt` 851, `ui/screen/HistoricoScreen.kt` 815 e
   `ui/screen/DnsScreen.kt` 815. `MainViewModel.kt` já é tratado como dívida crítica no próprio
   código (o KDoc de `ConsumerFeatureGateCoordinator` cita a regra de higiene §4.2: extrair, não
