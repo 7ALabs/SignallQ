@@ -1,10 +1,15 @@
 package io.signallq.app.ui.screen
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -51,6 +56,43 @@ class Inicio2ScreenTest {
         assertEquals(1, analyses)
         composeRule.onNodeWithText("Download").assertDoesNotExist()
         composeRule.onNodeWithText("Ferramentas").assertDoesNotExist()
+    }
+
+    @Test
+    fun `CTA e single flight entre toques recomposicao e ate conclusao canonica`() {
+        var analyses = 0
+        val state = mutableStateOf(Inicio2UiState(Inicio2Conexao.Wifi, "Casa", Inicio2Analise.SemAnalise))
+        composeRule.setContent {
+            SignallQTheme {
+                Inicio2Screen(
+                    uiState = state.value,
+                    onAnalisarConexao = { analyses++ },
+                    onAbrirPerfil = {},
+                )
+            }
+        }
+
+        val cta = composeRule.onNodeWithText("Analisar minha conexão")
+        val clickAction = cta.fetchSemanticsNode().config[SemanticsActions.OnClick].action
+        composeRule.runOnIdle {
+            clickAction?.invoke()
+            clickAction?.invoke()
+        }
+        composeRule.waitForIdle()
+        assertEquals(1, analyses)
+        composeRule.onNode(hasStateDescription("Carregando")).assertIsNotEnabled()
+
+        state.value = state.value.copy(nomeConexao = "Casa 2")
+        composeRule.waitForIdle()
+        composeRule.onNode(hasStateDescription("Carregando")).assertIsNotEnabled()
+        assertEquals(1, analyses)
+
+        state.value = state.value.copy(analise = Inicio2Analise.EstadoConhecido("Bom"))
+        composeRule.waitForIdle()
+        val novoCta = composeRule.onNodeWithText("Analisar minha conexão").assertIsEnabled()
+        val novaClickAction = novoCta.fetchSemanticsNode().config[SemanticsActions.OnClick].action
+        composeRule.runOnIdle { novaClickAction?.invoke() }
+        assertEquals(2, analyses)
     }
 
     @Test

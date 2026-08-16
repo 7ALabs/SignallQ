@@ -13,11 +13,11 @@ internal enum class Inicio2Conexao { Wifi, Movel, Ethernet, Offline, Carregando 
 internal sealed interface Inicio2Analise {
     data object SemAnalise : Inicio2Analise
 
-    data class Valida(
+    data class EstadoConhecido(
         val veredito: String,
     ) : Inicio2Analise
 
-    data class Expirada(
+    data class ResultadoAnterior(
         val timestampEpochMs: Long?,
     ) : Inicio2Analise
 
@@ -58,9 +58,9 @@ internal object Inicio2UiStateMapper {
                 diagnostico.estado == EstadoDiagnostico.erro ->
                     Inicio2Analise.Interrompida(diagnostico.erroMensagem ?: "Não foi possível concluir a análise.")
                 diagnostico.estado == EstadoDiagnostico.concluido && relatorio != null ->
-                    Inicio2Analise.Valida(relatorio.veredito)
+                    Inicio2Analise.EstadoConhecido(relatorio.veredito)
                 medicao?.origem == OrigemMedicaoHome.ANTERIOR ->
-                    Inicio2Analise.Expirada(medicao.metricas.timestampEpochMs)
+                    Inicio2Analise.ResultadoAnterior(medicao.metricas.timestampEpochMs)
                 else -> Inicio2Analise.SemAnalise
             }
         return Inicio2UiState(

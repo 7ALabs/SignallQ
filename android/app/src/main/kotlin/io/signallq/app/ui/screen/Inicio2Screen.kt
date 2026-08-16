@@ -16,6 +16,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -37,6 +42,15 @@ internal fun Inicio2Screen(
     onAbrirPerfil: () -> Unit,
 ) {
     val c = LocalLkTokens.current
+    var solicitacaoEmAndamento by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(uiState.analise) {
+        if (
+            solicitacaoEmAndamento &&
+            (uiState.analise is Inicio2Analise.EstadoConhecido || uiState.analise is Inicio2Analise.Interrompida)
+        ) {
+            solicitacaoEmAndamento = false
+        }
+    }
     Scaffold(
         containerColor = c.bgPrimary,
         topBar = {
@@ -76,9 +90,14 @@ internal fun Inicio2Screen(
                 EstadoAnalise(uiState.analise)
                 SignallQButton(
                     label = "Analisar minha conexão",
-                    onClick = onAnalisarConexao,
+                    onClick = {
+                        if (!solicitacaoEmAndamento) {
+                            solicitacaoEmAndamento = true
+                            onAnalisarConexao()
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
-                    loading = uiState.analise is Inicio2Analise.Carregando,
+                    loading = uiState.analise is Inicio2Analise.Carregando || solicitacaoEmAndamento,
                 )
             }
         }
@@ -109,14 +128,14 @@ private fun EstadoAnalise(analise: Inicio2Analise) {
             Text("Ainda não analisada", style = MaterialTheme.typography.titleLarge)
             Text("Faça uma análise para entender o que está acontecendo e o que fazer em seguida.")
         }
-        is Inicio2Analise.Valida ->
+        is Inicio2Analise.EstadoConhecido ->
             SignallQResultBlock(
                 conclusion = analise.veredito,
                 explanation = "Este é o último estado conhecido da sua conexão.",
                 tone = analise.veredito.feedbackTone(),
                 nextStep = "Analise novamente se a rede ou o local mudaram.",
             )
-        is Inicio2Analise.Expirada ->
+        is Inicio2Analise.ResultadoAnterior ->
             SignallQResultBlock(
                 conclusion = "Resultado anterior disponível",
                 explanation = "A medição salva não representa necessariamente a conexão de agora.",

@@ -171,8 +171,10 @@ A troca não cria estado paralelo: `Inicio2UiStateMapper` adapta `SnapshotRede`,
 `SnapshotDiagnostico` e a medição escolhida pelo mesmo `resolverMedicaoHome` usado pela Home antiga.
 
 A composição 2.0 mostra conexão Wi-Fi, móvel, Ethernet, offline ou ainda sendo identificada; estado
-sem análise, último diagnóstico válido em memória, medição persistida explicitamente tratada como
-anterior, carregamento e análise interrompida; e exatamente um CTA **Analisar minha conexão**. O CTA
+sem análise, último estado conhecido em memória, medição persistida explicitamente tratada como
+resultado anterior, carregamento e análise interrompida; e exatamente um CTA **Analisar minha conexão**.
+Os timestamps e o contexto de rede disponíveis não possuem contrato canônico de validade para o
+veredito da Início, portanto essa superfície não classifica resultados como válidos ou expirados. O CTA
 reutiliza `onIniciarDiagnostico`, portanto mantém motor e analytics existentes sem evento paralelo.
 Não há grade técnica, catálogo de ferramentas, diagnóstico completo nem placement AdMob na Início.
 A issue #1601 continua responsável pelo acesso direto ao resultado persistido exato; esta fatia

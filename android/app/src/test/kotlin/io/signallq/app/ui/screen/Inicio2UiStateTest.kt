@@ -28,14 +28,14 @@ class Inicio2UiStateTest {
     }
 
     @Test
-    fun `relatorio atual e valido e medicao persistida isolada e expirada`() {
+    fun `relatorio vira estado conhecido e medicao persistida vira resultado anterior sem inferir validade`() {
         val report = mockk<DiagnosticReport>()
         every { report.veredito } returns "Bom"
-        val valida = map(rede(EstadoConexao.wifi), SnapshotDiagnostico(EstadoDiagnostico.concluido, report, null))
-        assertEquals("Bom", (valida.analise as Inicio2Analise.Valida).veredito)
+        val conhecido = map(rede(EstadoConexao.wifi), SnapshotDiagnostico(EstadoDiagnostico.concluido, report, null))
+        assertEquals("Bom", (conhecido.analise as Inicio2Analise.EstadoConhecido).veredito)
 
-        val expirada = map(rede(EstadoConexao.wifi), idle, medicaoAnterior())
-        assertEquals(123L, (expirada.analise as Inicio2Analise.Expirada).timestampEpochMs)
+        val anterior = map(rede(EstadoConexao.wifi), idle, medicaoAnterior())
+        assertEquals(123L, (anterior.analise as Inicio2Analise.ResultadoAnterior).timestampEpochMs)
     }
 
     @Test
