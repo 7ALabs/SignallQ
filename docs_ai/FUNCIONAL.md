@@ -92,7 +92,7 @@ Velocidade, sem depender de rede para rollback.
 
 | Índice compatível | Rótulo | Tela | Jornada 2.0 |
 |---|---|---|---|
-| 0 | Início | `HomeScreen` | cold start |
+| 0 | Início | `Inicio2Screen` no shell guiado; `HomeScreen` no fallback Legacy | cold start |
 | 1 | Velocidade | `SpeedTestScreen` | raiz |
 | 2 | Sinal | `SinalScreen` | somente fallback legado; no 2.0, Wi-Fi é fluxo profundo |
 | 3 | Histórico | `HistoricoScreen` | raiz; back volta para Início |
@@ -162,6 +162,32 @@ ações destrutivas. Voltar fecha primeiro o destino interno e depois Perfil; a 
 Ajuda tenta abrir o cliente de e-mail por `mailto:` e mantém endereço/copiar como fallback quando
 não existe handler. Consentimento AdMob e exclusão/reset permanecem nas superfícies legadas
 responsáveis e não foram redesenhados nesta fatia.
+
+### 4.3.2 Início 2.0
+
+Quando a flag canônica `consumer.app_shell.guided_2_enabled` está ativa, a raiz Início usa
+`Inicio2Screen`; com o default local `false`, `HomeScreen` permanece como fallback Legacy completo.
+A troca não cria estado paralelo: `Inicio2UiStateMapper` adapta `SnapshotRede`,
+`SnapshotDiagnostico` e a medição escolhida pelo mesmo `resolverMedicaoHome` usado pela Home antiga.
+
+A composição 2.0 mostra conexão Wi-Fi, móvel, Ethernet, offline ou ainda sendo identificada; estado
+sem análise, último estado conhecido em memória, medição persistida explicitamente tratada como
+resultado anterior, carregamento e análise interrompida; e exatamente um CTA **Analisar minha conexão**.
+Os timestamps e o contexto de rede disponíveis não possuem contrato canônico de validade para o
+veredito da Início, portanto essa superfície não classifica resultados como válidos ou expirados. O CTA
+reutiliza `onIniciarDiagnostico`, portanto mantém motor e analytics existentes sem evento paralelo.
+O ciclo single-flight vem do `DiagnosticOrchestrator`: cada solicitação aceita recebe uma geração
+monotônica e termina como concluída, erro ou cancelada, inclusive quando a preparação do input falha.
+O terminal só é publicado depois do fechamento da telemetria e da liberação atômica do gate. O
+Pulse consome o resultado tipado da própria geração e abandona uma solicitação rejeitada, sem aguardar
+terminal global. A UI mantém apenas uma guarda transitória até observar a aceitação canônica; ela não
+persiste geração em recriação do produtor. Assim, recomposição e veredito repetido não duplicam nem
+bloqueiam a próxima sessão.
+O `Job` proprietário também registra cleanup idempotente: cancelamento antes do primeiro dispatch
+publica `cancelado` e libera apenas a mesma reserva, sem afetar uma geração posterior.
+Não há grade técnica, catálogo de ferramentas, diagnóstico completo nem placement AdMob na Início.
+A issue #1601 continua responsável pelo acesso direto ao resultado persistido exato; esta fatia
+somente apresenta sua existência sem duplicar essa navegação.
 
 ### 4.4 Hub de Ferramentas
 

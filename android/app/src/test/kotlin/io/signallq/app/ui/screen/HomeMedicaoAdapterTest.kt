@@ -1,6 +1,9 @@
 package io.signallq.app.ui.screen
 
 import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.feature.home.OrigemMedicaoHome
+import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
+import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -101,5 +104,23 @@ class HomeMedicaoAdapterTest {
         val metricas = medicaoReal(timestampEpochMs = 1_000L).paraMetricasMedicaoHome()
         assertEquals(true, metricas.utilizavel)
         assertNotNull(metricas.downloadMbps)
+    }
+
+    @Test
+    fun `Home legada e Inicio 2 compartilham a mesma resolucao da ultima medicao`() {
+        val anterior = medicaoReal(timestampEpochMs = 9_000L)
+        val snapshot =
+            SnapshotExecucaoSpeedtest(
+                estado = EstadoExecucaoSpeedtest.idle,
+                progressoPercentual = 0,
+                resultado = null,
+                erroMensagem = null,
+            )
+
+        val resolvida = resolverMedicaoHome(snapshot, anterior, ssid = "Casa")
+
+        assertEquals(OrigemMedicaoHome.ANTERIOR, resolvida?.origem)
+        assertEquals(anterior.timestampEpochMs, resolvida?.metricas?.timestampEpochMs)
+        assertEquals(anterior.downloadMbps, resolvida?.metricas?.downloadMbps)
     }
 }

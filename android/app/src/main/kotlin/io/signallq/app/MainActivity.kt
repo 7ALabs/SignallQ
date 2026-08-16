@@ -398,6 +398,7 @@ class MainActivity : ComponentActivity() {
                                     // de "feature usada" com um session_id generico e sem correlacao.
                                     viewModel.iniciarDiagnostico()
                                 },
+                                onSolicitarDiagnostico = { viewModel.solicitarDiagnostico() },
                                 analisadorState = analisadorState,
                                 onAnalisarProblema = { problema -> viewModel.analisarProblema(problema) },
                                 onResetarAnalisador = { viewModel.resetarAnalisador() },

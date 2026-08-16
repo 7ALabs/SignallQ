@@ -112,7 +112,6 @@ import io.signallq.app.core.network.contracts.topologia.NivelConfianca
 import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
 import io.signallq.app.feature.home.OrigemMedicaoHome
-import io.signallq.app.feature.home.ResolvedorMedicaoHome
 import io.signallq.app.feature.speedtest.ModoSpeedtest
 import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
 import io.signallq.app.feature.wifi.RedeVizinha
@@ -235,14 +234,9 @@ fun HomeScreen(
     // por inteiro (nunca mistura os dois), e o veredito gamer vem sempre do motor canônico
     // (diagnosticoQualidade / MedicaoEntity.vereditoGamer já persistido) — nunca recalculado
     // por threshold local (RF-04).
-    val medicaoAtual =
-        remember(snapshotSpeedtest.resultado, ssid) {
-            snapshotSpeedtest.resultado?.paraMetricasMedicaoHome(ssid)
-        }
-    val medicaoAnterior = remember(ultimaMedicao) { ultimaMedicao?.paraMetricasMedicaoHome() }
     val medicaoResolvida =
-        remember(medicaoAtual, medicaoAnterior) {
-            ResolvedorMedicaoHome.resolver(medicaoAtual, medicaoAnterior)
+        remember(snapshotSpeedtest, ultimaMedicao, ssid) {
+            resolverMedicaoHome(snapshotSpeedtest, ultimaMedicao, ssid)
         }
     val effectiveDl = medicaoResolvida?.metricas?.downloadMbps
     val effectiveUl = medicaoResolvida?.metricas?.uploadMbps

@@ -19,6 +19,8 @@ enum class AppShellMode {
 
 internal val LocalAppShellMode = staticCompositionLocalOf { AppShellMode.Legacy }
 
+internal fun AppShellMode.usaInicio2(): Boolean = this == AppShellMode.Guided2
+
 internal enum class AppShellOverlay {
     Laudo,
     Ping,

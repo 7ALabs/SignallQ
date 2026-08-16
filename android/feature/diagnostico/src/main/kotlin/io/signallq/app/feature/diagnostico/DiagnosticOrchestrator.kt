@@ -11,10 +11,11 @@ import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.NoOpAnalyticsHelper
 import io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository
-import timber.log.Timber
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import timber.log.Timber
 
 /**
  * [remoteDiagnosticRepository] — GH#969 ligou o motor remoto (worker
@@ -41,6 +42,46 @@ class DiagnosticOrchestrator(
     )
 
     val snapshotFlow: StateFlow<SnapshotDiagnostico> = mutableSnapshotFlow.asStateFlow()
+
+    private val gate = Any()
+    private var geracaoAtual = 0L
+    private var reservaAtiva: ReservaDiagnostico? = null
+
+    class ReservaDiagnostico internal constructor(val geracao: Long)
+
+    sealed interface ResultadoSolicitacao {
+        data object Rejeitada : ResultadoSolicitacao
+
+        data class Aceita(val snapshot: SnapshotDiagnostico) : ResultadoSolicitacao
+    }
+
+    fun tentarReservar(): ReservaDiagnostico? =
+        synchronized(gate) {
+            if (reservaAtiva != null) return@synchronized null
+            val reserva = ReservaDiagnostico(++geracaoAtual)
+            reservaAtiva = reserva
+            mutableSnapshotFlow.value =
+                SnapshotDiagnostico(EstadoDiagnostico.executando, null, null, geracao = reserva.geracao)
+            reserva
+        }
+
+    /**
+     * Libera uma reserva cujo Job terminou antes ou durante a execução. Idempotente:
+     * nunca altera uma geração posterior nem publica um segundo terminal.
+     */
+    fun cancelarReserva(reserva: ReservaDiagnostico): Boolean =
+        synchronized(gate) {
+            if (reservaAtiva !== reserva) return@synchronized false
+            reservaAtiva = null
+            mutableSnapshotFlow.value =
+                SnapshotDiagnostico(
+                    estado = EstadoDiagnostico.cancelado,
+                    relatorio = null,
+                    erroMensagem = null,
+                    geracao = reserva.geracao,
+                )
+            true
+        }
 
     suspend fun executar(
         internetInput: InternetDiagnosticInput?,
@@ -71,55 +112,122 @@ class DiagnosticOrchestrator(
         input: DiagnosticInput,
         enabledAreas: Set<DiagnosticArea> = DiagnosticArea.entries.toSet(),
     ) {
+        executarSolicitacao(enabledAreas) { input }
+    }
+
+    suspend fun executarSolicitacao(
+        internetInput: InternetDiagnosticInput?,
+        wifiInput: WifiDiagnosticInput?,
+        fibraInput: FibraDiagnosticInput? = null,
+        executionId: String = "",
+    ): ResultadoSolicitacao {
+        val tipo = if (wifiInput != null) ConnectionType.wifi else ConnectionType.desconhecido
+        return executarSolicitacao {
+            DiagnosticInput(
+                connectionType = tipo,
+                internet = internetInput,
+                wifi = wifiInput,
+                fibra = fibraInput,
+                executionId = executionId,
+            )
+        }
+    }
+
+    /**
+     * Inclui a preparação do input no ciclo canônico e rejeita solicitações concorrentes.
+     * Retorna `false` quando já existe uma execução em andamento.
+     */
+    suspend fun executarSolicitacao(
+        enabledAreas: Set<DiagnosticArea> = DiagnosticArea.entries.toSet(),
+        prepararInput: suspend () -> DiagnosticInput,
+    ): ResultadoSolicitacao {
+        val reserva = tentarReservar() ?: return ResultadoSolicitacao.Rejeitada
+        return ResultadoSolicitacao.Aceita(executarReservada(reserva, enabledAreas, prepararInput))
+    }
+
+    suspend fun executarReservada(
+        reserva: ReservaDiagnostico,
+        enabledAreas: Set<DiagnosticArea> = DiagnosticArea.entries.toSet(),
+        prepararInput: suspend () -> DiagnosticInput,
+    ): SnapshotDiagnostico =
+        try {
+            val snapshot = executarProtegido(prepararInput(), enabledAreas, reserva.geracao)
+            publicarTerminal(reserva, snapshot)
+        } catch (cancelamento: CancellationException) {
+            publicarTerminal(
+                reserva,
+                SnapshotDiagnostico(EstadoDiagnostico.cancelado, null, null, geracao = reserva.geracao),
+            )
+            throw cancelamento
+        } catch (t: Throwable) {
+            Timber.e(t, "erro no diagnostico: ${t.message}")
+            publicarTerminal(
+                reserva,
+                SnapshotDiagnostico(
+                    estado = EstadoDiagnostico.erro,
+                    relatorio = null,
+                    erroMensagem = t.message ?: "erroDiagnostico",
+                    geracao = reserva.geracao,
+                ),
+            )
+        }
+
+    private fun publicarTerminal(
+        reserva: ReservaDiagnostico,
+        snapshot: SnapshotDiagnostico,
+    ): SnapshotDiagnostico =
+        synchronized(gate) {
+            check(reservaAtiva == reserva) { "Reserva de diagnostico inativa" }
+            reservaAtiva = null
+            mutableSnapshotFlow.value = snapshot
+            snapshot
+        }
+
+    private suspend fun executarProtegido(
+        input: DiagnosticInput,
+        enabledAreas: Set<DiagnosticArea>,
+        geracao: Long,
+    ): SnapshotDiagnostico {
         analyticsHelper.registrarDiagIniciado(
             tipoConexao = input.connectionType.name,
             areasHabilitadas = enabledAreas.joinToString(",") { it.name.lowercase() },
             temSpeedtest = input.internet != null,
         )
-        try {
-            Timber.i(
-                "iniciando diagnostico tipo=${input.connectionType} dl=${input.internet?.downloadMbps} ul=${input.internet?.uploadMbps} lat=${input.internet?.latencyMs} rssi=${input.wifi?.rssiDbm} fibra=${input.fibra?.isUp} dnsMs=${input.dns?.currentDnsLatencyMs}",
-            )
+        Timber.i(
+            "iniciando diagnostico tipo=${input.connectionType} dl=${input.internet?.downloadMbps} ul=${input.internet?.uploadMbps} lat=${input.internet?.latencyMs} rssi=${input.wifi?.rssiDbm} fibra=${input.fibra?.isUp} dnsMs=${input.dns?.currentDnsLatencyMs}",
+        )
 
-            val relatorio = remoteDiagnosticRepository.evaluateShadow(input, enabledAreas)
+        val relatorio = remoteDiagnosticRepository.evaluateShadow(input, enabledAreas)
 
-            Timber.i(
-                "diagnostico concluido decisao=${relatorio.decisao.id}(${relatorio.decisao.status}) " +
-                    "wifi=${relatorio.wifiResultados.map { "${it.id}:${it.status}" }} " +
-                    "internet=${relatorio.internetResultados.map { "${it.id}:${it.status}" }} " +
-                    "mobile=${relatorio.mobileResultados.map { "${it.id}:${it.status}" }} " +
-                    "fibra=${relatorio.fibraResultados.map { "${it.id}:${it.status}" }} " +
-                    "dns=${relatorio.dnsResultados.map { "${it.id}:${it.status}" }} " +
-                    "hist=${relatorio.historicoResultados.map { "${it.id}:${it.status}" }}",
-            )
+        Timber.i(
+            "diagnostico concluido decisao=${relatorio.decisao.id}(${relatorio.decisao.status}) " +
+                "wifi=${relatorio.wifiResultados.map { "${it.id}:${it.status}" }} " +
+                "internet=${relatorio.internetResultados.map { "${it.id}:${it.status}" }} " +
+                "mobile=${relatorio.mobileResultados.map { "${it.id}:${it.status}" }} " +
+                "fibra=${relatorio.fibraResultados.map { "${it.id}:${it.status}" }} " +
+                "dns=${relatorio.dnsResultados.map { "${it.id}:${it.status}" }} " +
+                "hist=${relatorio.historicoResultados.map { "${it.id}:${it.status}" }}",
+        )
 
-            mutableSnapshotFlow.value = SnapshotDiagnostico(
-                estado = EstadoDiagnostico.concluido,
-                relatorio = relatorio,
-                erroMensagem = null,
-                input = input,
-            )
-
-            val todosResultados =
-                relatorio.wifiResultados + relatorio.internetResultados + relatorio.mobileResultados +
-                    relatorio.fibraResultados + relatorio.dnsResultados + relatorio.historicoResultados +
-                    relatorio.wifiCanalResultados + relatorio.redeResultados
-            analyticsHelper.registrarDiagConcluido(
-                tipoConexao = input.connectionType.name,
-                statusGeral = relatorio.decisao.status.name,
-                decisaoId = relatorio.decisao.id,
-                scoreConexao = relatorio.scoreConexao.toLong(),
-                confianca = relatorio.confianca,
-                nResultadosCriticos = todosResultados.count { it.status == DiagnosticStatus.critical }.toLong(),
-                nResultadosAttention = todosResultados.count { it.status == DiagnosticStatus.attention }.toLong(),
-            )
-        } catch (t: Throwable) {
-            Timber.e(t, "erro no diagnostico: ${t.message}")
-            mutableSnapshotFlow.value = SnapshotDiagnostico(
-                estado = EstadoDiagnostico.erro,
-                relatorio = null,
-                erroMensagem = t.message ?: "erroDiagnostico",
-            )
-        }
+        val todosResultados =
+            relatorio.wifiResultados + relatorio.internetResultados + relatorio.mobileResultados +
+                relatorio.fibraResultados + relatorio.dnsResultados + relatorio.historicoResultados +
+                relatorio.wifiCanalResultados + relatorio.redeResultados
+        analyticsHelper.registrarDiagConcluido(
+            tipoConexao = input.connectionType.name,
+            statusGeral = relatorio.decisao.status.name,
+            decisaoId = relatorio.decisao.id,
+            scoreConexao = relatorio.scoreConexao.toLong(),
+            confianca = relatorio.confianca,
+            nResultadosCriticos = todosResultados.count { it.status == DiagnosticStatus.critical }.toLong(),
+            nResultadosAttention = todosResultados.count { it.status == DiagnosticStatus.attention }.toLong(),
+        )
+        return SnapshotDiagnostico(
+            estado = EstadoDiagnostico.concluido,
+            relatorio = relatorio,
+            erroMensagem = null,
+            input = input,
+            geracao = geracao,
+        )
     }
 }

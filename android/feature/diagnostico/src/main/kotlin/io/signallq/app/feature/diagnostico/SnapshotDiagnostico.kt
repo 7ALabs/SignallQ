@@ -13,4 +13,6 @@ data class SnapshotDiagnostico(
      * latenciaMs, jitterMs etc.) para a IA via DiagnosisAiContextFactory.
      */
     val input: DiagnosticInput? = null,
+    /** Geração monotônica da solicitação, inclusive em falha ou cancelamento. */
+    val geracao: Long = 0L,
 )

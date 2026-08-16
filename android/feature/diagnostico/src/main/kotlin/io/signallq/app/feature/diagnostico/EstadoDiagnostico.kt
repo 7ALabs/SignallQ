@@ -1,3 +1,3 @@
 ﻿package io.signallq.app.feature.diagnostico
 
-enum class EstadoDiagnostico { idle, concluido, erro }
+enum class EstadoDiagnostico { idle, executando, concluido, erro, cancelado }

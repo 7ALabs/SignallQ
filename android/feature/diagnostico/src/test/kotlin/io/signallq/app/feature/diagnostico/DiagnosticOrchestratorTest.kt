@@ -5,14 +5,21 @@ import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
+import io.signallq.app.core.network.AnalyticsHelper
+import io.signallq.app.core.network.NoOpAnalyticsHelper
 import io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -137,5 +144,133 @@ class DiagnosticOrchestratorTest {
         val snapshot = orchestrator.snapshotFlow.value
         assertEquals(EstadoDiagnostico.concluido, snapshot.estado)
         assertNotEquals("DECISAO-REMOTA-TESTE", snapshot.relatorio?.decisao?.id)
+    }
+
+    @Test
+    fun `geracao avanca mesmo quando o veredito final se repete`() = runTest {
+        val orchestrator = DiagnosticOrchestrator()
+
+        orchestrator.executar(snapshotSaudavelInput())
+        val primeiro = orchestrator.snapshotFlow.value
+        orchestrator.executar(snapshotSaudavelInput())
+        val segundo = orchestrator.snapshotFlow.value
+
+        assertEquals(primeiro.relatorio?.veredito, segundo.relatorio?.veredito)
+        assertEquals(EstadoDiagnostico.concluido, segundo.estado)
+        assertEquals(primeiro.geracao + 1L, segundo.geracao)
+    }
+
+    @Test
+    fun `falha precoce e cancelamento finalizam a geracao canonica`() = runTest {
+        val orchestrator = DiagnosticOrchestrator()
+
+        orchestrator.executarSolicitacao { error("falha antes do input") }
+        assertEquals(EstadoDiagnostico.erro, orchestrator.snapshotFlow.value.estado)
+        assertEquals(1L, orchestrator.snapshotFlow.value.geracao)
+
+        var cancelamentoPropagado = false
+        try {
+            orchestrator.executarSolicitacao { throw CancellationException("cancelado") }
+        } catch (_: CancellationException) {
+            cancelamentoPropagado = true
+        }
+        assertTrue(cancelamentoPropagado)
+        assertEquals(EstadoDiagnostico.cancelado, orchestrator.snapshotFlow.value.estado)
+        assertEquals(2L, orchestrator.snapshotFlow.value.geracao)
+        assertNotNull(orchestrator.tentarReservar())
+    }
+
+    @Test
+    fun `solicitacao concorrente e rejeitada sem nova geracao`() = runTest {
+        val liberar = CompletableDeferred<Unit>()
+        var diagnosticosIniciados = 0
+        val analytics =
+            object : AnalyticsHelper by NoOpAnalyticsHelper {
+                override fun registrarDiagIniciado(
+                    tipoConexao: String,
+                    areasHabilitadas: String?,
+                    temSpeedtest: Boolean,
+                ) {
+                    diagnosticosIniciados++
+                }
+            }
+        val orchestrator = DiagnosticOrchestrator(analyticsHelper = analytics)
+        val primeira =
+            async {
+                orchestrator.executarSolicitacao {
+                    liberar.await()
+                    snapshotSaudavelInput()
+                }
+            }
+
+        yield()
+        assertEquals(EstadoDiagnostico.executando, orchestrator.snapshotFlow.value.estado)
+        assertTrue(
+            orchestrator.executarSolicitacao { snapshotSaudavelInput() } is
+                DiagnosticOrchestrator.ResultadoSolicitacao.Rejeitada,
+        )
+        assertEquals(1L, orchestrator.snapshotFlow.value.geracao)
+        liberar.complete(Unit)
+        primeira.await()
+        assertEquals(1, diagnosticosIniciados)
+    }
+
+    @Test
+    fun `terminal de sucesso so e publicado depois de analytics e com gate liberado`() = runTest {
+        var analyticsFechado = false
+        val analytics =
+            object : AnalyticsHelper by NoOpAnalyticsHelper {
+                override fun registrarDiagConcluido(
+                    tipoConexao: String,
+                    statusGeral: String,
+                    decisaoId: String,
+                    scoreConexao: Long,
+                    confianca: Double,
+                    nResultadosCriticos: Long?,
+                    nResultadosAttention: Long?,
+                ) {
+                    analyticsFechado = true
+                }
+            }
+        val orchestrator = DiagnosticOrchestrator(analyticsHelper = analytics)
+
+        orchestrator.executar(snapshotSaudavelInput())
+
+        assertTrue(analyticsFechado)
+        assertEquals(EstadoDiagnostico.concluido, orchestrator.snapshotFlow.value.estado)
+        assertNotNull(orchestrator.tentarReservar())
+    }
+
+    @Test
+    fun `overloads legados preservam retorno Unit`() = runTest {
+        val orchestrator = DiagnosticOrchestrator()
+
+        val retornoInput: Unit = orchestrator.executar(snapshotSaudavelInput())
+        val retornoLegado: Unit =
+            orchestrator.executar(
+                snapshotSaudavelInput().internet,
+                snapshotSaudavelInput().wifi,
+            )
+
+        assertEquals(Unit, retornoInput)
+        assertEquals(Unit, retornoLegado)
+    }
+
+    @Test
+    fun `cancel before start libera somente a reserva proprietaria e cleanup e idempotente`() {
+        val orchestrator = DiagnosticOrchestrator()
+        val primeira = requireNotNull(orchestrator.tentarReservar())
+
+        assertTrue(orchestrator.cancelarReserva(primeira))
+        assertEquals(EstadoDiagnostico.cancelado, orchestrator.snapshotFlow.value.estado)
+        assertEquals(primeira.geracao, orchestrator.snapshotFlow.value.geracao)
+
+        val segunda = requireNotNull(orchestrator.tentarReservar())
+        assertTrue(segunda.geracao > primeira.geracao)
+        assertFalse(orchestrator.cancelarReserva(primeira))
+        assertFalse(orchestrator.cancelarReserva(primeira))
+        assertEquals(EstadoDiagnostico.executando, orchestrator.snapshotFlow.value.estado)
+        assertEquals(segunda.geracao, orchestrator.snapshotFlow.value.geracao)
+        assertTrue(orchestrator.cancelarReserva(segunda))
     }
 }
