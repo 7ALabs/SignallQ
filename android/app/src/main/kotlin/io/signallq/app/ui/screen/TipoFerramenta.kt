@@ -8,6 +8,7 @@ import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
  * sem duplicar decisão de produto em dois lugares.
  */
 enum class TipoFerramenta {
+    SINAL_CANAIS_MOVEL,
     DISPOSITIVOS,
     EQUIPAMENTO_INTERNET,
     PING,
@@ -32,6 +33,8 @@ object CatalogoFerramentas {
 
     private val ordemPadrao: List<TipoFerramenta> =
         listOf(
+            TipoFerramenta.SINAL_CANAIS_MOVEL,
+            TipoFerramenta.SINAL_WIFI,
             TipoFerramenta.DISPOSITIVOS,
             TipoFerramenta.EQUIPAMENTO_INTERNET,
             TipoFerramenta.PING,
@@ -39,8 +42,10 @@ object CatalogoFerramentas {
             TipoFerramenta.LAUDO,
             TipoFerramenta.MONITORAMENTO,
             TipoFerramenta.MODO_JOGOS,
-            TipoFerramenta.SINAL_WIFI,
         )
+
+    /** Lista aberta 2.0: fonte canônica única dos nove destinos. */
+    val todos: List<TipoFerramenta> = ordemPadrao
 
     /** Seção "Todas as ferramentas" — o restante, sem duplicar o que já está em [maisUsadas]. */
     val restante: List<TipoFerramenta> = ordemPadrao.filterNot { it in maisUsadas }

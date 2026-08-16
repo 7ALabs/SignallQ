@@ -106,7 +106,7 @@ legado. Os nomes de analytics existentes (`home`, `speedtest`, `sinal_wifi`, `hi
 
 ### 4.2 Overlays
 
-Lista exata de `AppShellOverlay` (`AppShellNavigation.kt`) — 17 valores, todos empilháveis:
+Lista exata de `AppShellOverlay` (`AppShellNavigation.kt`) — 18 valores, todos empilháveis:
 
 | Valor do enum | Tela renderizada | Aberto a partir de |
 |---|---|---|
@@ -122,6 +122,7 @@ Lista exata de `AppShellOverlay` (`AppShellNavigation.kt`) — 17 valores, todos
 | `Dns` | `DnsScreen` | Ferramentas; SpeedTestScreen |
 | `Perfil` | `PerfilScreen` | ação de perfil na app bar 2.0; menu lateral e entradas legadas equivalentes |
 | `Ajustes` | `AjustesScreen` | Perfil; preserva conexão, monitoramento e dados locais existentes |
+| `SinalCanais` | `SinalScreen` | Ferramentas; Wi-Fi, canais e rede móvel em fluxo profundo 2.0 |
 | `SinalWifi` | `SinalWifiScreen` | Ferramentas |
 | `Termos` | `TermosDeUsoScreen` | menu lateral |
 | `DiagnosticoGuiado` | `DiagnosticoGuiadoScreen` | CTA "Descobrir o que está acontecendo" no resultado do teste |
@@ -164,12 +165,13 @@ responsáveis e não foram redesenhados nesta fatia.
 
 ### 4.4 Hub de Ferramentas
 
-`FerramentasScreen.kt`. Oito atalhos, curados em duas seções — "Mais usadas" (3 cards lado a lado) e
-"Todas as ferramentas" (lista), com a divisão vindo de `CatalogoFerramentas`
-(`FerramentasScreen.kt:190-192`):
+`FerramentasScreen.kt`. A Jornada 2.0 apresenta os nove destinos de `CatalogoFerramentas.todos`
+como lista aberta, em um toque, sem grid ou catálogo visual concorrente:
 
 | Card | Descrição exibida | Destino |
 |---|---|---|
+| Sinal e canais | "Wi-Fi, canais e rede móvel" | `SinalScreen` em `Overlay.SinalCanais` |
+| Sinal Wi-Fi ao vivo | "Intensidade enquanto você anda pela casa" | `SinalWifiScreen` |
 | Dispositivos | "Quem está na sua rede" | `DispositivosScreen` |
 | Equipamento de internet | "Status do modem/ONT da operadora" | `EquipamentoInternetScreen` |
 | Ping | "Teste de latência para um endereço" | `PingScreen` |
@@ -177,11 +179,14 @@ responsáveis e não foram redesenhados nesta fatia.
 | Laudo | "Laudo técnico completo da sua conexão" | `LaudoScreen` |
 | Monitoramento | "Análise avançada e alertas em segundo plano" | `MonitoramentoSheet` |
 | Modo Jogos | "Teste sua conexão para 21 jogos, em qualquer dispositivo" | `ModoGamerScreen` |
-| Sinal WiFi | "Veja o sinal, a velocidade e o padrão Wi-Fi em tempo real" | `SinalWifiScreen` |
 
 Quando o usuário chega ao hub pelo card contextual do diagnóstico guiado, a ferramenta apontada
-ganha um badge "recomendado pra você" — que é limpo ao sair da tela, nunca fica estático
-(`FerramentasScreen.kt:359-367`, `AppShell.kt:640`).
+recebe o prefixo textual "Recomendado para você" — que é limpo ao sair da tela, nunca fica
+estático. Permissão ausente navega para a superfície que explica/solicita a permissão; flag remota
+desligada mantém o gate canônico e seu evento `feature_blocked_remote`; offline não abre engine e
+informa reconexão como próximo passo. Nenhuma dessas condições produz affordance inerte. O modo
+Legacy continua usando a mesma lista e callbacks. O placement nativo de Jogos não foi movido nem
+migrado nesta fatia.
 
 ### 4.5 Sheets modais fora da pilha
 

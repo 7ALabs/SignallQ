@@ -90,6 +90,18 @@ class AppShellNavigationTest {
     }
 
     @Test
+    fun `sinal canais is a deep restorable route from tools`() {
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Tools.legacyIndex)
+        navigator.open(AppShellOverlay.SinalCanais)
+
+        val restored = AppShellNavigator.restoreState(AppShellNavigator.saveState(navigator))
+
+        assertEquals(listOf(AppShellOverlay.SinalCanais), restored.overlayStack)
+        assertEquals(AppShellOverlay.SinalCanais, restored.pop())
+        assertEquals(true, restored.isAtRoot)
+    }
+
+    @Test
     fun `bar visibility follows root overlay and running speedtest contracts`() {
         assertEquals(true, shouldShowAppShellBottomBar(AppShellMode.Guided2, isAtRoot = true, speedtestRunning = false))
         assertEquals(false, shouldShowAppShellBottomBar(AppShellMode.Guided2, isAtRoot = false, speedtestRunning = false))
