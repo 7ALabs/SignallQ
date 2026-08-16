@@ -181,6 +181,9 @@ class AppShellOverlayRegistryTest {
 
         composeRule.runOnIdle { stack.add(AppShellOverlay.Novidades) }
         composeRule.onNodeWithText("Novidades").assertExists()
+        // Trava a passagem de appVersion: sem isto, fixar a versao em "0.0.0" no overlay
+        // sobrevive a suite (mutante M16 do parecer de Caio, PR #1697 rodada 2).
+        composeRule.onNodeWithText("v9.9.9", substring = true).assertExists()
 
         composeRule.onNodeWithContentDescription("Voltar").performClick()
         composeRule.runOnIdle { assertFalse(AppShellOverlay.Novidades in stack) }

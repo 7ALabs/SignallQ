@@ -917,9 +917,15 @@ fun AppShell(
             }
 
             // GH#1695 (épico #1647) — ponto de extensão de overlays: uma fatia nova pluga
-            // overlay/rota criando `AppShellXxxOverlay.kt` e registrando em
-            // `AppShellOverlayRegistry.kt`, sem editar este arquivo (ver KDoc de
-            // AppShellOverlayRegistry para o passo a passo).
+            // um overlay criando `AppShellXxxOverlay.kt` e registrando em
+            // `AppShellOverlayRegistry.kt` (ver KDoc de AppShellOverlayRegistry).
+            // Limites conhecidos, medidos na revisão da PR #1697:
+            //  - ROTAS não estão cobertas: os call sites de `Screen(` seguem inline aqui.
+            //  - Overlay que precise de DADO NOVO ainda exige editar esta chamada, para
+            //    passar o parâmetro (passo 4 do KDoc). O `Dns` foi assim: a própria PR
+            //    que criou este comentário acrescentou 4 parâmetros logo abaixo.
+            //  - Blocos de overlay são ~15% do que faz este arquivo crescer; root content
+            //    e estado hoisted são os outros ~85% — ver GH#1698.
             AppShellOverlayRegistry(
                 overlayStack = overlayStack,
                 onAssistObjetivo = onAssistObjetivo,

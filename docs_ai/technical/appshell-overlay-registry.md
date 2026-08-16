@@ -63,8 +63,9 @@ crescimento do arquivo e não é escopo desta issue.
 O ponto de extensão criado aqui é útil e cobre o problema original (overlay novo não precisa mais
 de bloco `AnimatedVisibility` inline), mas é uma fração do que faz `AppShell.kt` crescer. Se o
 objetivo é conter o crescimento por completo, o próximo alvo é **root content e estado hoisted**,
-não mais overlays — é de lá que vieram os outros ~85%. Ver issue de acompanhamento (a abrir a
-partir do achado da PR #1697).
+não mais overlays — é de lá que vieram os outros ~85%. Ver
+[#1698](https://github.com/buildea-labs/signallq/issues/1698), aberta a partir do achado da
+revisão da PR #1697 e sequenciada antes da Task 2.0.09 (#1657).
 
 ## O padrão
 
