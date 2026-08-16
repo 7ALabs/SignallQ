@@ -2,6 +2,8 @@ package io.signallq.app.ui.screen
 
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.feature.home.MetricasMedicaoHome
+import io.signallq.app.feature.home.ResolvedHomeMeasurement
+import io.signallq.app.feature.home.ResolvedorMedicaoHome
 import io.signallq.app.feature.speedtest.MeasurementStatus
 import io.signallq.app.feature.speedtest.ResultadoSpeedtest
 
@@ -53,3 +55,14 @@ internal fun MedicaoEntity.paraMetricasMedicaoHome(): MetricasMedicaoHome =
  */
 internal fun List<MedicaoEntity>.resolverPrimeiraHistoria(): MedicaoEntity? =
     filter { it.fonte != "monitor" }.maxByOrNull { it.timestampEpochMs }
+
+/** Fonte única para Home legada e Início 2.0 escolherem uma medição coerente. */
+internal fun resolverMedicaoHome(
+    snapshotSpeedtest: io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest,
+    ultimaMedicao: MedicaoEntity?,
+    ssid: String?,
+): ResolvedHomeMeasurement? =
+    ResolvedorMedicaoHome.resolver(
+        atual = snapshotSpeedtest.resultado?.paraMetricasMedicaoHome(ssid),
+        anterior = ultimaMedicao?.paraMetricasMedicaoHome(),
+    )
