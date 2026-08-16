@@ -1,7 +1,7 @@
 # Regra permanente — Higiene e padronização do repositório
 
 - **Status:** ativo
-- **Última validação:** 2026-08-15 (§4.1 marcada RESOLVIDA após migração de 525 arquivos io/veloo → io/signallq; §4.2–§4.8 com paths atualizados)
+- **Última validação:** 2026-08-16 (§4.3 atualizada — issue #1695 criou `AppShellOverlayRegistry.kt` como ponto de extensão de overlays, `AppShell.kt` 1703→1646 linhas)
 - **Fonte de verdade:** este arquivo (`.claude/rules/higiene-e-padronizacao-repositorio.md`) — não duplicar em `docs_ai/`, `AGENTS.md`, mirrors ou docs de módulo
 - **Escopo:** repositório `buildea-labs/signallq` (monorepo SignallQ) inteiro — Android, Admin, Cloudflare, docs
 - **Responsável:** Claudete (dono do processo). Esta regra se aplica a todos os agentes autorizados e aplicáveis ao repositório, conforme a governança canônica em ../ai-governance, e a qualquer sessão humana no repo.
@@ -127,14 +127,35 @@ Ao tocar nele:
 
 ### 4.3 `AppShell.kt`
 
-Caminho real: `android/app/src/main/kotlin/io/signallq/app/ui/screen/AppShell.kt` — **1146
-linhas** (acima do limiar de extração obrigatória da seção 7). Deve ser shell de composição e
-navegação, não depósito de regras de negócio.
+Caminho real: `android/app/src/main/kotlin/io/signallq/app/ui/screen/AppShell.kt` — **1646
+linhas** (atualizado 2026-08-16, issue #1695). Ainda acima do limiar de extração obrigatória
+da seção 7. Deve ser shell de composição e navegação, não depósito de regras de negócio.
+
+**Histórico que motivou a issue #1695:** entre 2.0.03 e 2.0.08 do épico #1647, o arquivo saiu de
+1670 linhas, caiu para 1518 numa extração real, e voltou a subir em 5 fatias consecutivas até
+1703 — cada uma cumprindo a letra desta seção ("extrair ao menos uma responsabilidade") sem
+resolver o problema de fundo: toda fatia nova precisava editar `AppShell.kt` para se plugar na
+navegação, então o arquivo nunca parava de crescer.
+
+**Ponto de extensão desde a #1695:** `AppShellOverlayRegistry.kt` agrega os overlays migrados —
+cada overlay migrado vive em `AppShellXxxOverlay.kt` próprio (mesmo padrão provado por
+`AppShellAssistOverlay.kt`, issue #1656). Para plugar overlay/rota novo:
+1. adicionar o valor em `AppShellOverlay` (`AppShellNavigation.kt` — única fonte de verdade da
+   pilha/push/pop, não duplicar aqui);
+2. criar `AppShellXxxOverlay.kt` com um Composable estreito (só o que precisa, nunca a lista
+   inteira de parâmetros do `AppShell`);
+3. registrar a chamada dentro de `AppShellOverlayRegistry` — **não em `AppShell.kt`**.
+Ver KDoc de `AppShellOverlayRegistry.kt` para o passo a passo completo. Overlays ainda inline em
+`AppShell.kt` (Ajustes, Perfil, Ferramentas, Dispositivos, Fibra/EquipamentoInternet, Laudo, Dns,
+SinalCanais, ResultadoVelocidade, DiagnosticoGuiado, ModoGamer) migram quando a fatia que os toca
+passar por ali — não é obrigatório migrar todos de uma vez.
 
 Ao tocar nele, prefira separar: estado de navegação, controle da pilha de overlays, adaptação de
 estados das telas, wiring entre features, componentes da barra inferior, dialogs e sheets
 independentes. Não mover lógica de uma tela gigante para outra função privada no mesmo arquivo e
-chamar isso de modularização.
+chamar isso de modularização. Extração que reduz o arquivo mas devolve mais fiação do que tirou
+(o padrão que gerou a #1695) não conta como cumprida — meça o saldo líquido, não só se "extraiu
+algo".
 
 ### 4.4 `AjustesScreen.kt`
 

@@ -130,7 +130,7 @@ Processo: `PROCESSO_PR_E_AGENTES_2026-07-16.md`, `WORKFLOW_BOARD.md`, `FAQ_USERS
 > Apenas `RELEASE.md` teve as referências conferidas (2026-08-05). Os demais estão marcados "ativo"
 > sem histórico de execução. Consolidação de 26 → ~12 fica para o PR 2.
 
-## Referências técnicas — `technical/` (14)
+## Referências técnicas — `technical/` (15)
 
 `admin-api-schema.md` (schema do worker `signallq-admin`, validado 2026-08-04) ·
 `analytics-events.md` · `analytics-events-schema.md` · `AI_FLOW.md` ·
@@ -138,7 +138,8 @@ Processo: `PROCESSO_PR_E_AGENTES_2026-07-16.md`, `WORKFLOW_BOARD.md`, `FAQ_USERS
 `auditoria-motores-diagnostico-e-analise.md` · `SCREEN_MAP.md` ·
 `PARIDADE_REC_WORKER_2026-07-26.md` · `P2_AMBIENTE_D1_ADMIN_SEPARACAO.md` ·
 `INTELBRAS_RX1500_FIELD_MAP.md` · `NOKIA_GPON_FIELD_MAP.md` · `TPLINK_ARCHER_ROUTER_FIELD_MAP.md`
-· `MATRIZ_DIAGNOSTICO_2026-07-03.xlsx`.
+· `MATRIZ_DIAGNOSTICO_2026-07-03.xlsx` · `appshell-overlay-registry.md` (padrão de extensão de
+overlays do `AppShell.kt`, issue #1695).
 
 ## Funcional pontual — `functional/` (3)
 

@@ -916,7 +916,11 @@ fun AppShell(
                 }
             }
 
-            AppShellAssistOverlay(
+            // GH#1695 (épico #1647) — ponto de extensão de overlays: uma fatia nova pluga
+            // overlay/rota criando `AppShellXxxOverlay.kt` e registrando em
+            // `AppShellOverlayRegistry.kt`, sem editar este arquivo (ver KDoc de
+            // AppShellOverlayRegistry para o passo a passo).
+            AppShellOverlayRegistry(
                 overlayStack = overlayStack,
                 onAssistObjetivo = onAssistObjetivo,
                 onAssistResposta = onAssistResposta,
@@ -926,6 +930,14 @@ fun AppShell(
                     assistRespostaPreSelecionada = respostaSelecionada
                 },
                 onSolicitarDiagnostico = onSolicitarDiagnostico,
+                appVersion = BuildConfig.VERSION_NAME,
+                onAbrirGerenciarDados = { showGerenciarDadosSheet = true },
+                resultadoSpeedtest = snapshotSpeedtest.resultado,
+                localizacaoServidor = localizacaoServidorStr,
+                localDevice = localDevice,
+                temPermissaoLocalizacao = temPermissaoLocalizacao,
+                localizacaoBloqueadaPermanentemente = localizacaoBloqueadaPermanentemente,
+                onSolicitarPermissaoLocalizacao = onSolicitarPermissaoLocalizacao,
             )
 
             AnimatedVisibility(
@@ -1039,21 +1051,7 @@ fun AppShell(
                 )
             }
 
-            AnimatedVisibility(
-                visible = Overlay.DetalhesTecnicos in overlayStack && snapshotSpeedtest.resultado != null,
-                modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.DetalhesTecnicos, overlayStack)),
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-            ) {
-                snapshotSpeedtest.resultado?.let { resultado ->
-                    DetalhesTecnicosScreen(
-                        resultado = resultado,
-                        localizacaoServidor = localizacaoServidorStr,
-                        localDevice = localDevice,
-                        onVoltar = { overlayStack.remove(Overlay.DetalhesTecnicos) },
-                    )
-                }
-            }
+            // GH#1695 — DetalhesTecnicos migrou para AppShellOverlayRegistry.
 
             AnimatedVisibility(
                 visible = Overlay.Laudo in overlayStack,
@@ -1078,38 +1076,7 @@ fun AppShell(
                 )
             }
 
-            AnimatedVisibility(
-                visible = Overlay.Privacidade in overlayStack,
-                modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.Privacidade, overlayStack)),
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-            ) {
-                PrivacidadeScreen(
-                    onVoltar = { overlayStack.remove(Overlay.Privacidade) },
-                    onAbrirGerenciarDados = {
-                        overlayStack.remove(Overlay.Privacidade)
-                        showGerenciarDadosSheet = true
-                    },
-                )
-            }
-
-            AnimatedVisibility(
-                visible = Overlay.Novidades in overlayStack,
-                modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.Novidades, overlayStack)),
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-            ) {
-                NovidadesScreen(
-                    appVersion = BuildConfig.VERSION_NAME,
-                    onVoltar = { overlayStack.remove(Overlay.Novidades) },
-                )
-            }
-
-            if (Overlay.Ping in overlayStack) {
-                Box(modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.Ping, overlayStack))) {
-                    PingScreen(onDismiss = { overlayStack.remove(Overlay.Ping) })
-                }
-            }
+            // GH#1695 — Privacidade, Novidades e Ping migraram para AppShellOverlayRegistry.
 
             AnimatedVisibility(
                 visible = Overlay.Fibra in overlayStack,
@@ -1265,31 +1232,7 @@ fun AppShell(
                 )
             }
 
-            // GH#1201 — nova ferramenta "Sinal WiFi" (indicador dinâmico de RSSI/PHY/padrão).
-            AnimatedVisibility(
-                visible = Overlay.SinalWifi in overlayStack,
-                modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.SinalWifi, overlayStack)),
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-            ) {
-                SinalWifiScreen(
-                    temPermissaoLocalizacao = temPermissaoLocalizacao,
-                    localizacaoBloqueadaPermanentemente = localizacaoBloqueadaPermanentemente,
-                    onSolicitarPermissaoLocalizacao = onSolicitarPermissaoLocalizacao,
-                    onVoltar = { overlayStack.remove(Overlay.SinalWifi) },
-                )
-            }
-
-            // GH#1358 — "Termos de uso" do menu lateral: mesmo composable já usado no Onboarding
-            // (OnboardingOverlay.TERMOS), sem duplicar o conteúdo legal.
-            AnimatedVisibility(
-                visible = Overlay.Termos in overlayStack,
-                modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.Termos, overlayStack)),
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-            ) {
-                TermosDeUsoScreen(onVoltar = { overlayStack.remove(Overlay.Termos) })
-            }
+            // GH#1695 — SinalWifi e Termos migraram para AppShellOverlayRegistry.
 
             // GH#936 — Fase 7: AjustesScreen.kt virou lista de entradas pras 6 sub-telas
             // (6a PerfilEditSheet, 6b MinhaConexaoSheet, 6c DadosLocaisSheet, 6d Privacidade,
