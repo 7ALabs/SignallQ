@@ -106,21 +106,22 @@ legado. Os nomes de analytics existentes (`home`, `speedtest`, `sinal_wifi`, `hi
 
 ### 4.2 Overlays
 
-Lista exata de `AppShellOverlay` (`AppShellNavigation.kt`) — 16 valores, todos empilháveis:
+Lista exata de `AppShellOverlay` (`AppShellNavigation.kt`) — 17 valores, todos empilháveis:
 
 | Valor do enum | Tela renderizada | Aberto a partir de |
 |---|---|---|
 | `Laudo` | `LaudoScreen` | Ferramentas; Ajustes; CTA "Executar diagnóstico" no Equipamento de internet |
 | `Ping` | `PingScreen` | Ferramentas; SpeedTestScreen |
-| `Privacidade` | `PrivacidadeScreen` | menu lateral; Ajustes |
-| `Novidades` | `NovidadesScreen` | Ajustes |
+| `Privacidade` | `PrivacidadeScreen` | Perfil; menu lateral legado; Ajustes |
+| `Novidades` | `NovidadesScreen` | Perfil; Ajustes |
 | `ResultadoVelocidade` | `ResultadoVelocidadeScreen` | automático ao concluir um teste (`AppShell.kt:615-630`); link "Ver resultado" em Velocidade |
 | `Fibra` | `EquipamentoInternetScreen` | nó do gateway na Início; linha do roteador em Ajustes (`onAbrirGatewayDetalhe`, `AppShell.kt:483-488`) |
 | `Dispositivos` | `DispositivosScreen` | Ferramentas; CTA dentro do Equipamento de internet |
 | `EquipamentoInternet` | `EquipamentoInternetScreen` | Ferramentas (card "Equipamento de internet") |
 | `Ferramentas` | `FerramentasScreen` | apenas o card contextual do diagnóstico guiado (`onAbrirFerramentaSugeridaOverlay`, `AppShell.kt:475-478`) — a aba 4 usa a tela direto, sem passar por este overlay |
 | `Dns` | `DnsScreen` | Ferramentas; SpeedTestScreen |
-| `Perfil` | `AjustesScreen` | menu lateral ("Ajustes"); SpeedTestScreen |
+| `Perfil` | `PerfilScreen` | ação de perfil na app bar 2.0; menu lateral e entradas legadas equivalentes |
+| `Ajustes` | `AjustesScreen` | Perfil; preserva conexão, monitoramento e dados locais existentes |
 | `SinalWifi` | `SinalWifiScreen` | Ferramentas |
 | `Termos` | `TermosDeUsoScreen` | menu lateral |
 | `DiagnosticoGuiado` | `DiagnosticoGuiadoScreen` | CTA "Descobrir o que está acontecendo" no resultado do teste |
@@ -144,10 +145,22 @@ Notas de comportamento:
 ### 4.3 Menu lateral (fallback legado)
 
 `AppNavigationDrawerContent`, aberto pelo hambúrguer nas cinco telas quando `shellMode = Legacy`.
-Cinco itens fixos mais a versão do app: **Ajustes** (`AppShellOverlay.Perfil`), **Ajuda e
+Cinco itens fixos mais a versão do app: **Ajustes** (`AppShellOverlay.Perfil`, que mantém Ajustes
+como primeiro destino), **Ajuda e
 suporte** (`SimpleInfoSheet` com `suporte@signallq.com`, `AppShell.kt:1371-1379`), **Privacidade**
 (`Overlay.Privacidade`), **Termos de uso** (`Overlay.Termos`) e **Sobre o SignallQ**
 (`SobreSheet`). A navegação inferior não é duplicada aqui.
+
+### 4.3.1 Perfil 2.0
+
+`PerfilScreen` é o centro administrativo, sem conta, autenticação, foto ou avatar remoto. Reúne
+**Ajustes**, **Privacidade**, **Novidades**, **Ajuda e suporte**, **Termos de uso** e **Sobre o
+SignallQ**, além da versão real de `BuildConfig`. Ajustes continua sendo a tela existente, agora em
+overlay próprio, para não duplicar nem mover regras de conexão, monitoramento, dados locais ou
+ações destrutivas. Voltar fecha primeiro o destino interno e depois Perfil; a pilha é restaurável.
+Ajuda tenta abrir o cliente de e-mail por `mailto:` e mantém endereço/copiar como fallback quando
+não existe handler. Consentimento AdMob e exclusão/reset permanecem nas superfícies legadas
+responsáveis e não foram redesenhados nesta fatia.
 
 ### 4.4 Hub de Ferramentas
 

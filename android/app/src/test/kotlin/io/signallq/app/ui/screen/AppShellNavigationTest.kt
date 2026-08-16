@@ -75,6 +75,21 @@ class AppShellNavigationTest {
     }
 
     @Test
+    fun `perfil ajustes preserves back stack and restoration`() {
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.legacyIndex)
+        navigator.open(AppShellOverlay.Perfil)
+        navigator.open(AppShellOverlay.Ajustes)
+
+        val restored = AppShellNavigator.restoreState(AppShellNavigator.saveState(navigator))
+
+        assertEquals(listOf(AppShellOverlay.Perfil, AppShellOverlay.Ajustes), restored.overlayStack)
+        assertEquals(AppShellOverlay.Ajustes, restored.pop())
+        assertEquals(listOf(AppShellOverlay.Perfil), restored.overlayStack)
+        assertEquals(AppShellOverlay.Perfil, restored.pop())
+        assertEquals(true, restored.isAtRoot)
+    }
+
+    @Test
     fun `bar visibility follows root overlay and running speedtest contracts`() {
         assertEquals(true, shouldShowAppShellBottomBar(AppShellMode.Guided2, isAtRoot = true, speedtestRunning = false))
         assertEquals(false, shouldShowAppShellBottomBar(AppShellMode.Guided2, isAtRoot = false, speedtestRunning = false))

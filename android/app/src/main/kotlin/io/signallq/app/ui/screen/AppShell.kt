@@ -1,5 +1,11 @@
 ﻿package io.signallq.app.ui.screen
 
+import android.content.ActivityNotFoundException
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -49,6 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -316,6 +323,7 @@ fun AppShell(
     val podeRequisitarAnuncio = ads.podeRequisitarAnuncio
 
     val c = LocalLkTokens.current
+    val context = LocalContext.current
     // Desempacota UiState<T> → tipos opcionais para as telas filhas que ainda recebem primitivos.
     // Loading e Error resultam em null — as telas exibem fallback textual próprio.
     val localizacaoServidorStr: String? = (localizacaoServidor as? UiState.Success)?.data
@@ -1149,6 +1157,24 @@ fun AppShell(
                 enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                 exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
             ) {
+                PerfilScreen(
+                    appVersion = BuildConfig.VERSION_NAME,
+                    onVoltar = { overlayStack.remove(Overlay.Perfil) },
+                    onAbrirAjustes = { if (Overlay.Ajustes !in overlayStack) overlayStack.add(Overlay.Ajustes) },
+                    onAbrirPrivacidade = { if (Overlay.Privacidade !in overlayStack) overlayStack.add(Overlay.Privacidade) },
+                    onAbrirNovidades = { if (Overlay.Novidades !in overlayStack) overlayStack.add(Overlay.Novidades) },
+                    onAbrirAjuda = { showAjudaSuporteSheet = true },
+                    onAbrirTermos = { if (Overlay.Termos !in overlayStack) overlayStack.add(Overlay.Termos) },
+                    onAbrirSobre = { showSobreAppSheet = true },
+                )
+            }
+
+            AnimatedVisibility(
+                visible = Overlay.Ajustes in overlayStack,
+                modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.Ajustes, overlayStack)),
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            ) {
                 // GH#1249 -- provedor "detectado" pra comparar com o ConnectionProfilePersistido da
                 // rede atual: ISP resolvido por IP em Wi-Fi/Ethernet, operadora do SIM ativo em rede
                 // móvel (requisito B -- rede móvel nunca sobrescreve o cadastro da internet fixa,
@@ -1217,6 +1243,7 @@ fun AppShell(
                     onApagarDadosLocais = onApagarDadosLocais,
                     onResetarApp = onResetarApp,
                     onAbrirHistorico = {
+                        overlayStack.remove(Overlay.Ajustes)
                         overlayStack.remove(Overlay.Perfil)
                         navigator.select(AppShellRoot.History)
                     },
@@ -1232,7 +1259,7 @@ fun AppShell(
                             speedtestMbConsumidosMes = speedtestMbConsumidosMes,
                             onSetSpeedtestPermiteHeavyMovel = onSetSpeedtestPermiteHeavyMovel,
                         ),
-                    onVoltar = { overlayStack.remove(Overlay.Perfil) },
+                    onVoltar = { overlayStack.remove(Overlay.Ajustes) },
                 )
             }
 
@@ -1314,7 +1341,13 @@ fun AppShell(
                     titulo = stringResource(R.string.appshell_menu_ajuda_suporte),
                     onDismiss = { showAjudaSuporteSheet = false },
                 ) {
-                    InfoRow(c, "Suporte", "suporte@signallq.com")
+                    AjudaSuporteContent(
+                        onAbrirEmail = { abrirEmailSuporte(context) },
+                        onCopiarEmail = { email ->
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("E-mail de suporte SignallQ", email))
+                        },
+                    )
                 }
             }
 
@@ -1330,6 +1363,22 @@ fun AppShell(
         }
     }
 }
+
+internal fun abrirEmailSuporte(
+    context: Context,
+    launch: (Intent) -> Unit = context::startActivity,
+): Boolean =
+    try {
+        launch(
+            Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:suporte@signallq.com"))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+        true
+    } catch (_: ActivityNotFoundException) {
+        false
+    } catch (_: SecurityException) {
+        false
+    }
 
 // GH#1358 — conteúdo do Navigation Drawer que substitui o antigo avatar de perfil no
 // TopBar. Só as opções secundárias previstas na issue (Ajustes/Ajuda/Privacidade/Termos/
