@@ -59,7 +59,11 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(project(":featureSpeedtest"))
+    // GH#1682 — implementation(project(":featureSpeedtest")) removido: unico consumidor era
+    // SignallQOrchestrator.kt (motor SignallQ Pulse), que importava ExecutorSpeedtest/
+    // ResultadoSpeedtest/ModoSpeedtest/SpeedtestQualityClassifier. Resolve a violacao
+    // "feature nao pode depender de feature" (.claude/rules/higiene-e-padronizacao-
+    // repositorio.md §4.9) documentada em docs_ai/ARQUITETURA/MODULOS/feature-diagnostico.md.
     implementation(project(":coreDatabase"))
     implementation(project(":coreDatastore"))
     implementation(project(":coreNetwork"))

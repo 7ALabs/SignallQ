@@ -1,7 +1,16 @@
+---
+title: "AI Flow"
+description: "Fluxo de diagnóstico assistido por IA no app Android e o worker que o atende, incluindo fallback local."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-16"
+---
+
 # AI Flow — Android SignallQ
 
 **Status:** ativo
-**Última validação:** 2026-07-23
+**Última validação:** 2026-08-16
 **Fonte de verdade:** código real (`featureDiagnostico`, `integrations/cloudflare/ai-diagnosis-worker`) — este documento é derivado, não normativo
 **Escopo:** fluxo de diagnóstico assistido por IA no app Android e o worker que o atende
 **Responsável:** Camilo (Backend Android + Workers)
@@ -73,7 +82,7 @@ const DEFAULT_MODEL = "@cf/qwen/qwen3-30b-a3b-fp8";
 
 Montado por `DiagnosisAiContextFactory.fromRaw()`. O worker aceita schemas anteriores para retrocompatibilidade.
 
-A versão de prompt atual do worker é `diagnostico_v6_explicacao_humana` (`AI_PROMPT_VERSION` em `src/index.ts` — atualizado desde a v5 citada em versões anteriores deste documento): os achados do motor local são enviados como entrada e a IA refina/expande em cima deles. `schemaVersion` do contexto (`DiagnosisAiContext`) é enviado ao worker e registrado no evento `ia_laudo_solicitado`.
+A versão de prompt atual do worker é `diagnostico_v6_explicacao_humana` (`AI_PROMPT_VERSION` em `src/index.ts` — atualizado desde a v5 citada em versões anteriores deste documento): os achados do motor local são enviados como entrada e a IA refina/expande em cima deles. `schemaVersion` do contexto (`DiagnosisAiContext`) é enviado ao worker. O evento `ia_laudo_solicitado` que registrava esse valor está definido em `AnalyticsHelper` mas sem call site em produção desde a remoção do `SignallQOrchestrator` (GH#1682) — ver `docs_ai/technical/analytics-events.md`.
 
 Campos enviados: tipo de conexão, snapshot Wi-Fi (RSSI, canal, frequência), latência, jitter, perda de pacotes, download/upload Mbps, DNS (servidor atual, latência), histórico (médias 7d/30d), dados do ISP, configuração do usuário (plano, operadora, estado/cidade).
 
@@ -98,22 +107,29 @@ Todos residem em `:featureDiagnostico`. São stateless — recebem dados brutos 
 
 ---
 
-## 6. Chat / Pulse (SignallQOrchestrator)
+## 6. Chat / Pulse (removido — GH#1682)
 
-Fluxo conversacional pós-diagnóstico:
+O app **não tem chat conversacional de diagnóstico** — decisão de produto (#564, SIG-282: "IA
+como 'Diagnóstico avançado' opcional, sem chat"). O motor que ficou para trás dessa decisão,
+`SignallQOrchestrator` (`feature/diagnostico/.../pulse/`, 12 arquivos: `DynamicQuestionEngine`,
+`SignallQState`, `SignallQSnapshot`, `IntelligentDiagnosticSession`, `ContextAccumulator`,
+`QuestionAnswer`/`QuestionNode`/`OpcaoResposta`, `RotatingMessageProvider`,
+`SignallQInsightGenerator`, `AiAnalysisEntry`), mais as telas `ContextualQuestionCard.kt` e
+`PulseResultCard.kt` (`:app`), foram removidos em GH#1682 por não terem nenhum consumidor de UI.
+`git show <SHA-antes-da-remoção>:android/feature/diagnostico/src/main/kotlin/io/signallq/app/feature/diagnostico/pulse/SignallQOrchestrator.kt`
+recupera o código se necessário.
 
-```
-SignallQOrchestrator
-    → SignallQState (enum: Idle, Collecting, Thinking, Analyzing, Done, Error)
-    → SignallQSnapshot (data class — estado atual da sessão)
-    → DynamicQuestionEngine (gera perguntas contextuais baseadas no estado da rede)
-    → POST worker /api/ai/diagnostico-conexao (reutiliza contexto do diagnóstico)
-```
+O fluxo real de IA hoje é a "Análise avançada" (seção 1–5 acima): `MainViewModel.analisarProblema()`
+chama `coletarContextoAdicionalIa()` + `DiagnosisAiContextFactory.fromRaw()` e
+`AiDiagnosisRepository.explainDiagnosis()` diretamente — sem orquestrador intermediário — e
+apresenta o resultado em `LaudoScreen`.
 
-Sessões persistidas em Room: `ChatSessionEntity` + `ChatMessageEntity` (tabelas adicionadas em v10/v0.12.0).
-
-**Repository:** `ChatDiagnosticoIaRepository` — gerencia histórico de sessões.
-**ViewModel:** `ChatDiagnosticoIaViewModel` — controla estado do chat.
+**Achado não corrigido nesta remoção (ver dívida na issue de acompanhamento):** as tabelas Room
+`chat_sessions`/`chat_messages` (`ChatSessionEntity`/`ChatMessageEntity`/`ChatSessionDao` em
+`core/database/.../chat/`) já estavam órfãs antes desta remoção — nenhum caminho de produção grava
+linhas ali (`SignallQOrchestrator` nunca as usava; só `AdminSyncWorker` lê, sempre encontra vazio).
+Removê-las é mudança de schema/migration, fora do escopo desta remoção (`.claude/rules/
+higiene-e-padronizacao-repositorio.md` §9 — banco de dados não se remove silenciosamente).
 
 ---
 
@@ -133,7 +149,8 @@ Retorna um `AiDiagnosisResult` construído a partir dos resultados dos engines l
 ## 8. Armazenamento de Resultados
 
 - Diagnósticos: estado em `MainViewModel.snapshotDiagnostico` (StateFlow, não persistido em Room)
-- Sessões de chat: `SignallQDatabase` — tabelas `chat_sessions` e `chat_messages`
+- Sessões de chat: tabelas Room `chat_sessions`/`chat_messages` continuam existindo no schema
+  (`SignallQDatabase`), mas estão órfãs — sem chat conversacional (seção 6), nada grava nelas hoje
 - Cota/orçamento diário de IA: não há mecanismo de limite client-side no app (a classe
   `CotaIaRepository` citada em versões anteriores deste documento não existe no código). O
   controle real de orçamento é server-side, no Worker Admin: `aiDailyBudgetUsd` em

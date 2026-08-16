@@ -160,11 +160,14 @@ data class DiagnosticInput(
     val velocidadeContratadaMbps: Int? = null,
     /** Classificacao de NAT/CGNAT da rede atual. Fonte: TopologyDiagnostic/NatClassifier. */
     val natStatus: NatStatus? = null,
-    /** Device/console selecionado manualmente pelo usuario na arvore de perguntas
-     *  do Pulse (no "qual_jogo_device" — SIG-290), ex.: "playstation", "xbox", "pc",
-     *  "switch". Null quando o usuario nao respondeu essa pergunta (device preset
+    /** Device/console selecionado manualmente pelo usuario, ex.: "playstation", "xbox",
+     *  "pc", "switch". Null quando o usuario nao respondeu essa pergunta (device preset
      *  entao usa o fallback automatico: o proprio Android/iPhone rodando o app).
-     *  Fonte: [io.signallq.app.feature.diagnostico.pulse.DynamicQuestionEngine]. */
+     *  GH#1682 — a unica fonte que preenchia este campo era a arvore de perguntas do
+     *  motor SignallQ Pulse ("qual_jogo_device" — SIG-290), removida por ser codigo
+     *  morto sem consumidor de UI. Nenhum caminho de producao atual escreve este campo
+     *  (so testes) — o consumidor em RecomendacaoPraticaEngine fica inalcancavel ate
+     *  uma nova fonte ser decidida (ex.: selecao de device no Modo Gamer). */
     val deviceGamingSelecionado: String? = null,
     /** Resumo seguro (allowlisted) do equipamento de rede local (ONT/roteador)
      *  detectado, quando disponivel — GH#542, epic #547. Ja passou por

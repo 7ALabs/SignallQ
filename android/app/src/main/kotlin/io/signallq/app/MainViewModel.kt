@@ -25,8 +25,6 @@ import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 import io.signallq.app.core.diagnostico.WifiScanDiagnosticInput
 import io.signallq.app.core.diagnostico.banda
 import io.signallq.app.core.diagnostico.topology.model.NatStatus
-import io.signallq.app.core.network.AnalyticsHelper
-import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.DispatcherProvider
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.MonitorRede
@@ -64,8 +62,6 @@ import io.signallq.app.feature.diagnostico.ai.AiMovelInfo
 import io.signallq.app.feature.diagnostico.ai.AiRedeVizinha
 import io.signallq.app.feature.diagnostico.ai.AiTesteHistorico
 import io.signallq.app.feature.diagnostico.ai.DiagnosisAiContextFactory
-import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
-import io.signallq.app.feature.diagnostico.pulse.SignallQOrchestrator
 import io.signallq.app.feature.diagnostico.recommendation.RecommendationDecisionCoordinator
 import io.signallq.app.feature.diagnostico.topology.TopologyDiagnostic
 import io.signallq.app.feature.dns.AvaliadorCoerenciaDns
@@ -155,8 +151,6 @@ class MainViewModel
         /** DiagnosticOrchestrator injetado pelo Hilt como @Singleton (DiagnosticoModule).
          *  Antes era instanciado via lazy: `by lazy { DiagnosticOrchestrator() }`. */
         _diagnosticOrchestrator: DiagnosticOrchestrator,
-        /** Repositorio de telemetria para o painel admin SignallQ. */
-        private val adminIngestRepository: AdminIngestRepository,
         private val speedtestPersistenceCoordinator: SpeedtestPersistenceCoordinator,
         /** Cache compartilhado do ultimo ISP resolvido — permite que o
          *  SpeedtestPersistenceCoordinator envie o provedor Wi-Fi ao ingest (GH#412). */
@@ -165,20 +159,16 @@ class MainViewModel
          *  Usado para classificar NAT/CGNAT (SIG-279) — disparado uma unica vez por
          *  sessao dentro de [iniciarRotinasNaoSpeedtest], mesmo padrao de coletarIspInfo. */
         private val topologyDiagnostic: TopologyDiagnostic,
-        /** Funil principal de engajamento (SIG-155) — repassado ao SignallQOrchestrator
-         *  para os eventos ia_laudo_solicitado/ia_laudo_recebido. */
-        private val analyticsHelper: AnalyticsHelper,
         /** Unico ponto de integracao com o Recommendation Engine (issue #790/#811/#812) --
          *  monta o request a partir do relatorio/input do diagnostico, le/persiste o
          *  historico local (Room) e devolve a decisao a exibir na experiencia pos-diagnostico
          *  (issue #813). */
         private val recommendationDecisionCoordinator: RecommendationDecisionCoordinator,
         /** Eventos `recommendation_*` (issue #790) do Recommendation Engine -- distinto do
-         *  AnalyticsHelper/AnalyticsTracker acima, que cobrem outros funis. */
+         *  AnalyticsHelper/AnalyticsTracker que cobrem o funil principal (SIG-155) e
+         *  feature_used (SIG-134) — instrumentados em MainActivity/DiagnosticOrchestrator,
+         *  nao neste ViewModel. */
         private val recommendationAnalyticsTracker: RecommendationAnalyticsTracker,
-        /** GH#919 — repassado ao SignallQOrchestrator para correlacionar feature_used("diagnostico")
-         *  com diagnostic_sessions.id real (schema SIG-134, distinto do funil AnalyticsHelper acima). */
-        private val analyticsTracker: AnalyticsTracker,
         /** GH#1480 (Epico #1347, F4) — deriva [featureFlagsState] do FeatureFlagProvider real
          *  (F1/#1477). Toda a logica de flag mora no coordinator, nao aqui (regra de higiene
          *  4.2 -- MainViewModel nao ganha responsabilidade nova). */
@@ -279,25 +269,6 @@ class MainViewModel
         // para nao crashar a UI antes da captura. Nao chama startScan() — usa dados cacheados.
         private val _simsAtivos = MutableStateFlow<List<MovelSimSnapshot>>(emptyList())
         val simsAtivos: StateFlow<List<MovelSimSnapshot>> = _simsAtivos
-        val signallQOrchestrator by lazy {
-            SignallQOrchestrator(
-                executorSpeedtest = executorSpeedtest,
-                diagnosticOrchestrator = diagnosticOrchestrator,
-                monitorRede = monitorRede,
-                medicaoDao = bancoDados.medicaoDao(),
-                scope = viewModelScope,
-                additionalContextProvider = { coletarContextoAdicionalIa() },
-                networkCapabilitiesProvider = networkCapabilitiesProvider,
-                aiRepository = diagAiRepository,
-                adminIngestRepository = adminIngestRepository,
-                deviceIdProvider = { preferenciasAppRepository.buscarOuGerarAnonDeviceId() },
-                distChannelProvider = { getDistributionChannel(getApplication()) },
-                // SIG-282: IA so dispara automaticamente com o toggle "Analise avancada" ligado.
-                analiseAvancadaProvider = { preferenciasAppRepository.analiseAvancadaFlow.first() },
-                analyticsHelper = analyticsHelper,
-                analyticsTracker = analyticsTracker,
-            )
-        }
 
         // #895: default ERA `false` — todo cold start (mesmo de usuario que ja concluiu o
         // onboarding) renderizava OnboardingScreen por um instante ate o DataStore emitir o
@@ -648,7 +619,10 @@ class MainViewModel
 
         fun verificarDisponibilidadeGemma() {
             viewModelScope.launch {
-                gemmaAvailable.value = signallQOrchestrator.checkAiAvailability()
+                // GH#1682 — antes delegado ao SignallQOrchestrator.checkAiAvailability()
+                // (motor SignallQ Pulse, removido por ser codigo morto sem consumidor de
+                // UI). checkAvailability() e o mesmo HEAD request; sem mudanca de contrato.
+                gemmaAvailable.value = diagAiRepository.checkAvailability()
             }
         }
 
@@ -1867,7 +1841,7 @@ class MainViewModel
 
         /**
          * Coleta TODOS os dados brutos disponiveis no app que possam ajudar a IA a
-         * diagnosticar. Chamada pelo SignallQOrchestrator antes de cada explainDiagnosis.
+         * diagnosticar. Chamada por [analisarProblema] antes de cada explainDiagnosis.
          *
          * Politica: dado que nao existe -> null (omitido do payload). Nao inventa.
          * NAO inclui analise local, classificacao ou rotulos. So dados crus.

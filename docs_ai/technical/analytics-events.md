@@ -1,6 +1,6 @@
 ---
 title: "Contrato de Eventos — Firebase Analytics"
-description: "Funil principal SIG-155 (7 eventos implementados) + contrato mais amplo proposto (eventos por feature ainda não instrumentados)."
+description: "Funil principal SIG-155 (7 eventos definidos, 5 disparando — os 2 de IA/laudo estão órfãos desde GH#1682) + contrato mais amplo proposto (eventos por feature ainda não instrumentados)."
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
@@ -11,18 +11,20 @@ last_updated: "2026-08-16"
 
 **Status:** ativo (parcialmente implementado — ver "Estado atual" abaixo)
 **Última validação:** 2026-07-05 (v0.23.0, versionCode 56)
-**Fonte de verdade:** código real (`AnalyticsHelper`/`FirebaseAnalyticsHelper`, `DiagnosticOrchestrator`, `SignallQOrchestrator`) — este arquivo também define o contrato-alvo para eventos ainda não instrumentados
-**Escopo:** funil principal SIG-155 (7 eventos implementados) + contrato mais amplo proposto (eventos por feature ainda não instrumentados)
+**Fonte de verdade:** código real (`AnalyticsHelper`/`FirebaseAnalyticsHelper`, `DiagnosticOrchestrator`, `MainViewModel`) — este arquivo também define o contrato-alvo para eventos ainda não instrumentados
+**Escopo:** funil principal SIG-155 (7 eventos definidos, 5 disparando — ver "Estado atual") + contrato mais amplo proposto (eventos por feature ainda não instrumentados)
 **Responsável:** Camilo (Backend Android)
 **Property ID:** 543555227 (Firebase Analytics — Android)
 **Status de implementação:** funil principal (7 eventos, ver seção "Funil
-principal") instrumentado via `AnalyticsHelper` (SIG-155). Eventos do schema
-SIG-134 (`feature_used`, `screen_view`, `app_session_start`, `feature_crash`,
-`battery_snapshot`) instrumentados à parte via `AnalyticsTracker` — ver
+principal") definido via `AnalyticsHelper` (SIG-155) — 5 disparam de fato hoje;
+`ia_laudo_solicitado`/`ia_laudo_recebido` estão órfãos desde GH#1682 (ver nota
+na seção "Eventos — IA / Laudo"). Eventos do schema SIG-134 (`feature_used`,
+`screen_view`, `app_session_start`, `feature_crash`, `battery_snapshot`)
+instrumentados à parte via `AnalyticsTracker` — ver
 `docs_ai/technical/analytics-events-schema.md`. Os demais eventos deste
-contrato (`onboarding_concluido`, `speedtest_erro`, `diag_erro`,
-`ia_laudo_erro`, `ia_chat_mensagem_enviada`, `wifi_*`, `historico_*`, `dns_*`,
-`fibra_*`, `dispositivos_*`, `ajustes_*`) **ainda não instrumentados**.
+contrato (`onboarding_concluido`, `speedtest_erro`, `diag_erro`, `ia_laudo_erro`,
+`wifi_*`, `historico_*`, `dns_*`, `fibra_*`, `dispositivos_*`, `ajustes_*`)
+**ainda não instrumentados**.
 
 ---
 
@@ -138,12 +140,14 @@ Disparado quando o usuário toca "Iniciar teste" ou o teste silencioso começa.
 
 **Nota de implementação:** o valor de `modo` foi corrigido em relação à versão
 anterior deste contrato — `ModoSpeedtest` no código é `fast`/`complete`/`triplo`,
-não `"completo"`/`"silencioso"`. O teste silencioso disparado pelo
-`SignallQOrchestrator` (fluxo guiado de IA) **não passa por este ponto de
-instrumentação** — só o speedtest explícito iniciado pelo usuário via
+não `"completo"`/`"silencioso"`. Testes silenciosos/automáticos (ex.: monitoramento
+passivo — ver `docs_ai/technical/MONITORAMENTO_PASSIVO.md`) **não passam por este
+ponto de instrumentação** — só o speedtest explícito iniciado pelo usuário via
 `SpeedtestViewModel` é contado no funil, para manter o par
 `speedtest_iniciado`/`speedtest_concluido` sempre correlacionado por sessão de
-UI (evita eventos `concluido` órfãos de testes automáticos em background).
+UI (evita eventos `concluido` órfãos de testes automáticos em background). GH#1682
+removeu o motor SignallQ Pulse, que também rodava um teste silencioso próprio fora
+deste ponto de instrumentação; hoje o monitoramento passivo é o único caso restante.
 
 ---
 
@@ -176,9 +180,10 @@ Disparado quando o `ResultadoSpeedtest` da execução atual (via
 **Nota de implementação:** disparado no `SpeedtestViewModel` (mesmo ViewModel
 de `speedtest_iniciado`), imediatamente após `ExecutorSpeedtest.executar()`
 retornar — e não em `SpeedtestPersistenceCoordinator` (que persiste no Room de
-forma global, inclusive testes silenciosos do fluxo de IA). Isso mantém o
-funil correlacionado por sessão de UI: só speedtests explicitamente iniciados
-pelo usuário entram no funil `speedtest_iniciado → speedtest_concluido`.
+forma global, inclusive testes silenciosos automáticos como o monitoramento
+passivo). Isso mantém o funil correlacionado por sessão de UI: só speedtests
+explicitamente iniciados pelo usuário entram no funil `speedtest_iniciado →
+speedtest_concluido`.
 
 ---
 
@@ -224,9 +229,9 @@ Disparado no início de `DiagnosticOrchestrator.executar()`.
 
 **Nota de implementação:** instrumentado dentro de `DiagnosticOrchestrator`
 (não em cada ViewModel chamador) — é o único ponto de entrada compartilhado por
-todos os fluxos de diagnóstico (`MainViewModel.iniciarDiagnostico()` e
-`SignallQOrchestrator`), evitando duplicar a chamada em múltiplos call sites.
-Os valores reais de `areas_habilitadas` vêm do enum `DiagnosticArea`
+todos os fluxos de diagnóstico (`MainViewModel.iniciarDiagnostico()`), evitando
+duplicar a chamada em múltiplos call sites. Os valores reais de
+`areas_habilitadas` vêm do enum `DiagnosticArea`
 (`VELOCIDADE`, `WIFI_SINAL`, `LATENCIA`, `FIBRA`, `DNS`), diferente do exemplo
 genérico da versão anterior deste contrato.
 
@@ -272,11 +277,18 @@ evento indica. Não existe `diag_erro` implementado ainda (ver seção abaixo).
 
 ## Eventos — IA / Laudo
 
-### `ia_laudo_solicitado` — implementado (SIG-155)
+### `ia_laudo_solicitado` — órfão (GH#1682)
 
-Disparado quando o app envia o payload ao Worker (`AiDiagnosisRepository`),
-apenas para o laudo **inicial** do funil (triggers `"initial"` e
-`"initial_from_result"` do `SignallQOrchestrator`).
+**Definido no contrato (`AnalyticsHelper.registrarIaLaudoSolicitado`), mas sem call
+site em produção.** Só era disparado de dentro do `SignallQOrchestrator` (motor
+SignallQ Pulse), removido por não ter consumidor de UI. `MainViewModel.analisarProblema()`
+— o fluxo real de "Análise avançada" que chama `AiDiagnosisRepository.explainDiagnosis`
+hoje — não chama `analyticsHelper`. Decisão pendente (issue de acompanhamento de
+GH#1682): reconectar o disparo em `analisarProblema()` ou remover o evento do contrato.
+
+Descrição original do payload, para quando a decisão acima for tomada — disparado
+quando o app envia o payload ao Worker (`AiDiagnosisRepository`), apenas para o laudo
+**inicial** do funil (triggers `"initial"` e `"initial_from_result"`).
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
@@ -286,26 +298,28 @@ apenas para o laudo **inicial** do funil (triggers `"initial"` e
 | `tem_feedback_usuario` | Boolean | Sim | `true` se havia foco/texto do usuário associado a este laudo |
 | `versao_app` | String | Sim | |
 
-**Tela:** `SignallQPulseScreen` / `LaudoScreen` (via `SignallQOrchestrator.callAi`)
+**Tela:** `LaudoScreen` (via `MainViewModel.analisarProblema`)
 **Plataforma:** Android
 
-**Nota de implementação:** perguntas de acompanhamento no chat (chips, texto
-livre digitado após o laudo inicial, trigger `"followup_*"`/`"typed_message"`)
-**não** disparam este evento — são conversa complementar sobre o mesmo laudo,
-não um novo passo do funil. Também não dispara quando o toggle "Análise
-avançada" (SIG-282) está desligado, porque nesse caso a IA nunca é chamada
-(motor local decide sozinho). O chat separado `ChatDiagnosticoIaScreen`
-(`DiagnosticoViewModel.enviarPerguntaDiagnostico`) também não está
-instrumentado — é o evento `ia_chat_mensagem_enviada` (ainda não
-implementado), não o funil principal.
+**Nota de implementação:** o app não tem chat conversacional (decisão de produto
+#564, reafirmada em GH#1682) — não há "perguntas de acompanhamento" nem tela de
+chat separada. Também não dispararia quando o toggle "Análise avançada"
+(SIG-282) está desligado, porque nesse caso a IA nunca é chamada (motor local
+decide sozinho). O evento `ia_chat_mensagem_enviada` de versões anteriores
+deste contrato (tela `LLMChatScreen`/`ChatDiagnosticoIaScreen`, nenhuma das
+duas existente no código) foi removido deste documento em GH#1682 — não
+recriar, não vamos ter chat conversacional.
 
 ---
 
-### `ia_laudo_recebido` — implementado (SIG-155)
+### `ia_laudo_recebido` — órfão (GH#1682)
 
-Disparado quando o resultado da chamada a `AiDiagnosisRepository.explainDiagnosis`
-fica disponível (sucesso via IA, fallback local, ou timeout) — sempre pareado
-com um `ia_laudo_solicitado` da mesma chamada.
+Mesma situação de `ia_laudo_solicitado` acima: definido em `AnalyticsHelper`,
+sem call site em produção desde a remoção do `SignallQOrchestrator`. Descrição
+original — disparado quando o resultado da chamada a
+`AiDiagnosisRepository.explainDiagnosis` fica disponível (sucesso via IA,
+fallback local, ou timeout), sempre pareado com um `ia_laudo_solicitado` da
+mesma chamada.
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
@@ -320,7 +334,7 @@ com um `ia_laudo_solicitado` da mesma chamada.
 | `latencia_ms` | Long | Não | Tempo entre envio e recebimento da resposta |
 | `versao_app` | String | Sim | |
 
-**Tela:** `SignallQPulseScreen` / `LaudoScreen`
+**Tela:** `LaudoScreen`
 **Plataforma:** Android
 
 **Nota de implementação:** `status_ia` envia o valor exato de
@@ -352,19 +366,6 @@ Disparado quando a chamada ao Worker falha e o fallback local é ativado.
 como `source: "local"` em `ia_laudo_recebido` (ver acima) — este evento
 separado adicionaria detalhe sobre a causa específica da falha, mas exigiria
 propagar o tipo de erro de `AiDiagnosisRepository` (hoje só loga via Timber).
-
----
-
-### `ia_chat_mensagem_enviada`
-
-| Parâmetro | Tipo | Obrigatório | Descrição |
-|---|---|---|---|
-| `n_mensagens_sessao` | Long | Sim | Número de mensagens trocadas na sessão até agora |
-| `tem_contexto_diag` | Boolean | Sim | `true` se o chat tem contexto de diagnóstico recente |
-| `versao_app` | String | Sim | |
-
-**Tela:** `LLMChatScreen` / `ChatDiagnosticoIaScreen`
-**Plataforma:** Android
 
 ---
 
@@ -497,10 +498,11 @@ Disparado quando o scan de canais Wi-Fi retorna resultados.
 
 ---
 
-## Funil principal — implementado (SIG-155)
+## Funil principal — definido no contrato (SIG-155), 5/7 eventos disparando hoje
 
 A sequência de eventos abaixo define o funil de engajamento central do SignallQ.
-Use esta ordem para análise de drop-off no Firebase:
+Use esta ordem para análise de drop-off no Firebase — os dois últimos passos
+estão órfãos desde GH#1682 (ver nota abaixo):
 
 ```
 app_aberto
@@ -508,16 +510,18 @@ app_aberto
     → speedtest_concluido
       → diag_iniciado
         → diag_concluido
-          → ia_laudo_solicitado
-            → ia_laudo_recebido
+          → ia_laudo_solicitado   [órfão — GH#1682]
+            → ia_laudo_recebido   [órfão — GH#1682]
 ```
 
 Drop entre `speedtest_concluido` e `diag_iniciado`: usuário não quis analisar.
-Drop em `ia_laudo_solicitado` sem `ia_laudo_recebido`: falha de rede ou Worker.
+Drop em `ia_laudo_solicitado` sem `ia_laudo_recebido`: falha de rede ou Worker
+— mas hoje nenhum dos dois dispara, então esse drop não é observável no Firebase.
 
-Todos os 7 eventos estão instrumentados via `AnalyticsHelper`
+Os 7 eventos estão definidos em `AnalyticsHelper`
 (`core/network/AnalyticsHelper.kt` + `FirebaseAnalyticsHelper` em `:app`,
-injetado via Hilt em `AppModule`). Pontos de disparo:
+injetado via Hilt em `AppModule`); só os 5 primeiros disparam de fato hoje.
+Pontos de disparo:
 
 | Evento | Classe | Método |
 |---|---|---|
@@ -526,13 +530,14 @@ injetado via Hilt em `AppModule`). Pontos de disparo:
 | `speedtest_concluido` | `SpeedtestViewModel` | `executarSpeedtest` (após `ExecutorSpeedtest.executar`, via `registrarSpeedtestConcluidoSeDisponivel`) |
 | `diag_iniciado` | `DiagnosticOrchestrator` | `executar(input, enabledAreas)` |
 | `diag_concluido` | `DiagnosticOrchestrator` | `executar(input, enabledAreas)` (caminho de sucesso) |
-| `ia_laudo_solicitado` | `SignallQOrchestrator` | `callAi` (antes de `AiDiagnosisRepository.explainDiagnosis`, triggers `initial`/`initial_from_result`) |
-| `ia_laudo_recebido` | `SignallQOrchestrator` | `callAi` (após `explainDiagnosis`, mesmos triggers) |
+| `ia_laudo_solicitado` | *nenhum (órfão)* | Só chamado de dentro do `SignallQOrchestrator`, removido em GH#1682 |
+| `ia_laudo_recebido` | *nenhum (órfão)* | Idem |
 
 Testes unitários do `FirebaseAnalyticsHelper` em
 `app/src/test/kotlin/io/signallq/app/analytics/FirebaseAnalyticsHelperTest.kt`
 (MockK + Robolectric, cobrem os 7 eventos e omissão correta de parâmetros
-opcionais nulos).
+opcionais nulos) continuam válidos — testam a implementação do método, que
+não mudou; o que mudou é que ninguém mais chama os dois últimos métodos.
 
 ---
 

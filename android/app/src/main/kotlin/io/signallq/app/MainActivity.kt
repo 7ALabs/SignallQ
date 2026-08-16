@@ -391,11 +391,14 @@ class MainActivity : ComponentActivity() {
                             io.signallq.app.ui.screen.AppShellDiagnosticoState(
                                 snapshotDiagnostico = snapshotDiagnostico,
                                 onIniciarDiagnostico = {
-                                    // GH#919 — feature_used("diagnostico") passou a ser disparado
-                                    // dentro do SignallQOrchestrator, no momento em que a sessao
-                                    // real (diagnostic_sessions.id) e criada, correlacionando com
-                                    // ai_usage.session_id. Emitir aqui tambem duplicaria a contagem
-                                    // de "feature usada" com um session_id generico e sem correlacao.
+                                    // GH#919 — feature_used("diagnostico") era disparado dentro do
+                                    // SignallQOrchestrator (motor SignallQ Pulse), correlacionado com
+                                    // diagnostic_sessions.id/ai_usage.session_id. O motor foi removido
+                                    // por ser codigo morto sem consumidor de UI (GH#1682) e nada
+                                    // retomou esse disparo — feature_used("diagnostico") com
+                                    // correlacao real fica pendente de decisao de produto/analytics
+                                    // (nao adicionado aqui para nao emitir com session_id generico
+                                    // e sem correlacao, que era exatamente o problema original).
                                     viewModel.iniciarDiagnostico()
                                 },
                                 onSolicitarDiagnostico = { viewModel.solicitarDiagnostico() },

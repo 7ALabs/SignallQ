@@ -4,7 +4,7 @@ description: "Background monitoring de qualidade de rede (latência, DNS, Wi-Fi)
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-07-23"
+last_updated: "2026-08-16"
 ---
 
 # Monitoramento Passivo — MonitoramentoWorker
@@ -43,9 +43,9 @@ persistirMedicaoMonitor() — grava MedicaoEntity (fonte="monitor") no Room via 
 ```
 
 Não há chamada a IA nem orquestração de fases neste worker — é uma medição direta + histerese +
-persistência. O fluxo de IA (`SignallQOrchestrator`, worker `linka-ai-diagnosis-worker`) é
-acionado pelo usuário na tela de diagnóstico, não pelo monitoramento passivo — ver
-`docs_ai/technical/AI_FLOW.md`.
+persistência. O fluxo de IA ("Análise avançada" — `MainViewModel.analisarProblema()`, worker
+`linka-ai-diagnosis-worker`) é acionado pelo usuário na tela de diagnóstico, não pelo
+monitoramento passivo — ver `docs_ai/technical/AI_FLOW.md`.
 
 ## 3. Scheduling
 

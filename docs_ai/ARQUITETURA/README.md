@@ -4,7 +4,7 @@ description: "Visão de sistema, módulos Gradle e dependências, do código rea
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-15"
+last_updated: "2026-08-16"
 ---
 
 # Arquitetura — SignallQ consumer
@@ -94,14 +94,12 @@ Quatro camadas:
 2. `:core*` não depende de `:feature*`.
 3. `:app` pode depender de tudo.
 
-**Uma violação da regra 1 existe hoje:**
-
-| Violação | Onde | Uso real |
-|---|---|---|
-| `:featureDiagnostico` → `:featureSpeedtest` | `android/feature/diagnostico/build.gradle.kts:62` | `SignallQOrchestrator.kt` importa `ExecutorSpeedtest`, `ResultadoSpeedtest`, `ModoSpeedtest`, `SpeedtestQualityClassifier` |
-
-Não são acidentes de import: o acoplamento é profundo. O destino correto é extrair o contrato de
-speedtest para um `core` — tarefa dedicada, não correção oportunista.
+**Nenhuma violação da regra 1 conhecida hoje.** A única existente —
+`:featureDiagnostico` → `:featureSpeedtest` (`SignallQOrchestrator.kt` importava
+`ExecutorSpeedtest`/`ResultadoSpeedtest`/`ModoSpeedtest`/`SpeedtestQualityClassifier`) — foi
+resolvida em GH#1682: o `SignallQOrchestrator` (motor SignallQ Pulse, órfão sem consumidor de UI)
+foi removido, e com ele o único uso real da dependência `implementation(project(":featureSpeedtest"))`
+em `android/feature/diagnostico/build.gradle.kts`, que também foi removida.
 
 O contraexemplo de como fazer certo está em `:featureHome`, que precisa de dados de medição e
 **não** depende de `:featureSpeedtest`: define uma struct genérica (`ResolvedorMedicaoHome`) e
@@ -192,7 +190,7 @@ Contratos em `../CONTRATOS/openapi/`.
 | Risco | Evidência | Efeito |
 |---|---|---|
 | UI monolítica em `:app` | 5 arquivos acima de 800 linhas, `SinalScreen.kt` com 3383 | Features anêmicas; mudança visual exige tocar arquivo gigante |
-| Feature→feature | 2 violações confirmadas (§2) | Grafo de dependências deixa de ser acíclico por camada |
+| Feature→feature | 0 violações conhecidas (§2) — única confirmada (`:featureDiagnostico`→`:featureSpeedtest`) resolvida em GH#1682 | Sem efeito hoje; reavaliar se `grep -rn 'project(":feature'` em `feature/*/build.gradle.kts` encontrar dependência entre `:feature*` |
 | Três mecanismos de feature flag | `:core:featureflags` + `FeatureFlagProvider` legado em `:coreNetwork` + Firebase Remote Config | Colisão de nome e ambiguidade sobre qual vence |
 | Dois motores de PDF | `:featureHistory` usa `PdfDocument` e HTML→WebView via `:core:relatorio` | Manutenção dupla |
 | Versão de dependência fora do catálogo | `:featureDevices` fixa `okhttp:5.4.0` no build | Pode divergir do `libs.okhttp` dos demais |

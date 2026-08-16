@@ -178,8 +178,9 @@ class RecomendacaoPraticaEngineTest {
         assertFalse(r.any { it.id == "REC-01" })
     }
 
-    // #897: cenario real de producao — sem wifiScan (nao preenchido pelo
-    // SignallQOrchestrator no fluxo padrao) e ainda assim deve recomendar.
+    // #897: cenario real de producao — sem wifiScan (nao preenchido no fluxo padrao,
+    // que so roda o scan de vizinhanca em telas dedicadas de Wi-Fi) e ainda assim
+    // deve recomendar.
     @Test
     fun `situacao 1 - mostra troca para 5GHz mesmo sem dado de scan de vizinhanca (bug 897)`() {
         val input = DiagnosticInput(
