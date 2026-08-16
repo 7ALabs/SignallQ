@@ -1,6 +1,8 @@
 ﻿package io.signallq.app.ui.screen
 
 import android.content.ActivityNotFoundException
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -95,7 +97,6 @@ import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.OperadoraSource
 import io.signallq.app.ui.ResolvedOperadoraContact
 import io.signallq.app.ui.ResolvedOperadoraIdentity
-import io.signallq.app.ui.component.SignallQListRow
 import io.signallq.app.ui.resumoBandasWifi
 import io.signallq.app.ui.state.UiState
 import kotlinx.coroutines.delay
@@ -1340,16 +1341,12 @@ fun AppShell(
                     titulo = stringResource(R.string.appshell_menu_ajuda_suporte),
                     onDismiss = { showAjudaSuporteSheet = false },
                 ) {
-                    SignallQListRow(
-                        title = "suporte@signallq.com",
-                        subtitle = "Abrir aplicativo de e-mail",
-                        icon = Icons.AutoMirrored.Outlined.HelpOutline,
-                        onClick = { abrirEmailSuporte(context) },
-                    )
-                    Text(
-                        text = "Se nenhum aplicativo de e-mail estiver disponível, copie o endereço acima.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = c.onSurfaceVariant,
+                    AjudaSuporteContent(
+                        onAbrirEmail = { abrirEmailSuporte(context) },
+                        onCopiarEmail = { email ->
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("E-mail de suporte SignallQ", email))
+                        },
                     )
                 }
             }
