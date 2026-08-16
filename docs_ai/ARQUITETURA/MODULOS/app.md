@@ -84,7 +84,8 @@ Nenhum. `:app` é o topo do grafo do Consumer — a busca por `project(":app")` 
 | `app/src/main/kotlin/io/signallq/app/SignallQApplication.kt` | `@HiltAndroidApp`, `Configuration.Provider` do WorkManager; inicializa Timber/Crashlytics, feature flags legadas e do novo `FeatureFlagProvider`, coordenador de persistência de speedtest, `AdsFlagsManager` e agendamento de sync com o admin worker |
 | `app/src/main/kotlin/io/signallq/app/MainActivity.kt` | Activity única (`@AndroidEntryPoint`), 640 linhas; monta `SignallQTheme { AppShell(...) }` e trata permissões contextuais |
 | `app/src/main/kotlin/io/signallq/app/MainViewModel.kt` | ViewModel raiz que orquestra os serviços e expõe os `StateFlow` das telas — **2438 linhas** |
-| `app/src/main/kotlin/io/signallq/app/ui/screen/AppShell.kt` | Navegação, bottom bar e composição das telas — 1670 linhas |
+| `app/src/main/kotlin/io/signallq/app/ui/screen/AppShell.kt` | Navegação, bottom bar e composição das telas — 1635 linhas |
+| `app/src/main/kotlin/io/signallq/app/ui/screen/AppShellOverlayRegistry.kt` | Ponto de extensão de overlays (issue #1695, épico #1647) — agrega os `AppShellXxxOverlay.kt` sem exigir editar `AppShell.kt` para plugar overlay novo |
 | `app/src/main/kotlin/io/signallq/app/ui/screen/AppShellFeatureGating.kt` | Aplica o gate de navegação por flag remota nos 9 módulos feature (F4/#1480) |
 | `app/src/main/kotlin/io/signallq/app/di/AppModule.kt` | Módulo Hilt único (393 linhas) — provê tudo, inclusive a lambda `() -> FirebaseRemoteConfig` e o `FeatureFlagProvider` de `:core:featureflags` |
 | `app/src/main/kotlin/io/signallq/app/FeatureFlags.kt` | Flags de compilação (`BuildConfig.FEATURE_*`) — mecanismo por build type, distinto das flags remotas |
@@ -94,7 +95,7 @@ Nenhum. `:app` é o topo do grafo do Consumer — a busca por `project(":app")` 
 | `app/src/main/kotlin/io/signallq/app/ads/` (7 arquivos) | `AdSlot`, `AdUnitIds` (real vs teste conforme `-PplayTrack`), `ConsentManager` (UMP), `AdsRemoteConfigRepository` |
 | `app/src/main/kotlin/io/signallq/app/monitoramento/` (7 arquivos) | `MonitoramentoWorker`/`Scheduler`, `AdminSyncWorker`/`Scheduler`, `AnalyticsOutboxProcessor`, `HisteresiHelper` |
 | `app/src/main/kotlin/io/signallq/app/analytics/` (5 arquivos) | `CompositeAnalyticsTracker`, `FirebaseAnalyticsTracker`, `AnalyticsOutboxFunnelTracker`, `DistributionChannel` |
-| `app/src/main/kotlin/io/signallq/app/ui/screen/` | 56 arquivos de tela/estado — inclui `SinalScreen.kt` (3383), `HomeScreen.kt` (2967), `DispositivosScreen.kt` (1380) |
+| `app/src/main/kotlin/io/signallq/app/ui/screen/` | 73 arquivos de tela/estado — inclui `SinalScreen.kt` (3383), `HomeScreen.kt` (2967), `DispositivosScreen.kt` (1380) |
 | `app/src/main/AndroidManifest.xml` | 8 permissões, `FileProvider`, App ID do AdMob, remoção do `WorkManagerInitializer` automático |
 
 Versão declarada em `android/gradle/libs.versions.toml`: `versionCode = 72`, `versionName = 0.31.0`
@@ -107,12 +108,21 @@ Versão declarada em `android/gradle/libs.versions.toml`: `versionCode = 72`, `v
   arquivos legados fisicamente em `io/veloo/app/kotlin/` concluída em uma única PR (§4.1 da higiene).
 - **Arquivos acima de 800 linhas em `src/main`** (contagem real, `wc -l`):
   `ui/screen/SinalScreen.kt` 3383, `ui/screen/HomeScreen.kt` 2967, `MainViewModel.kt` 2438,
-  `ui/screen/AppShell.kt` 1703, `ui/screen/DispositivosScreen.kt` 1380,
+  `ui/screen/AppShell.kt` 1635, `ui/screen/DispositivosScreen.kt` 1380,
   `ui/component/LocalDeviceSection.kt` 1248, `ui/screen/DiagnosticoGuiadoScreen.kt` 916,
   `ui/screen/SpeedTestScreen.kt` 851, `ui/screen/HistoricoScreen.kt` 815 e
   `ui/screen/DnsScreen.kt` 815. `MainViewModel.kt` já é tratado como dívida crítica no próprio
   código (o KDoc de `ConsumerFeatureGateCoordinator` cita a regra de higiene §4.2: extrair, não
-  adicionar responsabilidade).
+  adicionar responsabilidade). `AppShell.kt` caiu de 1703 para 1635 linhas com a issue #1695
+  (épico #1647), que criou `AppShellOverlayRegistry.kt` como ponto de extensão de **overlays**
+  (não rota — a navegação entre raízes segue inline) — 8 overlays (Assist, Termos, Novidades,
+  Privacidade, DetalhesTecnicos, SinalWifi, Ping, Dns) migraram para arquivos próprios
+  registrados ali. Só ~15% das ~226 linhas que 5 fatias do épico devolveram a `AppShell.kt`
+  eram bloco de overlay — o resto foi wiring de root content e estado hoisted, que este
+  registro não cobre (ver `docs_ai/technical/appshell-overlay-registry.md`, seção "O que este
+  registro não resolve"). Os demais overlays (Ajustes, Perfil, Ferramentas, Dispositivos,
+  Fibra/EquipamentoInternet, Laudo, SinalCanais, ResultadoVelocidade, DiagnosticoGuiado,
+  ModoGamer) continuam inline — migração é trabalho das fatias futuras que tocarem cada área.
 - **Tamanho geral:** 40017 linhas em `src/main` contra 8637 em `src/test` — o módulo de composição
   concentra mais código do que qualquer módulo `core`/`feature`.
 - **Dois sistemas de feature flag remotos convivendo.** `featureflags/FeatureFlagManager` (HTTP,
