@@ -811,6 +811,7 @@ fun AppShell(
                                     onAbrirJogos = onAbrirModoGamerOverlay,
                                     onAbrirSinalWifi = onAbrirSinalWifiOverlay,
                                     disponibilidade = disponibilidadeFerramenta,
+                                    onRegistrarAbertura = { tipo -> onScreenView(tipo.screenName()) },
                                 )
                         }
                     }
@@ -1128,6 +1129,7 @@ fun AppShell(
                     onAbrirJogos = onAbrirModoGamerOverlay,
                     onAbrirSinalWifi = onAbrirSinalWifiOverlay,
                     disponibilidade = disponibilidadeFerramenta,
+                    onRegistrarAbertura = { tipo -> onScreenView(tipo.screenName()) },
                     // Issue #1503 — único consumidor real de Overlay.Ferramentas hoje: o
                     // card contextual do diagnóstico guiado. Botão "voltar" explícito
                     // limpa o badge, mesmo comportamento do back físico (ver BackHandler).

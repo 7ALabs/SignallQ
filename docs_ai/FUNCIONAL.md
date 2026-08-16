@@ -184,7 +184,10 @@ Quando o usuário chega ao hub pelo card contextual do diagnóstico guiado, a fe
 recebe o prefixo textual "Recomendado para você" — que é limpo ao sair da tela, nunca fica
 estático. Permissão ausente navega para a superfície que explica/solicita a permissão; flag remota
 desligada mantém o gate canônico e seu evento `feature_blocked_remote`; offline não abre engine e
-informa reconexão como próximo passo. Nenhuma dessas condições produz affordance inerte. O modo
+informa reconexão como próximo passo; ferramentas ocultas são filtradas antes da composição, sem
+UI, semântica, foco ou callback. Uma abertura permitida registra exatamente um `screen_view` pela
+taxonomia existente (os dois destinos de sinal usam o nome canônico `sinal_wifi`); remoto, offline
+e oculto não registram abertura. Nenhuma dessas condições produz affordance inerte. O modo
 Legacy continua usando a mesma lista e callbacks. O placement nativo de Jogos não foi movido nem
 migrado nesta fatia.
 

@@ -93,4 +93,22 @@ class TipoFerramentaTest {
         assertEquals(9, CatalogoFerramentas.todos.size)
         assertEquals(TipoFerramenta.entries.toSet(), CatalogoFerramentas.todos.toSet())
     }
+
+    @Test
+    fun `taxonomia de screen view cobre os nove destinos sem catalogo paralelo`() {
+        assertEquals(
+            listOf(
+                "sinal_wifi",
+                "sinal_wifi",
+                "dispositivos",
+                "equipamento_internet",
+                "ping",
+                "dns",
+                "laudo",
+                "monitoramento",
+                "modo_gamer",
+            ),
+            CatalogoFerramentas.todos.map(TipoFerramenta::screenName),
+        )
+    }
 }

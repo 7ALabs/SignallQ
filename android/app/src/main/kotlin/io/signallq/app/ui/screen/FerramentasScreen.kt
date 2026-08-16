@@ -84,6 +84,7 @@ fun FerramentasScreen(
     onAbrirJogos: () -> Unit = {},
     onAbrirSinalWifi: () -> Unit = {},
     disponibilidade: (TipoFerramenta) -> FerramentaDisponibilidade = { FerramentaDisponibilidade.Disponivel },
+    onRegistrarAbertura: (TipoFerramenta) -> Unit = {},
     ferramentaRecomendada: TipoFerramenta? = null,
     onVoltar: (() -> Unit)? = null,
 ) {
@@ -101,6 +102,10 @@ fun FerramentasScreen(
             TipoFerramenta.MONITORAMENTO to onAbrirMonitoramento,
             TipoFerramenta.MODO_JOGOS to onAbrirJogos,
         )
+    val ferramentasVisiveis =
+        CatalogoFerramentas.todos
+            .map { tipo -> tipo to disponibilidade(tipo) }
+            .filterNot { (_, estado) -> estado is FerramentaDisponibilidade.Oculta }
     Scaffold(
         containerColor = c.bgPrimary,
         topBar = {
@@ -145,9 +150,8 @@ fun FerramentasScreen(
                     color = c.onSurfaceVariant,
                 )
             }
-            items(CatalogoFerramentas.todos, key = TipoFerramenta::name) { tipo ->
+            items(ferramentasVisiveis, key = { (tipo, _) -> tipo.name }) { (tipo, estado) ->
                 val visual = tipo.visual()
-                val estado = disponibilidade(tipo)
                 SignallQListRow(
                     title = visual.titulo,
                     subtitle = estado.subtitle(visual.descricao, tipo == ferramentaRecomendada),
@@ -156,13 +160,16 @@ fun FerramentasScreen(
                         when (estado) {
                             FerramentaDisponibilidade.Disponivel,
                             is FerramentaDisponibilidade.PermissaoNecessaria,
-                            -> callbacks.getValue(tipo).invoke()
+                            -> {
+                                onRegistrarAbertura(tipo)
+                                callbacks.getValue(tipo).invoke()
+                            }
                             is FerramentaDisponibilidade.IndisponivelRemotamente -> {
                                 callbacks.getValue(tipo).invoke()
                                 feedback = estado.proximoPasso
                             }
                             is FerramentaDisponibilidade.Offline -> feedback = estado.proximoPasso
-                            is FerramentaDisponibilidade.Oculta -> feedback = estado.motivo
+                            is FerramentaDisponibilidade.Oculta -> Unit
                         }
                     },
                 )

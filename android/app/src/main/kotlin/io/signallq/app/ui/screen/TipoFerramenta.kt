@@ -19,6 +19,18 @@ enum class TipoFerramenta {
     SINAL_WIFI,
 }
 
+internal fun TipoFerramenta.screenName(): String =
+    when (this) {
+        TipoFerramenta.SINAL_CANAIS_MOVEL, TipoFerramenta.SINAL_WIFI -> "sinal_wifi"
+        TipoFerramenta.DISPOSITIVOS -> "dispositivos"
+        TipoFerramenta.EQUIPAMENTO_INTERNET -> "equipamento_internet"
+        TipoFerramenta.PING -> "ping"
+        TipoFerramenta.DNS -> "dns"
+        TipoFerramenta.LAUDO -> "laudo"
+        TipoFerramenta.MONITORAMENTO -> "monitoramento"
+        TipoFerramenta.MODO_JOGOS -> "modo_gamer"
+    }
+
 /**
  * Curadoria das seções do hub Ferramentas (Camada B, issue #1503) — puramente sobre
  * quais ferramentas existem e sua ordem, sem ícone/texto (isso continua em

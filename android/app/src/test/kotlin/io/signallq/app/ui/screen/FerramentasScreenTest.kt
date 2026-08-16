@@ -28,6 +28,7 @@ class FerramentasScreenTest {
     @Test
     fun `open list routes all nine canonical destinations at font scale 2`() {
         val opened = mutableListOf<String>()
+        val tracked = mutableListOf<String>()
         composeRule.setContent {
             SignallQTheme {
                 CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) {
@@ -42,6 +43,7 @@ class FerramentasScreenTest {
                         onAbrirLaudo = { opened += "report" },
                         onAbrirMonitoramento = { opened += "monitoring" },
                         onAbrirJogos = { opened += "gamer" },
+                        onRegistrarAbertura = { tracked += it.screenName() },
                     )
                 }
             }
@@ -63,11 +65,16 @@ class FerramentasScreenTest {
         }
 
         assertEquals(listOf("signal", "wifi-live", "devices", "equipment", "ping", "dns", "report", "monitoring", "gamer"), opened)
+        assertEquals(
+            listOf("sinal_wifi", "sinal_wifi", "dispositivos", "equipamento_internet", "ping", "dns", "laudo", "monitoramento", "modo_gamer"),
+            tracked,
+        )
     }
 
     @Test
     fun `remote offline and permission states have action or next step`() {
         val opened = mutableListOf<String>()
+        val tracked = mutableListOf<String>()
         composeRule.setContent {
             SignallQTheme {
                 FerramentasScreen(
@@ -76,6 +83,7 @@ class FerramentasScreenTest {
                     onAbrirPing = { opened += "ping" },
                     onAbrirDispositivos = { opened += "permission" },
                     onAbrirJogos = { opened += "gamer" },
+                    onRegistrarAbertura = { tracked += it.screenName() },
                     disponibilidade = { tipo ->
                         when (tipo) {
                             TipoFerramenta.DNS -> FerramentaDisponibilidade.IndisponivelRemotamente("Tente depois.")
@@ -99,10 +107,10 @@ class FerramentasScreenTest {
         composeRule.onNodeWithText("Reconecte-se.").assertExists()
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Dispositivos"))
         composeRule.onNodeWithText("Dispositivos").performClick()
-        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Modo gamer"))
-        composeRule.onNode(hasText("Não disponível nesta versão.", substring = true)).assertExists()
-        composeRule.onNodeWithText("Modo gamer").performClick()
+        composeRule.onNodeWithText("Modo gamer").assertDoesNotExist()
+        composeRule.onNode(hasText("Não disponível nesta versão.", substring = true)).assertDoesNotExist()
 
         assertEquals(listOf("dns-gate", "permission"), opened)
+        assertEquals(listOf("dispositivos"), tracked)
     }
 }
