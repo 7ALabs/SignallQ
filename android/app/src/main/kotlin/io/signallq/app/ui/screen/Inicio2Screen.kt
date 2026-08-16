@@ -42,6 +42,7 @@ internal fun Inicio2Screen(
     onAbrirPerfil: () -> Unit,
     connectionTrail: Inicio2ConnectionTrailState? = null,
     onAbrirTrailRoute: (Inicio2TrailRoute) -> Unit = {},
+    onAbrirAssist: (() -> Unit)? = null,
 ) {
     val c = LocalLkTokens.current
     var geracaoSolicitada by remember { mutableStateOf<Long?>(null) }
@@ -98,7 +99,9 @@ internal fun Inicio2Screen(
                 SignallQButton(
                     label = "Analisar minha conexão",
                     onClick = {
-                        if (geracaoSolicitada == null) {
+                        if (onAbrirAssist != null) {
+                            onAbrirAssist()
+                        } else if (geracaoSolicitada == null) {
                             geracaoSolicitada = onAnalisarConexao()
                         }
                     },

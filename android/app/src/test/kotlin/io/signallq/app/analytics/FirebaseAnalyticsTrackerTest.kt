@@ -4,8 +4,12 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.google.firebase.analytics.FirebaseAnalytics
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import io.signallq.app.BuildConfig
+import io.signallq.app.core.network.AssistObjetivoSelecionado
+import io.signallq.app.core.network.AssistOrigem
+import io.signallq.app.core.network.AssistPerguntaRespondida
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -61,5 +65,19 @@ class FirebaseAnalyticsTrackerTest {
         tracker.registrarFeatureBloqueadaRemota("wifi")
 
         verify { firebaseAnalytics.logEvent("feature_blocked_remote", any()) }
+    }
+
+    @Test
+    fun `eventos Assist usam apenas ids fechados e propriedades especificadas`() {
+        val objetivoBundle = slot<android.os.Bundle>()
+        val respostaBundle = slot<android.os.Bundle>()
+
+        tracker.registrarAssistObjetivo(AssistObjetivoSelecionado("jogos_com_lag", AssistOrigem.Inicio2, false))
+        tracker.registrarAssistResposta(AssistPerguntaRespondida("jogos_com_lag", "conexao_jogo", "opcao_2", false))
+
+        verify { firebaseAnalytics.logEvent("diagnostico_objetivo_selecionado", capture(objetivoBundle)) }
+        verify { firebaseAnalytics.logEvent("diagnostico_pergunta_respondida", capture(respostaBundle)) }
+        assert(objetivoBundle.captured.keySet() == setOf("objetivo", "origem", "retomada"))
+        assert(respostaBundle.captured.keySet() == setOf("objetivo", "pergunta_id", "resposta_id", "retomada"))
     }
 }

@@ -6,6 +6,9 @@ import com.google.firebase.analytics.FirebaseAnalytics
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.signallq.app.BuildConfig
 import io.signallq.app.core.network.AnalyticsTracker
+import io.signallq.app.core.network.AssistAbandonado
+import io.signallq.app.core.network.AssistObjetivoSelecionado
+import io.signallq.app.core.network.AssistPerguntaRespondida
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -135,6 +138,40 @@ class FirebaseAnalyticsTracker
                     putString("feature_id", featureId)
                     putString("session_id", sessionId)
                     putString("app_version", appVersion)
+                },
+            )
+        }
+
+        override fun registrarAssistObjetivo(evento: AssistObjetivoSelecionado) {
+            firebaseAnalytics.logEvent(
+                "diagnostico_objetivo_selecionado",
+                Bundle().apply {
+                    putString("objetivo", evento.objetivoId)
+                    putString("origem", evento.origem.analyticsId)
+                    putBoolean("retomada", evento.retomada)
+                },
+            )
+        }
+
+        override fun registrarAssistResposta(evento: AssistPerguntaRespondida) {
+            firebaseAnalytics.logEvent(
+                "diagnostico_pergunta_respondida",
+                Bundle().apply {
+                    putString("objetivo", evento.objetivoId)
+                    putString("pergunta_id", evento.perguntaId)
+                    putString("resposta_id", evento.respostaId)
+                    putBoolean("retomada", evento.retomada)
+                },
+            )
+        }
+
+        override fun registrarAssistAbandono(evento: AssistAbandonado) {
+            firebaseAnalytics.logEvent(
+                "diagnostico_guiado_abandonado",
+                Bundle().apply {
+                    putString("etapa", evento.etapa.analyticsId)
+                    evento.objetivoId?.let { putString("objetivo", it) }
+                    putBoolean("retomavel", evento.retomavel)
                 },
             )
         }

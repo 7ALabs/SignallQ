@@ -4,7 +4,7 @@ description: "O que o app Android SignallQ (io.signallq.app) entrega ao usuário
 type: "funcional"
 status: "ativo"
 owner: "Claudete"
-last_updated: "2026-08-15"
+last_updated: "2026-08-16"
 ---
 
 - **Fonte de verdade:** o código do app consumer em `android/app/src/main/kotlin/io/signallq/app/`
@@ -194,6 +194,18 @@ independente de roteador central; SSID igual, BSSID único com OUI de fabricante
 durante scan, em erro ou offline a trilha permanece parcial e textual. Equipamento, Wi-Fi e sinal
 móvel reutilizam overlays canônicos somente quando aplicáveis. Como não existe detalhe dedicado do
 aparelho local, “Este aparelho” permanece textual nesta fatia em vez de abrir a lista geral da LAN.
+No Guided2, o CTA principal abre o **SignallQ Assist**, um fluxo guiado — não chat e não IA — que
+reutiliza os sete `ObjetivoDiagnostico` e oferece também a escolha neutra de verificar a conexão.
+O Assist só apresenta pergunta contextual quando a resposta é consumida pelo motor atual: conexão
+usada para jogos ou melhora ao desligar o Wi-Fi. As demais situações seguem direto para a análise,
+sem perguntas decorativas. Objetivo, resposta fechada e abandono explícito sobrevivem à recriação
+da UI sem repetir eventos. O objetivo (e a resposta da pergunta contextual, quando existir) seguem
+para o "plano existente": se o usuário depois abrir o diagnóstico guiado pós-teste
+(`DiagnosticoGuiadoScreen`), a lista de objetivos e a primeira pergunta já chegam pré-preenchidas
+com o que foi respondido no Assist — a pessoa não escolhe o mesmo objetivo nem responde a mesma
+pergunta duas vezes, e a resposta muda de fato as dimensões/ações do
+`DiagnosticoGuiadoEngine` para Jogos com lag e Wi-Fi vs. operadora. Essa pré-seleção expira ao
+testar de novo ou voltar ao início. O Legacy mantém seu diagnóstico guiado existente sem o Assist.
 Não há grade técnica, catálogo de ferramentas, diagnóstico completo nem placement AdMob na Início.
 A issue #1601 continua responsável pelo acesso direto ao resultado persistido exato; esta fatia
 somente apresenta sua existência sem duplicar essa navegação.

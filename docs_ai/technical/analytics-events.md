@@ -4,7 +4,7 @@ description: "Funil principal SIG-155 (7 eventos implementados) + contrato mais 
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-07-05"
+last_updated: "2026-08-16"
 ---
 
 # Contrato de Eventos — Firebase Analytics
@@ -197,6 +197,16 @@ pelo usuário entram no funil `speedtest_iniciado → speedtest_concluido`.
 ---
 
 ## Eventos — Diagnóstico de rede
+
+### Funil contextual do SignallQ Assist — implementado (#1656)
+
+O Guided2 registra no Firebase `diagnostico_objetivo_selecionado` (`objetivo`, `origem`,
+`retomada`), `diagnostico_pergunta_respondida` (`objetivo`, `pergunta_id`, `resposta_id`,
+`retomada`) e `diagnostico_guiado_abandonado` (`etapa`, `objetivo` opcional, `retomavel`). Todos os
+valores são IDs fechados e tipados. SSID, BSSID, IP, localização, texto livre e identificadores de
+aparelho são proibidos. Restauração/recomposição não gera evento novo; abandono só conta no Voltar
+explícito. Esses eventos não substituem nem duplicam `diag_iniciado`/`diag_concluido`, que continuam
+pertencendo ao ciclo do motor.
 
 ### `diag_iniciado` — implementado (SIG-155)
 

@@ -7,6 +7,9 @@ import io.signallq.app.core.database.analytics.AnalyticsOutboxDao
 import io.signallq.app.core.database.analytics.AnalyticsOutboxEntity
 import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.core.network.AnalyticsTracker
+import io.signallq.app.core.network.AssistAbandonado
+import io.signallq.app.core.network.AssistObjetivoSelecionado
+import io.signallq.app.core.network.AssistPerguntaRespondida
 import io.signallq.app.di.ApplicationScope
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
 import io.signallq.app.feature.diagnostico.ingest.AnalyticsEventIngestPayload
@@ -77,7 +80,11 @@ class CompositeAnalyticsTracker
             firebaseTracker.registrarSessionEnd()
             // O mesmo UUID de instancia identifica inicio e fim. O Worker aceita
             // retries pelo id do evento, enquanto o par session_id permanece estável.
-            enviarEvento(name = "session_end", sessionIdOverride = closingSessionId, durationMs = (System.currentTimeMillis() - sessionStartedAtMs).coerceAtLeast(0))
+            enviarEvento(
+                name = "session_end",
+                sessionIdOverride = closingSessionId,
+                durationMs = (System.currentTimeMillis() - sessionStartedAtMs).coerceAtLeast(0),
+            )
             sessionId = null
             sessionStartRecorded = false
         }
@@ -106,6 +113,15 @@ class CompositeAnalyticsTracker
         override fun registrarFeatureBloqueadaRemota(featureId: String) {
             firebaseTracker.registrarFeatureBloqueadaRemota(featureId)
         }
+
+        override fun registrarAssistObjetivo(evento: AssistObjetivoSelecionado) =
+            firebaseTracker.registrarAssistObjetivo(evento)
+
+        override fun registrarAssistResposta(evento: AssistPerguntaRespondida) =
+            firebaseTracker.registrarAssistResposta(evento)
+
+        override fun registrarAssistAbandono(evento: AssistAbandonado) =
+            firebaseTracker.registrarAssistAbandono(evento)
 
         private fun enviarEvento(
             name: String,

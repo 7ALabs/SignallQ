@@ -120,6 +120,17 @@ import io.signallq.app.ui.component.rememberResolvedOperadoraIdentity
 fun DiagnosticoGuiadoScreen(
     input: DiagnosticInput?,
     resultadoValidoParaConclusao: Boolean,
+    /** Pré-seleção vinda do SignallQ Assist (issue #1656) — objetivo já escolhido pelo
+     *  usuário antes do teste de velocidade, na tela "O que está acontecendo?". Quando
+     *  não nulo, esta tela abre direto no roteiro de perguntas em vez de pedir o
+     *  objetivo de novo. Nulo preserva o comportamento anterior (objetivo escolhido
+     *  aqui mesmo, fluxo acessado sem passar pelo Assist). */
+    objetivoPreSelecionado: ObjetivoDiagnostico? = null,
+    /** Resposta da primeira pergunta do roteiro já coletada pelo Assist (índice da
+     *  opção) — só relevante quando [objetivoPreSelecionado] tem uma pergunta
+     *  contextual (`contextoQueAlteraDiagnostico()` no AssistScreen). Nulo = usuário
+     *  responde a primeira pergunta normalmente aqui. */
+    respostaPreSelecionadaPasso0: Int? = null,
     analisadorState: AnalisadorState,
     onAnalisarProblema: (String?) -> Unit,
     onResetarAnalisador: () -> Unit,
@@ -150,9 +161,18 @@ fun DiagnosticoGuiadoScreen(
     onAbrirFerramentaSugerida: (TipoFerramenta) -> Unit = {},
 ) {
     val c = LocalLkTokens.current
-    var objetivo by remember { mutableStateOf<ObjetivoDiagnostico?>(null) }
+    var objetivo by remember { mutableStateOf(objetivoPreSelecionado) }
     var passo by remember { mutableIntStateOf(0) }
-    var respostas by remember { mutableStateOf<List<Int?>>(emptyList()) }
+    var respostas by
+        remember {
+            mutableStateOf<List<Int?>>(
+                if (objetivoPreSelecionado != null && respostaPreSelecionadaPasso0 != null) {
+                    listOf(respostaPreSelecionadaPasso0)
+                } else {
+                    emptyList()
+                },
+            )
+        }
     var mostrarResultado by remember { mutableStateOf(false) }
 
     fun voltarUmPasso() {

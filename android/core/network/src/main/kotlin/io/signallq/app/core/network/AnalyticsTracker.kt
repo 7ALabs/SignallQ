@@ -40,4 +40,10 @@ interface AnalyticsTracker {
      * completa do catalogo nem qualquer dado do usuario.
      */
     fun registrarFeatureBloqueadaRemota(featureId: String)
+
+    fun registrarAssistObjetivo(evento: AssistObjetivoSelecionado) = Unit
+
+    fun registrarAssistResposta(evento: AssistPerguntaRespondida) = Unit
+
+    fun registrarAssistAbandono(evento: AssistAbandonado) = Unit
 }
