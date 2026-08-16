@@ -30,6 +30,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.diagnostico.PerguntaFechada
 import io.signallq.app.core.diagnostico.PerguntasDiagnosticoGuiado
@@ -100,13 +102,24 @@ internal fun AssistScreen(
     val state = rememberSaveable(saver = AssistScreenState.Saver) { AssistScreenState() }
     val objetivo = state.objetivo
     val contexto = objetivo?.contextoQueAlteraDiagnostico()
-    val abandonar = {
+    // Mesmo padrão de DiagnosticoGuiadoScreen.voltarUmPasso() (review da PR #1683, bloqueio 2):
+    // Voltar na pergunta contextual corrige o toque errado voltando pra lista de sintomas, não
+    // descarta a sessão. Só abandona de fato (fecha o Assist) a partir da lista — nesse ponto
+    // nenhum objetivo foi confirmado ainda, então não há nada "retomável" (bloqueio 1: o campo
+    // `retomavel` do evento de abandono deixa de poder mentir, porque a única saída de
+    // `contexto != null` agora é "voltar um passo", não abandonar).
+    val voltarUmPasso = {
         if (!state.terminal) {
-            state.terminal = true
-            onAbandonar(objetivo, objetivo != null)
+            if (contexto != null) {
+                state.objectiveName = null
+                state.selectedAnswer = -1
+            } else {
+                state.terminal = true
+                onAbandonar(objetivo, objetivo != null)
+            }
         }
     }
-    BackHandler(onBack = abandonar)
+    BackHandler(onBack = voltarUmPasso)
 
     androidx.compose.material3.Scaffold(
         containerColor = c.bgPrimary,
@@ -117,7 +130,7 @@ internal fun AssistScreen(
                 // contextual de uma pergunta só.
                 title = if (contexto != null) "Assist" else "O que está acontecendo?",
                 navigationIcon = {
-                    IconButton(onClick = abandonar) {
+                    IconButton(onClick = voltarUmPasso) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
                     }
                 },
@@ -171,6 +184,7 @@ private fun AssistObjetivos(
     ) {
         Text(
             "O que está acontecendo com sua internet?",
+            modifier = Modifier.semantics { heading() },
             style = MaterialTheme.typography.headlineSmall,
             color = c.textPrimary,
         )
@@ -227,7 +241,12 @@ private fun AssistPergunta(
         verticalArrangement = Arrangement.spacedBy(LkSpacing.lg),
     ) {
         LkSectionOverline(text = "SignallQ Assist · uma pergunta")
-        Text(contexto.pergunta.texto, style = MaterialTheme.typography.headlineSmall, color = c.textPrimary)
+        Text(
+            contexto.pergunta.texto,
+            modifier = Modifier.semantics { heading() },
+            style = MaterialTheme.typography.headlineSmall,
+            color = c.textPrimary,
+        )
         Text(
             "Responda para ajustarmos a análise ao seu caso.",
             style = MaterialTheme.typography.bodyMedium,

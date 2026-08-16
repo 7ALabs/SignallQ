@@ -114,6 +114,11 @@ class CompositeAnalyticsTracker
             firebaseTracker.registrarFeatureBloqueadaRemota(featureId)
         }
 
+        // Issue #1656 — mesmo padrão de registrarFeatureBloqueadaRemota acima: só Firebase
+        // (GA4), sem replicar pro ingest do signallq-admin-worker. `AnalyticsEventIngestPayload`/
+        // schema D1 não tem campo equivalente pro funil do Assist ainda, e estender esse
+        // contrato é escopo separado desta fatia — o painel admin não é consumidor desta issue
+        // (docs_ai/README.md, perímetro de `docs_ai/`: painel Admin vive em `buildea-admin`).
         override fun registrarAssistObjetivo(evento: AssistObjetivoSelecionado) =
             firebaseTracker.registrarAssistObjetivo(evento)
 

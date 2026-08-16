@@ -78,6 +78,12 @@ internal fun AppShellAssistOverlay(
                         retomavel = retomavel,
                     ),
                 )
+                // Review da PR #1683, bloqueio 3 — abandonar também precisa zerar uma
+                // pré-seleção de uma sessão ANTERIOR do Assist ainda guardada aqui (AppShell
+                // sobrevive à recriação do overlay; AssistScreenState não). Sem isso, uma escolha
+                // já abandonada continuava alimentando o DiagnosticoGuiadoScreen na próxima vez
+                // que o usuário completasse o teste, mesmo sem retomar o Assist.
+                onPreSelecaoParaDiagnosticoGuiado(null, null)
                 overlayStack.remove(AppShellOverlay.Assist)
             },
         )

@@ -4,6 +4,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -141,30 +142,59 @@ class AssistScreenTest {
     }
 
     @Test
-    fun `voltar antes de escolher objetivo abandona sem objetivo e permite retomar depois`() {
+    fun `voltar na lista de sintomas (sem objetivo escolhido) abandona e nao ha nada pra retomar`() {
         var abandonos = 0
         var objetivoAbandonado: ObjetivoDiagnostico? = ObjetivoDiagnostico.SITES_DEMORAM
         var retomavel = true
-        composeRule.setContent {
-            SignallQTheme {
-                AssistScreen(
-                    onObjetivoConfirmado = { _, _ -> },
-                    onRespostaConfirmada = { _, _, _, _ -> },
-                    onConcluir = { _, _ -> },
-                    onAbandonar = { objetivo, podeRetomar ->
-                        abandonos += 1
-                        objetivoAbandonado = objetivo
-                        retomavel = podeRetomar
-                    },
-                )
-            }
-        }
+        setContent(
+            onAbandonar = { objetivo, podeRetomar ->
+                abandonos += 1
+                objetivoAbandonado = objetivo
+                retomavel = podeRetomar
+            },
+        )
 
         composeRule.onNodeWithContentDescription("Voltar").performClick()
 
         assertEquals(1, abandonos)
         assertNull(objetivoAbandonado)
         assertEquals(false, retomavel)
+    }
+
+    // Review da PR #1683, bloqueio 2 — antes, Voltar na pergunta contextual abandonava o Assist
+    // inteiro (mesmo comportamento do ícone e do BackHandler físico), sem chance de corrigir um
+    // toque errado sem recomeçar do zero. Mesmo padrão de DiagnosticoGuiadoScreen.voltarUmPasso().
+    @Test
+    fun `voltar na pergunta contextual volta pra lista de sintomas em vez de abandonar`() {
+        var abandonos = 0
+        setContent(onAbandonar = { _, _ -> abandonos += 1 })
+
+        composeRule.onNodeWithText(ObjetivoDiagnostico.JOGOS_COM_LAG.titulo).performScrollTo().performClick()
+        composeRule.onNodeWithText("Em qual conexão você joga?").assertIsDisplayed()
+
+        composeRule.onNodeWithContentDescription("Voltar").performClick()
+
+        composeRule.onNodeWithText("O que está acontecendo?").assertIsDisplayed()
+        composeRule.onNodeWithText("Quero verificar minha conexão").assertIsDisplayed()
+        assertEquals(0, abandonos)
+    }
+
+    @Test
+    fun `voltar na pergunta contextual limpa a resposta anterior ao escolher outro objetivo relevante`() {
+        setContent()
+
+        composeRule.onNodeWithText(ObjetivoDiagnostico.JOGOS_COM_LAG.titulo).performScrollTo().performClick()
+        composeRule.onNodeWithText("Cabo de rede").performClick()
+        composeRule.onNodeWithContentDescription("Voltar").performClick()
+
+        composeRule.onNodeWithText(ObjetivoDiagnostico.WIFI_VS_OPERADORA.titulo).performScrollTo().performClick()
+
+        // Se a resposta anterior (índice 1, "Cabo de rede") tivesse sobrevivido, "Continuar"
+        // apareceria habilitado antes de qualquer escolha nesta nova pergunta.
+        composeRule
+            .onNodeWithText("Continuar")
+            .performScrollTo()
+            .assertIsNotEnabled()
     }
 
     @Test
@@ -182,11 +212,12 @@ class AssistScreenTest {
         onObjetivo: (ObjetivoDiagnostico?, Boolean) -> Unit = { _, _ -> },
         onResposta: (ObjetivoDiagnostico, AssistContexto, Int, Boolean) -> Unit = { _, _, _, _ -> },
         onConcluir: (ObjetivoDiagnostico?, List<Int>) -> Unit = { _, _ -> },
+        onAbandonar: (ObjetivoDiagnostico?, Boolean) -> Unit = { _, _ -> },
     ) {
         composeRule.setContent {
             SignallQTheme {
                 CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) {
-                    AssistScreen(onObjetivo, onResposta, onConcluir) { _, _ -> }
+                    AssistScreen(onObjetivo, onResposta, onConcluir, onAbandonar)
                 }
             }
         }
