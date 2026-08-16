@@ -1,6 +1,6 @@
 ---
 title: "Contrato de Eventos — Firebase Analytics"
-description: "Funil principal SIG-155 (7 eventos definidos, 5 disparando — os 2 de IA/laudo estão órfãos desde GH#1682) + contrato mais amplo proposto (eventos por feature ainda não instrumentados)."
+description: "Funil principal SIG-155 (7 eventos definidos, 5 disparando — os 2 de IA/laudo estão órfãos desde GH#937) + contrato mais amplo proposto (eventos por feature ainda não instrumentados)."
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
@@ -17,7 +17,7 @@ last_updated: "2026-08-16"
 **Property ID:** 543555227 (Firebase Analytics — Android)
 **Status de implementação:** funil principal (7 eventos, ver seção "Funil
 principal") definido via `AnalyticsHelper` (SIG-155) — 5 disparam de fato hoje;
-`ia_laudo_solicitado`/`ia_laudo_recebido` estão órfãos desde GH#1682 (ver nota
+`ia_laudo_solicitado`/`ia_laudo_recebido` estão órfãos desde `740f558b` (2026-07-13, GH#937) (ver nota
 na seção "Eventos — IA / Laudo"). Eventos do schema SIG-134 (`feature_used`,
 `screen_view`, `app_session_start`, `feature_crash`, `battery_snapshot`)
 instrumentados à parte via `AnalyticsTracker` — ver
@@ -277,11 +277,15 @@ evento indica. Não existe `diag_erro` implementado ainda (ver seção abaixo).
 
 ## Eventos — IA / Laudo
 
-### `ia_laudo_solicitado` — órfão (GH#1682)
+### `ia_laudo_solicitado` — órfão (GH#937)
 
 **Definido no contrato (`AnalyticsHelper.registrarIaLaudoSolicitado`), mas sem call
-site em produção.** Só era disparado de dentro do `SignallQOrchestrator` (motor
-SignallQ Pulse), removido por não ter consumidor de UI. `MainViewModel.analisarProblema()`
+site em produção desde `740f558b` (2026-07-13, GH#937).** Só era disparado de dentro
+do `SignallQOrchestrator` (motor SignallQ Pulse), cujos call sites no `MainViewModel`
+caíram de oito para um naquele commit — sobrou apenas `checkAiAvailability()`, que não
+dispara analytics. A remoção do motor em GH#1682 (2026-08-16) apenas apagou código já
+inalcançável: **não causou a perda do evento, que já durava ~34 dias**. Reverter GH#1682
+não restauraria o disparo. `MainViewModel.analisarProblema()`
 — o fluxo real de "Análise avançada" que chama `AiDiagnosisRepository.explainDiagnosis`
 hoje — não chama `analyticsHelper`. Decisão pendente (issue de acompanhamento de
 GH#1682): reconectar o disparo em `analisarProblema()` ou remover o evento do contrato.
@@ -312,10 +316,11 @@ recriar, não vamos ter chat conversacional.
 
 ---
 
-### `ia_laudo_recebido` — órfão (GH#1682)
+### `ia_laudo_recebido` — órfão (GH#937)
 
 Mesma situação de `ia_laudo_solicitado` acima: definido em `AnalyticsHelper`,
-sem call site em produção desde a remoção do `SignallQOrchestrator`. Descrição
+sem call site em produção desde `740f558b` (2026-07-13, GH#937) — não desde a
+remoção do `SignallQOrchestrator` em GH#1682. Descrição
 original — disparado quando o resultado da chamada a
 `AiDiagnosisRepository.explainDiagnosis` fica disponível (sucesso via IA,
 fallback local, ou timeout), sempre pareado com um `ia_laudo_solicitado` da
@@ -502,7 +507,7 @@ Disparado quando o scan de canais Wi-Fi retorna resultados.
 
 A sequência de eventos abaixo define o funil de engajamento central do SignallQ.
 Use esta ordem para análise de drop-off no Firebase — os dois últimos passos
-estão órfãos desde GH#1682 (ver nota abaixo):
+estão órfãos desde GH#937 (ver nota abaixo):
 
 ```
 app_aberto
@@ -510,8 +515,8 @@ app_aberto
     → speedtest_concluido
       → diag_iniciado
         → diag_concluido
-          → ia_laudo_solicitado   [órfão — GH#1682]
-            → ia_laudo_recebido   [órfão — GH#1682]
+          → ia_laudo_solicitado   [órfão — GH#937]
+            → ia_laudo_recebido   [órfão — GH#937]
 ```
 
 Drop entre `speedtest_concluido` e `diag_iniciado`: usuário não quis analisar.
@@ -530,7 +535,7 @@ Pontos de disparo:
 | `speedtest_concluido` | `SpeedtestViewModel` | `executarSpeedtest` (após `ExecutorSpeedtest.executar`, via `registrarSpeedtestConcluidoSeDisponivel`) |
 | `diag_iniciado` | `DiagnosticOrchestrator` | `executar(input, enabledAreas)` |
 | `diag_concluido` | `DiagnosticOrchestrator` | `executar(input, enabledAreas)` (caminho de sucesso) |
-| `ia_laudo_solicitado` | *nenhum (órfão)* | Só chamado de dentro do `SignallQOrchestrator`, removido em GH#1682 |
+| `ia_laudo_solicitado` | *nenhum (órfão)* | Sem call site desde `740f558b` (2026-07-13, GH#937); código morto apagado em GH#1682 |
 | `ia_laudo_recebido` | *nenhum (órfão)* | Idem |
 
 Testes unitários do `FirebaseAnalyticsHelper` em
