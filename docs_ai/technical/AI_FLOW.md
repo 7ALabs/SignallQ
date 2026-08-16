@@ -1,3 +1,12 @@
+---
+title: "AI Flow"
+description: "Fluxo de diagnóstico assistido por IA no app Android e o worker que o atende, incluindo fallback local."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-16"
+---
+
 # AI Flow — Android SignallQ
 
 **Status:** ativo

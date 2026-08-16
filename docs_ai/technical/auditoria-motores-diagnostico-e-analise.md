@@ -1,3 +1,12 @@
+---
+title: "Auditoria Motores Diagnóstico"
+description: "Retrato pontual dos motores de diagnóstico e análise no Android e nos Workers Cloudflare — não é documento vivo de arquitetura."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-16"
+---
+
 # Auditoria — motores de diagnóstico e análise (Android + Cloudflare Workers)
 
 - **Status:** ativo
