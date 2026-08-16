@@ -82,7 +82,7 @@ const DEFAULT_MODEL = "@cf/qwen/qwen3-30b-a3b-fp8";
 
 Montado por `DiagnosisAiContextFactory.fromRaw()`. O worker aceita schemas anteriores para retrocompatibilidade.
 
-A versão de prompt atual do worker é `diagnostico_v6_explicacao_humana` (`AI_PROMPT_VERSION` em `src/index.ts` — atualizado desde a v5 citada em versões anteriores deste documento): os achados do motor local são enviados como entrada e a IA refina/expande em cima deles. `schemaVersion` do contexto (`DiagnosisAiContext`) é enviado ao worker. O evento `ia_laudo_solicitado` que registrava esse valor está definido em `AnalyticsHelper` mas sem call site em produção desde a remoção do `SignallQOrchestrator` (GH#1682) — ver `docs_ai/technical/analytics-events.md`.
+A versão de prompt atual do worker é `diagnostico_v6_explicacao_humana` (`AI_PROMPT_VERSION` em `src/index.ts` — atualizado desde a v5 citada em versões anteriores deste documento): os achados do motor local são enviados como entrada e a IA refina/expande em cima deles. `schemaVersion` do contexto (`DiagnosisAiContext`) é enviado ao worker. O evento `ia_laudo_solicitado` que registrava esse valor está definido em `AnalyticsHelper` mas sem call site em produção desde `740f558b` (2026-07-13, GH#937) — a remoção do `SignallQOrchestrator` em GH#1682 apagou código já inalcançável e não causou a perda. Ver `docs_ai/technical/analytics-events.md`.
 
 Campos enviados: tipo de conexão, snapshot Wi-Fi (RSSI, canal, frequência), latência, jitter, perda de pacotes, download/upload Mbps, DNS (servidor atual, latência), histórico (médias 7d/30d), dados do ISP, configuração do usuário (plano, operadora, estado/cidade).
 
