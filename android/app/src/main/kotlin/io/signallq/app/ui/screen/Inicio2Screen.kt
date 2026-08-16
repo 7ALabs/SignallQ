@@ -40,6 +40,8 @@ internal fun Inicio2Screen(
     uiState: Inicio2UiState,
     onAnalisarConexao: () -> Long?,
     onAbrirPerfil: () -> Unit,
+    connectionTrail: Inicio2ConnectionTrailState? = null,
+    onAbrirTrailRoute: (Inicio2TrailRoute) -> Unit = {},
 ) {
     val c = LocalLkTokens.current
     var geracaoSolicitada by remember { mutableStateOf<Long?>(null) }
@@ -80,6 +82,13 @@ internal fun Inicio2Screen(
                     style = MaterialTheme.typography.headlineSmall,
                 )
                 ConexaoAtual(uiState)
+                connectionTrail?.let {
+                    Inicio2ConnectionTrail(
+                        state = it,
+                        onOpenRoute = onAbrirTrailRoute,
+                        modifier = Modifier.padding(top = LkSpacing.base),
+                    )
+                }
             }
             Column(
                 modifier = Modifier.padding(horizontal = LkSpacing.lg),
@@ -165,6 +174,17 @@ private fun Inicio2ScreenPreview() {
             uiState = Inicio2UiState(Inicio2Conexao.Wifi, "Casa", Inicio2Analise.SemAnalise),
             onAnalisarConexao = { null },
             onAbrirPerfil = {},
+            connectionTrail =
+                Inicio2ConnectionTrailState(
+                    nodes =
+                        listOf(
+                            Inicio2TrailNode("Internet", "Conectada"),
+                            Inicio2TrailNode("Equipamento", "Roteador ou modem", Inicio2TrailRoute.Equipamento),
+                            Inicio2TrailNode("Wi-Fi", "Casa", Inicio2TrailRoute.Wifi),
+                            Inicio2TrailNode("Este aparelho", "Conectado por Wi-Fi"),
+                        ),
+                    supportingMessage = null,
+                ),
         )
     }
 }
@@ -177,6 +197,15 @@ private fun Inicio2ScreenDarkPreview() {
             uiState = Inicio2UiState(Inicio2Conexao.Offline, null, Inicio2Analise.Interrompida("Seu contexto foi preservado.")),
             onAnalisarConexao = { null },
             onAbrirPerfil = {},
+            connectionTrail =
+                Inicio2ConnectionTrailState(
+                    nodes =
+                        listOf(
+                            Inicio2TrailNode("Internet", "Sem acesso"),
+                            Inicio2TrailNode("Este aparelho", "Sem conexão ativa"),
+                        ),
+                    supportingMessage = "Conecte-se a uma rede para completar a trilha.",
+                ),
         )
     }
 }

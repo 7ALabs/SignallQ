@@ -102,6 +102,22 @@ class AppShellNavigationTest {
     }
 
     @Test
+    fun `destinos aplicaveis da trilha voltam para Inicio`() {
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.legacyIndex)
+
+        listOf(
+            AppShellOverlay.EquipamentoInternet,
+            AppShellOverlay.SinalWifi,
+            AppShellOverlay.SinalCanais,
+        ).forEach { destination ->
+            navigator.open(destination)
+            assertEquals(destination, navigator.pop())
+            assertEquals(AppShellRoot.Home, navigator.selectedRoot)
+            assertEquals(true, navigator.isAtRoot)
+        }
+    }
+
+    @Test
     fun `bar visibility follows root overlay and running speedtest contracts`() {
         assertEquals(true, shouldShowAppShellBottomBar(AppShellMode.Guided2, isAtRoot = true, speedtestRunning = false))
         assertEquals(false, shouldShowAppShellBottomBar(AppShellMode.Guided2, isAtRoot = false, speedtestRunning = false))
