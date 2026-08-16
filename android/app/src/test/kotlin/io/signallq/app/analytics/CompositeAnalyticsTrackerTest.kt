@@ -12,6 +12,7 @@ import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
 import io.signallq.app.feature.diagnostico.ingest.AnalyticsEventIngestPayload
 import io.signallq.app.feature.diagnostico.ingest.analyticsPayloadFromOutboxJson
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -217,5 +218,34 @@ class CompositeAnalyticsTrackerTest {
         coVerify(exactly = 2) { adminIngestRepository.sendAnalyticsEvent(capture(slots)) }
         assertEquals(slots[0].sessionId, slots[1].sessionId)
         assertTrue(slots[0].sessionId!!.isNotBlank())
+    }
+
+    // GH#1684 (bloqueio 1 da revisao do Caio na PR #1688) -- prova que uma falha real dentro do
+    // corpo do applicationScope.launch de enviarEvento (ex.: analyticsOutboxDao.enqueue lancando,
+    // como um WorkManager.getInstance(context) sem guarda faria em AdminSyncScheduler) fica
+    // contida por runCatching e NAO escapa para o CoroutineExceptionHandler do escopo. Sem essa
+    // contencao, a excecao chegaria ao applicationScopeExceptionHandler (AppModule.kt) que a
+    // reporta via Timber -> ReleaseTree -> registrarFeatureCrash -> enviarEvento -> este mesmo
+    // launch -- um ciclo sem limite, backoff ou dedup, invisivel em debug e nos 580 testes porque
+    // so existe com ReleaseTree plantada.
+    @Test
+    fun `falha real dentro de enviarEvento fica contida e nao realimenta o applicationScope`() {
+        coEvery { analyticsOutboxDao.enqueue(any()) } throws RuntimeException("falha simulada de outbox")
+        var excecaoVazadaParaOEscopo: Throwable? = null
+        val handlerDoEscopo = CoroutineExceptionHandler { _, throwable -> excecaoVazadaParaOEscopo = throwable }
+        val trackerComHandlerNoEscopo =
+            CompositeAnalyticsTracker(
+                firebaseTracker = firebaseTracker,
+                adminIngestRepository = adminIngestRepository,
+                preferenciasAppRepository = preferenciasAppRepository,
+                analyticsOutboxDao = analyticsOutboxDao,
+                outboxFunnelTracker = outboxFunnelTracker,
+                context = ApplicationProvider.getApplicationContext(),
+                applicationScope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob() + handlerDoEscopo),
+            )
+
+        trackerComHandlerNoEscopo.registrarFeatureUsada("wifi_scan")
+
+        assertNull(excecaoVazadaParaOEscopo)
     }
 }

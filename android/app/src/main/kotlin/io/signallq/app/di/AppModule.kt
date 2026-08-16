@@ -87,6 +87,16 @@ annotation class ApplicationScope
  * (registrado via ServiceLoader como `CoroutineExceptionHandler` global do processo) e reaparece
  * como `UncaughtExceptionsBeforeTest` no proximo `runTest {}` de QUALQUER classe da suite --
  * vitima aleatoria, sem relacao com quem realmente vazou. Logar aqui fecha os dois problemas.
+ *
+ * ATENCAO (bloqueio 1 da revisao do Caio na PR #1688): `Timber.e` chega ao Crashlytics via
+ * `ReleaseTree` e, por ser `priority >= Log.ERROR`, tambem chama
+ * `analyticsTracker.registrarFeatureCrash(...)` -- que e o [io.signallq.app.analytics.
+ * CompositeAnalyticsTracker], cujo `enviarEvento` despacha OUTRO `applicationScope.launch`. Sem
+ * contencao no corpo desse segundo launch, uma falha real (ex.: WorkManager sem guarda em
+ * `AdminSyncScheduler`) reentraria neste mesmo handler, girando em ciclo sem limite. A contencao
+ * que fecha esse ciclo fica em `CompositeAnalyticsTracker.enviarEvento` (runCatching + Timber.w),
+ * nao aqui -- os dois pontos sao complementares, nao intercambiaveis; nao remova um assumindo que
+ * o outro basta.
  */
 private val applicationScopeExceptionHandler =
     CoroutineExceptionHandler { _, throwable ->
