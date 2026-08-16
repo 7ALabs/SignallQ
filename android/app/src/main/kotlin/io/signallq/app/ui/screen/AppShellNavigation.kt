@@ -32,6 +32,7 @@ internal enum class AppShellOverlay {
     Dns,
     Perfil,
     Ajustes,
+    SinalCanais,
     SinalWifi,
     Termos,
     DiagnosticoGuiado,

@@ -1,25 +1,14 @@
 package io.signallq.app.ui.screen
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Description
@@ -29,55 +18,63 @@ import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material.icons.outlined.NetworkCheck
 import androidx.compose.material.icons.outlined.NetworkWifi
 import androidx.compose.material.icons.outlined.Router
+import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.SportsEsports
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.Hyphens
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.tooling.preview.Preview
 import io.signallq.app.R
-import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
-import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
-import io.signallq.app.ui.component.LkPillBadge
-import io.signallq.app.ui.component.LkSectionOverline
-import io.signallq.app.ui.component.LkSurfaceCard
+import io.signallq.app.ui.SignallQTheme
+import io.signallq.app.ui.component.SignallQListRow
+import io.signallq.app.ui.component.SignallQTopAppBar
 
-// GH#933 — Fase 4 MD3: hub real de atalhos, substitui o placeholder criado na Fase 1
-// (#930). Grade estática, sem chamada de rede própria — cada card só navega para a
-// tela/overlay correspondente, que já existe (restyle) ou ainda é stub de fase futura
-// (Equipamento de internet → Fase 5/#934; Monitoramento → MonitoramentoSheet.kt, Fase 7/#936).
-// "Jogos" (Fase 6/#935) abria o fluxo legado próprio até a issue #1487 fundir tudo no Modo
-// gamer (Overlay.ModoGamer, Feature #550/#1476) — onAbrirJogos aqui continua abrindo o
-// mesmo overlay fundido, só o destino mudou.
-private data class FerramentaItem(
-    val tipo: TipoFerramenta,
-    val icon: ImageVector,
+sealed interface FerramentaDisponibilidade {
+    data object Disponivel : FerramentaDisponibilidade
+
+    data class PermissaoNecessaria(
+        val proximoPasso: String,
+    ) : FerramentaDisponibilidade
+
+    data class IndisponivelRemotamente(
+        val proximoPasso: String,
+    ) : FerramentaDisponibilidade
+
+    data class Offline(
+        val proximoPasso: String,
+    ) : FerramentaDisponibilidade
+
+    data class Oculta(
+        val motivo: String,
+    ) : FerramentaDisponibilidade
+}
+
+private data class FerramentaVisual(
     val titulo: String,
     val descricao: String,
-    val onClick: () -> Unit,
+    val icon: ImageVector,
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FerramentasScreen(
     onAbrirMenu: () -> Unit,
+    onAbrirSinalCanais: () -> Unit = {},
     onAbrirDispositivos: () -> Unit = {},
     onAbrirEquipamentoInternet: () -> Unit = {},
     onAbrirPing: () -> Unit = {},
@@ -86,302 +83,143 @@ fun FerramentasScreen(
     onAbrirMonitoramento: () -> Unit = {},
     onAbrirJogos: () -> Unit = {},
     onAbrirSinalWifi: () -> Unit = {},
-    /** Issue #1503 (Camada B) — só não-nulo quando a navegação até aqui veio do card
-     *  contextual do diagnóstico guiado ([DiagnosticoGuiadoScreen]); nunca estático. */
+    disponibilidade: (TipoFerramenta) -> FerramentaDisponibilidade = { FerramentaDisponibilidade.Disponivel },
+    onRegistrarAbertura: (TipoFerramenta) -> Unit = {},
     ferramentaRecomendada: TipoFerramenta? = null,
-    /** Issue #1503 — quando não-nulo, a tela é empilhada como overlay (via
-     *  `Overlay.Ferramentas`, entrada vinda do card contextual) e mostra seta de voltar
-     *  em vez do hambúrguer da tab fixa. `null` preserva o comportamento original de tab. */
     onVoltar: (() -> Unit)? = null,
 ) {
     val c = LocalLkTokens.current
-
-    val itens =
-        remember(
-            onAbrirDispositivos,
-            onAbrirEquipamentoInternet,
-            onAbrirPing,
-            onAbrirDns,
-            onAbrirLaudo,
-            onAbrirMonitoramento,
-            onAbrirJogos,
-            onAbrirSinalWifi,
-        ) {
-            buildList {
-                add(
-                    FerramentaItem(
-                        tipo = TipoFerramenta.DISPOSITIVOS,
-                        icon = Icons.Outlined.Devices,
-                        titulo = "Dispositivos",
-                        descricao = "Quem está na sua rede",
-                        onClick = onAbrirDispositivos,
-                    ),
-                )
-                add(
-                    FerramentaItem(
-                        tipo = TipoFerramenta.EQUIPAMENTO_INTERNET,
-                        icon = Icons.Outlined.Router,
-                        titulo = "Equipamento de internet",
-                        descricao = "Status do modem/ONT da operadora",
-                        onClick = onAbrirEquipamentoInternet,
-                    ),
-                )
-                add(
-                    FerramentaItem(
-                        tipo = TipoFerramenta.PING,
-                        icon = Icons.Outlined.NetworkCheck,
-                        titulo = "Ping",
-                        descricao = "Teste de latência para um endereço",
-                        onClick = onAbrirPing,
-                    ),
-                )
-                add(
-                    FerramentaItem(
-                        tipo = TipoFerramenta.DNS,
-                        icon = Icons.Outlined.Dns,
-                        titulo = "DNS",
-                        descricao = "Compare servidores e troque o seu",
-                        onClick = onAbrirDns,
-                    ),
-                )
-                add(
-                    FerramentaItem(
-                        tipo = TipoFerramenta.LAUDO,
-                        icon = Icons.Outlined.Description,
-                        titulo = "Laudo",
-                        descricao = "Laudo técnico completo da sua conexão",
-                        onClick = onAbrirLaudo,
-                    ),
-                )
-                add(
-                    FerramentaItem(
-                        tipo = TipoFerramenta.MONITORAMENTO,
-                        icon = Icons.Outlined.MonitorHeart,
-                        titulo = "Monitoramento",
-                        descricao = "Análise avançada e alertas em segundo plano",
-                        onClick = onAbrirMonitoramento,
-                    ),
-                )
-                add(
-                    FerramentaItem(
-                        tipo = TipoFerramenta.MODO_JOGOS,
-                        icon = Icons.Outlined.SportsEsports,
-                        titulo = "Modo Jogos",
-                        descricao = "Teste sua conexão para 21 jogos, em qualquer dispositivo",
-                        onClick = onAbrirJogos,
-                    ),
-                )
-                // GH#1201 — ferramenta "Sinal WiFi": indicador dinâmico de RSSI/PHY/padrão via
-                // polling manual (ver #1176).
-                add(
-                    FerramentaItem(
-                        tipo = TipoFerramenta.SINAL_WIFI,
-                        icon = Icons.Outlined.NetworkWifi,
-                        titulo = "Sinal WiFi",
-                        descricao = "Veja o sinal, a velocidade e o padrão Wi-Fi em tempo real",
-                        onClick = onAbrirSinalWifi,
-                    ),
-                )
-            }
-        }
-
-    // Issue #1503 (Camada B) — hub sai de lista flat pra 2 seções, curadoria em
-    // CatalogoFerramentas (puro, testado em TipoFerramentaTest) — aqui só junta com
-    // ícone/texto/onClick de cada item.
-    val porTipo = remember(itens) { itens.associateBy { it.tipo } }
-    val maisUsadas = remember(porTipo) { CatalogoFerramentas.maisUsadas.mapNotNull { porTipo[it] } }
-    val restante = remember(porTipo) { CatalogoFerramentas.restante.mapNotNull { porTipo[it] } }
-
+    var feedback by remember { mutableStateOf<String?>(null) }
+    val callbacks =
+        mapOf(
+            TipoFerramenta.SINAL_CANAIS_MOVEL to onAbrirSinalCanais,
+            TipoFerramenta.SINAL_WIFI to onAbrirSinalWifi,
+            TipoFerramenta.DISPOSITIVOS to onAbrirDispositivos,
+            TipoFerramenta.EQUIPAMENTO_INTERNET to onAbrirEquipamentoInternet,
+            TipoFerramenta.PING to onAbrirPing,
+            TipoFerramenta.DNS to onAbrirDns,
+            TipoFerramenta.LAUDO to onAbrirLaudo,
+            TipoFerramenta.MONITORAMENTO to onAbrirMonitoramento,
+            TipoFerramenta.MODO_JOGOS to onAbrirJogos,
+        )
+    val ferramentasVisiveis =
+        CatalogoFerramentas.todos
+            .map { tipo -> tipo to disponibilidade(tipo) }
+            .filterNot { (_, estado) -> estado is FerramentaDisponibilidade.Oculta }
     Scaffold(
         containerColor = c.bgPrimary,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = "Ferramentas",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.W600,
-                        color = c.textPrimary,
-                    )
-                },
+            SignallQTopAppBar(
+                title = "Ferramentas",
                 navigationIcon = {
                     IconButton(onClick = onVoltar ?: onAbrirMenu) {
-                        if (onVoltar != null) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Voltar",
-                                tint = c.textPrimary,
-                            )
-                        } else {
-                            Icon(
-                                imageVector = if (LocalAppShellMode.current == AppShellMode.Guided2) Icons.Filled.AccountCircle else Icons.Filled.Menu,
-                                contentDescription =
-                                    stringResource(
-                                        if (LocalAppShellMode.current == AppShellMode.Guided2) R.string.ajustes_cd_editar_perfil else R.string.appshell_cd_abrir_menu,
-                                    ),
-                                tint = c.textPrimary,
-                            )
-                        }
+                        val guided = LocalAppShellMode.current == AppShellMode.Guided2
+                        Icon(
+                            imageVector =
+                                when {
+                                    onVoltar != null -> Icons.AutoMirrored.Filled.ArrowBack
+                                    guided -> Icons.Filled.AccountCircle
+                                    else -> Icons.Filled.Menu
+                                },
+                            contentDescription =
+                                when {
+                                    onVoltar != null -> "Voltar"
+                                    guided -> stringResource(R.string.ajustes_cd_editar_perfil)
+                                    else -> stringResource(R.string.appshell_cd_abrir_menu)
+                                },
+                        )
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = c.bgPrimary),
             )
         },
     ) { padding ->
         LazyColumn(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-            contentPadding = PaddingValues(LkSpacing.lg),
-            verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(horizontal = LkSpacing.lg, vertical = LkSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
         ) {
-            item { LkSectionOverline(text = "Mais usadas") }
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                    horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-                ) {
-                    maisUsadas.forEach { item ->
-                        FerramentaDestacadaCard(
-                            item = item,
-                            destacada = item.tipo == ferramentaRecomendada,
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            c = c,
-                        )
-                    }
-                }
-            }
-            item { LkSectionOverline(text = "Todas as ferramentas") }
-            items(restante) { item ->
-                FerramentaListItem(item = item, destacada = item.tipo == ferramentaRecomendada, c = c)
-            }
-        }
-    }
-}
-
-@Composable
-private fun FerramentaDestacadaCard(
-    item: FerramentaItem,
-    destacada: Boolean,
-    c: LkTokens,
-    modifier: Modifier = Modifier,
-) {
-    Box(modifier = modifier) {
-        LkSurfaceCard(
-            modifier = Modifier.fillMaxWidth().fillMaxHeight().clickable(onClick = item.onClick),
-            outlined = false,
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().fillMaxHeight().padding(vertical = LkSpacing.md, horizontal = LkSpacing.sm),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
-            ) {
-                Box(
-                    modifier =
-                        Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(LkRadius.input))
-                            .background(c.primary.copy(alpha = 0.14f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = null,
-                        tint = c.primary,
-                        modifier = Modifier.size(22.dp),
-                    )
-                }
                 Text(
-                    text = item.titulo,
-                    style = MaterialTheme.typography.labelMedium.copy(hyphens = Hyphens.Auto),
-                    fontWeight = FontWeight.W600,
-                    color = c.textPrimary,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                    text = "Ferramentas de rede",
+                    modifier = Modifier.semantics { heading() },
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+                Text(
+                    "Use quando precisar investigar um ponto específico.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = c.onSurfaceVariant,
                 )
             }
-        }
-        if (destacada) {
-            // Card estreito (3 por linha) — versão curta do badge, texto completo fica
-            // no item compacto de FerramentaListItem, que tem largura de sobra.
-            LkPillBadge(
-                text = "recomendado",
-                containerColor = c.primary,
-                contentColor = c.onPrimary,
-                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun FerramentaListItem(
-    item: FerramentaItem,
-    destacada: Boolean,
-    c: LkTokens,
-) {
-    LkSurfaceCard(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clickable(onClick = item.onClick)
-                .padding(0.dp),
-        outlined = false,
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(LkRadius.input))
-                        .background(c.primary.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = item.icon,
-                    contentDescription = null,
-                    tint = c.primary,
-                    modifier = Modifier.size(20.dp),
+            items(ferramentasVisiveis, key = { (tipo, _) -> tipo.name }) { (tipo, estado) ->
+                val visual = tipo.visual()
+                SignallQListRow(
+                    title = visual.titulo,
+                    subtitle = estado.subtitle(visual.descricao, tipo == ferramentaRecomendada),
+                    icon = visual.icon,
+                    onClick = {
+                        when (estado) {
+                            FerramentaDisponibilidade.Disponivel,
+                            is FerramentaDisponibilidade.PermissaoNecessaria,
+                            -> {
+                                onRegistrarAbertura(tipo)
+                                callbacks.getValue(tipo).invoke()
+                            }
+                            is FerramentaDisponibilidade.IndisponivelRemotamente -> {
+                                callbacks.getValue(tipo).invoke()
+                                feedback = estado.proximoPasso
+                            }
+                            is FerramentaDisponibilidade.Offline -> feedback = estado.proximoPasso
+                            is FerramentaDisponibilidade.Oculta -> Unit
+                        }
+                    },
                 )
             }
-            Column(
-                modifier = Modifier.weight(1f).padding(start = LkSpacing.md),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
+            feedback?.let { message ->
+                item {
                     Text(
-                        text = item.titulo,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.W600,
-                        color = c.textPrimary,
+                        text = message,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = c.onSurfaceVariant,
                     )
-                    // Issue #1503 (Camada B) — só aparece quando a navegação até aqui veio
-                    // do card contextual do diagnóstico guiado, nunca estático.
-                    if (destacada) {
-                        LkPillBadge(
-                            text = "recomendado pra você",
-                            containerColor = c.primary,
-                            contentColor = c.onPrimary,
-                        )
-                    }
                 }
-                Text(
-                    text = item.descricao,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.textSecondary,
-                )
             }
-            Icon(
-                imageVector = Icons.AutoMirrored.Outlined.ArrowForwardIos,
-                contentDescription = null,
-                tint = c.textTertiary,
-                modifier = Modifier.size(20.dp),
-            )
         }
     }
+}
+
+private fun FerramentaDisponibilidade.subtitle(
+    base: String,
+    recomendado: Boolean,
+): String {
+    val prefix = if (recomendado) "Recomendado para você · " else ""
+    val state =
+        when (this) {
+            FerramentaDisponibilidade.Disponivel -> base
+            is FerramentaDisponibilidade.PermissaoNecessaria -> "Permissão necessária · $proximoPasso"
+            is FerramentaDisponibilidade.IndisponivelRemotamente -> "Temporariamente indisponível · $proximoPasso"
+            is FerramentaDisponibilidade.Offline -> "Sem conexão · $proximoPasso"
+            is FerramentaDisponibilidade.Oculta -> motivo
+        }
+    return prefix + state
+}
+
+private fun TipoFerramenta.visual(): FerramentaVisual =
+    when (this) {
+        TipoFerramenta.SINAL_CANAIS_MOVEL -> FerramentaVisual("Sinal e canais", "Wi-Fi, canais e rede móvel", Icons.Outlined.SignalCellularAlt)
+        TipoFerramenta.SINAL_WIFI -> FerramentaVisual("Sinal Wi-Fi ao vivo", "Intensidade enquanto você anda pela casa", Icons.Outlined.NetworkWifi)
+        TipoFerramenta.DISPOSITIVOS -> FerramentaVisual("Dispositivos", "Quem está na sua rede", Icons.Outlined.Devices)
+        TipoFerramenta.EQUIPAMENTO_INTERNET -> FerramentaVisual("Equipamento de internet", "Status do modem ou ONT", Icons.Outlined.Router)
+        TipoFerramenta.PING -> FerramentaVisual("Ping", "Tempo de resposta para um endereço", Icons.Outlined.NetworkCheck)
+        TipoFerramenta.DNS -> FerramentaVisual("DNS", "Compare servidores", Icons.Outlined.Dns)
+        TipoFerramenta.LAUDO -> FerramentaVisual("Laudo", "Resumo técnico completo", Icons.Outlined.Description)
+        TipoFerramenta.MONITORAMENTO -> FerramentaVisual("Monitoramento", "Alertas em segundo plano", Icons.Outlined.MonitorHeart)
+        TipoFerramenta.MODO_JOGOS -> FerramentaVisual("Modo gamer", "Teste para jogos específicos", Icons.Outlined.SportsEsports)
+    }
+
+@Preview(name = "Ferramentas claro", showBackground = true)
+@Preview(name = "Ferramentas escuro 200%", uiMode = Configuration.UI_MODE_NIGHT_YES, fontScale = 2f)
+@Composable
+private fun FerramentasScreenPreview() {
+    SignallQTheme { FerramentasScreen(onAbrirMenu = {}) }
 }

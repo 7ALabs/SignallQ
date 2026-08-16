@@ -479,6 +479,41 @@ fun AppShell(
             overlayStack.add(Overlay.SinalWifi)
         }
     }
+    val onAbrirSinalCanaisOverlay: () -> Unit = {
+        if (bloquearRota(featureFlags.wifiEnabled, ConsumerFeatureModuleIds.WIFI) &&
+            Overlay.SinalCanais !in overlayStack
+        ) {
+            overlayStack.add(Overlay.SinalCanais)
+        }
+    }
+    val disponibilidadeFerramenta: (TipoFerramenta) -> FerramentaDisponibilidade = { tipo ->
+        val flagEnabled =
+            when (tipo) {
+                TipoFerramenta.SINAL_CANAIS_MOVEL, TipoFerramenta.SINAL_WIFI -> featureFlags.wifiEnabled
+                TipoFerramenta.DISPOSITIVOS -> featureFlags.devicesEnabled
+                TipoFerramenta.EQUIPAMENTO_INTERNET -> featureFlags.fibraEnabled
+                TipoFerramenta.DNS -> featureFlags.dnsEnabled
+                TipoFerramenta.LAUDO -> featureFlags.diagnosticoEnabled
+                TipoFerramenta.MONITORAMENTO -> featureFlags.settingsEnabled
+                TipoFerramenta.PING, TipoFerramenta.MODO_JOGOS -> true
+            }
+        when {
+            !flagEnabled -> FerramentaDisponibilidade.IndisponivelRemotamente("Tente novamente mais tarde.")
+            !snapshotRede.conectado &&
+                tipo in
+                setOf(
+                    TipoFerramenta.EQUIPAMENTO_INTERNET,
+                    TipoFerramenta.PING,
+                    TipoFerramenta.DNS,
+                    TipoFerramenta.MODO_JOGOS,
+                ) -> FerramentaDisponibilidade.Offline("Reconecte-se e tente novamente.")
+            !temPermissaoLocalizacao &&
+                tipo in
+                setOf(TipoFerramenta.SINAL_CANAIS_MOVEL, TipoFerramenta.SINAL_WIFI, TipoFerramenta.DISPOSITIVOS) ->
+                FerramentaDisponibilidade.PermissaoNecessaria("Abra para permitir redes próximas.")
+            else -> FerramentaDisponibilidade.Disponivel
+        }
+    }
     val onAbrirDnsOverlay: () -> Unit = {
         if (bloquearRota(featureFlags.dnsEnabled, ConsumerFeatureModuleIds.DNS) &&
             Overlay.Dns !in overlayStack
@@ -766,6 +801,7 @@ fun AppShell(
                             else ->
                                 FerramentasScreen(
                                     onAbrirMenu = if (shellMode == AppShellMode.Guided2) onAbrirPerfilOverlay else onAbrirMenu,
+                                    onAbrirSinalCanais = onAbrirSinalCanaisOverlay,
                                     onAbrirDispositivos = onAbrirDispositivosOverlay,
                                     onAbrirEquipamentoInternet = onAbrirEquipamentoInternetOverlay,
                                     onAbrirPing = onAbrirPingOverlay,
@@ -774,6 +810,8 @@ fun AppShell(
                                     onAbrirMonitoramento = onAbrirMonitoramentoOverlay,
                                     onAbrirJogos = onAbrirModoGamerOverlay,
                                     onAbrirSinalWifi = onAbrirSinalWifiOverlay,
+                                    disponibilidade = disponibilidadeFerramenta,
+                                    onRegistrarAbertura = { tipo -> onScreenView(tipo.screenName()) },
                                 )
                         }
                     }
@@ -1081,6 +1119,7 @@ fun AppShell(
             ) {
                 FerramentasScreen(
                     onAbrirMenu = onAbrirMenu,
+                    onAbrirSinalCanais = onAbrirSinalCanaisOverlay,
                     onAbrirDispositivos = onAbrirDispositivosOverlay,
                     onAbrirEquipamentoInternet = onAbrirEquipamentoInternetOverlay,
                     onAbrirPing = onAbrirPingOverlay,
@@ -1089,6 +1128,8 @@ fun AppShell(
                     onAbrirMonitoramento = onAbrirMonitoramentoOverlay,
                     onAbrirJogos = onAbrirModoGamerOverlay,
                     onAbrirSinalWifi = onAbrirSinalWifiOverlay,
+                    disponibilidade = disponibilidadeFerramenta,
+                    onRegistrarAbertura = { tipo -> onScreenView(tipo.screenName()) },
                     // Issue #1503 — único consumidor real de Overlay.Ferramentas hoje: o
                     // card contextual do diagnóstico guiado. Botão "voltar" explícito
                     // limpa o badge, mesmo comportamento do back físico (ver BackHandler).
@@ -1120,6 +1161,37 @@ fun AppShell(
             // Issue #1487 — fluxo legado "Jogos" (GH#935, 5 etapas) removido: fundido no Modo
             // gamer (Overlay.ModoGamer acima), acessado pelo mesmo card "Jogos" em
             // Ferramentas via onAbrirModoGamerOverlay.
+
+            AnimatedVisibility(
+                visible = Overlay.SinalCanais in overlayStack,
+                modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.SinalCanais, overlayStack)),
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            ) {
+                SinalScreen(
+                    snapshotWifi = snapshotWifi,
+                    connectedNetwork = connectedNetwork,
+                    estadoConexao = snapshotRede.estadoConexao,
+                    conectado = snapshotRede.conectado,
+                    movelSnapshot = movelSnapshot,
+                    simsAtivos = simsAtivos,
+                    localIp = localIpStr,
+                    temPermissaoTelefonia = temPermissaoTelefonia,
+                    onSolicitarPermissaoTelefonia = onSolicitarPermissaoTelefonia,
+                    temPermissaoLocalizacao = temPermissaoLocalizacao,
+                    localizacaoBloqueadaPermanentemente = localizacaoBloqueadaPermanentemente,
+                    onSolicitarPermissaoLocalizacao = onSolicitarPermissaoLocalizacao,
+                    onRefresh = onRefreshSinal,
+                    onVoltar = { overlayStack.remove(Overlay.SinalCanais) },
+                    onAbrirMenu = onAbrirMenu,
+                    wifiLinkSnapshot = snapshotRede.wifiLinkSnapshot,
+                    dispositivosRede = snapshotDevices.dispositivos,
+                    apelidos = apelidos,
+                    onSalvarApelido = onSalvarApelido,
+                    resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
+                    resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
+                )
+            }
 
             // GH#1201 — nova ferramenta "Sinal WiFi" (indicador dinâmico de RSSI/PHY/padrão).
             AnimatedVisibility(

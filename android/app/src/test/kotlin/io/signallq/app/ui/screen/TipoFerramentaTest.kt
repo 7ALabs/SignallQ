@@ -67,23 +67,48 @@ class TipoFerramentaTest {
     }
 
     @Test
-    fun `restante cobre as outras 5 ferramentas na ordem canonica`() {
+    fun `restante cobre as outras 6 ferramentas na ordem canonica`() {
         assertEquals(
             listOf(
+                TipoFerramenta.SINAL_CANAIS_MOVEL,
+                TipoFerramenta.SINAL_WIFI,
                 TipoFerramenta.DISPOSITIVOS,
                 TipoFerramenta.EQUIPAMENTO_INTERNET,
                 TipoFerramenta.PING,
                 TipoFerramenta.LAUDO,
-                TipoFerramenta.SINAL_WIFI,
             ),
             CatalogoFerramentas.restante,
         )
     }
 
     @Test
-    fun `todas as 8 ferramentas aparecem exatamente uma vez entre as duas secoes`() {
+    fun `todas as 9 ferramentas aparecem exatamente uma vez entre as duas secoes`() {
         val todasAsSecoes = CatalogoFerramentas.maisUsadas + CatalogoFerramentas.restante
         assertEquals(TipoFerramenta.entries.size, todasAsSecoes.size)
         assertEquals(TipoFerramenta.entries.toSet(), todasAsSecoes.toSet())
+    }
+
+    @Test
+    fun `lista aberta usa a ordem canonica e cobre nove destinos`() {
+        assertEquals(9, CatalogoFerramentas.todos.size)
+        assertEquals(TipoFerramenta.entries.toSet(), CatalogoFerramentas.todos.toSet())
+    }
+
+    @Test
+    fun `taxonomia de screen view cobre os nove destinos sem catalogo paralelo`() {
+        assertEquals(
+            listOf(
+                "sinal_wifi",
+                "sinal_wifi",
+                "dispositivos",
+                "equipamento_internet",
+                "ping",
+                "dns",
+                "laudo",
+                "monitoramento",
+                "modo_gamer",
+            ),
+            CatalogoFerramentas.todos.map(TipoFerramenta::screenName),
+        )
     }
 }

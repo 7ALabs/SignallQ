@@ -647,6 +647,7 @@ private fun TipoFerramenta.conteudoProximoPasso(): ConteudoProximoPasso? =
                 textoBotao = "Ver a força do Wi-Fi",
             )
         TipoFerramenta.DISPOSITIVOS,
+        TipoFerramenta.SINAL_CANAIS_MOVEL,
         TipoFerramenta.EQUIPAMENTO_INTERNET,
         TipoFerramenta.PING,
         TipoFerramenta.LAUDO,
