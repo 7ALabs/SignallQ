@@ -40,6 +40,9 @@ internal data class AppShellDiagnosticoGuiadoEntry(
     val dados: AppShellDiagnosticoGuiadoDados,
     val operadora: AppShellOperadoraResolvers,
     val acoes: AppShellDiagnosticoGuiadoAcoes,
+    /** Rota `Analise` — GH#1704 parte 4/4. Quarto grupo, e não campos dentro de [dados], porque
+     *  tem dono diferente dos outros três: sai do `ExecutorSpeedtest`, não dos snapshots. */
+    val analise: AnaliseGuiadaContrato,
 )
 
 /** Dados de diagnóstico e contexto de rede que a tela exibe. */
@@ -66,8 +69,6 @@ internal data class AppShellDiagnosticoGuiadoAcoes(
     val onIrParaHome: () -> Unit,
     val onIniciarModoGamer: () -> Unit,
     val onAbrirFerramentaSugerida: (TipoFerramenta) -> Unit,
-    /** GH#1714 — destino do "Medir agora" do estado vazio. Vai para Velocidade, não para o início. */
-    val onMedirNovamente: () -> Unit,
     val onRecommendationShown: () -> Unit,
     val onRecommendationClicked: () -> Unit,
     val onRecommendationFeedback: (RecommendationFeedbackType) -> Unit,
@@ -97,46 +98,39 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
         exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
     ) {
-        // GH#1714 — ver ResultadoIndisponivelScreen. Sem resultado o overlay não compunha nada,
-        // e o back virava um toque sem efeito visível.
+        // GH#1704 parte 4/4 — o estado vazio da #1714 saiu daqui. Ele existia porque o fluxo não
+        // conseguia começar sem um resultado anterior; agora começa, e a rota `Analise` produz o
+        // resultado que falta. `ResultadoIndisponivelScreen` continua em uso pelos outros dois
+        // overlays de resultado, que consomem o `ResultadoSpeedtest` inteiro e não têm como
+        // regenerá-lo.
         val resultado = dados.resultado
-        if (resultado == null) {
-            ResultadoIndisponivelScreen(
-                titulo = "Diagnóstico",
-                onVoltar = entry.acoes.onVoltar,
-                // Ressalva 2 de Caio na PR #1718: aqui apontava para `onIrParaHome`, então o
-                // mesmo botão, com o mesmo rótulo, levava a lugares diferentes conforme o overlay.
-                // "Medir agora" tem que medir.
-                onMedirNovamente = entry.acoes.onMedirNovamente,
-            )
-        } else {
-            DiagnosticoGuiadoScreen(
-                input = dados.input,
-                resultadoValidoParaConclusao = resultado.status.liberaConclusaoCompleta,
-                objetivoPreSelecionado = dados.objetivoPreSelecionado,
-                respostaPreSelecionadaPasso0 = dados.respostaPreSelecionadaPasso0,
-                analisadorState = dados.analisadorState,
-                onAnalisarProblema = entry.acoes.onAnalisarProblema,
-                onResetarAnalisador = entry.acoes.onResetarAnalisador,
-                onVoltar = entry.acoes.onVoltar,
-                onIrParaHome = entry.acoes.onIrParaHome,
-                categoria = dados.categoria,
-                ispNome = dados.ispNome,
-                connectionType = resultado.connectionType,
-                operadoraMovel = dados.operadoraMovel,
-                recommendationDecision = dados.recommendationDecision,
-                recommendationFeedback = dados.recommendationFeedback,
-                onRecommendationShown = entry.acoes.onRecommendationShown,
-                onRecommendationClicked = entry.acoes.onRecommendationClicked,
-                onRecommendationFeedback = entry.acoes.onRecommendationFeedback,
-                resolveOperadoraIdentidadeLocal = entry.operadora.identidadeLocal,
-                resolveOperadoraContatoLocal = entry.operadora.contatoLocal,
-                resolveOperadoraIdentidadeRemota = entry.operadora.identidadeRemota,
-                resolveOperadoraContatoRemoto = entry.operadora.contatoRemoto,
-                onIniciarModoGamer = entry.acoes.onIniciarModoGamer,
-                onAbrirFerramentaSugerida = entry.acoes.onAbrirFerramentaSugerida,
-            )
-        }
+        DiagnosticoGuiadoScreen(
+            input = dados.input,
+            resultadoValidoParaConclusao = resultado?.status?.liberaConclusaoCompleta == true,
+            analise = entry.analise,
+            objetivoPreSelecionado = dados.objetivoPreSelecionado,
+            respostaPreSelecionadaPasso0 = dados.respostaPreSelecionadaPasso0,
+            analisadorState = dados.analisadorState,
+            onAnalisarProblema = entry.acoes.onAnalisarProblema,
+            onResetarAnalisador = entry.acoes.onResetarAnalisador,
+            onVoltar = entry.acoes.onVoltar,
+            onIrParaHome = entry.acoes.onIrParaHome,
+            categoria = dados.categoria,
+            ispNome = dados.ispNome,
+            connectionType = resultado?.connectionType,
+            operadoraMovel = dados.operadoraMovel,
+            recommendationDecision = dados.recommendationDecision,
+            recommendationFeedback = dados.recommendationFeedback,
+            onRecommendationShown = entry.acoes.onRecommendationShown,
+            onRecommendationClicked = entry.acoes.onRecommendationClicked,
+            onRecommendationFeedback = entry.acoes.onRecommendationFeedback,
+            resolveOperadoraIdentidadeLocal = entry.operadora.identidadeLocal,
+            resolveOperadoraContatoLocal = entry.operadora.contatoLocal,
+            resolveOperadoraIdentidadeRemota = entry.operadora.identidadeRemota,
+            resolveOperadoraContatoRemoto = entry.operadora.contatoRemoto,
+            onIniciarModoGamer = entry.acoes.onIniciarModoGamer,
+            onAbrirFerramentaSugerida = entry.acoes.onAbrirFerramentaSugerida,
+        )
     }
 }
 

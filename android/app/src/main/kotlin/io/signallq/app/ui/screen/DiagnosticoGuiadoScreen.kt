@@ -120,6 +120,10 @@ import io.signallq.app.ui.component.rememberResolvedOperadoraIdentity
 fun DiagnosticoGuiadoScreen(
     input: DiagnosticInput?,
     resultadoValidoParaConclusao: Boolean,
+    /** Rota `Analise` (spec 2.0 §8.5) — GH#1704 parte 4/4. Sem default de propósito: um default
+     *  deixaria um caller esquecer de ligar a medição e o fluxo voltaria a depender de um teste
+     *  anterior sem que nada quebrasse na compilação. Ver [AnaliseGuiadaContrato]. */
+    analise: AnaliseGuiadaContrato,
     /** Pré-seleção vinda do SignallQ Assist (issue #1656) — objetivo já escolhido pelo
      *  usuário antes do teste de velocidade, na tela "O que está acontecendo?". Quando
      *  não nulo, esta tela abre direto no roteiro de perguntas em vez de pedir o
@@ -185,11 +189,53 @@ fun DiagnosticoGuiadoScreen(
         }
     var mostrarResultado by remember { mutableStateOf(false) }
 
+    // GH#1704 parte 4/4 — rota `Analise`. Booleano próprio, e não um terceiro valor derivado de
+    // `analise.estado`, porque o estado do executor é global: ele fica `Concluida` para o app
+    // inteiro depois de qualquer medição. Só este flag diz "a medição em curso pertence a ESTE
+    // fluxo", que é o que decide se a conclusão da medição deve avançar a tela.
+    var emAnalise by remember { mutableStateOf(false) }
+
+    /**
+     * A conclusão (§8.6) só é alcançável com um resultado que o motor aceite. Sem isso o fluxo
+     * mede de novo em vez de mostrar o banner de resultado inválido — antes desta fatia o banner
+     * substituía a tela inteira já na entrada, e a pessoa não tinha ação nenhuma disponível.
+     */
+    val podeConcluirSemMedir =
+        analise.estado is EstadoAnaliseGuiada.Concluida && resultadoValidoParaConclusao
+
+    // "Já vi esta análise sair do estado concluído" — sem isso há uma corrida real, encontrada
+    // pelo teste `medicao concluida porem invalida remede em vez de concluir`.
+    //
+    // Entrar na rota com `Concluida` é o caso de um resultado anterior que o motor recusou: o
+    // fluxo pede uma medição nova, mas o `ExecutorSpeedtest` só publica `executando` alguns frames
+    // depois. Nessa janela o snapshot ainda é o `Concluida` velho, e a versão anterior deste efeito
+    // concluía imediatamente — a pessoa clicava "ver o que identifiquei", nada era medido, e ela
+    // recebia o banner do mesmo resultado inválido que motivou a remedição.
+    var medicaoObservadaEmCurso by remember { mutableStateOf(false) }
+
+    // A medição terminou enquanto ESTE fluxo a esperava: avança para a conclusão. A validade do
+    // resultado não entra aqui de propósito — medição concluída com resultado insuficiente leva ao
+    // banner de §8.6, que explica o limite. Fingir que ainda está medindo seria pior.
+    LaunchedEffect(emAnalise, analise.estado) {
+        when {
+            !emAnalise -> medicaoObservadaEmCurso = false
+            analise.estado !is EstadoAnaliseGuiada.Concluida -> medicaoObservadaEmCurso = true
+            medicaoObservadaEmCurso -> {
+                emAnalise = false
+                mostrarResultado = true
+            }
+        }
+    }
+
     fun voltarUmPasso() {
         when {
             mostrarResultado -> {
                 mostrarResultado = false
                 onResetarAnalisador()
+            }
+            emAnalise -> {
+                emAnalise = false
+                analise.onCancelar()
             }
             objetivo != null && passo > 0 -> passo -= 1
             objetivo != null -> {
@@ -230,16 +276,20 @@ fun DiagnosticoGuiadoScreen(
     ) { padding ->
         val objetivoAtual = objetivo
         when {
-            !resultadoValidoParaConclusao ->
-                Column(modifier = Modifier.fillMaxSize().padding(padding).padding(LkSpacing.xl)) {
-                    ResultadoInvalidoBannerGuiado(c = c)
-                }
+            // GH#1704 — o banner de resultado inválido saiu daqui (era a PRIMEIRA cláusula, e por
+            // isso substituía a tela inteira desde a entrada, inclusive a escolha do objetivo).
+            // Agora ele é o que a conclusão mostra quando a medição fecha sem resultado que o
+            // motor aceite — o único momento em que a informação é acionável.
             objetivoAtual == null ->
                 ListaObjetivos(
                     modifier = Modifier.padding(padding),
                     onSelect = { objetivo = it },
                     c = c,
                 )
+            mostrarResultado && !resultadoValidoParaConclusao ->
+                Column(modifier = Modifier.fillMaxSize().padding(padding).padding(LkSpacing.xl)) {
+                    ResultadoInvalidoBannerGuiado(c = c)
+                }
             mostrarResultado -> {
                 val respostasIndices = respostas.filterNotNull()
                 val resultado =
@@ -280,6 +330,13 @@ fun DiagnosticoGuiadoScreen(
                     c = c,
                 )
             }
+            emAnalise ->
+                DiagnosticoGuiadoAnaliseSection(
+                    modifier = Modifier.padding(padding),
+                    estado = analise.estado,
+                    onCancelar = ::voltarUmPasso,
+                    onTentarNovamente = analise.onIniciar,
+                )
             else -> {
                 val perguntas = remember(objetivoAtual) { PerguntasDiagnosticoGuiado.perguntas(objetivoAtual) }
                 val pergunta = perguntas[passo]
@@ -297,7 +354,17 @@ fun DiagnosticoGuiadoScreen(
                             }
                     },
                     onAvancar = {
-                        if (passo < perguntas.size - 1) passo += 1 else mostrarResultado = true
+                        when {
+                            passo < perguntas.size - 1 -> passo += 1
+                            // GH#1704 — o fim do roteiro leva à análise (§8.5), não direto à
+                            // conclusão. Só pula a medição quando já existe resultado utilizável,
+                            // que é o caminho de quem entrou aqui vindo da tela de Resultado.
+                            podeConcluirSemMedir -> mostrarResultado = true
+                            else -> {
+                                emAnalise = true
+                                analise.onIniciar()
+                            }
+                        }
                     },
                     c = c,
                 )
