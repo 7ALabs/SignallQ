@@ -53,10 +53,19 @@ internal data class ContinuidadeMedicao(
     /**
      * A conclusão parcial pode ser mostrada junto?
      *
-     * `true` em `PARTIAL` e `CANCELLED`, onde o que foi medido continua verdadeiro e a spec §8.5
-     * manda preservar. `false` em `CONTAMINATED` e `INCONCLUSIVE`, onde o dado ou é de outra rede
-     * ou não tem base estatística — mostrar conclusão ali seria inventar, que é o defeito que o
-     * KDoc de `ResultadoIndisponivelScreen` já rejeita.
+     * Hoje só `PARTIAL` **com medidas confiáveis** devolve `true`:
+     *
+     * - `CONTAMINATED` e `INCONCLUSIVE` — o dado ou é de outra rede ou não tem base estatística;
+     *   mostrar conclusão ali seria inventar, defeito que o KDoc de `ResultadoIndisponivelScreen`
+     *   já rejeita;
+     * - `CANCELLED` — o executor não chega a produzir `ResultadoSpeedtest` nesse estado, então não
+     *   há conclusão parcial a preservar (ressalva RS2);
+     * - `PARTIAL` — depende de [continuidadeDaMedicao] receber `medidasConfiaveis`, porque o
+     *   número que sobra pode ter sido estragado pela nossa própria medição (bloqueios B3 e B7).
+     *
+     * A redação anterior dizia "`true` em `PARTIAL` e `CANCELLED`, onde o que foi medido continua
+     * verdadeiro". Nasceu correta e os commits seguintes desta mesma PR a deixaram para trás —
+     * mesmo padrão da ressalva RS13, agora apontado como RS16.
      */
     val permiteVerConclusaoParcial: Boolean,
 )

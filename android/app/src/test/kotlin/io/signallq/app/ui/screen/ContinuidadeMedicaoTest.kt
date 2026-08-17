@@ -57,6 +57,20 @@ class ContinuidadeMedicaoTest {
         assertEquals(DiagnosticStatus.info, cancelado.statusVisual)
     }
 
+    /**
+     * Todas as continuidades produzíveis — os dois valores de `medidasConfiaveis`, não só o
+     * confiável.
+     *
+     * Ressalva RS17 de Caio: os guardas de qualidade de copy percorriam `naoCompletos` com
+     * `medidasConfiaveis = true` fixo, então o ramo NÃO confiável do `PARTIAL` — que nasceu no
+     * bloqueio B9 — ficava fora do alcance dos dois. Ele injetou jargão só naquele ramo e o
+     * mutante sobreviveu.
+     */
+    private fun todasAsContinuidades() =
+        naoCompletos.flatMap { status ->
+            listOf(true, false).map { confiavel -> status to continuidadeDaMedicao(status, confiavel)!! }
+        }
+
     // Mutante M4 do parecer: copiar a `explicacao` de um status para outro. Sobrevivia porque só o
     // título estava travado por teste, e o corpo do texto é o que de fato instrui a pessoa.
     @Test
@@ -72,6 +86,16 @@ class ContinuidadeMedicaoTest {
             "explicações repetidas entre status",
             continuidades.size,
             continuidades.map { it.explicacao }.toSet().size,
+        )
+
+        // O ramo não confiável do PARTIAL também não pode duplicar o texto de outro status.
+        // `distinct()` antes porque os demais status ignoram `medidasConfiaveis` e produzem a
+        // MESMA continuidade nos dois valores — contá-los duas vezes seria falso positivo.
+        val distintas = todasAsContinuidades().map { (_, c) -> c }.distinct()
+        assertEquals(
+            "explicações repetidas contando o ramo não confiável",
+            distintas.size,
+            distintas.map { it.explicacao }.toSet().size,
         )
     }
 
@@ -166,8 +190,8 @@ class ContinuidadeMedicaoTest {
     fun `nenhuma explicacao usa jargao interno`() {
         val jargao = listOf("amostra", "bufferbloat", "jitter", "throughput", "payload")
 
-        naoCompletos.forEach { status ->
-            val texto = continuidadeDaMedicao(status, medidasConfiaveis = true)!!.explicacao.lowercase()
+        todasAsContinuidades().forEach { (status, continuidade) ->
+            val texto = continuidade.explicacao.lowercase()
             jargao.forEach { termo ->
                 assertFalse("status $status vazou '$termo': \"$texto\"", texto.contains(termo))
             }
