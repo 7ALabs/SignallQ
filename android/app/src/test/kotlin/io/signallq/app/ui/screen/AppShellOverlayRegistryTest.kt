@@ -121,15 +121,58 @@ class AppShellOverlayRegistryTest {
         )
 
     /**
+     * Entrada do diagnóstico guiado para os testes — issue #1704. Primeira entrada do registro no
+     * formato agrupado (`AppShellXxxEntry`), padrão que a ressalva 3 de Caio (PR #1697) tornou
+     * obrigatório para toda migração de overlay a partir daqui.
+     */
+    private fun diagnosticoGuiadoDeTeste(resultado: ResultadoSpeedtest? = null) =
+        AppShellDiagnosticoGuiadoEntry(
+            dados =
+                AppShellDiagnosticoGuiadoDados(
+                    input = null,
+                    resultado = resultado,
+                    analisadorState = AnalisadorState.Inativo,
+                    objetivoPreSelecionado = null,
+                    respostaPreSelecionadaPasso0 = null,
+                    categoria = null,
+                    ispNome = null,
+                    operadoraMovel = null,
+                    recommendationDecision = null,
+                    recommendationFeedback = null,
+                ),
+            operadora =
+                AppShellOperadoraResolvers(
+                    identidadeLocal = { _, _ -> null },
+                    contatoLocal = { _, _ -> null },
+                    identidadeRemota = { _, _ -> error("nao usado neste teste") },
+                    contatoRemoto = { _, _ -> error("nao usado neste teste") },
+                ),
+            acoes =
+                AppShellDiagnosticoGuiadoAcoes(
+                    onAnalisarProblema = {},
+                    onResetarAnalisador = {},
+                    onVoltar = {},
+                    onIrParaHome = {},
+                    onIniciarModoGamer = {},
+                    onAbrirFerramentaSugerida = {},
+                    onRecommendationShown = {},
+                    onRecommendationClicked = {},
+                    onRecommendationFeedback = {},
+                ),
+        )
+
+    /**
      * Wiring padrão do [AppShellOverlayRegistry] para os testes desta classe — os parâmetros que
-     * um teste precisa customizar (pilha, resultado de speedtest, callback de gerenciar dados)
-     * ficam explícitos; o resto é o mínimo neutro para compor sem crash.
+     * um teste precisa customizar (pilha, resultado de speedtest, callback de gerenciar dados,
+     * entrada do diagnóstico guiado) ficam explícitos; o resto é o mínimo neutro para compor sem
+     * crash.
      */
     @Composable
     private fun RegistryDeTeste(
         stack: MutableList<AppShellOverlay>,
         resultadoSpeedtest: ResultadoSpeedtest? = null,
         onAbrirGerenciarDados: () -> Unit = {},
+        diagnosticoGuiado: AppShellDiagnosticoGuiadoEntry = diagnosticoGuiadoDeTeste(),
     ) {
         AppShellOverlayRegistry(
             overlayStack = stack,
@@ -150,7 +193,47 @@ class AppShellOverlayRegistryTest {
             dnsResolverIp = null,
             snapshotRede = SnapshotRede.desconectado(0L),
             onIniciarBenchmarkDns = {},
+            diagnosticoGuiado = diagnosticoGuiado,
         )
+    }
+
+    // ─── Diagnóstico guiado (issue #1704) ──────────────────────────────────────
+
+    @Test
+    fun `diagnostico guiado nao compoe o container sem resultado de speedtest mesmo na pilha`() {
+        // Guarda dupla do overlay: `DiagnosticoGuiado in stack && resultado != null`. Sem o
+        // testTag, este teste seria fachada — o `?.let` interno omite o conteúdo sozinho, então
+        // asserir só a ausência de texto passaria igual com a guarda removida (mesmo achado que
+        // Caio levantou no DetalhesTecnicos na PR #1697).
+        val stack = mutableStateListOf(AppShellOverlay.DiagnosticoGuiado)
+        composeRule.setContent { RegistryDeTeste(stack = stack) }
+        composeRule.onNodeWithTag(TAG_OVERLAY_DIAGNOSTICO_GUIADO).assertDoesNotExist()
+    }
+
+    @Test
+    fun `registry compoe diagnostico guiado quando esta na pilha e ha resultado`() {
+        // Mutante que este teste mata: remover a chamada de AppShellDiagnosticoGuiadoOverlay de
+        // dentro do registro — a tela sumiria do app com a suíte verde.
+        val stack = mutableStateListOf(AppShellOverlay.DiagnosticoGuiado)
+        composeRule.setContent {
+            RegistryDeTeste(
+                stack = stack,
+                diagnosticoGuiado = diagnosticoGuiadoDeTeste(resultado = resultadoSpeedtestDeTeste()),
+            )
+        }
+        composeRule.onNodeWithTag(TAG_OVERLAY_DIAGNOSTICO_GUIADO).assertExists()
+    }
+
+    @Test
+    fun `diagnostico guiado fora da pilha nao compoe`() {
+        val stack = mutableStateListOf<AppShellOverlay>()
+        composeRule.setContent {
+            RegistryDeTeste(
+                stack = stack,
+                diagnosticoGuiado = diagnosticoGuiadoDeTeste(resultado = resultadoSpeedtestDeTeste()),
+            )
+        }
+        composeRule.onNodeWithTag(TAG_OVERLAY_DIAGNOSTICO_GUIADO).assertDoesNotExist()
     }
 
     // ─── Por overlay (visibilidade + onVoltar isolados) ─────────────────────────

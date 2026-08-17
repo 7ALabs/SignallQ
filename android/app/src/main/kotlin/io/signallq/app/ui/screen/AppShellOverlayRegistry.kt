@@ -85,6 +85,11 @@ internal fun AppShellOverlayRegistry(
     dnsResolverIp: String?,
     snapshotRede: SnapshotRede,
     onIniciarBenchmarkDns: () -> Unit,
+    // Diagnóstico guiado (issue #1704, fatia 2.0.09b) — PRIMEIRO overlay a entrar no formato de
+    // entrada agrupada, cumprindo a ressalva 3 de Caio (PR #1697). Os 24 parâmetros da tela
+    // chegam como UM parâmetro; os 17 campos soltos acima são o legado a converter conforme
+    // cada overlay for tocado.
+    diagnosticoGuiado: AppShellDiagnosticoGuiadoEntry,
 ) {
     AppShellAssistOverlay(
         overlayStack = overlayStack,
@@ -109,6 +114,7 @@ internal fun AppShellOverlayRegistry(
         localizacaoBloqueadaPermanentemente = localizacaoBloqueadaPermanentemente,
         onSolicitarPermissaoLocalizacao = onSolicitarPermissaoLocalizacao,
     )
+    AppShellDiagnosticoGuiadoOverlay(overlayStack = overlayStack, entry = diagnosticoGuiado)
     AppShellPingOverlay(overlayStack = overlayStack)
     AppShellDnsOverlay(
         overlayStack = overlayStack,
