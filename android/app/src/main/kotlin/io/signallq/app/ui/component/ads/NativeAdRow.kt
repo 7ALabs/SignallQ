@@ -25,6 +25,7 @@ import com.google.android.gms.ads.nativead.NativeAdView
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.ads.ChaveViewAnuncioNativo
 import io.signallq.app.ui.ads.buildRoleComposeView
 
 /**
@@ -45,7 +46,11 @@ fun NativeAdRow(
     val textSecondary = c.textSecondary
     val textTertiary = c.textTertiary
 
-    key(nativeAd) {
+    // key(nativeAd, textPrimary, textSecondary): o `factory` captura anuncio E cores no closure.
+    // Sem as cores na chave, trocar de tema com o app aberto deixa o texto preso ao tema anterior
+    // -- headline preto sobre card preto (GH#1699). Chaveado pelas duas cores, nao pelo `LkTokens`
+    // inteiro, que tem dezenas de campos e recriaria a arvore de Views a toa.
+    key(ChaveViewAnuncioNativo(nativeAd, textPrimary, textSecondary)) {
         AndroidView(
             modifier =
                 modifier

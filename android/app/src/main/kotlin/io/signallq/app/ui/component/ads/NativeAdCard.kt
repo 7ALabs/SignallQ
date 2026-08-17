@@ -38,6 +38,7 @@ import com.google.android.gms.ads.nativead.NativeAdView
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.ads.ChaveViewAnuncioNativo
 import io.signallq.app.ui.ads.buildRoleComposeView
 
 /**
@@ -98,11 +99,16 @@ fun NativeAdCard(
 
             Spacer(Modifier.height(LkSpacing.sm))
 
-            // key(nativeAd): forca o AndroidView a reconstruir a arvore de Views do zero
-            // quando um NativeAd novo carrega -- o factory captura headline/body/cta no
-            // closure em tempo de criacao, entao precisa recriar (nao so re-`update`) a
-            // cada anuncio novo para nunca mostrar texto de um anuncio anterior.
-            key(nativeAd) {
+            // key(nativeAd, textPrimary, textSecondary): o `factory` do AndroidView captura o
+            // anuncio E as cores no closure, em tempo de criacao. `key(nativeAd)` sozinho cobria
+            // so metade do problema (GH#1699):
+            //  - anuncio novo -> recria, senao mostraria texto do anuncio anterior;
+            //  - TEMA novo -> tambem precisa recriar, senao as cores ficam presas ao tema
+            //    anterior e o resultado e headline preto sobre card preto, ilegivel.
+            // Chaveado pelas duas cores e nao pelo `LkTokens` inteiro: sao os unicos campos que
+            // o closure captura, e `LkTokens` tem dezenas de campos que mudariam a chave sem
+            // necessidade, recriando a arvore de Views a toa.
+            key(ChaveViewAnuncioNativo(nativeAd, textPrimary, textSecondary)) {
                 AndroidView(
                     modifier = Modifier.fillMaxWidth(),
                     factory = { context ->
