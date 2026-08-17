@@ -58,6 +58,9 @@ internal data class AppShellDiagnosticoGuiadoDados(
     val operadoraMovel: String?,
     val recommendationDecision: RecommendationDecision?,
     val recommendationFeedback: RecommendationFeedbackType?,
+    /** GH#1706 — contexto que adapta o plano de análise (spec §7 e §8.4). O registry já tinha estes
+     *  sinais em mãos para o Sinal Wi-Fi e simplesmente não os repassava ao fluxo guiado. */
+    val contextoDoPlano: ContextoDoPlano,
 )
 
 /** Navegação e efeitos colaterais que só o shell sabe executar. */
@@ -106,6 +109,7 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
         val resultado = dados.resultado
         DiagnosticoGuiadoScreen(
             input = dados.input,
+            contextoDoPlano = dados.contextoDoPlano,
             statusMedicao = resultado?.status,
             medidasConfiaveis = medidasConfiaveis(resultado),
             analise = entry.analise,

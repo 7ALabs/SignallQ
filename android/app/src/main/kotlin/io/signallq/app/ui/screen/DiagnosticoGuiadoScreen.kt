@@ -119,6 +119,9 @@ import io.signallq.app.ui.component.rememberResolvedOperadoraIdentity
 @Composable
 fun DiagnosticoGuiadoScreen(
     input: DiagnosticInput?,
+    /** GH#1706 — o que o app sabe ao montar o plano (spec §7). Sem isto o fluxo guiado não tinha
+     *  como adaptar o plano nem declarar o limite que §8.4 exige. */
+    contextoDoPlano: ContextoDoPlano,
     /** Status real da medição — GH#1705. Era `resultadoValidoParaConclusao: Boolean`, e os 5
      *  valores de `MeasurementStatus` viravam um bit exatamente aqui. `null` = ainda não há
      *  medição. Ver [continuidadeDaMedicao]. */
@@ -208,6 +211,9 @@ fun DiagnosticoGuiadoScreen(
      * substituía a tela inteira já na entrada, e a pessoa não tinha ação nenhuma disponível.
      */
     val continuidade = statusMedicao?.let { continuidadeDaMedicao(it, medidasConfiaveis) }
+
+    // GH#1706 — o plano só existe depois de haver objetivo; antes disso não há o que verificar.
+    val plano = objetivo?.let { montarPlano(it, contextoDoPlano) }
 
     // Só medição COMPLETA dispensa medir de novo — bloqueio B2 de Caio na PR #1723.
     //
@@ -388,6 +394,7 @@ fun DiagnosticoGuiadoScreen(
                     estado = analise.estado,
                     onCancelar = ::voltarUmPasso,
                     onTentarNovamente = analise.onIniciar,
+                    plano = plano,
                 )
             else -> {
                 val perguntas = remember(objetivoAtual) { PerguntasDiagnosticoGuiado.perguntas(objetivoAtual) }

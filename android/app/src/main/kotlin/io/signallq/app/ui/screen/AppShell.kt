@@ -992,6 +992,12 @@ fun AppShell(
                                 operadoraMovel = operadoraMovel,
                                 recommendationDecision = recommendationDecision,
                                 recommendationFeedback = recommendationFeedback,
+                                // GH#1706 — o shell já tinha os dois sinais; faltava repassá-los.
+                                contextoDoPlano =
+                                    ContextoDoPlano(
+                                        temPermissaoLocalizacao = temPermissaoLocalizacao,
+                                        conectadoPorWifi = snapshotRede.wifiLinkSnapshot != null,
+                                    ),
                             ),
                         operadora = operadoraResolvers,
                         acoes =

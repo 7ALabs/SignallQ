@@ -176,6 +176,7 @@ class AppShellOverlayRegistryTest {
                 operadoraMovel = null,
                 recommendationDecision = null,
                 recommendationFeedback = null,
+                contextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = true),
             ),
         operadora =
             AppShellOperadoraResolvers(

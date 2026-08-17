@@ -525,6 +525,66 @@ class DiagnosticoGuiadoScreenTest {
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
     }
 
+    // ---------------------------------------------------------------------------------------
+    // Plano de analise - GH#1706 (2.0.09d), spec 2.0 §7 e §8.4.
+    // ---------------------------------------------------------------------------------------
+    //
+    // Os tres usam o roteiro de JOGOS_COM_LAG porque o plano dele inclui `SINAL_WIFI`, que e uma
+    // das duas capacidades que dependem de permissao de localizacao - entao o mesmo roteiro
+    // deterministico exercita o caso completo e o adaptado.
+
+    // Spec §7: o plano aparece como frase curta, dizendo o que sera verificado. A rota `Analise`
+    // mostrava um texto generico ("estou medindo sua conexao") que nao diz isso.
+    @Test
+    fun `a rota de analise mostra o plano em vez do texto generico`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
+            statusMedicao = null,
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PLANO).assertExists()
+        composeRule.onNodeWithText("Vamos verificar", substring = true).assertIsDisplayed()
+    }
+
+    // A regra de §8.4 inteira: permissao recusada NAO encerra a jornada. A analise acontece, o
+    // plano vem reduzido, e o limite e DITO. Sem a ultima parte, adaptar e falhar em silencio.
+    @Test
+    fun `sem permissao a analise continua e o limite e declarado`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
+            statusMedicao = null,
+            contextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = true),
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_LIMITE).assertExists()
+    }
+
+    // Mutante que este teste mata: renderizar o limite sempre. Com contexto completo nao ha nada a
+    // declarar, e um aviso fixo na tela seria ruido - ou mentira.
+    @Test
+    fun `com contexto completo nenhum limite aparece`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
+            statusMedicao = null,
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PLANO).assertExists()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_LIMITE).assertDoesNotExist()
+    }
+
     @Suppress("LongParameterList")
     private fun setContent(
         objetivoPreSelecionado: ObjetivoDiagnostico? = null,
@@ -536,6 +596,7 @@ class DiagnosticoGuiadoScreenTest {
         estadoAnalise: EstadoAnaliseGuiada = EstadoAnaliseGuiada.Concluida,
         statusMedicao: MeasurementStatus? = MeasurementStatus.COMPLETE,
         medidasConfiaveis: Boolean = true,
+        contextoDoPlano: ContextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = true),
     ) {
         composeRule.setContent {
             SignallQTheme {
@@ -546,6 +607,7 @@ class DiagnosticoGuiadoScreenTest {
                     estadoAnalise = estadoAnalise,
                     statusMedicao = statusMedicao,
                     medidasConfiaveis = medidasConfiaveis,
+                    contextoDoPlano = contextoDoPlano,
                 )
             }
         }
@@ -564,9 +626,11 @@ class DiagnosticoGuiadoScreenTest {
         estadoAnalise: EstadoAnaliseGuiada,
         statusMedicao: MeasurementStatus?,
         medidasConfiaveis: Boolean = true,
+        contextoDoPlano: ContextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = true),
     ) {
         DiagnosticoGuiadoScreen(
             input = input,
+            contextoDoPlano = contextoDoPlano,
             statusMedicao = statusMedicao,
             medidasConfiaveis = medidasConfiaveis,
             analise =
