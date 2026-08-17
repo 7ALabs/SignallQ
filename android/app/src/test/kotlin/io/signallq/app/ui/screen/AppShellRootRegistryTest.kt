@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -37,6 +38,21 @@ import org.robolectric.annotation.Config
  * [AppShellRootRegistry] `naoMigradas`. Ele precisa ser chamado para as 3 raízes ainda inline em
  * `AppShell.kt` e **nunca** para as 2 migradas — um `when` que caísse no slot por engano
  * renderizaria a tela antiga silenciosamente.
+ *
+ * ## Campo sabidamente NÃO coberto: `AppShellHistoricoRootEntry.adsEnabled`
+ *
+ * Declarado aqui em vez de deixar a suíte parecer completa (achado R2 da revisão de Caio na
+ * PR #1702). Trocar `adsEnabled` por `false` fixo no registro **sobrevive** a esta suíte, e não é
+ * descuido: é limite do ambiente. `rememberNativeAd` (`NativeAdLoader.kt`) só devolve anúncio não
+ * nulo em `NativeAdLoadState.Fill`, que exige resposta real do AdMob; e `NativeAdCard` faz
+ * `if (nativeAd == null) return` no primeiro statement. Sob Robolectric, sem SDK nem rede, não há
+ * fill — então `eligible = true` e `eligible = false` renderizam exatamente a mesma árvore
+ * (nenhum nó). Não existe asserção de UI capaz de distinguir os dois.
+ *
+ * Cobrir isso de verdade exigiria injetar um `NativeAdRequester` fake até a raiz — mudança no
+ * contrato de `AppShellHistoricoRoot` só para viabilizar teste, o que é decisão de arquitetura de
+ * ads (issues #1330/#1694), não desta fatia. Enquanto não houver, o campo depende de revisão
+ * humana do diff.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -267,6 +283,70 @@ class AppShellRootRegistryTest {
         composeRule.onNodeWithText("Ping").performClick()
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Reconecte-se."))
         composeRule.onNodeWithText("Reconecte-se.").assertExists()
+    }
+
+    // ─── Campos das RootEntry que a mutação alcançou (achado R1 da revisão de Caio) ──
+
+    @Test
+    fun `registro repassa onAbrirMenu do historico ate a barra superior`() {
+        // Mutante que este teste mata: `onAbrirMenu = historico.onAbrirMenu` -> `{}` no registro.
+        // Sobrevivia antes porque os helpers desta classe fixavam `onAbrirMenu = {}` em todos os
+        // casos, sem valor distinguível. É o campo cuja ORIGEM esta fatia mudou (o hoisting do
+        // `onAbrirMenuDaRaiz` em AppShell.kt) — a interseção entre "o que mais mexeu" e "o que
+        // ninguém vigiava".
+        var abriuMenu = false
+        composeRule.setContent {
+            RegistroDeTeste(
+                root = AppShellRoot.History,
+                historico =
+                    AppShellHistoricoRootEntry(
+                        state = AppShellHistoricoState(),
+                        adsEnabled = false,
+                        onAbrirMenu = { abriuMenu = true },
+                        onIniciarTeste = {},
+                    ),
+            )
+        }
+        // Modo Legacy (default do LocalAppShellMode nos testes) => ícone de hambúrguer.
+        composeRule.onNodeWithContentDescription("Abrir menu").performClick()
+        composeRule.runOnIdle { assertTrue(abriuMenu) }
+    }
+
+    @Test
+    fun `registro repassa onAbrirMenu das ferramentas ate a barra superior`() {
+        // Mesmo mutante, na outra entrada: `onAbrirMenu = ferramentas.onAbrirMenu` -> `{}`.
+        var abriuMenu = false
+        composeRule.setContent {
+            RegistroDeTeste(
+                root = AppShellRoot.Tools,
+                ferramentas =
+                    AppShellFerramentasRootEntry(
+                        acoes = acoesVazias(),
+                        disponibilidade = { FerramentaDisponibilidade.Disponivel },
+                        onAbrirMenu = { abriuMenu = true },
+                        onRegistrarAbertura = {},
+                    ),
+            )
+        }
+        composeRule.onNodeWithContentDescription("Abrir menu").performClick()
+        composeRule.runOnIdle { assertTrue(abriuMenu) }
+    }
+
+    @Test
+    fun `registro repassa onRegistrarAbertura e a telemetria do hub nao emudece`() {
+        // Mutante: `onRegistrarAbertura = ferramentas.onRegistrarAbertura` -> `{}`. Sem este
+        // teste, o app pararia de registrar screen_view das ferramentas em silêncio — falha
+        // invisível na UI e visível só no funil, semanas depois.
+        val registradas = mutableListOf<String>()
+        composeRule.setContent {
+            RegistroDeTeste(
+                root = AppShellRoot.Tools,
+                ferramentas = ferramentasEntry(onRegistrarAbertura = { registradas += it.screenName() }),
+            )
+        }
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("DNS"))
+        composeRule.onNodeWithText("DNS").performClick()
+        composeRule.runOnIdle { assertEquals(listOf("dns"), registradas) }
     }
 
     // ─── Slot das raízes ainda não migradas ────────────────────────────────────

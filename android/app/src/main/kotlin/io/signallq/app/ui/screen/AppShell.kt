@@ -829,9 +829,13 @@ fun AppShell(
                                         adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.VELOCIDADE),
                                     )
                                 // NAV-B: Tab 2 — Sinal (SinalScreen como tab fixa, sem botão voltar).
-                                // `else` cobre só Wifi: History e Tools já foram desviadas pelo
-                                // registro antes de chegar aqui, e o `when` externo é exaustivo.
-                                else ->
+                                // Ramo explícito, não `else`: uma raiz nova em `AppShellRoot`
+                                // força erro de compilação no registro, o autor a roteia para
+                                // `naoMigradas` por ser o caminho natural — e um `else` genérico
+                                // aqui a desenharia como SinalScreen, calado. O `else` abaixo é
+                                // inalcançável hoje (o registro só delega Home/Speed/Wifi) e
+                                // existe para falhar alto se isso deixar de ser verdade.
+                                AppShellRoot.Wifi ->
                                     SinalScreen(
                                         snapshotWifi = snapshotWifi,
                                         connectedNetwork = connectedNetwork,
@@ -854,6 +858,11 @@ fun AppShell(
                                         onSalvarApelido = onSalvarApelido,
                                         resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
                                         resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
+                                    )
+                                else ->
+                                    error(
+                                        "Raiz $rootNaoMigrada chegou ao slot de nao migradas sem tratamento — " +
+                                            "migre-a para AppShellRootRegistry (ver appshell-root-content-registry.md).",
                                     )
                             }
                         }

@@ -108,9 +108,14 @@ mostrar isso sem maquiagem:
 | regra `disponibilidadeFerramenta` extraída | −28 |
 | call sites de `HistoricoScreen` e `FerramentasScreen` (tab) | −31 |
 | 7 parâmetros do Histórico → 1 grupo | −7 |
-| 9 atribuições duplicadas no `Overlay.Ferramentas` → grupo | −4 |
 | ternário `onAbrirMenu` repetido 4× → 1 alias | −3 |
-| **construção das 2 `RootEntry` + grupo de ações + comentários** | **+67** |
+| **construção das 2 `RootEntry` + grupo de ações + comentários** | **+63** |
+
+> Correção após revisão (Caio, PR #1702): uma versão anterior desta tabela creditava −4 ao
+> `Overlay.Ferramentas` por "desduplicar 9 atribuições". **Não procede** — aquele call site foi de
+> 9 linhas para 9 linhas; o grupo trocou `onAbrirSinalCanaisOverlay` por
+> `acoesFerramentas.onAbrirSinalCanais`, o que é mais indireto sem remover nada. O ganho ali é de
+> manutenção (uma fonte só para as duas superfícies), não de linhas.
 
 **Conclusão que importa para as próximas fatias:** re-embrulhar campos soltos em grupo construído
 *dentro* do shell não encolhe o arquivo — só troca a forma do wiring. O que encolhe é o **passo 2**
@@ -137,16 +142,37 @@ barato, sem compor o shell). Nenhuma das duas toca o arquivo central.
 A camada 2 existe porque a revisão da PR #1697 provou, por mutação, que sem ela apagar a chamada de
 um overlay do registro deixava a suíte verde e a tela sumia do app.
 
-### Mutação executada (2026-08-16)
+### Mutação executada (2026-08-16/17)
 
 | Mutante | Resultado |
 |---|---|
-| M1 — entrada `History` removida do registro | **morto** por 3 testes |
-| M2 — entrada `Tools` removida do registro | **morto** por 3 testes |
-| M3 — `DISPOSITIVOS` lendo `wifiEnabled` em vez de `devicesEnabled` | **morto** por 1 teste |
+| entrada `History` removida do registro | **morto** por 3 testes |
+| entrada `Tools` removida do registro | **morto** por 3 testes |
+| `DISPOSITIVOS` lendo `wifiEnabled` em vez de `devicesEnabled` | **morto** por 1 teste |
+| `onAbrirPing` recebendo `acoes.onAbrirDns` (swap de campos) | **morto** |
+| `onIniciarTeste` → `{}` | **morto** |
+| `onAbrirMenu` (Histórico) → `{}` | **morto** (teste acrescentado após revisão) |
+| `onAbrirMenu` (Ferramentas) → `{}` | **morto** (idem) |
+| `onRegistrarAbertura` → `{}` | **morto** (idem) |
+| `adsEnabled` → `false` | **sobrevive** — ver abaixo |
 
-100% das raízes migradas têm cobertura efetiva por entrada do registro, critério de aceite da
-issue. Raiz nova migrada deve repetir as três camadas antes de entrar.
+**O escopo exato da cobertura, para não sobre-declarar:** as duas *entradas* do registro estão
+100% cobertas — remover `History` ou `Tools` do `when` mata a suíte, que é o critério de aceite
+literal da issue. No nível de *campo* das `RootEntry`, 7 de 8 estão cobertos. As três últimas
+linhas da tabela foram acrescentadas depois da revisão de Caio na PR #1702, que rodou 12 mutantes
+e encontrou 4 sobreviventes — os helpers do teste fixavam `onAbrirMenu = {}`, `adsEnabled = false`
+e `onRegistrarAbertura = {}` sem nunca variar, então não havia valor distinguível.
+
+**`adsEnabled` continua descoberto, e é limite de ambiente, não descuido.** `rememberNativeAd` só
+devolve anúncio não nulo em `NativeAdLoadState.Fill`, que exige resposta real do AdMob, e
+`NativeAdCard` faz `if (nativeAd == null) return` na primeira linha. Sob Robolectric não há fill,
+então `eligible = true` e `eligible = false` renderizam a mesma árvore vazia — nenhuma asserção de
+UI os distingue. Cobrir exigiria injetar um `NativeAdRequester` fake até a raiz, mudando o contrato
+de `AppShellHistoricoRoot` só para viabilizar teste; isso é decisão da arquitetura de ads
+(#1330/#1694), não desta fatia. Até lá, o campo depende de revisão humana do diff.
+
+Raiz nova migrada deve repetir as três camadas **e** exercitar cada campo da sua `RootEntry` com
+valor distinguível — foi exatamente essa a lacuna encontrada aqui.
 
 ## Referências
 
