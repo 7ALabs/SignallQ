@@ -415,7 +415,16 @@ class DiagnosticoGuiadoScreenTest {
             medidasConfiaveis = false,
         )
 
+        // O titulo NAO muda entre confiavel e nao confiavel, entao asserir so ele nao distingue
+        // nada - era o buraco do bloqueio B9. O que muda e a explicacao e o rotulo da acao.
         composeRule.onNodeWithText("Consegui medir parte da sua conexão").assertIsDisplayed()
+        composeRule
+            .onNodeWithText("não descrevem a sua conexão", substring = true)
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText("O que aparece abaixo", substring = true)
+            .assertDoesNotExist()
+        composeRule.onNodeWithText("Medir de novo").assertIsDisplayed()
         composeRule.onNodeWithText("Força do sinal Wi-Fi").assertDoesNotExist()
     }
 

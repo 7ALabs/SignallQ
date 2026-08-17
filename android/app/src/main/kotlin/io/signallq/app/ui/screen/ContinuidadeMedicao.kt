@@ -103,10 +103,22 @@ internal fun continuidadeDaMedicao(
             ContinuidadeMedicao(
                 statusVisual = DiagnosticStatus.attention,
                 titulo = "Consegui medir parte da sua conexão",
+                // Bloqueio B9 de Caio na PR #1723: a frase era fixa e prometia "o que aparece
+                // abaixo", mas com medida não confiável a tela mostra SÓ esta seção — não aparece
+                // nada abaixo. E "Completar a medição" oferecia completar algo que não dá para
+                // aproveitar; `remedirPelaAnalise()` mede do zero de qualquer forma.
+                //
+                // É a mesma classe dos bloqueios B3 e B7 virada para dentro: lá o app afirmava
+                // algo falso sobre a rede da pessoa, aqui sobre a própria tela.
                 explicacao =
-                    "Uma das etapas não terminou, então o diagnóstico está incompleto. O que " +
-                        "aparece abaixo é o que deu para apurar com segurança.",
-                rotuloAcao = "Completar a medição",
+                    if (medidasConfiaveis) {
+                        "Uma das etapas não terminou, então o diagnóstico está incompleto. O que " +
+                            "aparece abaixo é o que deu para apurar com segurança."
+                    } else {
+                        "Uma das etapas não terminou, e os números que sobraram não descrevem a " +
+                            "sua conexão — não dá para concluir nada a partir deles."
+                    },
+                rotuloAcao = if (medidasConfiaveis) "Completar a medição" else "Medir de novo",
                 // Sem medida confiável não há conclusão parcial que preste: mostrá-la seria
                 // afirmar defeito da rede da pessoa com base num número que estragamos. Ver
                 // [medidasConfiaveis] para as duas causas.

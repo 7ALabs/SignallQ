@@ -152,7 +152,9 @@ private const val DOWNLOAD_BLOQUEADO_429 = "download_bloqueado_429"
  * dela a partir dele — mandando acionar a operadora, ou afirmando que "o upload está comprometido".
  *
  * Função separada porque a derivação inline não tinha teste: trocá-la por `true` fixo passava na
- * suíte inteira do `:app` (bloqueio B8). O call site continua descoberto, como declarado.
+ * suíte inteira do `:app` (bloqueio B8). O call site também está coberto desde então, por
+ * `overlay repassa medidas nao confiaveis e a conclusao parcial nao aparece` — este comentário
+ * dizia o contrário e ficou desatualizado no mesmo commit que o cobriu (ressalva RS13).
  */
 internal fun medidasConfiaveis(resultado: ResultadoSpeedtest?): Boolean =
     resultado == null ||
