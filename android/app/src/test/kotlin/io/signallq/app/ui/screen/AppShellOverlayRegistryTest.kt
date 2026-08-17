@@ -171,6 +171,7 @@ class AppShellOverlayRegistryTest {
                 onIrParaHome = { disparos += "irParaHome" },
                 onIniciarModoGamer = { disparos += "iniciarModoGamer" },
                 onAbrirFerramentaSugerida = { disparos += "abrirFerramentaSugerida" },
+                onMedirNovamente = { disparos += "medirNovamente" },
                 onRecommendationShown = { disparos += "recommendationShown" },
                 onRecommendationClicked = { disparos += "recommendationClicked" },
                 onRecommendationFeedback = { disparos += "recommendationFeedback" },

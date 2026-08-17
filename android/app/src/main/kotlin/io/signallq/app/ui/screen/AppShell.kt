@@ -962,6 +962,10 @@ fun AppShell(
                                     if (Overlay.ModoGamer !in overlayStack) overlayStack.add(Overlay.ModoGamer)
                                 },
                                 onAbrirFerramentaSugerida = onAbrirFerramentaSugeridaOverlay,
+                                onMedirNovamente = {
+                                    overlayStack.remove(Overlay.DiagnosticoGuiado)
+                                    navigator.select(AppShellRoot.Speed)
+                                },
                                 onRecommendationShown = onRecommendationShown,
                                 onRecommendationClicked = onRecommendationClicked,
                                 onRecommendationFeedback = onRecommendationFeedback,
@@ -969,61 +973,49 @@ fun AppShell(
                     ),
             )
 
-            AnimatedVisibility(
-                visible = Overlay.ResultadoVelocidade in overlayStack,
-                modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.ResultadoVelocidade, overlayStack)),
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-            ) {
-                // GH#1714 — o terceiro overlay com a mesma causa. Ver ResultadoIndisponivelScreen.
-                val resultadoVelocidade = snapshotSpeedtest.resultado
-                if (resultadoVelocidade == null) {
-                    ResultadoIndisponivelScreen(
-                        titulo = "Resultado",
+            // GH#1714 — ResultadoVelocidade extraído para AppShellResultadoVelocidadeOverlay.kt,
+            // aplicando ao terceiro overlay de resultado o padrão que os outros dois já usavam.
+            AppShellResultadoVelocidadeOverlay(
+                overlayStack = overlayStack,
+                entry =
+                    AppShellResultadoVelocidadeEntry(
+                        resultado = snapshotSpeedtest.resultado,
+                        snapshotDiagnostico = snapshotDiagnostico,
+                        analisadorState = analisadorState,
+                        localizacaoServidor = localizacaoServidorStr,
+                        ispInfo = ispInfoData,
+                        operadoraMovel = operadoraMovel,
+                        recommendationDecision = recommendationDecision,
+                        adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.RESULTADO),
+                        onTestarNovamente = {
+                            overlayStack.remove(Overlay.ResultadoVelocidade)
+                            // Issue #1656 — novo teste invalida a pré-seleção do Assist do anterior.
+                            assistObjetivoPreSelecionado = null
+                            assistRespostaPreSelecionada = null
+                        },
+                        onIrParaHome = {
+                            overlayStack.remove(Overlay.ResultadoVelocidade)
+                            assistObjetivoPreSelecionado = null
+                            assistRespostaPreSelecionada = null
+                            navigator.select(AppShellRoot.Home)
+                        },
                         onVoltar = { overlayStack.remove(Overlay.ResultadoVelocidade) },
+                        onCompartilhar = onCompartilharResultadoVelocidade,
                         onMedirNovamente = {
                             overlayStack.remove(Overlay.ResultadoVelocidade)
                             navigator.select(AppShellRoot.Speed)
                         },
-                    )
-                } else {
-                    resultadoVelocidade.let { resultado ->
-                        ResultadoVelocidadeScreen(
-                            resultado = resultado,
-                            snapshotDiagnostico = snapshotDiagnostico,
-                            onTestarNovamente = {
-                                overlayStack.remove(Overlay.ResultadoVelocidade)
-                                // Issue #1656 — novo teste invalida a pré-seleção do Assist do teste anterior.
-                                assistObjetivoPreSelecionado = null
-                                assistRespostaPreSelecionada = null
-                            },
-                            onIrParaHome = {
-                                overlayStack.remove(Overlay.ResultadoVelocidade)
-                                assistObjetivoPreSelecionado = null
-                                assistRespostaPreSelecionada = null
-                                navigator.select(AppShellRoot.Home)
-                            },
-                            onVoltar = { overlayStack.remove(Overlay.ResultadoVelocidade) },
-                            onCompartilhar = onCompartilharResultadoVelocidade,
-                            localizacaoServidor = localizacaoServidorStr,
-                            ispInfo = ispInfoData,
-                            operadoraMovel = operadoraMovel,
-                            analisadorState = analisadorState,
-                            onIniciarDiagnosticoGuiado = {
-                                if (Overlay.DiagnosticoGuiado !in overlayStack) overlayStack.add(Overlay.DiagnosticoGuiado)
-                            },
-                            onIniciarModoGamer = {
-                                if (Overlay.ModoGamer !in overlayStack) overlayStack.add(Overlay.ModoGamer)
-                            },
-                            onVerDetalhesTecnicos = {
-                                if (Overlay.DetalhesTecnicos !in overlayStack) overlayStack.add(Overlay.DetalhesTecnicos)
-                            },
-                            recommendationDecision = recommendationDecision,
-                            adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.RESULTADO),
-                        )
-                    }
-                }
-            }
+                        onIniciarDiagnosticoGuiado = {
+                            if (Overlay.DiagnosticoGuiado !in overlayStack) overlayStack.add(Overlay.DiagnosticoGuiado)
+                        },
+                        onIniciarModoGamer = {
+                            if (Overlay.ModoGamer !in overlayStack) overlayStack.add(Overlay.ModoGamer)
+                        },
+                        onVerDetalhesTecnicos = {
+                            if (Overlay.DetalhesTecnicos !in overlayStack) overlayStack.add(Overlay.DetalhesTecnicos)
+                        },
+                    ),
+            )
 
             // GH#1704 — DiagnosticoGuiado migrou para AppShellOverlayRegistry.
 

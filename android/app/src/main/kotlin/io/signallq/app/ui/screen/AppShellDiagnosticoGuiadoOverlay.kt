@@ -66,6 +66,8 @@ internal data class AppShellDiagnosticoGuiadoAcoes(
     val onIrParaHome: () -> Unit,
     val onIniciarModoGamer: () -> Unit,
     val onAbrirFerramentaSugerida: (TipoFerramenta) -> Unit,
+    /** GH#1714 — destino do "Medir agora" do estado vazio. Vai para Velocidade, não para o início. */
+    val onMedirNovamente: () -> Unit,
     val onRecommendationShown: () -> Unit,
     val onRecommendationClicked: () -> Unit,
     val onRecommendationFeedback: (RecommendationFeedbackType) -> Unit,
@@ -102,7 +104,10 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
             ResultadoIndisponivelScreen(
                 titulo = "Diagnóstico",
                 onVoltar = entry.acoes.onVoltar,
-                onMedirNovamente = entry.acoes.onIrParaHome,
+                // Ressalva 2 de Caio na PR #1718: aqui apontava para `onIrParaHome`, então o
+                // mesmo botão, com o mesmo rótulo, levava a lugares diferentes conforme o overlay.
+                // "Medir agora" tem que medir.
+                onMedirNovamente = entry.acoes.onMedirNovamente,
             )
         } else {
             DiagnosticoGuiadoScreen(

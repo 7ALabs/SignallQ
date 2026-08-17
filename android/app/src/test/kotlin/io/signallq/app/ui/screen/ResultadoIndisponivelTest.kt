@@ -1,11 +1,20 @@
 package io.signallq.app.ui.screen
 
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import io.signallq.app.feature.speedtest.DiagnosticoFasesSpeedtest
+import io.signallq.app.feature.speedtest.DiagnosticoQualidadeSpeedtest
+import io.signallq.app.feature.speedtest.GargaloPrimario
+import io.signallq.app.feature.speedtest.MeasurementStatus
+import io.signallq.app.feature.speedtest.ModoSpeedtest
+import io.signallq.app.feature.speedtest.ResultadoSpeedtest
+import io.signallq.app.feature.speedtest.SeveridadeBufferbloat
+import io.signallq.app.feature.speedtest.VereditoUso
 import io.signallq.app.ui.SignallQTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -40,14 +49,14 @@ class ResultadoIndisponivelTest {
 
     @Test
     fun `explica sem jargao e sem culpar o usuario`() {
-        // A copy é o produto aqui: o usuário não fez nada errado, e "o app foi fechado em segundo
-        // plano" é a linguagem que ele reconhece do próprio aparelho. Trocar isso por "estado não
-        // persistido" ou "sessão expirada" seria regressão de produto, não de código.
+        // A copy é o produto aqui: sem jargão, sem culpar o usuário. E enuncia a CONSEQUÊNCIA,
+        // não a causa — afirmar "o aplicativo foi fechado em segundo plano" só seria verdade se
+        // process death fosse o único caminho para chegar aqui, e ninguém provou isso.
         composeRule.setContent {
             SignallQTheme { ResultadoIndisponivelScreen(titulo = "Resultado", onVoltar = {}) }
         }
         composeRule.onNodeWithText(titulo).assertExists()
-        composeRule.onNodeWithText("fechado em segundo plano", substring = true).assertExists()
+        composeRule.onNodeWithText("não ficam guardados", substring = true).assertExists()
     }
 
     @Test
@@ -154,4 +163,113 @@ class ResultadoIndisponivelTest {
         composeRule.onNodeWithTag("appshell_overlay_detalhes_tecnicos").assertDoesNotExist()
         composeRule.runOnIdle { assertEquals(emptyList<AppShellOverlay>(), stack.toList()) }
     }
+
+    // ─── O simétrico: mostrar o vazio na hora ERRADA seria catastrófico ────────
+
+    @Test
+    fun `com resultado presente NAO mostra o estado vazio e compoe a tela real`() {
+        // Mutante que este teste mata: inverter o `if` — mostrar `ResultadoIndisponivelScreen`
+        // quando o resultado EXISTE. Isso passava nos dois testes anteriores (o container compõe,
+        // o texto do vazio aparece) e o usuário nunca veria resultado nenhum. Achado de Caio na
+        // PR #1718, marcado como bloqueante — e ele tem razão: é a única falha desta mudança que
+        // seria invisível em teste e devastadora em produção.
+        val stack = mutableStateListOf(AppShellOverlay.DetalhesTecnicos)
+        composeRule.setContent {
+            SignallQTheme {
+                AppShellDetalhesTecnicosOverlay(
+                    overlayStack = stack,
+                    resultadoSpeedtest = resultadoDeTeste(),
+                    localizacaoServidor = "São Paulo, SP",
+                    localDevice = null,
+                )
+            }
+        }
+        composeRule.onNodeWithTag("appshell_overlay_detalhes_tecnicos").assertExists()
+        composeRule.onNodeWithText(titulo).assertDoesNotExist()
+        composeRule.onNodeWithText("Detalhes da conexão").assertExists()
+    }
+
+    @Test
+    fun `resultado que some com o overlay aberto troca para o estado vazio`() {
+        // Ressalva 4 de Caio: antes, `&& resultado != null` no `visible` tornava o falso-positivo
+        // estruturalmente impossível. Agora depende de nenhum caminho publicar `resultado = null`
+        // com o overlay na pilha — invariante que hoje se sustenta e que ninguém guardava.
+        //
+        // Este teste guarda: com o overlay aberto e resultado presente, zerar o resultado tem que
+        // trocar para o estado vazio, não deixar a tela antiga nem sumir com tudo.
+        val stack = mutableStateListOf(AppShellOverlay.DetalhesTecnicos)
+        val resultado = mutableStateOf<ResultadoSpeedtest?>(resultadoDeTeste())
+        composeRule.setContent {
+            SignallQTheme {
+                AppShellDetalhesTecnicosOverlay(
+                    overlayStack = stack,
+                    resultadoSpeedtest = resultado.value,
+                    localizacaoServidor = null,
+                    localDevice = null,
+                )
+            }
+        }
+        composeRule.onNodeWithText("Detalhes da conexão").assertExists()
+
+        composeRule.runOnIdle { resultado.value = null }
+
+        composeRule.onNodeWithText(titulo).assertExists()
+        composeRule.onNodeWithTag("appshell_overlay_detalhes_tecnicos").assertExists()
+    }
+
+    private fun resultadoDeTeste(): ResultadoSpeedtest =
+        ResultadoSpeedtest(
+            timestampEpochMs = 0L,
+            specVersion = "1",
+            modo = ModoSpeedtest.complete,
+            connectionTypeStart = "wifi",
+            connectionTypeEnd = "wifi",
+            contaminado = false,
+            latenciaMs = 10.0,
+            jitterMs = 1.0,
+            perdaPercentual = 0.0,
+            bufferbloatMs = 5.0,
+            severidadeBufferbloat = SeveridadeBufferbloat.none,
+            downloadMbps = 100.0,
+            uploadMbps = 50.0,
+            latencyDownloadMs = 10.0,
+            latencyUploadMs = 10.0,
+            stabilityScore = 1.0,
+            peakDownloadMbps = 110.0,
+            peakUploadMbps = 55.0,
+            packetLossSource = "download",
+            dnsLatencyMs = null,
+            dnsResolverIp = null,
+            dnsProvider = null,
+            diagnosticoQualidade =
+                DiagnosticoQualidadeSpeedtest(
+                    vereditoStreaming = VereditoUso.good,
+                    vereditoGamer = VereditoUso.good,
+                    vereditoVideoChamada = VereditoUso.good,
+                    gargaloPrimario = GargaloPrimario.none,
+                ),
+            diagnosticoFases =
+                DiagnosticoFasesSpeedtest(
+                    faseInterrompida = "",
+                    latenciaAmostrasTotais = 0,
+                    latenciaAmostrasValidas = 0,
+                    latenciaTimeouts = 0,
+                    downloadBytesTotal = 0L,
+                    downloadAmostrasValidas = 0,
+                    downloadRequisicoesSucesso = 0,
+                    downloadRequisicoesErro = 0,
+                    downloadEncerradaPor = "",
+                    downloadThroughputOrigem = "",
+                    downloadUltimoErro = null,
+                    uploadBytesTotal = 0L,
+                    uploadAmostrasValidas = 0,
+                    uploadRequisicoesSucesso = 0,
+                    uploadRequisicoesErro = 0,
+                    uploadEncerradaPor = "",
+                    uploadThroughputOrigem = "",
+                    uploadUltimoErro = null,
+                    dnsErroMensagem = null,
+                ),
+            status = MeasurementStatus.COMPLETE,
+        )
 }

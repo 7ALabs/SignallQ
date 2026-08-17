@@ -114,11 +114,14 @@ internal fun ResultadoIndisponivelScreen(
                 modifier = Modifier.padding(top = LkSpacing.lg),
             )
             Text(
-                // Explica sem culpar o usuário e sem jargão: ele não fez nada errado, e "o app foi
-                // fechado em segundo plano" é a linguagem que ele reconhece do próprio aparelho.
+                // Enuncia a CONSEQUÊNCIA, não a causa. A versão anterior afirmava "o aplicativo
+                // foi fechado em segundo plano e..." — o que só é verdade se process death for o
+                // único caminho para chegar aqui, e ninguém provou isso. Afirmar causa com certeza
+                // é o mesmo defeito que esta sessão corrigiu em dois documentos hoje (ressalva 3
+                // de Caio na PR #1718). O tom continua: sem jargão, sem culpar o usuário.
                 text =
-                    "O aplicativo foi fechado em segundo plano e os detalhes desta medição não " +
-                        "ficam guardados. Você pode medir de novo a qualquer momento.",
+                    "Os detalhes desta medição não ficam guardados depois que o aplicativo é " +
+                        "fechado. Você pode medir de novo a qualquer momento.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = c.textSecondary,
                 textAlign = TextAlign.Center,
