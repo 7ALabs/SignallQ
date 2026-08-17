@@ -80,13 +80,30 @@ data class DiagnosticoGuiadoEstado(
      * passo, então um consumidor que confiasse no `<=` cairia em `perguntas[perguntas.size]`.
      * Achado B4 do parecer de Caio na PR #1713.
      *
-     * **[respostas] é medido contra [passo], não contra o roteiro.** A tela só cresce a lista até
-     * `passo + 1` (`DiagnosticoGuiadoScreen.kt:293-297`: `while (size <= passo) add(null)`), então
-     * é esse o invariante real. Medir os dois campos contra o mesmo teto, sem relacioná-los,
-     * deixava passar "restaurado na pergunta 0 carregando duas respostas" — e, pior, sobrevivia à
-     * evolução de roteiro: objetivo que ganha uma terceira pergunta aceitaria um save antigo com
-     * duas respostas, produzindo diagnóstico com respostas que não correspondem às perguntas
-     * mostradas. Que é exatamente a frase que esta PR usa para se justificar. Achado B2.
+     * **[respostas] é medido contra o roteiro, e não existe bound cruzado com [passo].** Uma
+     * versão intermediária desta PR usou `respostas.size <= passo + 1`, derivado de
+     * `DiagnosticoGuiadoScreen.kt:293-297` (`while (size <= passo) add(null)`). Aquela relação vale
+     * **no instante em que o usuário responde** e **não sobrevive ao back** — que é justamente o
+     * que esta issue existe para modelar.
+     *
+     * O que faltava olhar é `DiagnosticoGuiadoScreen.kt:478`: o botão Continuar é
+     * `enabled = respostaSelecionada != null`. O avanço é gated pela resposta, então o usuário
+     * chega ao passo 1 com uma resposta, responde, fica com duas, e voltar o devolve ao passo 0
+     * **preservando as duas** — comportamento desejado (`respostas.getOrNull(passo)` re-seleciona
+     * a anterior). Com o bound cruzado, `recuar()` produzia estado incoerente a partir de estado
+     * coerente, e `saneado()` apagava a jornada inteira se o processo morresse ali. Regressão
+     * real, achada por Caio no B5 — e o "estado nonsense" que o B2 descrevia (*restaurado na
+     * pergunta 0 com duas respostas*) é, na verdade, **o usuário que apertou voltar**.
+     *
+     * A relação verdadeira seria `respostas.size <= maiorPassoAlcancado + 1`, e esse campo não
+     * existe aqui. Não vale acrescentá-lo: o teto do roteiro já barra o dano original
+     * (`perguntas[passo]` estourar).
+     *
+     * **Risco residual assumido:** um roteiro que ganhe uma pergunta numa versão futura aceita
+     * save antigo mais curto. O motor recebe `respostas.filterNotNull()` e degrada em vez de
+     * estourar. Impedir isso exigiria validar conteúdo contra o catálogo de perguntas, que acopla
+     * o modelo de estado ao catálogo e se paga em toda restauração — fora de escopo por decisão.
+     * Se algum roteiro mudar de verdade, a mitigação é **bump de chave do saver**, não predicado.
      */
     val coerente: Boolean
         get() =
@@ -95,7 +112,7 @@ data class DiagnosticoGuiadoEstado(
             } else {
                 passo >= 0 &&
                     passo < PerguntasDiagnosticoGuiado.perguntas(objetivo).size &&
-                    respostas.size <= passo + 1
+                    respostas.size <= PerguntasDiagnosticoGuiado.perguntas(objetivo).size
             }
 
     /**

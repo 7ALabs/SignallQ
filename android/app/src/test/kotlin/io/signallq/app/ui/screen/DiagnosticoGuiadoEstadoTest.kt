@@ -169,19 +169,38 @@ class DiagnosticoGuiadoEstadoTest {
     }
 
     @Test
-    fun `respostas alem do passo atual sanam`() {
-        // Mutante que este teste mata: trocar o teto de `respostas` por qualquer constante grande.
-        // Também sobrevivia à suíte inteira.
-        //
-        // O invariante REAL é `respostas.size <= passo + 1` — a tela só cresce a lista até o passo
-        // corrente (`while (size <= passo) add(null)`). Medir os dois campos contra o mesmo teto,
-        // sem relacioná-los, deixava passar "restaurado na pergunta 0 carregando duas respostas".
-        // Achado B2 de Caio.
-        assertFalse(DiagnosticoGuiadoEstado(objetivo = jogos, passo = 0, respostas = listOf(1, 2)).coerente)
+    fun `respostas acima do roteiro sanam`() {
+        // Cobre o teto REVERTIDO. Sem isto, o mutante `respostas.size <= 99` volta a sobreviver e
+        // o bloqueio B1 reabre no mesmo lugar.
+        assertFalse(DiagnosticoGuiadoEstado(objetivo = jogos, passo = 1, respostas = listOf(0, 1, 2)).coerente)
         assertEquals(
             DiagnosticoGuiadoEstado(),
-            DiagnosticoGuiadoEstado.Saver.restore(listOf(jogos.name, "0", "1,2", "")),
+            DiagnosticoGuiadoEstado.Saver.restore(listOf(jogos.name, "1", "0,1,2", "")),
         )
+    }
+
+    @Test
+    fun `voltar uma pergunta com o roteiro respondido preserva a jornada`() {
+        // O teste que faltava desde a primeira rodada, e que pegou a regressão do B5.
+        //
+        // O botão Continuar é `enabled = respostaSelecionada != null`
+        // (DiagnosticoGuiadoScreen.kt:478), então o usuário só chega ao último passo tendo
+        // respondido — e voltar PRESERVA as respostas de propósito
+        // (`respostas.getOrNull(passo)` re-seleciona a anterior).
+        //
+        // Uma versão intermediária desta PR usou `respostas.size <= passo + 1` como invariante.
+        // Com ele, este cenário virava incoerente e `saneado()` apagava a jornada inteira se o
+        // processo morresse logo depois: o usuário responde tudo, volta uma para revisar, o app
+        // vai para segundo plano e perde o diagnóstico. Nada impede reintroduzir um bound cruzado
+        // exceto este teste.
+        val respondido = DiagnosticoGuiadoEstado(objetivo = jogos, passo = 1, respostas = listOf(0, 1))
+        assertTrue("roteiro respondido e coerente", respondido.coerente)
+
+        val voltouUma = respondido.recuar()
+        assertEquals(0, voltouUma?.passo)
+        assertEquals("respostas preservadas ao voltar", listOf(0, 1), voltouUma?.respostas)
+        assertTrue("recuar a partir de coerente tem que continuar coerente", voltouUma!!.coerente)
+        assertEquals("e tem que sobreviver ao ciclo de save", voltouUma, cicloCompleto(voltouUma))
     }
 
     @Test
@@ -189,16 +208,6 @@ class DiagnosticoGuiadoEstadoTest {
         // O lado positivo do mesmo invariante, para o clause não virar bloqueio universal.
         assertTrue(DiagnosticoGuiadoEstado(objetivo = jogos, passo = 0, respostas = listOf(0)).coerente)
         assertTrue(DiagnosticoGuiadoEstado(objetivo = jogos, passo = 1, respostas = listOf(0, 1)).coerente)
-    }
-
-    @Test
-    fun `evolucao de roteiro nao passa mais pela peneira`() {
-        // O caso alcançável sem tampering que o B2 nomeou: um objetivo ganha uma pergunta a mais
-        // numa versão futura, e o save antigo tem menos respostas que o roteiro novo. Com o teto
-        // sendo `passo + 1`, o estado só é aceito se o passo corresponder às respostas — o que
-        // impede diagnosticar com respostas que não correspondem às perguntas mostradas.
-        val salvoDeRoteiroAntigo = listOf(jogos.name, "0", "0,1", "")
-        assertEquals(DiagnosticoGuiadoEstado(), DiagnosticoGuiadoEstado.Saver.restore(salvoDeRoteiroAntigo))
     }
 
     @Test
