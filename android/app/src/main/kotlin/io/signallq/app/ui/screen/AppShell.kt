@@ -970,45 +970,58 @@ fun AppShell(
             )
 
             AnimatedVisibility(
-                visible = Overlay.ResultadoVelocidade in overlayStack && snapshotSpeedtest.resultado != null,
+                visible = Overlay.ResultadoVelocidade in overlayStack,
                 modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.ResultadoVelocidade, overlayStack)),
                 enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                 exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
             ) {
-                snapshotSpeedtest.resultado?.let { resultado ->
-                    ResultadoVelocidadeScreen(
-                        resultado = resultado,
-                        snapshotDiagnostico = snapshotDiagnostico,
-                        onTestarNovamente = {
-                            overlayStack.remove(Overlay.ResultadoVelocidade)
-                            // Issue #1656 — novo teste invalida a pré-seleção do Assist do teste anterior.
-                            assistObjetivoPreSelecionado = null
-                            assistRespostaPreSelecionada = null
-                        },
-                        onIrParaHome = {
-                            overlayStack.remove(Overlay.ResultadoVelocidade)
-                            assistObjetivoPreSelecionado = null
-                            assistRespostaPreSelecionada = null
-                            navigator.select(AppShellRoot.Home)
-                        },
+                // GH#1714 — o terceiro overlay com a mesma causa. Ver ResultadoIndisponivelScreen.
+                val resultadoVelocidade = snapshotSpeedtest.resultado
+                if (resultadoVelocidade == null) {
+                    ResultadoIndisponivelScreen(
+                        titulo = "Resultado",
                         onVoltar = { overlayStack.remove(Overlay.ResultadoVelocidade) },
-                        onCompartilhar = onCompartilharResultadoVelocidade,
-                        localizacaoServidor = localizacaoServidorStr,
-                        ispInfo = ispInfoData,
-                        operadoraMovel = operadoraMovel,
-                        analisadorState = analisadorState,
-                        onIniciarDiagnosticoGuiado = {
-                            if (Overlay.DiagnosticoGuiado !in overlayStack) overlayStack.add(Overlay.DiagnosticoGuiado)
+                        onMedirNovamente = {
+                            overlayStack.remove(Overlay.ResultadoVelocidade)
+                            navigator.select(AppShellRoot.Speed)
                         },
-                        onIniciarModoGamer = {
-                            if (Overlay.ModoGamer !in overlayStack) overlayStack.add(Overlay.ModoGamer)
-                        },
-                        onVerDetalhesTecnicos = {
-                            if (Overlay.DetalhesTecnicos !in overlayStack) overlayStack.add(Overlay.DetalhesTecnicos)
-                        },
-                        recommendationDecision = recommendationDecision,
-                        adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.RESULTADO),
                     )
+                } else {
+                    resultadoVelocidade.let { resultado ->
+                        ResultadoVelocidadeScreen(
+                            resultado = resultado,
+                            snapshotDiagnostico = snapshotDiagnostico,
+                            onTestarNovamente = {
+                                overlayStack.remove(Overlay.ResultadoVelocidade)
+                                // Issue #1656 — novo teste invalida a pré-seleção do Assist do teste anterior.
+                                assistObjetivoPreSelecionado = null
+                                assistRespostaPreSelecionada = null
+                            },
+                            onIrParaHome = {
+                                overlayStack.remove(Overlay.ResultadoVelocidade)
+                                assistObjetivoPreSelecionado = null
+                                assistRespostaPreSelecionada = null
+                                navigator.select(AppShellRoot.Home)
+                            },
+                            onVoltar = { overlayStack.remove(Overlay.ResultadoVelocidade) },
+                            onCompartilhar = onCompartilharResultadoVelocidade,
+                            localizacaoServidor = localizacaoServidorStr,
+                            ispInfo = ispInfoData,
+                            operadoraMovel = operadoraMovel,
+                            analisadorState = analisadorState,
+                            onIniciarDiagnosticoGuiado = {
+                                if (Overlay.DiagnosticoGuiado !in overlayStack) overlayStack.add(Overlay.DiagnosticoGuiado)
+                            },
+                            onIniciarModoGamer = {
+                                if (Overlay.ModoGamer !in overlayStack) overlayStack.add(Overlay.ModoGamer)
+                            },
+                            onVerDetalhesTecnicos = {
+                                if (Overlay.DetalhesTecnicos !in overlayStack) overlayStack.add(Overlay.DetalhesTecnicos)
+                            },
+                            recommendationDecision = recommendationDecision,
+                            adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.RESULTADO),
+                        )
+                    }
                 }
             }
 

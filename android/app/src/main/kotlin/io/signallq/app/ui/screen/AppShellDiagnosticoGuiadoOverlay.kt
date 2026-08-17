@@ -87,7 +87,7 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
 ) {
     val dados = entry.dados
     AnimatedVisibility(
-        visible = AppShellOverlay.DiagnosticoGuiado in overlayStack && dados.resultado != null,
+        visible = AppShellOverlay.DiagnosticoGuiado in overlayStack,
         modifier =
             Modifier
                 .zIndex(rememberOverlayZIndex(AppShellOverlay.DiagnosticoGuiado, overlayStack))
@@ -95,7 +95,16 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
         exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
     ) {
-        dados.resultado?.let { resultado ->
+        // GH#1714 — ver ResultadoIndisponivelScreen. Sem resultado o overlay não compunha nada,
+        // e o back virava um toque sem efeito visível.
+        val resultado = dados.resultado
+        if (resultado == null) {
+            ResultadoIndisponivelScreen(
+                titulo = "Diagnóstico",
+                onVoltar = entry.acoes.onVoltar,
+                onMedirNovamente = entry.acoes.onIrParaHome,
+            )
+        } else {
             DiagnosticoGuiadoScreen(
                 input = dados.input,
                 resultadoValidoParaConclusao = resultado.status.liberaConclusaoCompleta,
