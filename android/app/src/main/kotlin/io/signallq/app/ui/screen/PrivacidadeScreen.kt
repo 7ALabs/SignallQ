@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -26,9 +27,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,11 +49,46 @@ import io.signallq.app.ui.component.LkSheetDivider
 fun PrivacidadeScreen(
     onVoltar: () -> Unit,
     onAbrirGerenciarDados: () -> Unit = {},
+    /**
+     * GH#1703 — entrada para rever o consentimento de anúncios. `false` por padrão porque a UMP
+     * só **exige** a entrada quando `privacyOptionsRequirementStatus == REQUIRED` (regiões sob
+     * GDPR); fora disso o formulário não tem o que mostrar, e um item que abre tela vazia é pior
+     * que item ausente. Quem resolve isso é `ConsentManager.precisaOferecerOpcoesPrivacidade`,
+     * que precisa de uma `Activity` — por isso chega como parâmetro em vez de ser consultado
+     * aqui: mantém a tela testável sem Activity real.
+     */
+    mostrarOpcoesAnuncios: Boolean = false,
+    onAbrirOpcoesAnuncios: () -> Unit = {},
+    /** Mensagem a exibir quando o formulário da UMP falha ao abrir; `null` = sem erro pendente. */
+    erroOpcoesAnuncios: String? = null,
+    /** Chamado depois de exibir [erroOpcoesAnuncios], para o chamador limpar o estado. */
+    onErroOpcoesAnunciosExibido: () -> Unit = {},
 ) {
     val c = LocalLkTokens.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(erroOpcoesAnuncios) {
+        erroOpcoesAnuncios?.let {
+            // `finally` porque `showSnackbar` SUSPENDE até a dispensa (~4s). Se a tela sair de
+            // composição nesse intervalo — usuário fecha a Privacidade com o snackbar na tela — a
+            // corrotina é cancelada no descarte e a linha seguinte nunca rodaria: o erro ficaria
+            // preso não-nulo no overlay (que não é descartado, é o pai) e seria REEXIBIDO na
+            // próxima abertura da tela, vindo de uma sessão anterior. Ressalva R5 de Caio na
+            // PR #1709.
+            //
+            // Não inverter para consumir ANTES de exibir: limpar o estado muda a chave deste
+            // `LaunchedEffect`, o que cancelaria o próprio `showSnackbar` em voo.
+            try {
+                snackbarHostState.showSnackbar(it)
+            } finally {
+                onErroOpcoesAnunciosExibido()
+            }
+        }
+    }
 
     Scaffold(
         containerColor = c.bgPrimary,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -188,6 +228,48 @@ fun PrivacidadeScreen(
                         tint = c.textTertiary,
                         modifier = Modifier.size(14.dp),
                     )
+                }
+            }
+
+            // GH#1703 — a UMP exige entrada permanente para rever o consentimento de anúncios
+            // depois de já tê-lo dado. Antes desta issue o app só sabia coletar; não havia
+            // caminho de volta.
+            if (mostrarOpcoesAnuncios) {
+                item {
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable(onClick = onAbrirOpcoesAnuncios)
+                                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Campaign,
+                            contentDescription = null,
+                            tint = c.primary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Preferências de anúncios",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = c.textPrimary,
+                            )
+                            Text(
+                                text = "Rever a escolha que você fez sobre anúncios neste aparelho",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = c.textSecondary,
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                            contentDescription = null,
+                            tint = c.textTertiary,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
                 }
             }
 

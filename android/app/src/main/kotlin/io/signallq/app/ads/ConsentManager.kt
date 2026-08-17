@@ -64,6 +64,61 @@ object ConsentManager {
     fun podeRequisitarAnuncioAgora(activity: Activity): Boolean =
         UserMessagingPlatform.getConsentInformation(activity).canRequestAds()
 
+    /**
+     * A UMP exige que exista uma entrada **permanente** para o usuário revisar a escolha de
+     * consentimento depois de já tê-la feito (GH#1703). Até esta issue o app só sabia
+     * *coletar* o consentimento, via [atualizarEMostrarSeNecessario] — não havia caminho de
+     * volta, o que é exigência do Google em regiões sob GDPR, não preferência nossa.
+     *
+     * `REQUIRED` é o único valor que obriga a mostrar a entrada. `NOT_REQUIRED` (fora da
+     * região) e `UNKNOWN` (antes do primeiro `requestConsentInfoUpdate` da sessão) mantêm a
+     * entrada oculta — mostrar um item que abre um formulário vazio seria pior que não mostrar.
+     */
+    fun precisaOferecerOpcoesPrivacidade(activity: Activity): Boolean =
+        precisaOferecer(UserMessagingPlatform.getConsentInformation(activity).privacyOptionsRequirementStatus)
+
+    /**
+     * A regra em si, separada do acesso ao SDK — achado da revisão de Caio na PR #1709.
+     *
+     * Enquanto isto vivia embutido na chamada acima, o predicado **não era testado por nenhum
+     * meio**: em máquina não, porque exige `Activity` e o SDK da UMP; em aparelho tampouco,
+     * porque o caminho `REQUIRED` só ocorre sob GDPR e não temos *debug geography* configurado.
+     * Duas mutações sobreviviam à suíte inteira, e são exatamente as duas formas de errar a
+     * obrigação regulatória: fixar `true` (entrada aparece no Brasil e abre formulário vazio) e
+     * comparar com `NOT_REQUIRED` (entrada some sob GDPR — o descumprimento que a issue corrige,
+     * de volta intacto).
+     *
+     * Separado, vira tabela de três casos sem `Activity`, sem SDK e sem VPN. Não é abstração
+     * nova: é uma função pura, zero interface.
+     */
+    internal fun precisaOferecer(status: ConsentInformation.PrivacyOptionsRequirementStatus): Boolean =
+        status == ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED
+
+    /**
+     * Abre o formulário de opções de privacidade da própria UMP — não construímos UI de
+     * consentimento, e não devemos: o formulário é gerado pelo Google a partir da configuração
+     * do AdMob, e reimplementá-lo desalinharia do que foi efetivamente consentido.
+     *
+     * [onFechado] recebe `null` em sucesso ou a mensagem de erro. Nunca lança para o chamador,
+     * mesmo padrão de [atualizarEMostrarSeNecessario].
+     */
+    fun mostrarOpcoesPrivacidade(
+        activity: Activity,
+        onFechado: (erro: String?) -> Unit = {},
+    ) {
+        UserMessagingPlatform.showPrivacyOptionsForm(activity) { formError ->
+            if (formError != null) {
+                Timber.w("UMP: erro ao exibir opcoes de privacidade: ${formError.message}")
+            } else {
+                Timber.i(
+                    "UMP: opcoes de privacidade fechadas -- status=" +
+                        "${UserMessagingPlatform.getConsentInformation(activity).consentStatus}",
+                )
+            }
+            onFechado(formError?.message)
+        }
+    }
+
     /** Estado bruto da UMP, exposto so para telemetria/debug -- nunca usado para decisao de UI. */
     fun statusConsentimento(activity: Activity): Int =
         UserMessagingPlatform.getConsentInformation(activity).consentStatus

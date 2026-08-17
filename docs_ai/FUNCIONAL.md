@@ -529,6 +529,13 @@ sheet); **Aparência** (tema Sistema/Claro/Escuro); **Notificações** (limite m
 alertas de qualidade); **Dados e privacidade** (tela de Privacidade e `DadosLocaisSheet`); **Sobre**
 (Novidades e versão do app).
 
+A tela de **Privacidade** tem ainda a entrada **"Preferências de anúncios"** (GH#1703), que reabre o
+formulário de consentimento da User Messaging Platform para o usuário rever a escolha que já fez.
+Ela só aparece onde a própria UMP exige (`privacyOptionsRequirementStatus == REQUIRED`, regiões sob
+GDPR); fora disso o formulário não teria o que mostrar e a entrada fica oculta. Não é preferência de
+produto: é obrigação da plataforma, e até a #1703 o app sabia **coletar** o consentimento sem
+oferecer caminho para revisá-lo.
+
 O perfil de conexão é **por rede**, não global. Quando o app detecta um provedor diferente do
 cadastrado, mostra um banner "Detectamos {provedor} nesta rede. / Usar este provedor?" — mas isso só
 acontece se o usuário já tinha confirmado explicitamente o valor salvo; sem confirmação prévia, o
