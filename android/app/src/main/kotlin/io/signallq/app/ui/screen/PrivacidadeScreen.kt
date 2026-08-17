@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -44,6 +45,16 @@ import io.signallq.app.ui.component.LkSheetDivider
 fun PrivacidadeScreen(
     onVoltar: () -> Unit,
     onAbrirGerenciarDados: () -> Unit = {},
+    /**
+     * GH#1703 — entrada para rever o consentimento de anúncios. `false` por padrão porque a UMP
+     * só **exige** a entrada quando `privacyOptionsRequirementStatus == REQUIRED` (regiões sob
+     * GDPR); fora disso o formulário não tem o que mostrar, e um item que abre tela vazia é pior
+     * que item ausente. Quem resolve isso é `ConsentManager.precisaOferecerOpcoesPrivacidade`,
+     * que precisa de uma `Activity` — por isso chega como parâmetro em vez de ser consultado
+     * aqui: mantém a tela testável sem Activity real.
+     */
+    mostrarOpcoesAnuncios: Boolean = false,
+    onAbrirOpcoesAnuncios: () -> Unit = {},
 ) {
     val c = LocalLkTokens.current
 
@@ -188,6 +199,48 @@ fun PrivacidadeScreen(
                         tint = c.textTertiary,
                         modifier = Modifier.size(14.dp),
                     )
+                }
+            }
+
+            // GH#1703 — a UMP exige entrada permanente para rever o consentimento de anúncios
+            // depois de já tê-lo dado. Antes desta issue o app só sabia coletar; não havia
+            // caminho de volta.
+            if (mostrarOpcoesAnuncios) {
+                item {
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable(onClick = onAbrirOpcoesAnuncios)
+                                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Campaign,
+                            contentDescription = null,
+                            tint = c.primary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Preferências de anúncios",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = c.textPrimary,
+                            )
+                            Text(
+                                text = "Rever a escolha que você fez sobre anúncios neste aparelho",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = c.textSecondary,
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                            contentDescription = null,
+                            tint = c.textTertiary,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
                 }
             }
 
