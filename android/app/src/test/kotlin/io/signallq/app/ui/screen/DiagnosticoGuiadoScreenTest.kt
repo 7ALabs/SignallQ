@@ -16,6 +16,7 @@ import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
+import io.signallq.app.feature.speedtest.MeasurementStatus
 import io.signallq.app.ui.SignallQTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -116,7 +117,7 @@ class DiagnosticoGuiadoScreenTest {
             objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
             respostaPreSelecionadaPasso0 = 0,
             estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
-            resultadoValidoParaConclusao = false,
+            statusMedicao = null,
         )
 
         completarSegundaPerguntaJogos()
@@ -132,29 +133,34 @@ class DiagnosticoGuiadoScreenTest {
     fun `sem medicao valida a entrada mostra a lista de objetivos, nao o banner`() {
         setContent(
             estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
-            resultadoValidoParaConclusao = false,
+            statusMedicao = null,
         )
 
         composeRule.onNodeWithText("Vamos descobrir o que está acontecendo").assertIsDisplayed()
         composeRule.onNodeWithText(ObjetivoDiagnostico.JOGOS_COM_LAG.titulo).assertIsDisplayed()
     }
 
-    // Mutante: trocar `podeConcluirSemMedir` por `analise.estado is Concluida` (isto é, ignorar
-    // `resultadoValidoParaConclusao`). Rodado — este teste falha, porque o fluxo pularia a
-    // remedição e cairia direto no banner com um resultado que o motor não aceita.
+    // COMPORTAMENTO SUBSTITUÍDO PELA #1705, de propósito. Este teste afirmava que uma medição
+    // concluída porém inválida fazia o fluxo **remedir sozinho** — foi o que a #1704 entregou e o
+    // que Caio aprovou naquela rodada.
+    //
+    // A #1705 mostra por que aquilo era defeito: remedir em silêncio repete uma medição que acabou
+    // de falhar e não diz nada à pessoa. Agora o fluxo CHEGA à conclusão e o que ela encontra lá é
+    // a explicação do status e um botão. Quem decide remedir é ela, com o motivo na tela.
     @Test
-    fun `medicao concluida porem invalida remede em vez de concluir`() {
+    fun `medicao concluida porem invalida explica e oferece acao, em vez de remedir sozinha`() {
         setContent(
             objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
             respostaPreSelecionadaPasso0 = 0,
             estadoAnalise = EstadoAnaliseGuiada.Concluida,
-            resultadoValidoParaConclusao = false,
+            statusMedicao = MeasurementStatus.CONTAMINATED,
         )
 
         completarSegundaPerguntaJogos()
 
-        assertEquals(1, analiseIniciada)
-        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
+        assertEquals("não pode disparar medição sozinha", 0, analiseIniciada)
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertDoesNotExist()
+        composeRule.onNodeWithTag(TAG_CONTINUIDADE_MEDICAO_ACAO).assertExists()
     }
 
     // Mutante: remover a cláusula `podeConcluirSemMedir` do `onAvancar`, deixando todo fim de
@@ -185,7 +191,7 @@ class DiagnosticoGuiadoScreenTest {
             objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
             respostaPreSelecionadaPasso0 = 0,
             estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
-            resultadoValidoParaConclusao = false,
+            statusMedicao = null,
         )
         completarSegundaPerguntaJogos()
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
@@ -209,7 +215,7 @@ class DiagnosticoGuiadoScreenTest {
     @Test
     fun `analise que conclui no tempo leva a tela para a conclusao`() {
         var estado by mutableStateOf<EstadoAnaliseGuiada>(EstadoAnaliseGuiada.NaoIniciada)
-        var valido by mutableStateOf(false)
+        var status by mutableStateOf<MeasurementStatus?>(null)
         composeRule.setContent {
             SignallQTheme {
                 TelaDeTeste(
@@ -217,7 +223,7 @@ class DiagnosticoGuiadoScreenTest {
                     respostaPreSelecionadaPasso0 = 0,
                     input = inputJogosComWifiFraco(),
                     estadoAnalise = estado,
-                    resultadoValidoParaConclusao = valido,
+                    statusMedicao = status,
                 )
             }
         }
@@ -230,7 +236,7 @@ class DiagnosticoGuiadoScreenTest {
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
 
         estado = EstadoAnaliseGuiada.Concluida
-        valido = true
+        status = MeasurementStatus.COMPLETE
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertDoesNotExist()
@@ -250,7 +256,7 @@ class DiagnosticoGuiadoScreenTest {
             objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
             respostaPreSelecionadaPasso0 = 0,
             estadoAnalise = EstadoAnaliseGuiada.EmAndamento(0.4f, "Medindo a velocidade de recebimento"),
-            resultadoValidoParaConclusao = false,
+            statusMedicao = null,
         )
 
         completarSegundaPerguntaJogos()
@@ -300,7 +306,7 @@ class DiagnosticoGuiadoScreenTest {
             objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
             respostaPreSelecionadaPasso0 = 0,
             estadoAnalise = EstadoAnaliseGuiada.Falhou("sem conexão"),
-            resultadoValidoParaConclusao = false,
+            statusMedicao = null,
         )
 
         completarSegundaPerguntaJogos()
@@ -336,6 +342,115 @@ class DiagnosticoGuiadoScreenTest {
             wifi = WifiDiagnosticInput(rssiDbm = -50, linkSpeedMbps = 300, frequenciaMhz = 5200),
         )
 
+    // ---------------------------------------------------------------------------------------
+    // Continuidade por status de medição — GH#1705 (2.0.09c).
+    // ---------------------------------------------------------------------------------------
+
+    // Mutante que estes quatro matam: voltar `statusMedicao` a um `Boolean`, isto é, tratar os 4
+    // status não-completos com o mesmo texto e a mesma ação. Cada teste assere o título ESPECÍFICO
+    // do seu status — checar só "existe um banner" passaria com o achatamento de volta.
+    @Test
+    fun `contaminado explica a troca de rede e oferece refazer`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.Concluida,
+            statusMedicao = MeasurementStatus.CONTAMINATED,
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithText("Sua rede mudou durante a medição").assertIsDisplayed()
+        composeRule.onNodeWithText("Refazer na mesma rede").assertIsDisplayed()
+        // Sem conclusão junto: o dado veio de outra rede.
+        composeRule.onNodeWithText("Força do sinal Wi-Fi").assertDoesNotExist()
+    }
+
+    @Test
+    fun `inconclusivo declara a insuficiencia e oferece medir de novo`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.Concluida,
+            statusMedicao = MeasurementStatus.INCONCLUSIVE,
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithText("Não consegui medir o suficiente").assertIsDisplayed()
+        composeRule.onNodeWithText("Medir de novo").assertIsDisplayed()
+    }
+
+    // §9 da spec: "mostra o que foi possível concluir E o teste necessário para avançar". Antes da
+    // #1705 o parcial caía no mesmo banner do contaminado e a conclusão nem era exibida.
+    @Test
+    fun `parcial mostra a conclusao possivel junto com o que falta`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            input = inputJogosComWifiFraco(),
+            estadoAnalise = EstadoAnaliseGuiada.Concluida,
+            statusMedicao = MeasurementStatus.PARTIAL,
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithText("Consegui medir parte da sua conexão").assertIsDisplayed()
+        composeRule.onNodeWithText("Completar a medição").assertIsDisplayed()
+        composeRule.onNodeWithText("Força do sinal Wi-Fi").assertIsDisplayed()
+    }
+
+    @Test
+    fun `cancelado preserva a evidencia medida e permite seguir`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            input = inputJogosComWifiFraco(),
+            estadoAnalise = EstadoAnaliseGuiada.Concluida,
+            statusMedicao = MeasurementStatus.CANCELLED,
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithText("Você interrompeu a medição").assertIsDisplayed()
+        composeRule.onNodeWithText("Força do sinal Wi-Fi").assertIsDisplayed()
+    }
+
+    @Test
+    fun `completo nao mostra continuidade nenhuma`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            input = inputJogosComWifiFraco(),
+            estadoAnalise = EstadoAnaliseGuiada.Concluida,
+            statusMedicao = MeasurementStatus.COMPLETE,
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithTag(TAG_CONTINUIDADE_MEDICAO).assertDoesNotExist()
+        composeRule.onNodeWithText("Força do sinal Wi-Fi").assertIsDisplayed()
+    }
+
+    // O beco sem saída que a issue descreve: o banner anterior era só texto. Este teste prova que
+    // a ação leva de volta à rota `Analise` e dispara medição — não termina em nada.
+    @Test
+    fun `a acao da continuidade remede pelo proprio fluxo`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.Concluida,
+            statusMedicao = MeasurementStatus.INCONCLUSIVE,
+        )
+        completarSegundaPerguntaJogos()
+        val disparosAntes = analiseIniciada
+
+        composeRule.onNodeWithTag(TAG_CONTINUIDADE_MEDICAO_ACAO).performClick()
+
+        assertEquals(disparosAntes + 1, analiseIniciada)
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
+    }
+
     @Suppress("LongParameterList")
     private fun setContent(
         objetivoPreSelecionado: ObjetivoDiagnostico? = null,
@@ -345,7 +460,7 @@ class DiagnosticoGuiadoScreenTest {
          *  o pressuposto de todos os testes anteriores a esta fatia. Os testes da rota `Analise`
          *  passam os outros estados explicitamente. */
         estadoAnalise: EstadoAnaliseGuiada = EstadoAnaliseGuiada.Concluida,
-        resultadoValidoParaConclusao: Boolean = true,
+        statusMedicao: MeasurementStatus? = MeasurementStatus.COMPLETE,
     ) {
         composeRule.setContent {
             SignallQTheme {
@@ -354,7 +469,7 @@ class DiagnosticoGuiadoScreenTest {
                     respostaPreSelecionadaPasso0 = respostaPreSelecionadaPasso0,
                     input = input,
                     estadoAnalise = estadoAnalise,
-                    resultadoValidoParaConclusao = resultadoValidoParaConclusao,
+                    statusMedicao = statusMedicao,
                 )
             }
         }
@@ -371,11 +486,11 @@ class DiagnosticoGuiadoScreenTest {
         respostaPreSelecionadaPasso0: Int?,
         input: DiagnosticInput?,
         estadoAnalise: EstadoAnaliseGuiada,
-        resultadoValidoParaConclusao: Boolean,
+        statusMedicao: MeasurementStatus?,
     ) {
         DiagnosticoGuiadoScreen(
             input = input,
-            resultadoValidoParaConclusao = resultadoValidoParaConclusao,
+            statusMedicao = statusMedicao,
             analise =
                 AnaliseGuiadaContrato(
                     estado = estadoAnalise,

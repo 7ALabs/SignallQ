@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,7 +41,6 @@ import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material.icons.outlined.Tv
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material.icons.outlined.VisibilityOff
-import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material3.Button
@@ -85,6 +85,7 @@ import io.signallq.app.core.diagnostico.ResultadoDiagnosticoGuiado
 import io.signallq.app.core.recommendation.RecommendationDecision
 import io.signallq.app.core.recommendation.RecommendationFeedbackType
 import io.signallq.app.core.recommendation.RecommendationType
+import io.signallq.app.feature.speedtest.MeasurementStatus
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -119,7 +120,10 @@ import io.signallq.app.ui.component.rememberResolvedOperadoraIdentity
 @Composable
 fun DiagnosticoGuiadoScreen(
     input: DiagnosticInput?,
-    resultadoValidoParaConclusao: Boolean,
+    /** Status real da medição — GH#1705. Era `resultadoValidoParaConclusao: Boolean`, e os 5
+     *  valores de `MeasurementStatus` viravam um bit exatamente aqui. `null` = ainda não há
+     *  medição. Ver [continuidadeDaMedicao]. */
+    statusMedicao: MeasurementStatus?,
     /** Rota `Analise` (spec 2.0 §8.5) — GH#1704 parte 4/4. Sem default de propósito: um default
      *  deixaria um caller esquecer de ligar a medição e o fluxo voltaria a depender de um teste
      *  anterior sem que nada quebrasse na compilação. Ver [AnaliseGuiadaContrato]. */
@@ -200,8 +204,15 @@ fun DiagnosticoGuiadoScreen(
      * mede de novo em vez de mostrar o banner de resultado inválido — antes desta fatia o banner
      * substituía a tela inteira já na entrada, e a pessoa não tinha ação nenhuma disponível.
      */
+    val continuidade = statusMedicao?.let { continuidadeDaMedicao(it) }
+
+    // GH#1705 — basta EXISTIR medição. A versão da #1704 exigia medição completa e mandava o fluxo
+    // remedir sozinho quando não era; com os 5 status separados isso vira um defeito: a pessoa
+    // pediria diagnóstico, o app remediria em silêncio uma medição que acabou de falhar, e ela
+    // nunca saberia por quê. Contaminado e inconclusivo agora CHEGAM à conclusão — o que ela
+    // encontra lá é a explicação e o botão, não o resultado. Quem decide remedir é ela.
     val podeConcluirSemMedir =
-        analise.estado is EstadoAnaliseGuiada.Concluida && resultadoValidoParaConclusao
+        analise.estado is EstadoAnaliseGuiada.Concluida && statusMedicao != null
 
     // "Já vi esta análise sair do estado concluído" — sem isso há uma corrida real, encontrada
     // pelo teste `medicao concluida porem invalida remede em vez de concluir`.
@@ -225,6 +236,15 @@ fun DiagnosticoGuiadoScreen(
                 mostrarResultado = true
             }
         }
+    }
+
+    // GH#1705 — o CTA de toda continuidade cai aqui: volta para a rota `Analise` (§8.5) e mede de
+    // novo dentro do próprio fluxo. Não manda a pessoa para outra tela, que era o que o
+    // `onMedirNovamente` do estado vazio fazia antes da #1704.
+    fun remedirPelaAnalise() {
+        mostrarResultado = false
+        emAnalise = true
+        analise.onIniciar()
     }
 
     fun voltarUmPasso() {
@@ -286,9 +306,15 @@ fun DiagnosticoGuiadoScreen(
                     onSelect = { objetivo = it },
                     c = c,
                 )
-            mostrarResultado && !resultadoValidoParaConclusao ->
+            // GH#1705 — sem conclusão possível, a tela é a continuidade COM ação, não um banner
+            // mudo. `permiteVerConclusaoParcial` decide entre substituir e acompanhar o resultado.
+            mostrarResultado && continuidade != null && !continuidade.permiteVerConclusaoParcial ->
                 Column(modifier = Modifier.fillMaxSize().padding(padding).padding(LkSpacing.xl)) {
-                    ResultadoInvalidoBannerGuiado(c = c)
+                    ContinuidadeMedicaoSection(
+                        continuidade = continuidade,
+                        onAgir = ::remedirPelaAnalise,
+                        c = c,
+                    )
                 }
             mostrarResultado -> {
                 val respostasIndices = respostas.filterNotNull()
@@ -300,8 +326,19 @@ fun DiagnosticoGuiadoScreen(
                     onResetarAnalisador()
                     onAnalisarProblema(objetivoAtual.titulo)
                 }
+                if (continuidade != null) {
+                    // Conclusão parcial: mostra o que deu para apurar E o que falta, na ordem que a
+                    // spec §9 pede. Antes desta issue, PARTIAL caía no mesmo banner de
+                    // CONTAMINATED e a conclusão nem era exibida.
+                    ContinuidadeMedicaoSection(
+                        continuidade = continuidade,
+                        onAgir = ::remedirPelaAnalise,
+                        c = c,
+                        modifier = Modifier.padding(padding).padding(horizontal = LkSpacing.xl),
+                    )
+                }
                 ResultadoDiagnosticoGuiadoConteudo(
-                    modifier = Modifier.padding(padding),
+                    modifier = Modifier.padding(if (continuidade == null) padding else PaddingValues(0.dp)),
                     resultado = resultado,
                     analisadorState = analisadorState,
                     onEscolherOutraSituacao = {
@@ -803,27 +840,6 @@ private fun ProximoPassoSugeridoCard(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun ResultadoInvalidoBannerGuiado(c: LkTokens) {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.card))
-                .background(c.warningContainer)
-                .padding(LkSpacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Icon(imageVector = Icons.Outlined.Warning, contentDescription = null, tint = c.onWarningContainer, modifier = Modifier.size(22.dp))
-        Text(
-            text = "Este resultado não é confiável o suficiente para um diagnóstico guiado. Refaça o teste de velocidade mantendo a mesma rede.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = c.onWarningContainer,
-        )
     }
 }
 

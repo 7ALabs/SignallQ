@@ -106,7 +106,7 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
         val resultado = dados.resultado
         DiagnosticoGuiadoScreen(
             input = dados.input,
-            resultadoValidoParaConclusao = resultado?.status?.liberaConclusaoCompleta == true,
+            statusMedicao = resultado?.status,
             analise = entry.analise,
             objetivoPreSelecionado = dados.objetivoPreSelecionado,
             respostaPreSelecionadaPasso0 = dados.respostaPreSelecionadaPasso0,
