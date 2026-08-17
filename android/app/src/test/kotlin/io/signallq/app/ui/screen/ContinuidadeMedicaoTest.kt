@@ -29,7 +29,7 @@ class ContinuidadeMedicaoTest {
 
     @Test
     fun `completo nao tem continuidade`() {
-        assertNull(continuidadeDaMedicao(MeasurementStatus.COMPLETE))
+        assertNull(continuidadeDaMedicao(MeasurementStatus.COMPLETE, medidasConfiaveis = true))
     }
 
     // Mutante M1 do parecer: `corContainer(c)` fixo em `warningContainer` para todos.
@@ -39,8 +39,8 @@ class ContinuidadeMedicaoTest {
     // GH#1228 P0-8 resolveu para os outros consumidores — e que a #1705 alegava estar corrigindo.
     @Test
     fun `inconclusivo nao se apresenta com o mesmo peso visual de um problema detectado`() {
-        val inconclusivo = continuidadeDaMedicao(MeasurementStatus.INCONCLUSIVE)!!
-        val contaminado = continuidadeDaMedicao(MeasurementStatus.CONTAMINATED)!!
+        val inconclusivo = continuidadeDaMedicao(MeasurementStatus.INCONCLUSIVE, medidasConfiaveis = true)!!
+        val contaminado = continuidadeDaMedicao(MeasurementStatus.CONTAMINATED, medidasConfiaveis = true)!!
 
         assertEquals(DiagnosticStatus.inconclusive, inconclusivo.statusVisual)
         assertEquals(DiagnosticStatus.attention, contaminado.statusVisual)
@@ -52,7 +52,7 @@ class ContinuidadeMedicaoTest {
 
     @Test
     fun `cancelado se apresenta como informacao, nao como alarme`() {
-        val cancelado = continuidadeDaMedicao(MeasurementStatus.CANCELLED)!!
+        val cancelado = continuidadeDaMedicao(MeasurementStatus.CANCELLED, medidasConfiaveis = true)!!
 
         assertEquals(DiagnosticStatus.info, cancelado.statusVisual)
     }
@@ -61,7 +61,7 @@ class ContinuidadeMedicaoTest {
     // título estava travado por teste, e o corpo do texto é o que de fato instrui a pessoa.
     @Test
     fun `cada status tem titulo e explicacao proprios`() {
-        val continuidades = naoCompletos.map { continuidadeDaMedicao(it)!! }
+        val continuidades = naoCompletos.map { continuidadeDaMedicao(it, medidasConfiaveis = true)!! }
 
         assertEquals(
             "títulos repetidos entre status",
@@ -82,7 +82,7 @@ class ContinuidadeMedicaoTest {
     @Test
     fun `nenhum status termina sem acao`() {
         naoCompletos.forEach { status ->
-            val continuidade = continuidadeDaMedicao(status)
+            val continuidade = continuidadeDaMedicao(status, medidasConfiaveis = true)
             assertNotNull("status $status ficou sem continuidade", continuidade)
             assertTrue("status $status ficou sem ação", continuidade!!.rotuloAcao.isNotBlank())
         }
@@ -93,19 +93,35 @@ class ContinuidadeMedicaoTest {
     // conclusão ali faz o motor dizer que a pessoa recebe uma fração do plano e o card de ações
     // mandá-la acionar a operadora — com um número que estragamos.
     @Test
-    fun `parcial so mostra conclusao quando o download e confiavel`() {
-        val comDownloadBom = continuidadeDaMedicao(MeasurementStatus.PARTIAL, downloadConfiavel = true)!!
-        val comDownloadEstragado = continuidadeDaMedicao(MeasurementStatus.PARTIAL, downloadConfiavel = false)!!
+    fun `parcial so mostra conclusao quando as medidas sao confiaveis`() {
+        val comMedidaBoa = continuidadeDaMedicao(MeasurementStatus.PARTIAL, medidasConfiaveis = true)!!
+        val comMedidaEstragada = continuidadeDaMedicao(MeasurementStatus.PARTIAL, medidasConfiaveis = false)!!
 
-        assertTrue(comDownloadBom.permiteVerConclusaoParcial)
-        assertFalse(comDownloadEstragado.permiteVerConclusaoParcial)
+        assertTrue(comMedidaBoa.permiteVerConclusaoParcial)
+        assertFalse(comMedidaEstragada.permiteVerConclusaoParcial)
+    }
+
+    // Ressalva RS9: o parâmetro perdeu o default. Ele existia só para os testes e fazia a maioria
+    // dos casos exercitar o caminho "confiável" sem dizer — agora cada chamada declara o que está
+    // exercitando.
+    @Test
+    fun `medida nao confiavel so muda o parcial`() {
+        val naoAfetados = listOf(MeasurementStatus.CONTAMINATED, MeasurementStatus.INCONCLUSIVE, MeasurementStatus.CANCELLED)
+
+        naoAfetados.forEach { status ->
+            assertEquals(
+                "status " + status + " não deve depender de medidasConfiaveis",
+                continuidadeDaMedicao(status, medidasConfiaveis = true),
+                continuidadeDaMedicao(status, medidasConfiaveis = false),
+            )
+        }
     }
 
     // Ressalva RS2: `CANCELLED` não gera `ResultadoSpeedtest` (o coordinator o mapeia para
     // "failed"), então não há conclusão parcial a preservar — e a copy não pode prometer que há.
     @Test
     fun `cancelado nao promete conclusao parcial que nao existe`() {
-        val cancelado = continuidadeDaMedicao(MeasurementStatus.CANCELLED)!!
+        val cancelado = continuidadeDaMedicao(MeasurementStatus.CANCELLED, medidasConfiaveis = true)!!
 
         assertFalse(cancelado.permiteVerConclusaoParcial)
         assertFalse(
@@ -124,9 +140,9 @@ class ContinuidadeMedicaoTest {
     fun `a cor vem do mapeamento canonico, nao de um valor fixo`() {
         val c = lightTokens()
 
-        val inconclusivo = coresDaContinuidade(continuidadeDaMedicao(MeasurementStatus.INCONCLUSIVE)!!, c)
-        val contaminado = coresDaContinuidade(continuidadeDaMedicao(MeasurementStatus.CONTAMINATED)!!, c)
-        val cancelado = coresDaContinuidade(continuidadeDaMedicao(MeasurementStatus.CANCELLED)!!, c)
+        val inconclusivo = coresDaContinuidade(continuidadeDaMedicao(MeasurementStatus.INCONCLUSIVE, medidasConfiaveis = true)!!, c)
+        val contaminado = coresDaContinuidade(continuidadeDaMedicao(MeasurementStatus.CONTAMINATED, medidasConfiaveis = true)!!, c)
+        val cancelado = coresDaContinuidade(continuidadeDaMedicao(MeasurementStatus.CANCELLED, medidasConfiaveis = true)!!, c)
 
         // Iguais ao mapeamento canônico — não a uma cor escolhida aqui.
         assertEquals(DiagnosticStatus.attention.corContainer(c), contaminado.container)
@@ -151,7 +167,7 @@ class ContinuidadeMedicaoTest {
         val jargao = listOf("amostra", "bufferbloat", "jitter", "throughput", "payload")
 
         naoCompletos.forEach { status ->
-            val texto = continuidadeDaMedicao(status)!!.explicacao.lowercase()
+            val texto = continuidadeDaMedicao(status, medidasConfiaveis = true)!!.explicacao.lowercase()
             jargao.forEach { termo ->
                 assertFalse("status $status vazou '$termo': \"$texto\"", texto.contains(termo))
             }

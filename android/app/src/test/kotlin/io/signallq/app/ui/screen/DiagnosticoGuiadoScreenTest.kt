@@ -341,7 +341,7 @@ class DiagnosticoGuiadoScreenTest {
     private fun medirEConcluirCom(
         status: MeasurementStatus,
         input: DiagnosticInput? = null,
-        downloadConfiavel: Boolean = true,
+        medidasConfiaveis: Boolean = true,
     ): Int {
         var estado by mutableStateOf<EstadoAnaliseGuiada>(EstadoAnaliseGuiada.NaoIniciada)
         var statusAtual by mutableStateOf<MeasurementStatus?>(null)
@@ -353,7 +353,7 @@ class DiagnosticoGuiadoScreenTest {
                     input = input,
                     estadoAnalise = estado,
                     statusMedicao = statusAtual,
-                    downloadConfiavel = downloadConfiavel,
+                    medidasConfiaveis = medidasConfiaveis,
                 )
             }
         }
@@ -368,9 +368,13 @@ class DiagnosticoGuiadoScreenTest {
         return disparos
     }
 
+    // BLOQUEIO B5 da rodada 2: este teste chamava o helper SEM `input`, então
+    // `assertDoesNotExist("Força do sinal Wi-Fi")` era vácuo — aquele texto não existiria de jeito
+    // nenhum, com ou sem `permiteVerConclusaoParcial`. O mutante que liga a conclusão parcial em
+    // CONTAMINATED sobrevivia. Com `input`, a ausência passa a significar alguma coisa.
     @Test
     fun `contaminado mede uma vez, explica a troca de rede e oferece refazer`() {
-        val disparos = medirEConcluirCom(MeasurementStatus.CONTAMINATED)
+        val disparos = medirEConcluirCom(MeasurementStatus.CONTAMINATED, input = inputJogosComWifiFraco())
 
         assertEquals("mede uma vez antes de falar de rede que mudou", 1, disparos)
         composeRule.onNodeWithText("Sua rede mudou durante a medição").assertIsDisplayed()
@@ -378,12 +382,15 @@ class DiagnosticoGuiadoScreenTest {
         composeRule.onNodeWithText("Força do sinal Wi-Fi").assertDoesNotExist()
     }
 
+    // BLOQUEIO B5: sem `input` e sem asserção de ausência, o mutante que liga a conclusão parcial
+    // em INCONCLUSIVE sobrevivia.
     @Test
-    fun `inconclusivo declara a insuficiencia e oferece medir de novo`() {
-        medirEConcluirCom(MeasurementStatus.INCONCLUSIVE)
+    fun `inconclusivo declara a insuficiencia, oferece medir de novo e nao mostra conclusao`() {
+        medirEConcluirCom(MeasurementStatus.INCONCLUSIVE, input = inputJogosComWifiFraco())
 
         composeRule.onNodeWithText("Não consegui medir o suficiente").assertIsDisplayed()
         composeRule.onNodeWithText("Medir de novo").assertIsDisplayed()
+        composeRule.onNodeWithText("Força do sinal Wi-Fi").assertDoesNotExist()
     }
 
     @Test
@@ -405,7 +412,7 @@ class DiagnosticoGuiadoScreenTest {
         medirEConcluirCom(
             MeasurementStatus.PARTIAL,
             input = inputJogosComWifiFraco(),
-            downloadConfiavel = false,
+            medidasConfiaveis = false,
         )
 
         composeRule.onNodeWithText("Consegui medir parte da sua conexão").assertIsDisplayed()
@@ -459,6 +466,46 @@ class DiagnosticoGuiadoScreenTest {
         )
     }
 
+    // RESSALVA RS8 da rodada 2: o teste acima cobre a sobreposicao entre os dois blocos, mas nao o
+    // SEGUNDO sintoma que Caio mediu - o conteudo inteiro passando por baixo da top bar quando o
+    // inset do Scaffold nao e aplicado. Mutante `Modifier.padding(padding)` -> `Modifier`
+    // sobrevivia ao teste anterior.
+    @Test
+    fun `o conteudo comeca abaixo da barra de titulo`() {
+        medirEConcluirCom(MeasurementStatus.PARTIAL, input = inputJogosComWifiFraco())
+
+        val topoDoConteudo = composeRule.onNodeWithTag(TAG_CONTINUIDADE_MEDICAO).getBoundsInRoot().top
+        val fimDaBarra = composeRule.onNodeWithContentDescription("Voltar").getBoundsInRoot().bottom
+
+        assertTrue(
+            "conteudo comeca em " + topoDoConteudo + ", acima do fim da barra (" + fimDaBarra + ")",
+            topoDoConteudo >= fimDaBarra,
+        )
+    }
+
+    // BLOQUEIO B6 da rodada 2. `medirEConcluirCom` sempre parte de `statusMedicao = null`, então
+    // nenhum teste chegava ao fim do roteiro com um resultado VELHO não-completo em mãos — que é
+    // exatamente o cenário do bloqueio B2 da rodada 1. O afrouxamento de `podeConcluirSemMedir`
+    // para "basta existir medição" era reintroduzível com a suíte inteira verde.
+    //
+    // Aqui o status já entra fixo e não-completo, como um resultado guardado de outra sessão: o
+    // fluxo TEM que medir de novo antes de falar de rede que mudou.
+    @Test
+    fun `resultado velho nao completo nao dispensa medir de novo`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            input = inputJogosComWifiFraco(),
+            estadoAnalise = EstadoAnaliseGuiada.Concluida,
+            statusMedicao = MeasurementStatus.CONTAMINATED,
+        )
+
+        completarSegundaPerguntaJogos()
+
+        assertEquals("resultado velho não-completo tem que ser remedido", 1, analiseIniciada)
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
+    }
+
     @Test
     fun `a acao da continuidade remede pelo proprio fluxo`() {
         val disparos = medirEConcluirCom(MeasurementStatus.INCONCLUSIVE)
@@ -479,7 +526,7 @@ class DiagnosticoGuiadoScreenTest {
          *  passam os outros estados explicitamente. */
         estadoAnalise: EstadoAnaliseGuiada = EstadoAnaliseGuiada.Concluida,
         statusMedicao: MeasurementStatus? = MeasurementStatus.COMPLETE,
-        downloadConfiavel: Boolean = true,
+        medidasConfiaveis: Boolean = true,
     ) {
         composeRule.setContent {
             SignallQTheme {
@@ -489,7 +536,7 @@ class DiagnosticoGuiadoScreenTest {
                     input = input,
                     estadoAnalise = estadoAnalise,
                     statusMedicao = statusMedicao,
-                    downloadConfiavel = downloadConfiavel,
+                    medidasConfiaveis = medidasConfiaveis,
                 )
             }
         }
@@ -507,12 +554,12 @@ class DiagnosticoGuiadoScreenTest {
         input: DiagnosticInput?,
         estadoAnalise: EstadoAnaliseGuiada,
         statusMedicao: MeasurementStatus?,
-        downloadConfiavel: Boolean = true,
+        medidasConfiaveis: Boolean = true,
     ) {
         DiagnosticoGuiadoScreen(
             input = input,
             statusMedicao = statusMedicao,
-            downloadConfiavel = downloadConfiavel,
+            medidasConfiaveis = medidasConfiaveis,
             analise =
                 AnaliseGuiadaContrato(
                     estado = estadoAnalise,

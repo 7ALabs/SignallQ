@@ -73,20 +73,28 @@ internal data class ContinuidadeMedicao(
 internal fun continuidadeDaMedicao(
     status: MeasurementStatus,
     /**
-     * O número de download é confiável? — bloqueio B3 de Caio na PR #1723.
+     * Os números medidos servem para concluir? — bloqueios B3 e B7 de Caio na PR #1723.
      *
-     * `calcularMeasurementStatus` produz `PARTIAL` por duas causas diferentes e as achata num valor
-     * só: upload não detectado, e `downloadEncerradaPor == "download_bloqueado_429"`. No segundo, o
-     * download medido é artificialmente baixo **porque o nosso próprio rate limit derrubou a fase**
-     * — e `DiagnosticoGuiadoEngine.avaliarVelocidadeNaoChega` calcula o percentual do plano direto
-     * de `internet.downloadMbps`. A conclusão diria à pessoa que ela recebe 30% do contratado, e o
-     * card de ações a mandaria acionar a operadora, com um número que o SignallQ estragou.
+     * `calcularMeasurementStatus` produz `PARTIAL` por **duas** causas e as achata num valor só:
      *
-     * É o mesmo pecado do achatamento que esta issue corrige um nível acima. Enquanto
-     * `MeasurementStatus` não distinguir as duas causas, quem sabe é o chamador, que tem
-     * `diagnosticoFases.downloadEncerradaPor` em mãos.
+     * - `uploadNaoDetectado` — o upload não foi medido depois de esgotar o retry, e
+     *   `MainViewModel` passa `uploadMbps = 0.0` cru para o motor. `MetricClassifier` classifica
+     *   como crítico, e `DiagnosticoGuiadoEngine.avaliarChamadasCongelam` conclui que "o upload
+     *   está comprometido". O app afirma que o upload da pessoa está quebrado quando o que falhou
+     *   foi a **nossa** medição.
+     * - `downloadEncerradaPor == "download_bloqueado_429"` — o nosso próprio rate limit derrubou a
+     *   fase, o download fica artificialmente baixo, e `avaliarVelocidadeNaoChega` calcula o
+     *   percentual do plano direto dele. A conclusão manda acionar a operadora com um número que
+     *   estragamos.
+     *
+     * A primeira versão desta fatia cobriu só a segunda causa — que é a secundária. A primeira é o
+     * `PARTIAL` original e documentado, e é avaliada ANTES no `when` do cálculo.
+     *
+     * `ResultadoVelocidadeScreen` já trata o caso de upload mostrando "—"/"Não foi possível medir";
+     * o sinal existe no `ResultadoSpeedtest` e só não chegava aqui. Enquanto `MeasurementStatus`
+     * não distinguir as causas, quem sabe é o chamador.
      */
-    downloadConfiavel: Boolean = true,
+    medidasConfiaveis: Boolean,
 ): ContinuidadeMedicao? =
     when (status) {
         MeasurementStatus.COMPLETE -> null
@@ -99,10 +107,10 @@ internal fun continuidadeDaMedicao(
                     "Uma das etapas não terminou, então o diagnóstico está incompleto. O que " +
                         "aparece abaixo é o que deu para apurar com segurança.",
                 rotuloAcao = "Completar a medição",
-                // Sem download confiável não há conclusão parcial que preste: as dimensões
-                // derivadas de download são a maior parte do que o motor conclui, e mostrá-las
-                // seria acusar a operadora por um número que estragamos. Ver [downloadConfiavel].
-                permiteVerConclusaoParcial = downloadConfiavel,
+                // Sem medida confiável não há conclusão parcial que preste: mostrá-la seria
+                // afirmar defeito da rede da pessoa com base num número que estragamos. Ver
+                // [medidasConfiaveis] para as duas causas.
+                permiteVerConclusaoParcial = medidasConfiaveis,
             )
 
         MeasurementStatus.CONTAMINATED ->

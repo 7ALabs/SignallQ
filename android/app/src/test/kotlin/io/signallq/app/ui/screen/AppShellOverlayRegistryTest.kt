@@ -2,7 +2,10 @@ package io.signallq.app.ui.screen
 
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -11,7 +14,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import io.signallq.app.core.diagnostico.DiagnosticInput
+import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
+import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.feature.dns.EstadoBenchmarkDns
 import io.signallq.app.feature.dns.SnapshotBenchmarkDns
@@ -60,7 +66,11 @@ class AppShellOverlayRegistryTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
-    private fun resultadoSpeedtestDeTeste(): ResultadoSpeedtest =
+    private fun resultadoSpeedtestDeTeste(
+        status: MeasurementStatus = MeasurementStatus.COMPLETE,
+        downloadEncerradaPor: String = "",
+        uploadNaoDetectado: Boolean = false,
+    ): ResultadoSpeedtest =
         ResultadoSpeedtest(
             timestampEpochMs = 0L,
             specVersion = "1",
@@ -101,7 +111,7 @@ class AppShellOverlayRegistryTest {
                     downloadAmostrasValidas = 0,
                     downloadRequisicoesSucesso = 0,
                     downloadRequisicoesErro = 0,
-                    downloadEncerradaPor = "",
+                    downloadEncerradaPor = downloadEncerradaPor,
                     downloadThroughputOrigem = "",
                     downloadUltimoErro = null,
                     uploadBytesTotal = 0L,
@@ -113,7 +123,24 @@ class AppShellOverlayRegistryTest {
                     uploadUltimoErro = null,
                     dnsErroMensagem = null,
                 ),
-            status = MeasurementStatus.COMPLETE,
+            status = status,
+            uploadNaoDetectado = uploadNaoDetectado,
+        )
+
+    /** Wi-Fi fraco o bastante para o motor gerar a evidencia "Forca do sinal Wi-Fi" — mesmos
+     *  valores de `DiagnosticoGuiadoScreenTest`. Sem input o motor devolve zero dimensoes, e
+     *  qualquer assercao de AUSENCIA sobre a conclusao vira vacua (foi o bloqueio B5). */
+    private fun inputJogosComWifiFraco() =
+        DiagnosticInput(
+            internet =
+                InternetDiagnosticInput(
+                    downloadMbps = 80.0,
+                    uploadMbps = 20.0,
+                    latencyMs = 187.0,
+                    jitterMs = 44.0,
+                    perdaPercentual = 0.5,
+                ),
+            wifi = WifiDiagnosticInput(rssiDbm = -50, linkSpeedMbps = 300, frequenciaMhz = 5200),
         )
 
     private fun snapshotDnsDeTeste(): SnapshotBenchmarkDns =
@@ -135,10 +162,11 @@ class AppShellOverlayRegistryTest {
         identidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity? = { _, _ -> IDENTIDADE_DE_TESTE },
         objetivoPreSelecionado: ObjetivoDiagnostico? = null,
         respostaPreSelecionadaPasso0: Int? = null,
+        input: DiagnosticInput? = null,
     ) = AppShellDiagnosticoGuiadoEntry(
         dados =
             AppShellDiagnosticoGuiadoDados(
-                input = null,
+                input = input,
                 resultado = resultado,
                 analisadorState = AnalisadorState.Inativo,
                 objetivoPreSelecionado = objetivoPreSelecionado,
@@ -258,6 +286,86 @@ class AppShellOverlayRegistryTest {
             )
         }
         composeRule.onNodeWithTag(TAG_OVERLAY_DIAGNOSTICO_GUIADO).assertExists()
+    }
+
+    // BLOQUEIO B8 da rodada 2 da PR #1723. `continuidadeDaMedicao(PARTIAL, medidasConfiaveis =
+    // false)` estava testado; a DERIVAÇÃO que produz esse `false` não estava — trocá-la por `true`
+    // fixo passava na suíte inteira do :app.
+    @Test
+    fun `as duas causas de parcial tornam as medidas nao confiaveis`() {
+        assertTrue(
+            "resultado ausente não tem medida ruim a proteger",
+            medidasConfiaveis(null),
+        )
+        assertTrue(
+            "medição íntegra libera conclusão",
+            medidasConfiaveis(resultadoSpeedtestDeTeste()),
+        )
+        assertFalse(
+            "429 é o nosso rate limit derrubando o download",
+            medidasConfiaveis(
+                resultadoSpeedtestDeTeste(
+                    status = MeasurementStatus.PARTIAL,
+                    downloadEncerradaPor = "download_bloqueado_429",
+                ),
+            ),
+        )
+        assertFalse(
+            "upload não detectado é a nossa medição desistindo, não o upload da pessoa",
+            medidasConfiaveis(
+                resultadoSpeedtestDeTeste(
+                    status = MeasurementStatus.PARTIAL,
+                    uploadNaoDetectado = true,
+                ),
+            ),
+        )
+    }
+
+    // O CALL SITE da derivação, não só a regra. O mutante `medidasConfiaveis = true` fixo dentro do
+    // overlay sobrevivia mesmo com `medidasConfiaveis(...)` coberto — é a linha de fiação.
+    //
+    // Para chegar à conclusão com `PARTIAL` é preciso passar pela rota `Analise` (só `COMPLETE`
+    // dispensa medir, bloqueio B2), então o estado da análise é dirigido por `mutableStateOf`: o
+    // roteiro termina, o fluxo mede, e só então o `PARTIAL` chega.
+    @Test
+    fun `overlay repassa medidas nao confiaveis e a conclusao parcial nao aparece`() {
+        val stack = mutableStateListOf(AppShellOverlay.DiagnosticoGuiado)
+        val resultado =
+            resultadoSpeedtestDeTeste(
+                status = MeasurementStatus.PARTIAL,
+                uploadNaoDetectado = true,
+            )
+        var estadoAnalise by mutableStateOf<EstadoAnaliseGuiada>(EstadoAnaliseGuiada.NaoIniciada)
+        var resultadoAtual by mutableStateOf<ResultadoSpeedtest?>(null)
+
+        composeRule.setContent {
+            RegistryDeTeste(
+                stack = stack,
+                diagnosticoGuiado =
+                    diagnosticoGuiadoDeTeste(
+                        resultado = resultadoAtual,
+                        objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+                        respostaPreSelecionadaPasso0 = 0,
+                        input = inputJogosComWifiFraco(),
+                    ).let { it.copy(analise = it.analise.copy(estado = estadoAnalise)) },
+            )
+        }
+
+        composeRule.onNodeWithText("Continuar").performClick()
+        composeRule.onNodeWithText("Quase sempre").performClick()
+        composeRule.onNodeWithText("Ver o que identifiquei").performClick()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
+
+        estadoAnalise = EstadoAnaliseGuiada.Concluida
+        resultadoAtual = resultado
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Consegui medir parte da sua conexão").assertExists()
+        // A conclusão NÃO pode aparecer: o upload não medido faria o motor afirmar que o upload da
+        // pessoa está comprometido, quando o que falhou foi a nossa medição. A evidência do motor é
+        // o que distingue - e ela só existe porque o `input` foi passado, senão a asserção de
+        // ausência seria vácua (mesmo defeito do bloqueio B5, um nível acima).
+        composeRule.onNodeWithText("Força do sinal Wi-Fi").assertDoesNotExist()
     }
 
     // RESSALVA RS2 do parecer de Caio na PR #1719. A expressão

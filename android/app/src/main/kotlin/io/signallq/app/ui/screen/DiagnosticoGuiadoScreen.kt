@@ -123,9 +123,10 @@ fun DiagnosticoGuiadoScreen(
      *  valores de `MeasurementStatus` viravam um bit exatamente aqui. `null` = ainda não há
      *  medição. Ver [continuidadeDaMedicao]. */
     statusMedicao: MeasurementStatus?,
-    /** GH#1705 / bloqueio B3 — `false` quando a fase de download foi derrubada pelo nosso rate
-     *  limit (429) e o número está artificialmente baixo. Ver [continuidadeDaMedicao]. */
-    downloadConfiavel: Boolean,
+    /** GH#1705 / bloqueios B3 e B7 — `false` quando o download foi derrubado pelo nosso rate limit
+     *  (429) ou o upload não foi detectado. Nos dois casos o número medido não pode alimentar
+     *  conclusão. Ver [continuidadeDaMedicao]. */
+    medidasConfiaveis: Boolean,
     /** Rota `Analise` (spec 2.0 §8.5) — GH#1704 parte 4/4. Sem default de propósito: um default
      *  deixaria um caller esquecer de ligar a medição e o fluxo voltaria a depender de um teste
      *  anterior sem que nada quebrasse na compilação. Ver [AnaliseGuiadaContrato]. */
@@ -206,7 +207,7 @@ fun DiagnosticoGuiadoScreen(
      * mede de novo em vez de mostrar o banner de resultado inválido — antes desta fatia o banner
      * substituía a tela inteira já na entrada, e a pessoa não tinha ação nenhuma disponível.
      */
-    val continuidade = statusMedicao?.let { continuidadeDaMedicao(it, downloadConfiavel) }
+    val continuidade = statusMedicao?.let { continuidadeDaMedicao(it, medidasConfiaveis) }
 
     // Só medição COMPLETA dispensa medir de novo — bloqueio B2 de Caio na PR #1723.
     //

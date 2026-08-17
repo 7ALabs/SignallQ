@@ -107,10 +107,7 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
         DiagnosticoGuiadoScreen(
             input = dados.input,
             statusMedicao = resultado?.status,
-            // GH#1705 B3 — o 429 é nosso rate limit derrubando a fase de download, não a conexão
-            // da pessoa. O número medido fica artificialmente baixo e não pode alimentar conclusão.
-            downloadConfiavel =
-                resultado?.diagnosticoFases?.downloadEncerradaPor != DOWNLOAD_BLOQUEADO_429,
+            medidasConfiaveis = medidasConfiaveis(resultado),
             analise = entry.analise,
             objetivoPreSelecionado = dados.objetivoPreSelecionado,
             respostaPreSelecionadaPasso0 = dados.respostaPreSelecionadaPasso0,
@@ -140,5 +137,28 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
 
 /** Marcador que `calcularMeasurementStatus` usa para o 429 — string literal do executor. */
 private const val DOWNLOAD_BLOQUEADO_429 = "download_bloqueado_429"
+
+/**
+ * As medidas deste resultado podem alimentar conclusão? — GH#1705, bloqueios B3, B7 e B8.
+ *
+ * As **duas** causas de `MeasurementStatus.PARTIAL`, que o enum achata num valor só:
+ *
+ * - `downloadEncerradaPor == "download_bloqueado_429"` — o nosso rate limit derrubou a fase de
+ *   download e o número ficou artificialmente baixo;
+ * - `uploadNaoDetectado` — a nossa medição de upload desistiu depois do retry, e o `MainViewModel`
+ *   passa `0.0` cru para o motor.
+ *
+ * Nos dois casos o número que sobra não descreve a conexão da pessoa, e o motor concluiria defeito
+ * dela a partir dele — mandando acionar a operadora, ou afirmando que "o upload está comprometido".
+ *
+ * Função separada porque a derivação inline não tinha teste: trocá-la por `true` fixo passava na
+ * suíte inteira do `:app` (bloqueio B8). O call site continua descoberto, como declarado.
+ */
+internal fun medidasConfiaveis(resultado: ResultadoSpeedtest?): Boolean =
+    resultado == null ||
+        (
+            resultado.diagnosticoFases.downloadEncerradaPor != DOWNLOAD_BLOQUEADO_429 &&
+                !resultado.uploadNaoDetectado
+        )
 
 internal const val TAG_OVERLAY_DIAGNOSTICO_GUIADO = "appshell_overlay_diagnostico_guiado"
