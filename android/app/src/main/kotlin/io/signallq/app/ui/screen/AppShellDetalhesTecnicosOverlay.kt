@@ -32,7 +32,7 @@ internal fun AppShellDetalhesTecnicosOverlay(
     localDevice: LocalNetworkDeviceSnapshot?,
 ) {
     AnimatedVisibility(
-        visible = AppShellOverlay.DetalhesTecnicos in overlayStack && resultadoSpeedtest != null,
+        visible = AppShellOverlay.DetalhesTecnicos in overlayStack,
         modifier =
             Modifier
                 .zIndex(rememberOverlayZIndex(AppShellOverlay.DetalhesTecnicos, overlayStack))
@@ -40,12 +40,17 @@ internal fun AppShellDetalhesTecnicosOverlay(
         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
         exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
     ) {
-        resultadoSpeedtest?.let { resultado ->
+        // GH#1714 — sem resultado, o overlay mostra estado vazio honesto em vez de não compor
+        // nada. Antes, o container ficava vazio e o back consumia um `pop()` invisível.
+        val fechar = { overlayStack.remove(AppShellOverlay.DetalhesTecnicos) }
+        if (resultadoSpeedtest == null) {
+            ResultadoIndisponivelScreen(titulo = "Detalhes da conexão", onVoltar = { fechar() })
+        } else {
             DetalhesTecnicosScreen(
-                resultado = resultado,
+                resultado = resultadoSpeedtest,
                 localizacaoServidor = localizacaoServidor,
                 localDevice = localDevice,
-                onVoltar = { overlayStack.remove(AppShellOverlay.DetalhesTecnicos) },
+                onVoltar = { fechar() },
             )
         }
     }

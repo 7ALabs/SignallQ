@@ -66,6 +66,8 @@ internal data class AppShellDiagnosticoGuiadoAcoes(
     val onIrParaHome: () -> Unit,
     val onIniciarModoGamer: () -> Unit,
     val onAbrirFerramentaSugerida: (TipoFerramenta) -> Unit,
+    /** GH#1714 — destino do "Medir agora" do estado vazio. Vai para Velocidade, não para o início. */
+    val onMedirNovamente: () -> Unit,
     val onRecommendationShown: () -> Unit,
     val onRecommendationClicked: () -> Unit,
     val onRecommendationFeedback: (RecommendationFeedbackType) -> Unit,
@@ -87,7 +89,7 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
 ) {
     val dados = entry.dados
     AnimatedVisibility(
-        visible = AppShellOverlay.DiagnosticoGuiado in overlayStack && dados.resultado != null,
+        visible = AppShellOverlay.DiagnosticoGuiado in overlayStack,
         modifier =
             Modifier
                 .zIndex(rememberOverlayZIndex(AppShellOverlay.DiagnosticoGuiado, overlayStack))
@@ -95,7 +97,19 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
         exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
     ) {
-        dados.resultado?.let { resultado ->
+        // GH#1714 — ver ResultadoIndisponivelScreen. Sem resultado o overlay não compunha nada,
+        // e o back virava um toque sem efeito visível.
+        val resultado = dados.resultado
+        if (resultado == null) {
+            ResultadoIndisponivelScreen(
+                titulo = "Diagnóstico",
+                onVoltar = entry.acoes.onVoltar,
+                // Ressalva 2 de Caio na PR #1718: aqui apontava para `onIrParaHome`, então o
+                // mesmo botão, com o mesmo rótulo, levava a lugares diferentes conforme o overlay.
+                // "Medir agora" tem que medir.
+                onMedirNovamente = entry.acoes.onMedirNovamente,
+            )
+        } else {
             DiagnosticoGuiadoScreen(
                 input = dados.input,
                 resultadoValidoParaConclusao = resultado.status.liberaConclusaoCompleta,

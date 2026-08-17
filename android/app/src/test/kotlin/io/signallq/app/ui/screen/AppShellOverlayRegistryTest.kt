@@ -171,6 +171,7 @@ class AppShellOverlayRegistryTest {
                 onIrParaHome = { disparos += "irParaHome" },
                 onIniciarModoGamer = { disparos += "iniciarModoGamer" },
                 onAbrirFerramentaSugerida = { disparos += "abrirFerramentaSugerida" },
+                onMedirNovamente = { disparos += "medirNovamente" },
                 onRecommendationShown = { disparos += "recommendationShown" },
                 onRecommendationClicked = { disparos += "recommendationClicked" },
                 onRecommendationFeedback = { disparos += "recommendationFeedback" },
@@ -216,14 +217,19 @@ class AppShellOverlayRegistryTest {
     // ─── Diagnóstico guiado (issue #1704) ──────────────────────────────────────
 
     @Test
-    fun `diagnostico guiado nao compoe o container sem resultado de speedtest mesmo na pilha`() {
-        // Guarda dupla do overlay: `DiagnosticoGuiado in stack && resultado != null`. Sem o
-        // testTag, este teste seria fachada — o `?.let` interno omite o conteúdo sozinho, então
-        // asserir só a ausência de texto passaria igual com a guarda removida (mesmo achado que
-        // Caio levantou no DetalhesTecnicos na PR #1697).
+    fun `diagnostico guiado sem resultado compoe o estado vazio, nao um container mudo`() {
+        // COMPORTAMENTO INVERTIDO PELA #1714, de propósito. A versão anterior deste teste afirmava
+        // que o container NÃO compunha sem resultado — e isso era justamente o bug: a pilha de
+        // overlays sobrevive ao process death, o `ResultadoSpeedtest` não, e o usuário voltava com
+        // um overlay na pilha que não desenhava nada. O back consumia um `pop()` invisível.
+        //
+        // Agora a ausência de resultado decide O QUE mostrar em vez de esconder. O `testTag`
+        // continua sendo o que distingue "compôs" de "não compôs" — segue valendo o achado de Caio
+        // no DetalhesTecnicos (PR #1697), só que agora a asserção é a oposta.
         val stack = mutableStateListOf(AppShellOverlay.DiagnosticoGuiado)
         composeRule.setContent { RegistryDeTeste(stack = stack) }
-        composeRule.onNodeWithTag(TAG_OVERLAY_DIAGNOSTICO_GUIADO).assertDoesNotExist()
+        composeRule.onNodeWithTag(TAG_OVERLAY_DIAGNOSTICO_GUIADO).assertExists()
+        composeRule.onNodeWithText("Este resultado não está mais disponível").assertExists()
     }
 
     @Test
@@ -342,7 +348,15 @@ class AppShellOverlayRegistryTest {
     }
 
     @Test
-    fun `detalhes tecnicos nao compoe o container quando resultado e nulo mesmo com overlay na pilha`() {
+    fun `detalhes tecnicos sem resultado compoe o estado vazio, nao um container mudo`() {
+        // COMPORTAMENTO INVERTIDO PELA #1714, de propósito — mesmo motivo do diagnóstico guiado
+        // acima. A versão anterior deste teste nasceu de um achado de Caio na PR #1697: asserir só
+        // a ausência do texto era fachada, porque o `?.let` interno omitia o conteúdo sozinho, e o
+        // `testTag` foi acrescentado para distinguir "não compôs" de "compôs vazio".
+        //
+        // O `testTag` continua sendo o instrumento certo; o que mudou é o veredito. "Compôs vazio"
+        // deixou de ser o defeito a evitar e passou a ser o comportamento correto — só que agora o
+        // vazio tem conteúdo: uma tela que explica por que o resultado sumiu.
         val stack = mutableStateListOf(AppShellOverlay.DetalhesTecnicos)
         composeRule.setContent {
             AppShellDetalhesTecnicosOverlay(
@@ -352,14 +366,8 @@ class AppShellOverlayRegistryTest {
                 localDevice = null,
             )
         }
-        // Achado do parecer da PR #1697: asserir só a ausência do texto "Detalhes da conexão"
-        // era fachada -- o `?.let` interno já omite o texto sozinho, então a asserção passava
-        // igual com a guarda `&& resultadoSpeedtest != null` do `visible` removida (o container
-        // `AnimatedVisibility` compunha vazio, mas sem nenhum node de texto para achar). O
-        // `testTag` no modifier do container (ver AppShellDetalhesTecnicosOverlay.kt) existe só
-        // para este teste distinguir "container não compôs" (guarda presente, comportamento
-        // real) de "container compôs vazio" (guarda removida, mutante).
-        composeRule.onNodeWithTag("appshell_overlay_detalhes_tecnicos").assertDoesNotExist()
+        composeRule.onNodeWithTag("appshell_overlay_detalhes_tecnicos").assertExists()
+        composeRule.onNodeWithText("Este resultado não está mais disponível").assertExists()
     }
 
     @Test
