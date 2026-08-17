@@ -37,11 +37,10 @@ fun NativeAdListRow(
     val textPrimary = c.textPrimary
     val textSecondary = c.textSecondary
 
-    // key(nativeAd, textPrimary, textSecondary): o `factory` captura anuncio E cores no closure.
-    // Sem as cores na chave, trocar de tema com o app aberto deixa o texto preso ao tema anterior
-    // -- headline preto sobre card preto (GH#1699). Chaveado pelas duas cores, nao pelo `LkTokens`
-    // inteiro, que tem dezenas de campos e recriaria a arvore de Views a toa.
-    key(ChaveViewAnuncioNativo(nativeAd, textPrimary, textSecondary)) {
+    // GH#1699 — a chave tem que conter TUDO que o `factory` captura no closure, senão o
+    // valor congela no estado antigo sem erro nem log. O inventário por componente e o
+    // porquê de cada campo estão no KDoc de `ChaveViewAnuncioNativo` — fonte única.
+    key(ChaveViewAnuncioNativo(nativeAd, density, textPrimary, textSecondary, origem = source)) {
         AndroidView(
             modifier = modifier.background(c.textTertiary.copy(alpha = 0.04f)),
             factory = { context ->

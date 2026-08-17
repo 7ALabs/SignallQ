@@ -99,16 +99,11 @@ fun NativeAdCard(
 
             Spacer(Modifier.height(LkSpacing.sm))
 
-            // key(nativeAd, textPrimary, textSecondary): o `factory` do AndroidView captura o
-            // anuncio E as cores no closure, em tempo de criacao. `key(nativeAd)` sozinho cobria
-            // so metade do problema (GH#1699):
-            //  - anuncio novo -> recria, senao mostraria texto do anuncio anterior;
-            //  - TEMA novo -> tambem precisa recriar, senao as cores ficam presas ao tema
-            //    anterior e o resultado e headline preto sobre card preto, ilegivel.
-            // Chaveado pelas duas cores e nao pelo `LkTokens` inteiro: sao os unicos campos que
-            // o closure captura, e `LkTokens` tem dezenas de campos que mudariam a chave sem
             // necessidade, recriando a arvore de Views a toa.
-            key(ChaveViewAnuncioNativo(nativeAd, textPrimary, textSecondary)) {
+            // GH#1699 — a chave tem que conter TUDO que o `factory` captura no closure, senão o
+            // valor congela no estado antigo sem erro nem log. O inventário por componente e o
+            // porquê de cada campo estão no KDoc de `ChaveViewAnuncioNativo` — fonte única.
+            key(ChaveViewAnuncioNativo(nativeAd, density, textPrimary, textSecondary)) {
                 AndroidView(
                     modifier = Modifier.fillMaxWidth(),
                     factory = { context ->
