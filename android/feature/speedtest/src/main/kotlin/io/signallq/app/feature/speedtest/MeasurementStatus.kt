@@ -33,7 +33,13 @@ enum class MeasurementStatus {
     ;
 
     /** `true` quando o resultado pode alimentar diagnostico conclusivo, IA,
-     *  Recommendation Engine, contato com operadora, historico e PDF completo. */
+     *  Recommendation Engine, contato com operadora, historico e PDF completo.
+     *
+     *  GH#1705: `false` NAO significa "nada pode ser mostrado". O fluxo guiado exibe conclusao
+     *  parcial em `PARTIAL` quando as medidas que sobraram sao confiaveis — ver
+     *  `continuidadeDaMedicao`. Esta propriedade governa a conclusao COMPLETA, que e o que
+     *  `SpeedtestPersistenceCoordinator` ja descrevia por escrito ("PARTIAL ainda libera
+     *  diagnostico, so nao permite conclusao causal forte na UI"). */
     val liberaConclusaoCompleta: Boolean get() = this == COMPLETE
 }
 

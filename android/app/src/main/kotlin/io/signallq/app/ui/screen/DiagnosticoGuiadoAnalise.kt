@@ -62,8 +62,11 @@ sealed interface EstadoAnaliseGuiada {
  *    tela de erro (GH#374), republicando `estado = idle` com `resultado = value.resultado`.
  *    Checar `estado` primeiro faria uma análise concluída regredir para [NaoIniciada] e disparar
  *    uma segunda medição.
- * 2. **`erro` só sem resultado** — erro com resultado parcial é tratado adiante pela validade do
- *    próprio resultado (`status.liberaConclusaoCompleta`), não aqui.
+ * 2. **`erro` só sem resultado** — erro com resultado parcial não é tratado aqui. Quem trata é a
+ *    continuidade por status (`continuidadeDaMedicao`, GH#1705), que dá a cada valor de
+ *    `MeasurementStatus` explicação e ação próprias; `liberaConclusaoCompleta` segue sendo a
+ *    barreira que decide se dá para concluir sem medir de novo. (Ressalva RS6 de Caio na PR
+ *    #1723: a redação anterior citava só a barreira, de quando os 5 status viravam um bit.)
  *
  * A ordem entre `executando` e `erro` **não** importa, e a redação anterior desta lista afirmava
  * que sim. As duas cláusulas testam o mesmo campo (`estado`) com valores mutuamente exclusivos —

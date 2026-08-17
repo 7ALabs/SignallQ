@@ -7,17 +7,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
+import io.signallq.app.feature.speedtest.MeasurementStatus
 import io.signallq.app.ui.SignallQTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -116,7 +120,7 @@ class DiagnosticoGuiadoScreenTest {
             objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
             respostaPreSelecionadaPasso0 = 0,
             estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
-            resultadoValidoParaConclusao = false,
+            statusMedicao = null,
         )
 
         completarSegundaPerguntaJogos()
@@ -132,29 +136,11 @@ class DiagnosticoGuiadoScreenTest {
     fun `sem medicao valida a entrada mostra a lista de objetivos, nao o banner`() {
         setContent(
             estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
-            resultadoValidoParaConclusao = false,
+            statusMedicao = null,
         )
 
         composeRule.onNodeWithText("Vamos descobrir o que está acontecendo").assertIsDisplayed()
         composeRule.onNodeWithText(ObjetivoDiagnostico.JOGOS_COM_LAG.titulo).assertIsDisplayed()
-    }
-
-    // Mutante: trocar `podeConcluirSemMedir` por `analise.estado is Concluida` (isto é, ignorar
-    // `resultadoValidoParaConclusao`). Rodado — este teste falha, porque o fluxo pularia a
-    // remedição e cairia direto no banner com um resultado que o motor não aceita.
-    @Test
-    fun `medicao concluida porem invalida remede em vez de concluir`() {
-        setContent(
-            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
-            respostaPreSelecionadaPasso0 = 0,
-            estadoAnalise = EstadoAnaliseGuiada.Concluida,
-            resultadoValidoParaConclusao = false,
-        )
-
-        completarSegundaPerguntaJogos()
-
-        assertEquals(1, analiseIniciada)
-        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
     }
 
     // Mutante: remover a cláusula `podeConcluirSemMedir` do `onAvancar`, deixando todo fim de
@@ -185,7 +171,7 @@ class DiagnosticoGuiadoScreenTest {
             objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
             respostaPreSelecionadaPasso0 = 0,
             estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
-            resultadoValidoParaConclusao = false,
+            statusMedicao = null,
         )
         completarSegundaPerguntaJogos()
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
@@ -209,7 +195,7 @@ class DiagnosticoGuiadoScreenTest {
     @Test
     fun `analise que conclui no tempo leva a tela para a conclusao`() {
         var estado by mutableStateOf<EstadoAnaliseGuiada>(EstadoAnaliseGuiada.NaoIniciada)
-        var valido by mutableStateOf(false)
+        var status by mutableStateOf<MeasurementStatus?>(null)
         composeRule.setContent {
             SignallQTheme {
                 TelaDeTeste(
@@ -217,7 +203,7 @@ class DiagnosticoGuiadoScreenTest {
                     respostaPreSelecionadaPasso0 = 0,
                     input = inputJogosComWifiFraco(),
                     estadoAnalise = estado,
-                    resultadoValidoParaConclusao = valido,
+                    statusMedicao = status,
                 )
             }
         }
@@ -230,7 +216,7 @@ class DiagnosticoGuiadoScreenTest {
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
 
         estado = EstadoAnaliseGuiada.Concluida
-        valido = true
+        status = MeasurementStatus.COMPLETE
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertDoesNotExist()
@@ -250,7 +236,7 @@ class DiagnosticoGuiadoScreenTest {
             objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
             respostaPreSelecionadaPasso0 = 0,
             estadoAnalise = EstadoAnaliseGuiada.EmAndamento(0.4f, "Medindo a velocidade de recebimento"),
-            resultadoValidoParaConclusao = false,
+            statusMedicao = null,
         )
 
         completarSegundaPerguntaJogos()
@@ -300,7 +286,7 @@ class DiagnosticoGuiadoScreenTest {
             objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
             respostaPreSelecionadaPasso0 = 0,
             estadoAnalise = EstadoAnaliseGuiada.Falhou("sem conexão"),
-            resultadoValidoParaConclusao = false,
+            statusMedicao = null,
         )
 
         completarSegundaPerguntaJogos()
@@ -336,6 +322,209 @@ class DiagnosticoGuiadoScreenTest {
             wifi = WifiDiagnosticInput(rssiDbm = -50, linkSpeedMbps = 300, frequenciaMhz = 5200),
         )
 
+    // ---------------------------------------------------------------------------------------
+    // Continuidade por status de medicao - GH#1705 (2.0.09c).
+    // ---------------------------------------------------------------------------------------
+    //
+    // Todos usam [medirEConcluirCom], que exercita a TRANSICAO: o roteiro termina sem medicao
+    // utilizavel, o fluxo entra na rota `Analise` e mede, e so entao o status chega. Status fixo
+    // nao serve aqui - foi o bloqueio B2 do parecer da PR #1723: a primeira versao desta fatia
+    // afrouxou `podeConcluirSemMedir` para "basta existir medicao", e com isso um `CONTAMINATED`
+    // guardado de outra sessao fazia a tela falar de uma medicao que a pessoa nao tinha feito.
+
+    /**
+     * Percorre o roteiro, entra na rota `Analise`, e conclui a medicao com [status].
+     *
+     * Devolve quantas medicoes foram disparadas ate a conclusao - deve ser exatamente 1 em todo
+     * caminho que chega aqui sem resultado completo previo.
+     */
+    private fun medirEConcluirCom(
+        status: MeasurementStatus,
+        input: DiagnosticInput? = null,
+        medidasConfiaveis: Boolean = true,
+    ): Int {
+        var estado by mutableStateOf<EstadoAnaliseGuiada>(EstadoAnaliseGuiada.NaoIniciada)
+        var statusAtual by mutableStateOf<MeasurementStatus?>(null)
+        composeRule.setContent {
+            SignallQTheme {
+                TelaDeTeste(
+                    objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+                    respostaPreSelecionadaPasso0 = 0,
+                    input = input,
+                    estadoAnalise = estado,
+                    statusMedicao = statusAtual,
+                    medidasConfiaveis = medidasConfiaveis,
+                )
+            }
+        }
+
+        completarSegundaPerguntaJogos()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
+        val disparos = analiseIniciada
+
+        estado = EstadoAnaliseGuiada.Concluida
+        statusAtual = status
+        composeRule.waitForIdle()
+        return disparos
+    }
+
+    // BLOQUEIO B5 da rodada 2: este teste chamava o helper SEM `input`, então
+    // `assertDoesNotExist("Força do sinal Wi-Fi")` era vácuo — aquele texto não existiria de jeito
+    // nenhum, com ou sem `permiteVerConclusaoParcial`. O mutante que liga a conclusão parcial em
+    // CONTAMINATED sobrevivia. Com `input`, a ausência passa a significar alguma coisa.
+    @Test
+    fun `contaminado mede uma vez, explica a troca de rede e oferece refazer`() {
+        val disparos = medirEConcluirCom(MeasurementStatus.CONTAMINATED, input = inputJogosComWifiFraco())
+
+        assertEquals("mede uma vez antes de falar de rede que mudou", 1, disparos)
+        composeRule.onNodeWithText("Sua rede mudou durante a medição").assertIsDisplayed()
+        composeRule.onNodeWithText("Refazer na mesma rede").assertIsDisplayed()
+        composeRule.onNodeWithText("Força do sinal Wi-Fi").assertDoesNotExist()
+    }
+
+    // BLOQUEIO B5: sem `input` e sem asserção de ausência, o mutante que liga a conclusão parcial
+    // em INCONCLUSIVE sobrevivia.
+    @Test
+    fun `inconclusivo declara a insuficiencia, oferece medir de novo e nao mostra conclusao`() {
+        medirEConcluirCom(MeasurementStatus.INCONCLUSIVE, input = inputJogosComWifiFraco())
+
+        composeRule.onNodeWithText("Não consegui medir o suficiente").assertIsDisplayed()
+        composeRule.onNodeWithText("Medir de novo").assertIsDisplayed()
+        composeRule.onNodeWithText("Força do sinal Wi-Fi").assertDoesNotExist()
+    }
+
+    @Test
+    fun `parcial mostra a conclusao possivel junto com o que falta`() {
+        medirEConcluirCom(MeasurementStatus.PARTIAL, input = inputJogosComWifiFraco())
+
+        composeRule.onNodeWithText("Consegui medir parte da sua conexão").assertIsDisplayed()
+        composeRule.onNodeWithText("Completar a medição").assertIsDisplayed()
+        // A continuidade entrou como cabecalho do conteudo que rola, entao a evidencia desceu para
+        // fora da janela. Rolar ate ela e obrigatorio: sem isso o assert falharia por posicao, nao
+        // por ausencia - a mesma armadilha do bloqueio B1 da PR #1709.
+        composeRule.onNodeWithText("Força do sinal Wi-Fi").performScrollTo().assertIsDisplayed()
+    }
+
+    // BLOQUEIO B3 do parecer. `PARTIAL` vindo do 429 tem o download derrubado pelo NOSSO rate
+    // limit; mostrar conclusao ali faz o motor acusar a operadora com um numero que estragamos.
+    @Test
+    fun `parcial com download estragado pelo 429 nao mostra conclusao`() {
+        medirEConcluirCom(
+            MeasurementStatus.PARTIAL,
+            input = inputJogosComWifiFraco(),
+            medidasConfiaveis = false,
+        )
+
+        // O titulo NAO muda entre confiavel e nao confiavel, entao asserir so ele nao distingue
+        // nada - era o buraco do bloqueio B9. O que muda e a explicacao e o rotulo da acao.
+        composeRule.onNodeWithText("Consegui medir parte da sua conexão").assertIsDisplayed()
+        composeRule
+            .onNodeWithText("não descrevem a sua conexão", substring = true)
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText("O que aparece abaixo", substring = true)
+            .assertDoesNotExist()
+        composeRule.onNodeWithText("Medir de novo").assertIsDisplayed()
+        composeRule.onNodeWithText("Força do sinal Wi-Fi").assertDoesNotExist()
+    }
+
+    @Test
+    fun `cancelado explica sem prometer conclusao`() {
+        medirEConcluirCom(MeasurementStatus.CANCELLED, input = inputJogosComWifiFraco())
+
+        composeRule.onNodeWithText("Você interrompeu a medição").assertIsDisplayed()
+        composeRule.onNodeWithText("Força do sinal Wi-Fi").assertDoesNotExist()
+    }
+
+    @Test
+    fun `completo nao mostra continuidade nenhuma`() {
+        medirEConcluirCom(MeasurementStatus.COMPLETE, input = inputJogosComWifiFraco())
+
+        composeRule.onNodeWithTag(TAG_CONTINUIDADE_MEDICAO).assertDoesNotExist()
+        composeRule.onNodeWithText("Força do sinal Wi-Fi").assertIsDisplayed()
+    }
+
+    // BLOQUEIO B1 do parecer. Os dois blocos eram filhos-raiz do slot do `Scaffold`, que posiciona
+    // todos os placeables do corpo em (0,0): eles nao empilhavam, se SOBREPUNHAM. O veredito ficava
+    // atras da top bar e as primeiras metricas embaixo do banner opaco.
+    //
+    // Duas tentativas de teste falharam antes desta, e as duas falhas ensinam:
+    //
+    // 1. asserir PRESENCA de "Forca do sinal Wi-Fi" - foi o que a versao reprovada fazia.
+    //    `assertIsDisplayed` nao testa oclusao, e aquele elemento era justamente o unico que
+    //    sobrevivia a colisao;
+    // 2. comparar bounds contra "Forca do sinal Wi-Fi" apos rolar - reintroduzi o defeito e o
+    //    mutante SOBREVIVEU, porque depois da rolagem aquele elemento cai abaixo do banner de
+    //    qualquer jeito.
+    //
+    // O que distingue de verdade e ESTRUTURAL: com o cabecalho dentro do `Column` que rola, os dois
+    // compartilham o mesmo scroll e se movem juntos. Com o defeito, a continuidade e um irmao
+    // independente e fica parada enquanto a conclusao rola por baixo dela.
+    @Test
+    fun `a continuidade rola junto com a conclusao, em vez de ficar por cima`() {
+        medirEConcluirCom(MeasurementStatus.PARTIAL, input = inputJogosComWifiFraco())
+
+        val antes = composeRule.onNodeWithTag(TAG_CONTINUIDADE_MEDICAO).getBoundsInRoot().top
+        composeRule.onNodeWithText("Força do sinal Wi-Fi").performScrollTo()
+        val depois = composeRule.onNodeWithTag(TAG_CONTINUIDADE_MEDICAO).getBoundsInRoot().top
+
+        assertTrue(
+            "a continuidade nao acompanhou a rolagem (antes=" + antes + " depois=" + depois +
+                ") - sinal de que ela vive fora do conteudo e o cobre",
+            depois < antes,
+        )
+    }
+
+    // RESSALVA RS8 da rodada 2: o teste acima cobre a sobreposicao entre os dois blocos, mas nao o
+    // SEGUNDO sintoma que Caio mediu - o conteudo inteiro passando por baixo da top bar quando o
+    // inset do Scaffold nao e aplicado. Mutante `Modifier.padding(padding)` -> `Modifier`
+    // sobrevivia ao teste anterior.
+    @Test
+    fun `o conteudo comeca abaixo da barra de titulo`() {
+        medirEConcluirCom(MeasurementStatus.PARTIAL, input = inputJogosComWifiFraco())
+
+        val topoDoConteudo = composeRule.onNodeWithTag(TAG_CONTINUIDADE_MEDICAO).getBoundsInRoot().top
+        val fimDaBarra = composeRule.onNodeWithContentDescription("Voltar").getBoundsInRoot().bottom
+
+        assertTrue(
+            "conteudo comeca em " + topoDoConteudo + ", acima do fim da barra (" + fimDaBarra + ")",
+            topoDoConteudo >= fimDaBarra,
+        )
+    }
+
+    // BLOQUEIO B6 da rodada 2. `medirEConcluirCom` sempre parte de `statusMedicao = null`, então
+    // nenhum teste chegava ao fim do roteiro com um resultado VELHO não-completo em mãos — que é
+    // exatamente o cenário do bloqueio B2 da rodada 1. O afrouxamento de `podeConcluirSemMedir`
+    // para "basta existir medição" era reintroduzível com a suíte inteira verde.
+    //
+    // Aqui o status já entra fixo e não-completo, como um resultado guardado de outra sessão: o
+    // fluxo TEM que medir de novo antes de falar de rede que mudou.
+    @Test
+    fun `resultado velho nao completo nao dispensa medir de novo`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            input = inputJogosComWifiFraco(),
+            estadoAnalise = EstadoAnaliseGuiada.Concluida,
+            statusMedicao = MeasurementStatus.CONTAMINATED,
+        )
+
+        completarSegundaPerguntaJogos()
+
+        assertEquals("resultado velho não-completo tem que ser remedido", 1, analiseIniciada)
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
+    }
+
+    @Test
+    fun `a acao da continuidade remede pelo proprio fluxo`() {
+        val disparos = medirEConcluirCom(MeasurementStatus.INCONCLUSIVE)
+
+        composeRule.onNodeWithTag(TAG_CONTINUIDADE_MEDICAO_ACAO).performClick()
+
+        assertEquals(disparos + 1, analiseIniciada)
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
+    }
+
     @Suppress("LongParameterList")
     private fun setContent(
         objetivoPreSelecionado: ObjetivoDiagnostico? = null,
@@ -345,7 +534,8 @@ class DiagnosticoGuiadoScreenTest {
          *  o pressuposto de todos os testes anteriores a esta fatia. Os testes da rota `Analise`
          *  passam os outros estados explicitamente. */
         estadoAnalise: EstadoAnaliseGuiada = EstadoAnaliseGuiada.Concluida,
-        resultadoValidoParaConclusao: Boolean = true,
+        statusMedicao: MeasurementStatus? = MeasurementStatus.COMPLETE,
+        medidasConfiaveis: Boolean = true,
     ) {
         composeRule.setContent {
             SignallQTheme {
@@ -354,7 +544,8 @@ class DiagnosticoGuiadoScreenTest {
                     respostaPreSelecionadaPasso0 = respostaPreSelecionadaPasso0,
                     input = input,
                     estadoAnalise = estadoAnalise,
-                    resultadoValidoParaConclusao = resultadoValidoParaConclusao,
+                    statusMedicao = statusMedicao,
+                    medidasConfiaveis = medidasConfiaveis,
                 )
             }
         }
@@ -371,11 +562,13 @@ class DiagnosticoGuiadoScreenTest {
         respostaPreSelecionadaPasso0: Int?,
         input: DiagnosticInput?,
         estadoAnalise: EstadoAnaliseGuiada,
-        resultadoValidoParaConclusao: Boolean,
+        statusMedicao: MeasurementStatus?,
+        medidasConfiaveis: Boolean = true,
     ) {
         DiagnosticoGuiadoScreen(
             input = input,
-            resultadoValidoParaConclusao = resultadoValidoParaConclusao,
+            statusMedicao = statusMedicao,
+            medidasConfiaveis = medidasConfiaveis,
             analise =
                 AnaliseGuiadaContrato(
                     estado = estadoAnalise,
