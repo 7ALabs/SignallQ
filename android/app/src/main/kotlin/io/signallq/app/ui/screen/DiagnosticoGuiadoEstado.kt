@@ -68,11 +68,25 @@ data class DiagnosticoGuiadoEstado(
 
     /**
      * O invariante que a PR #1708 quebrou. Sem objetivo escolhido não pode haver passo avançado,
-     * resposta registrada nem rota empilhada — e com objetivo, [passo] não pode apontar além do
-     * roteiro dele, que é o que fazia `perguntas[passo]` estourar.
+     * resposta registrada nem rota empilhada — e com objetivo, [passo] tem que apontar para uma
+     * pergunta que existe, que é o que fazia `perguntas[passo]` estourar.
      *
-     * `passo == perguntas.size` é válido: significa "roteiro terminado", estado transitório entre
-     * responder a última pergunta e empilhar [DiagnosticoGuiadoRota.Resultado].
+     * **Limite é `passo < perguntas.size`, não `<=`.** Uma versão anterior desta PR usava `<=` e
+     * documentava `passo == perguntas.size` como "roteiro terminado, estado transitório". Isso era
+     * invenção minha: `DiagnosticoGuiadoScreen.kt:300` faz
+     * `if (passo < perguntas.size - 1) passo += 1 else mostrarResultado = true` — ao responder a
+     * última pergunta o passo **não** incrementa, o fluxo troca de tela. O estado nunca é
+     * produzido, e sancioná-lo era pior que inútil: `recuar()` desempilha a rota sem mexer no
+     * passo, então um consumidor que confiasse no `<=` cairia em `perguntas[perguntas.size]`.
+     * Achado B4 do parecer de Caio na PR #1713.
+     *
+     * **[respostas] é medido contra [passo], não contra o roteiro.** A tela só cresce a lista até
+     * `passo + 1` (`DiagnosticoGuiadoScreen.kt:293-297`: `while (size <= passo) add(null)`), então
+     * é esse o invariante real. Medir os dois campos contra o mesmo teto, sem relacioná-los,
+     * deixava passar "restaurado na pergunta 0 carregando duas respostas" — e, pior, sobrevivia à
+     * evolução de roteiro: objetivo que ganha uma terceira pergunta aceitaria um save antigo com
+     * duas respostas, produzindo diagnóstico com respostas que não correspondem às perguntas
+     * mostradas. Que é exatamente a frase que esta PR usa para se justificar. Achado B2.
      */
     val coerente: Boolean
         get() =
@@ -80,8 +94,8 @@ data class DiagnosticoGuiadoEstado(
                 passo == 0 && respostas.isEmpty() && pilha.isEmpty()
             } else {
                 passo >= 0 &&
-                    passo <= PerguntasDiagnosticoGuiado.perguntas(objetivo).size &&
-                    respostas.size <= PerguntasDiagnosticoGuiado.perguntas(objetivo).size
+                    passo < PerguntasDiagnosticoGuiado.perguntas(objetivo).size &&
+                    respostas.size <= passo + 1
             }
 
     /**
@@ -95,12 +109,26 @@ data class DiagnosticoGuiadoEstado(
      */
     fun saneado(): DiagnosticoGuiadoEstado = if (coerente) this else DiagnosticoGuiadoEstado()
 
-    /** Avança para [rota]. Repetição é permitida — o fluxo é cíclico. */
+    /**
+     * Avança para [rota]. Repetição é permitida — o fluxo é cíclico.
+     *
+     * Não valida: `DiagnosticoGuiadoEstado().empilhar(Resultado)` produz estado incoerente e
+     * ninguém reclama. [coerente] é **rede de restauração, não invariante de construção** — só é
+     * consultado na fronteira do saver. Estado vivo incoerente sobreviveria até a próxima morte de
+     * processo, e aí seria apagado. Quem construir o fluxo é responsável por só empilhar a partir
+     * de estado válido. Risco residual 1 do parecer de Caio na PR #1713.
+     */
     fun empilhar(rota: DiagnosticoGuiadoRota): DiagnosticoGuiadoEstado = copy(pilha = pilha + rota)
 
     /**
      * Recua um passo interno. Devolve `null` quando não há mais o que recuar — que é o sinal para
      * o `RegistrarBackDoOverlay` responder `false` e deixar o shell fechar o overlay inteiro.
+     *
+     * **Obrigação da fiação, sem correspondente aqui:** o `voltarUmPasso()` atual
+     * (`DiagnosticoGuiadoScreen.kt:188-201`) chama `onResetarAnalisador()` ao sair do resultado.
+     * Isso é efeito colateral e não pertence a um data class — mas some da vista se não estiver
+     * escrito. Sem ele, o analisador de IA fica quente ao sair do Resultado. Risco residual 2 do
+     * parecer de Caio na PR #1713.
      */
     fun recuar(): DiagnosticoGuiadoEstado? =
         when {
@@ -136,33 +164,52 @@ data class DiagnosticoGuiadoEstado(
                 },
                 restore = { valores ->
                     val nomeObjetivo = valores.getOrNull(0).orEmpty()
-                    DiagnosticoGuiadoEstado(
-                        objetivo =
-                            if (nomeObjetivo == SEM_OBJETIVO) {
-                                null
-                            } else {
-                                ObjetivoDiagnostico.entries.firstOrNull { it.name == nomeObjetivo }
-                            },
-                        passo = valores.getOrNull(1)?.toIntOrNull() ?: 0,
-                        respostas =
-                            valores
-                                .getOrNull(2)
-                                .orEmpty()
-                                .split(',')
-                                .filter(String::isNotBlank)
-                                .map { texto ->
-                                    texto.toIntOrNull()?.takeIf { it != RESPOSTA_NAO_RESPONDIDA }
+                    val tokensPilha =
+                        valores
+                            .getOrNull(3)
+                            .orEmpty()
+                            .split(',')
+                            .filter(String::isNotBlank)
+                    val pilhaRestaurada =
+                        tokensPilha.map { nome ->
+                            DiagnosticoGuiadoRota.entries.firstOrNull { it.name == nome }
+                        }
+                    // Fail-closed, igual ao objetivo: token de rota que não mapeia derruba o
+                    // estado inteiro, não é descartado em silêncio. Achado B3 de Caio na PR #1713 —
+                    // a versão anterior usava `mapNotNull` aqui e nuke total no objetivo, duas
+                    // políticas OPOSTAS para o mesmo evento (evolução de enum entre versões), no
+                    // mesmo saver. E a permissiva era a errada: `"Analise,Resultado"` com
+                    // `Resultado` renomeado restaurava `[Analise]`, e o usuário que estava lendo o
+                    // resultado acordava na medição — que redispara sozinha. No meio da pilha era
+                    // pior: `[Resultado, X, Comparacao]` virava um histórico de navegação que
+                    // nunca existiu, com `recuar()` andando por ele.
+                    if (pilhaRestaurada.any { it == null }) {
+                        DiagnosticoGuiadoEstado()
+                    } else {
+                        DiagnosticoGuiadoEstado(
+                            objetivo =
+                                if (nomeObjetivo == SEM_OBJETIVO) {
+                                    null
+                                } else {
+                                    ObjetivoDiagnostico.entries.firstOrNull { it.name == nomeObjetivo }
                                 },
-                        pilha =
-                            valores
-                                .getOrNull(3)
-                                .orEmpty()
-                                .split(',')
-                                .filter(String::isNotBlank)
-                                .mapNotNull { nome ->
-                                    DiagnosticoGuiadoRota.entries.firstOrNull { it.name == nome }
-                                },
-                    ).saneado()
+                            passo = valores.getOrNull(1)?.toIntOrNull() ?: 0,
+                            respostas =
+                                valores
+                                    .getOrNull(2)
+                                    .orEmpty()
+                                    .split(',')
+                                    .filter(String::isNotBlank)
+                                    .map { texto ->
+                                        // `>= 0` em vez de `!= RESPOSTA_NAO_RESPONDIDA`: cobre o
+                                        // sentinela E qualquer negativo que atravessaria como
+                                        // índice de opção válido. Subconjunto grátis da validação
+                                        // de conteúdo, sugerido no B2.
+                                        texto.toIntOrNull()?.takeIf { it >= 0 }
+                                    },
+                            pilha = pilhaRestaurada.filterNotNull(),
+                        ).saneado()
+                    }
                 },
             )
     }

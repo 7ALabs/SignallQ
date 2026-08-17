@@ -77,7 +77,8 @@ class DiagnosticoGuiadoEstadoTest {
         val estado =
             DiagnosticoGuiadoEstado(
                 objetivo = jogos,
-                passo = perguntasJogos,
+                passo = perguntasJogos - 1,
+                respostas = List(perguntasJogos) { 0 },
                 pilha =
                     listOf(
                         DiagnosticoGuiadoRota.Resultado,
@@ -123,24 +124,108 @@ class DiagnosticoGuiadoEstadoTest {
     }
 
     @Test
-    fun `passo no fim do roteiro e coerente e nao sana`() {
-        // `passo == perguntas.size` significa "roteiro terminado" — estado transitório legítimo
-        // entre responder a última pergunta e empilhar o Resultado. Um mutante que usasse `<` no
-        // lugar de `<=` apagaria a jornada exatamente no momento de concluir.
+    fun `passo igual ao tamanho do roteiro e INCOERENTE e sana`() {
+        // Correção do B4: a versão anterior desta PR afirmava que `passo == perguntas.size` era
+        // "roteiro terminado, estado transitório" e o aceitava. Era invenção — a tela faz
+        // `if (passo < perguntas.size - 1) passo += 1 else mostrarResultado = true`
+        // (DiagnosticoGuiadoScreen.kt:300), então o passo TETO em `size - 1` e esse estado nunca
+        // é produzido. Sancioná-lo era perigoso: `recuar()` desempilha a rota sem mexer no passo,
+        // e um consumidor confiando naquele limite cairia em `perguntas[perguntas.size]`.
         val estado = DiagnosticoGuiadoEstado(objetivo = jogos, passo = perguntasJogos)
+        assertFalse(estado.coerente)
+        assertEquals(DiagnosticoGuiadoEstado(), cicloCompleto(estado))
+    }
+
+    @Test
+    fun `ultimo passo real do roteiro e coerente`() {
+        // O teto verdadeiro: `perguntas.size - 1`, com a lista de respostas cheia.
+        val estado =
+            DiagnosticoGuiadoEstado(
+                objetivo = jogos,
+                passo = perguntasJogos - 1,
+                respostas = List(perguntasJogos) { 0 },
+            )
         assertTrue(estado.coerente)
         assertEquals(estado, cicloCompleto(estado))
     }
 
+    // ─── B1: clauses de `coerente` que não tinham cobertura ────────────────────
+
     @Test
-    fun `rota desconhecida na pilha e descartada sem derrubar o resto`() {
-        // Rota removida numa versão futura não pode estourar na restauração. O que sobra ainda
-        // precisa ser coerente — aqui sobra `Resultado`, com objetivo válido.
-        val salvo = listOf(jogos.name, "0", "", "Resultado,ROTA_EXTINTA")
+    fun `passo negativo sana, inclusive no valor de fronteira`() {
+        // Mutante que este teste mata: remover `passo >= 0 &&` de `coerente`. O caso é alcançável
+        // pelo próprio restore — `toIntOrNull()` aceita "-1".
+        //
+        // `-1` é o valor que importa, e descobri isso rodando o mutante: com `-3`, o clause
+        // `respostas.size <= passo + 1` já reprova sozinho (`0 <= -2` é falso), então o mutante
+        // sobrevivia. Em `-1` os dois outros clauses passam (`-1 < 2` e `0 <= 0`) e só a guarda de
+        // não-negatividade segura. Testar longe da fronteira dava a impressão de cobertura sem ter.
+        assertFalse("passo = -1 e a fronteira", DiagnosticoGuiadoEstado(objetivo = jogos, passo = -1).coerente)
+        assertFalse(DiagnosticoGuiadoEstado(objetivo = jogos, passo = -3).coerente)
         assertEquals(
-            listOf(DiagnosticoGuiadoRota.Resultado),
-            DiagnosticoGuiadoEstado.Saver.restore(salvo)?.pilha,
+            DiagnosticoGuiadoEstado(),
+            DiagnosticoGuiadoEstado.Saver.restore(listOf(jogos.name, "-1", "", "")),
         )
+    }
+
+    @Test
+    fun `respostas alem do passo atual sanam`() {
+        // Mutante que este teste mata: trocar o teto de `respostas` por qualquer constante grande.
+        // Também sobrevivia à suíte inteira.
+        //
+        // O invariante REAL é `respostas.size <= passo + 1` — a tela só cresce a lista até o passo
+        // corrente (`while (size <= passo) add(null)`). Medir os dois campos contra o mesmo teto,
+        // sem relacioná-los, deixava passar "restaurado na pergunta 0 carregando duas respostas".
+        // Achado B2 de Caio.
+        assertFalse(DiagnosticoGuiadoEstado(objetivo = jogos, passo = 0, respostas = listOf(1, 2)).coerente)
+        assertEquals(
+            DiagnosticoGuiadoEstado(),
+            DiagnosticoGuiadoEstado.Saver.restore(listOf(jogos.name, "0", "1,2", "")),
+        )
+    }
+
+    @Test
+    fun `respostas ate o passo corrente sao coerentes`() {
+        // O lado positivo do mesmo invariante, para o clause não virar bloqueio universal.
+        assertTrue(DiagnosticoGuiadoEstado(objetivo = jogos, passo = 0, respostas = listOf(0)).coerente)
+        assertTrue(DiagnosticoGuiadoEstado(objetivo = jogos, passo = 1, respostas = listOf(0, 1)).coerente)
+    }
+
+    @Test
+    fun `evolucao de roteiro nao passa mais pela peneira`() {
+        // O caso alcançável sem tampering que o B2 nomeou: um objetivo ganha uma pergunta a mais
+        // numa versão futura, e o save antigo tem menos respostas que o roteiro novo. Com o teto
+        // sendo `passo + 1`, o estado só é aceito se o passo corresponder às respostas — o que
+        // impede diagnosticar com respostas que não correspondem às perguntas mostradas.
+        val salvoDeRoteiroAntigo = listOf(jogos.name, "0", "0,1", "")
+        assertEquals(DiagnosticoGuiadoEstado(), DiagnosticoGuiadoEstado.Saver.restore(salvoDeRoteiroAntigo))
+    }
+
+    @Test
+    fun `indice de resposta negativo vira nulo e nao indice valido`() {
+        // Subconjunto grátis da validação de conteúdo (B2): `takeIf { it >= 0 }` cobre o sentinela
+        // e qualquer negativo. Antes, só `-1` era tratado; `-7` atravessaria como índice de opção.
+        val restaurado = DiagnosticoGuiadoEstado.Saver.restore(listOf(jogos.name, "1", "0,-7", ""))
+        assertEquals(listOf(0, null), restaurado?.respostas)
+    }
+
+    @Test
+    fun `rota desconhecida na pilha sana o estado inteiro`() {
+        // Correção do B3: a versão anterior descartava a rota desconhecida em silêncio e mantinha
+        // o resto — política OPOSTA à do objetivo, no mesmo saver, para o mesmo evento (evolução
+        // de enum entre versões). E a permissiva era a errada: `"Analise,Resultado"` com
+        // `Resultado` renomeado restaurava `[Analise]`, e o usuário que estava lendo o resultado
+        // acordava na medição, que redispara sozinha. Agora é fail-closed, igual ao objetivo.
+        val salvo = listOf(jogos.name, "0", "", "Resultado,ROTA_EXTINTA")
+        assertEquals(DiagnosticoGuiadoEstado(), DiagnosticoGuiadoEstado.Saver.restore(salvo))
+    }
+
+    @Test
+    fun `rota desconhecida no MEIO da pilha tambem sana`() {
+        // O caso pior do B3: descarte silencioso no meio produzia um histórico de navegação que
+        // nunca existiu, com `recuar()` andando por ele.
+        val salvo = listOf(jogos.name, "1", "0,1", "Resultado,X,Comparacao")
+        assertEquals(DiagnosticoGuiadoEstado(), DiagnosticoGuiadoEstado.Saver.restore(salvo))
     }
 
     // ─── Coerência ─────────────────────────────────────────────────────────────
