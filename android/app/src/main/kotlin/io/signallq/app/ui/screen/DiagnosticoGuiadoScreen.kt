@@ -61,8 +61,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.Saver
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -163,19 +161,20 @@ fun DiagnosticoGuiadoScreen(
     onAbrirFerramentaSugerida: (TipoFerramenta) -> Unit = {},
 ) {
     val c = LocalLkTokens.current
-    // GH#1704 (2.0.09b) — os quatro estados do fluxo passaram de `remember` para
-    // `rememberSaveable`. Antes disso, girar o aparelho ou sofrer process death no meio de uma
-    // análise apagava objetivo, passo e respostas, e o usuário recomeçava do zero — a spec §4.3/
-    // §8.1 pede o contrário ("continuar análise"), e `AssistAnalytics` já tinha os campos
-    // `retomada`/`retomavel` sem que existisse retomada nenhuma para medir.
+    // GH#1704 — a persistência destes quatro estados foi RETIRADA desta fatia, não esquecida.
+    // Ver a issue #1704: quatro slots `rememberSaveable` independentes conseguem restaurar
+    // incoerentes entre si (objetivo nulo com `passo > 0` estoura em `perguntas[passo]`;
+    // `mostrarResultado` verdadeiro com objetivo novo salta o roteiro e avalia com respostas de
+    // outra jornada). O invariante "objetivo == null ⇒ passo 0, respostas vazias, sem resultado"
+    // hoje vale por construção, porque todo caminho que zera `objetivo` zera os outros três junto.
     //
-    // Savers explícitos em vez do autoSaver: `ObjetivoDiagnostico` é enum (persistido pelo nome,
-    // não pelo ordinal — reordenar o enum não pode ressuscitar a análise no objetivo errado) e
-    // `List<Int?>` não é Bundle-compatível direto por causa do boxing de nulo.
-    var objetivo by rememberSaveable(stateSaver = SaverObjetivoDiagnostico) { mutableStateOf(objetivoPreSelecionado) }
-    var passo by rememberSaveable { mutableIntStateOf(0) }
+    // A persistência correta é um saver sobre UM objeto de estado, não sobre quatro campos — o
+    // que é exatamente o ViewModel da segunda metade da #1704. Fazer aqui seria criar um remendo
+    // que aquela fatia jogaria fora, com risco de diagnóstico errado no intervalo.
+    var objetivo by remember { mutableStateOf(objetivoPreSelecionado) }
+    var passo by remember { mutableIntStateOf(0) }
     var respostas by
-        rememberSaveable(stateSaver = SaverRespostas) {
+        remember {
             mutableStateOf<List<Int?>>(
                 if (objetivoPreSelecionado != null && respostaPreSelecionadaPasso0 != null) {
                     listOf(respostaPreSelecionadaPasso0)
@@ -184,7 +183,7 @@ fun DiagnosticoGuiadoScreen(
                 },
             )
         }
-    var mostrarResultado by rememberSaveable { mutableStateOf(false) }
+    var mostrarResultado by remember { mutableStateOf(false) }
 
     fun voltarUmPasso() {
         when {
@@ -925,36 +924,3 @@ internal fun recommendationTypeLabel(type: RecommendationType): String =
         RecommendationType.OPERATOR_OFFER -> "OFERTA DA OPERADORA"
         RecommendationType.NATIVE_AD_FALLBACK -> "PUBLICIDADE"
     }
-
-// ─── Savers do estado do fluxo guiado (GH#1704) ──────────────────────────────
-
-/**
- * Persiste [ObjetivoDiagnostico] pelo **nome**, não pelo ordinal.
- *
- * Ordinal quebraria em silêncio: acrescentar ou reordenar um objetivo no enum faria uma análise
- * salva antes da atualização voltar apontando para outro problema — o usuário retomaria a jornada
- * de "vídeos travam" dentro de "jogos com lag", sem nenhum erro. `null` (nenhum objetivo escolhido
- * ainda) é representado por string vazia, e nome desconhecido volta como `null` em vez de estourar,
- * porque um objetivo removido numa versão futura não pode derrubar o app na restauração.
- */
-internal val SaverObjetivoDiagnostico: Saver<ObjetivoDiagnostico?, String> =
-    Saver(
-        save = { it?.name ?: "" },
-        restore = { nome ->
-            if (nome.isEmpty()) null else ObjetivoDiagnostico.entries.firstOrNull { it.name == nome }
-        },
-    )
-
-/**
- * Persiste as respostas do roteiro. `List<Int?>` não vai direto para o `Bundle` por causa do
- * boxing de nulo, então cada item vira `Int`, com [RESPOSTA_NAO_RESPONDIDA] representando o nulo
- * (pergunta ainda não respondida). O valor sentinela é negativo porque índice de opção é sempre
- * >= 0 — não há colisão possível com resposta real.
- */
-internal val SaverRespostas: Saver<List<Int?>, List<Int>> =
-    Saver(
-        save = { respostas -> respostas.map { it ?: RESPOSTA_NAO_RESPONDIDA } },
-        restore = { salvas -> salvas.map { if (it == RESPOSTA_NAO_RESPONDIDA) null else it } },
-    )
-
-internal const val RESPOSTA_NAO_RESPONDIDA = -1
