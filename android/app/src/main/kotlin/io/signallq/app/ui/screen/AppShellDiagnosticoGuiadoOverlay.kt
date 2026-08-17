@@ -107,6 +107,10 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
         DiagnosticoGuiadoScreen(
             input = dados.input,
             statusMedicao = resultado?.status,
+            // GH#1705 B3 — o 429 é nosso rate limit derrubando a fase de download, não a conexão
+            // da pessoa. O número medido fica artificialmente baixo e não pode alimentar conclusão.
+            downloadConfiavel =
+                resultado?.diagnosticoFases?.downloadEncerradaPor != DOWNLOAD_BLOQUEADO_429,
             analise = entry.analise,
             objetivoPreSelecionado = dados.objetivoPreSelecionado,
             respostaPreSelecionadaPasso0 = dados.respostaPreSelecionadaPasso0,
@@ -133,5 +137,8 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
         )
     }
 }
+
+/** Marcador que `calcularMeasurementStatus` usa para o 429 — string literal do executor. */
+private const val DOWNLOAD_BLOQUEADO_429 = "download_bloqueado_429"
 
 internal const val TAG_OVERLAY_DIAGNOSTICO_GUIADO = "appshell_overlay_diagnostico_guiado"

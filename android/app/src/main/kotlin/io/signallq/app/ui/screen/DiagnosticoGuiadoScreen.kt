@@ -8,7 +8,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -124,6 +123,9 @@ fun DiagnosticoGuiadoScreen(
      *  valores de `MeasurementStatus` viravam um bit exatamente aqui. `null` = ainda não há
      *  medição. Ver [continuidadeDaMedicao]. */
     statusMedicao: MeasurementStatus?,
+    /** GH#1705 / bloqueio B3 — `false` quando a fase de download foi derrubada pelo nosso rate
+     *  limit (429) e o número está artificialmente baixo. Ver [continuidadeDaMedicao]. */
+    downloadConfiavel: Boolean,
     /** Rota `Analise` (spec 2.0 §8.5) — GH#1704 parte 4/4. Sem default de propósito: um default
      *  deixaria um caller esquecer de ligar a medição e o fluxo voltaria a depender de um teste
      *  anterior sem que nada quebrasse na compilação. Ver [AnaliseGuiadaContrato]. */
@@ -204,15 +206,26 @@ fun DiagnosticoGuiadoScreen(
      * mede de novo em vez de mostrar o banner de resultado inválido — antes desta fatia o banner
      * substituía a tela inteira já na entrada, e a pessoa não tinha ação nenhuma disponível.
      */
-    val continuidade = statusMedicao?.let { continuidadeDaMedicao(it) }
+    val continuidade = statusMedicao?.let { continuidadeDaMedicao(it, downloadConfiavel) }
 
-    // GH#1705 — basta EXISTIR medição. A versão da #1704 exigia medição completa e mandava o fluxo
-    // remedir sozinho quando não era; com os 5 status separados isso vira um defeito: a pessoa
-    // pediria diagnóstico, o app remediria em silêncio uma medição que acabou de falhar, e ela
-    // nunca saberia por quê. Contaminado e inconclusivo agora CHEGAM à conclusão — o que ela
-    // encontra lá é a explicação e o botão, não o resultado. Quem decide remedir é ela.
+    // Só medição COMPLETA dispensa medir de novo — bloqueio B2 de Caio na PR #1723.
+    //
+    // A primeira versão desta fatia afrouxou para "basta existir medição", argumentando que senão o
+    // app remediria em silêncio. O argumento estava errado: quem leva à conclusão depois de
+    // `remedirPelaAnalise()` é o `LaunchedEffect` abaixo, que já ignora validade de propósito.
+    // `podeConcluirSemMedir` governa só a PRIMEIRA chegada ao fim do roteiro — e ali o resultado
+    // pode ser de outra sessão, de dias atrás. Caio mediu: com um `CONTAMINATED` guardado, a pessoa
+    // respondia o roteiro inteiro e recebia "sua rede mudou durante a medição" sobre uma medição que
+    // ela não fez, sem nenhuma medição nova. Agora mede uma vez; se o resultado NOVO ainda não for
+    // completo, aí sim a continuidade aparece com o botão, sobre dado fresco.
+    //
+    // Pela propriedade canônica (`liberaConclusaoCompleta`), não por comparação solta com COMPLETE:
+    // ela é a barreira declarada de "só isto libera diagnóstico conclusivo, IA, Recommendation
+    // Engine e contato com operadora", e a versão anterior desta fatia a tinha deixado sem nenhum
+    // consumidor de produção (ressalva RS5).
     val podeConcluirSemMedir =
-        analise.estado is EstadoAnaliseGuiada.Concluida && statusMedicao != null
+        analise.estado is EstadoAnaliseGuiada.Concluida &&
+            statusMedicao?.liberaConclusaoCompleta == true
 
     // "Já vi esta análise sair do estado concluído" — sem isso há uma corrida real, encontrada
     // pelo teste `medicao concluida porem invalida remede em vez de concluir`.
@@ -326,19 +339,20 @@ fun DiagnosticoGuiadoScreen(
                     onResetarAnalisador()
                     onAnalisarProblema(objetivoAtual.titulo)
                 }
-                if (continuidade != null) {
-                    // Conclusão parcial: mostra o que deu para apurar E o que falta, na ordem que a
-                    // spec §9 pede. Antes desta issue, PARTIAL caía no mesmo banner de
-                    // CONTAMINATED e a conclusão nem era exibida.
-                    ContinuidadeMedicaoSection(
-                        continuidade = continuidade,
-                        onAgir = ::remedirPelaAnalise,
-                        c = c,
-                        modifier = Modifier.padding(padding).padding(horizontal = LkSpacing.xl),
-                    )
-                }
                 ResultadoDiagnosticoGuiadoConteudo(
-                    modifier = Modifier.padding(if (continuidade == null) padding else PaddingValues(0.dp)),
+                    modifier = Modifier.padding(padding),
+                    // Conclusão parcial: mostra o que deu para apurar E o que falta, na ordem que a
+                    // spec §9 pede. Como cabeçalho do conteúdo que já rola — ver o KDoc do parâmetro.
+                    cabecalho =
+                        continuidade?.let {
+                            {
+                                ContinuidadeMedicaoSection(
+                                    continuidade = it,
+                                    onAgir = ::remedirPelaAnalise,
+                                    c = c,
+                                )
+                            }
+                        },
                     resultado = resultado,
                     analisadorState = analisadorState,
                     onEscolherOutraSituacao = {
@@ -617,6 +631,13 @@ private fun ResultadoDiagnosticoGuiadoConteudo(
     onIniciarModoGamer: (() -> Unit)?,
     onAbrirFerramentaSugerida: (TipoFerramenta) -> Unit,
     c: LkTokens,
+    /** GH#1705 — slot para a continuidade da medição. Precisa entrar AQUI, dentro do `Column` que
+     *  já rola, e não como segundo filho do slot do `Scaffold`: o `ScaffoldLayout` do Material3
+     *  posiciona todos os placeables do corpo em (0,0), então dois filhos-raiz se **sobrepõem** em
+     *  vez de empilhar. A primeira versão desta fatia fazia isso e escondia o veredito atrás da
+     *  top bar e as duas primeiras métricas embaixo do banner opaco — bloqueio B1 de Caio na PR
+     *  #1723, medido por bounds na árvore semântica. */
+    cabecalho: (@Composable () -> Unit)? = null,
 ) {
     Column(
         modifier =
@@ -626,6 +647,10 @@ private fun ResultadoDiagnosticoGuiadoConteudo(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg),
     ) {
+        if (cabecalho != null) {
+            cabecalho()
+            Spacer(Modifier.height(LkSpacing.lg))
+        }
         DiagnosticoStatusBanner(status = resultado.status, mensagem = resultado.mensagemMotor, c = c)
 
         Spacer(Modifier.height(LkSpacing.lg))

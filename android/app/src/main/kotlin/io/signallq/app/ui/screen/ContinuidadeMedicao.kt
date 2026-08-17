@@ -18,12 +18,24 @@ import io.signallq.app.feature.speedtest.MeasurementStatus
 // foi possível concluir e o teste necessário para avançar") e o critério §13 pede que "permissão
 // negada, offline, parcial, contaminado e inconclusivo tenham continuidade útil".
 //
-// ## Nenhum vocabulário novo
+// ## Vocabulário: o que é reuso e o que é decisão nova (ressalva RS1 de Caio na PR #1723)
 //
-// A issue pede reuso justificado por escrito, porque já existem vocabulários paralelos demais.
-// Aqui não nasce enum nenhum: [MeasurementStatus] continua sendo a fonte, e a cor/ícone/rótulo sai
-// do mapeamento canônico de [DiagnosticStatus] (`DiagnosticStatusUi.kt`, GH#1228 P0-8). Este
-// arquivo é só a ponte entre os dois, mais o texto de continuidade — que é conteúdo, não taxonomia.
+// A issue proíbe criar vocabulário novo, e a primeira redação deste cabeçalho afirmava que aqui só
+// havia reuso. Não é bem isso, e a distinção importa:
+//
+// - **Reuso, de fato:** [MeasurementStatus] continua sendo a fonte — nenhum enum nasce aqui. E
+//   `DiagnosticStatusUi.kt` (GH#1228 P0-8) continua sendo o único tradutor de [DiagnosticStatus]
+//   para cor e ícone; nenhuma cor local é inventada.
+// - **Decisão nova, assumida:** a **ponte** `MeasurementStatus → DiagnosticStatus` não existia.
+//   `DiagnosticStatusUi` mapeia o vocabulário de *resultado de diagnóstico* dos motores de
+//   `core/diagnostico`, não o de *integridade de medição*. Dizer que `CONTAMINATED` se apresenta
+//   como `attention` e `INCONCLUSIVE` como `inconclusive` é escolha desta fatia, não herança.
+//   Por isso ela é testada campo a campo em `ContinuidadeMedicaoTest`, e não apenas escrita.
+//
+// [ContinuidadeMedicao] em si é conteúdo, não taxonomia: é chaveado por [MeasurementStatus] e não
+// introduz nenhum valor enumerado. O rótulo textual do status continua vindo de
+// `MeasurementStatus.labelPt()` quando alguém precisar dele — esta tela usa título de jornada, que
+// é outra coisa ("Sua rede mudou durante a medição", não "Contaminado").
 
 /**
  * O que dizer e o que oferecer quando a medição não é completa.
@@ -58,7 +70,24 @@ internal data class ContinuidadeMedicao(
  * mudança de contrato dele, a mesma que a ressalva RS14 da PR #1719 apontou. O ramo existe aqui
  * para que a emissão, quando vier, não encontre um buraco na UI; não para fingir que já funciona.
  */
-internal fun continuidadeDaMedicao(status: MeasurementStatus): ContinuidadeMedicao? =
+internal fun continuidadeDaMedicao(
+    status: MeasurementStatus,
+    /**
+     * O número de download é confiável? — bloqueio B3 de Caio na PR #1723.
+     *
+     * `calcularMeasurementStatus` produz `PARTIAL` por duas causas diferentes e as achata num valor
+     * só: upload não detectado, e `downloadEncerradaPor == "download_bloqueado_429"`. No segundo, o
+     * download medido é artificialmente baixo **porque o nosso próprio rate limit derrubou a fase**
+     * — e `DiagnosticoGuiadoEngine.avaliarVelocidadeNaoChega` calcula o percentual do plano direto
+     * de `internet.downloadMbps`. A conclusão diria à pessoa que ela recebe 30% do contratado, e o
+     * card de ações a mandaria acionar a operadora, com um número que o SignallQ estragou.
+     *
+     * É o mesmo pecado do achatamento que esta issue corrige um nível acima. Enquanto
+     * `MeasurementStatus` não distinguir as duas causas, quem sabe é o chamador, que tem
+     * `diagnosticoFases.downloadEncerradaPor` em mãos.
+     */
+    downloadConfiavel: Boolean = true,
+): ContinuidadeMedicao? =
     when (status) {
         MeasurementStatus.COMPLETE -> null
 
@@ -70,7 +99,10 @@ internal fun continuidadeDaMedicao(status: MeasurementStatus): ContinuidadeMedic
                     "Uma das etapas não terminou, então o diagnóstico está incompleto. O que " +
                         "aparece abaixo é o que deu para apurar com segurança.",
                 rotuloAcao = "Completar a medição",
-                permiteVerConclusaoParcial = true,
+                // Sem download confiável não há conclusão parcial que preste: as dimensões
+                // derivadas de download são a maior parte do que o motor conclui, e mostrá-las
+                // seria acusar a operadora por um número que estragamos. Ver [downloadConfiavel].
+                permiteVerConclusaoParcial = downloadConfiavel,
             )
 
         MeasurementStatus.CONTAMINATED ->
@@ -91,9 +123,11 @@ internal fun continuidadeDaMedicao(status: MeasurementStatus): ContinuidadeMedic
                 // `MetricStatusUi` já documentam para os respectivos valores inconclusivos.
                 statusVisual = DiagnosticStatus.inconclusive,
                 titulo = "Não consegui medir o suficiente",
+                // "amostras" é vocabulário nosso, não de quem usa; e "prefiro dizer isso a chutar
+                // um diagnóstico" é o app se elogiando pela própria honestidade. Ressalva RS3.
                 explicacao =
-                    "Vieram poucas amostras para eu afirmar qualquer coisa sobre sua conexão. " +
-                        "Prefiro dizer isso a chutar um diagnóstico.",
+                    "A medição terminou cedo demais para eu ter certeza de alguma coisa sobre " +
+                        "sua conexão.",
                 rotuloAcao = "Medir de novo",
                 permiteVerConclusaoParcial = false,
             )
@@ -102,10 +136,13 @@ internal fun continuidadeDaMedicao(status: MeasurementStatus): ContinuidadeMedic
             ContinuidadeMedicao(
                 statusVisual = DiagnosticStatus.info,
                 titulo = "Você interrompeu a medição",
-                explicacao =
-                    "Guardei o que já tinha sido medido até ali. Dá para seguir com isso ou " +
-                        "refazer do começo.",
+                // Não prometer que guardamos: `MeasurementStatus` documenta que CANCELLED "não
+                // chega a gerar `ResultadoSpeedtest`" e `SpeedtestPersistenceCoordinator` o mapeia
+                // para "failed". Não há o que preservar, então `permiteVerConclusaoParcial` é
+                // `false` — travar `true` seria contrato observado de um estado inalcançável.
+                // Ressalva RS2 de Caio na PR #1723.
+                explicacao = "A medição não chegou ao fim, então não tenho conclusão para dar.",
                 rotuloAcao = "Medir de novo",
-                permiteVerConclusaoParcial = true,
+                permiteVerConclusaoParcial = false,
             )
     }

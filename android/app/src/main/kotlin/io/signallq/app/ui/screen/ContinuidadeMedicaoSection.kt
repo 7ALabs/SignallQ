@@ -14,9 +14,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -26,6 +28,29 @@ import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.component.corContainer
 import io.signallq.app.ui.component.corConteudo
 import io.signallq.app.ui.component.icone
+
+/**
+ * Cores da continuidade, resolvidas pelo mapeamento canônico.
+ *
+ * Existe como função separada por causa do bloqueio B4 de Caio na PR #1723: fixar `corContainer`
+ * em `warningContainer` para todos os status sobrevivia à suíte inteira — e esse mutante É o
+ * defeito que a #1705 dizia estar removendo. Remover um defeito sem deixar nada impedindo alguém
+ * de recolocá-lo não é remover.
+ */
+@Stable
+internal data class CoresDaContinuidade(
+    val container: Color,
+    val conteudo: Color,
+)
+
+internal fun coresDaContinuidade(
+    continuidade: ContinuidadeMedicao,
+    c: LkTokens,
+): CoresDaContinuidade =
+    CoresDaContinuidade(
+        container = continuidade.statusVisual.corContainer(c),
+        conteudo = continuidade.statusVisual.corConteudo(c),
+    )
 
 /**
  * A continuidade desenhada — issue #1705 (2.0.09c). Substitui `ResultadoInvalidoBannerGuiado`.
@@ -46,12 +71,13 @@ internal fun ContinuidadeMedicaoSection(
     c: LkTokens,
     modifier: Modifier = Modifier,
 ) {
+    val cores = coresDaContinuidade(continuidade, c)
     Column(
         modifier =
             modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(LkRadius.card))
-                .background(continuidade.statusVisual.corContainer(c))
+                .background(cores.container)
                 .padding(LkSpacing.lg)
                 .testTag(TAG_CONTINUIDADE_MEDICAO),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
@@ -63,20 +89,20 @@ internal fun ContinuidadeMedicaoSection(
             Icon(
                 imageVector = continuidade.statusVisual.icone(),
                 contentDescription = null,
-                tint = continuidade.statusVisual.corConteudo(c),
+                tint = cores.conteudo,
                 modifier = Modifier.size(22.dp),
             )
             Text(
                 text = continuidade.titulo,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.W600,
-                color = continuidade.statusVisual.corConteudo(c),
+                color = cores.conteudo,
             )
         }
         Text(
             text = continuidade.explicacao,
             style = MaterialTheme.typography.bodyMedium,
-            color = continuidade.statusVisual.corConteudo(c),
+            color = cores.conteudo,
         )
         Button(
             onClick = onAgir,
