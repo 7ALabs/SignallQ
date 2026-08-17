@@ -69,8 +69,20 @@ fun PrivacidadeScreen(
 
     LaunchedEffect(erroOpcoesAnuncios) {
         erroOpcoesAnuncios?.let {
-            snackbarHostState.showSnackbar(it)
-            onErroOpcoesAnunciosExibido()
+            // `finally` porque `showSnackbar` SUSPENDE até a dispensa (~4s). Se a tela sair de
+            // composição nesse intervalo — usuário fecha a Privacidade com o snackbar na tela — a
+            // corrotina é cancelada no descarte e a linha seguinte nunca rodaria: o erro ficaria
+            // preso não-nulo no overlay (que não é descartado, é o pai) e seria REEXIBIDO na
+            // próxima abertura da tela, vindo de uma sessão anterior. Ressalva R5 de Caio na
+            // PR #1709.
+            //
+            // Não inverter para consumir ANTES de exibir: limpar o estado muda a chave deste
+            // `LaunchedEffect`, o que cancelaria o próprio `showSnackbar` em voo.
+            try {
+                snackbarHostState.showSnackbar(it)
+            } finally {
+                onErroOpcoesAnunciosExibido()
+            }
         }
     }
 
