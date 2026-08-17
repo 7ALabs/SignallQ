@@ -284,15 +284,26 @@ class AppShellMedicaoGuiadaTest {
         }
     }
 
+    // Tabela-verdade COMPLETA dos dois lados — ressalva RS-B de Caio na PR #1719. A versão anterior
+    // cobria `erro` e `executando` do back handler e deixava `idle`/`concluido` de fora, então o
+    // mutante `estado != executando` sobrevivia: em produção ele deixaria o `BackHandler` ativo em
+    // repouso, engolindo o back do usuário e chamando `onCancelarTeste()` sem teste nenhum.
     @Test
     fun `sem medicao guiada o overlay de velocidade segue a regra original`() {
-        assertTrue(deveMostrarOverlayVelocidade(false, EstadoExecucaoSpeedtest.executando))
-        assertTrue(deveMostrarOverlayVelocidade(false, EstadoExecucaoSpeedtest.erro))
-        assertFalse(deveMostrarOverlayVelocidade(false, EstadoExecucaoSpeedtest.idle))
-        assertFalse(deveMostrarOverlayVelocidade(false, EstadoExecucaoSpeedtest.concluido))
+        val mostraOverlay = setOf(EstadoExecucaoSpeedtest.executando, EstadoExecucaoSpeedtest.erro)
 
-        assertTrue(deveTratarBackDeErroDoSpeedtest(false, EstadoExecucaoSpeedtest.erro))
-        assertFalse(deveTratarBackDeErroDoSpeedtest(false, EstadoExecucaoSpeedtest.executando))
+        EstadoExecucaoSpeedtest.entries.forEach { estado ->
+            assertEquals(
+                "overlay de velocidade em $estado",
+                estado in mostraOverlay,
+                deveMostrarOverlayVelocidade(suprimeReacoesDoShell = false, estado = estado),
+            )
+            assertEquals(
+                "back de erro em $estado",
+                estado == EstadoExecucaoSpeedtest.erro,
+                deveTratarBackDeErroDoSpeedtest(suprimeReacoesDoShell = false, estado = estado),
+            )
+        }
     }
 
     @Test

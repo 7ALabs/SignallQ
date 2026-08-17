@@ -248,8 +248,16 @@ internal fun rememberMedicaoGuiada(
     // `execucaoSpeedtestEmAndamento` só é liberado no `finally` — então `reiniciarSuite` retorna em
     // `:960` E o snapshot já está `executando`.
     //
-    // Nivelado por valor e rearmado a cada mudança de estado: a checagem depois do `delay` fecha a
-    // corrida de o executor começar durante a espera.
+    // **É A CHAVE que fecha a corrida de o executor começar durante a espera**, não uma checagem
+    // depois do `delay` (ressalva RS-A de Caio na PR #1719). `snapshot` é parâmetro capturado por
+    // valor: dentro de uma execução do coroutine, `snapshot.estado` é constante, então uma recheca
+    // pós-`delay` seria tautologia — só se chega no `delay` tendo provado que o estado não é
+    // `executando`. Caio provou o par: tornar a recheca incondicional sobrevive à suíte; tirar
+    // `snapshot.estado` da chave mata `medicao que comeca a tempo nao cai no limite`.
+    //
+    // O mecanismo real: o executor publica `executando` durante a espera → a chave muda → este
+    // coroutine é cancelado → a nova instância cai no ramo de cima. Quem for simplificar a chave
+    // está removendo a única parte que trabalha, e reintroduz o B7.
     LaunchedEffect(medicao.aguardandoInicio, snapshot.estado) {
         if (!medicao.aguardandoInicio) return@LaunchedEffect
         if (snapshot.estado == EstadoExecucaoSpeedtest.executando) {
@@ -257,7 +265,7 @@ internal fun rememberMedicaoGuiada(
             return@LaunchedEffect
         }
         delay(limiteParaIniciarMs)
-        if (snapshot.estado != EstadoExecucaoSpeedtest.executando) medicao.registrarFalhaDeInicio()
+        medicao.registrarFalhaDeInicio()
     }
 
     val estado =
