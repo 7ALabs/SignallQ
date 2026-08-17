@@ -445,7 +445,6 @@ class MainActivity : ComponentActivity() {
                         limiteAlertaMbps = limiteAlertaMbps,
                         dnsResolverIp = snapshotRede.dnsServidores.firstOrNull(),
                         historico = historico,
-                        resumoHistorico = resumoHistorico,
                         snapshotFibra = snapshotFibra,
                         localDevice = localDeviceSnapshot,
                         natStatus = natStatus,
@@ -515,18 +514,22 @@ class MainActivity : ComponentActivity() {
                         onSolicitarPermissaoLocalizacao = { solicitarPermissaoLocalizacaoContextual() },
                         anatelBannerDismissed = anatelBannerDismissed,
                         onDispensarBannerAnatel = { viewModel.dispensarBannerAnatel() },
-                        historicoFiltrado = historicoFiltrado,
-                        filtroConexaoHistorico = filtroConexaoHistorico,
-                        onFiltroConexaoHistoricoChange = {
-                            viewModel.setFiltroConexaoHistorico(it)
-                            analyticsTracker.registrarFeatureUsada("historico")
-                        },
-                        filtroOperadoraHistorico = filtroOperadoraHistorico,
-                        onFiltroOperadoraHistoricoChange = {
-                            viewModel.setFiltroOperadoraHistorico(it)
-                            analyticsTracker.registrarFeatureUsada("historico")
-                        },
-                        operadorasDisponiveisHistorico = operadorasDisponiveisHistorico,
+                        historicoTela =
+                            io.signallq.app.ui.screen.AppShellHistoricoState(
+                                historicoFiltrado = historicoFiltrado,
+                                resumoHistorico = resumoHistorico,
+                                filtroConexao = filtroConexaoHistorico,
+                                onFiltroConexaoChange = {
+                                    viewModel.setFiltroConexaoHistorico(it)
+                                    analyticsTracker.registrarFeatureUsada("historico")
+                                },
+                                filtroOperadora = filtroOperadoraHistorico,
+                                onFiltroOperadoraChange = {
+                                    viewModel.setFiltroOperadoraHistorico(it)
+                                    analyticsTracker.registrarFeatureUsada("historico")
+                                },
+                                operadorasDisponiveis = operadorasDisponiveisHistorico,
+                            ),
                         onScreenView = { screenName -> analyticsTracker.registrarScreenView(screenName) },
                         onAssistObjetivo = analyticsTracker::registrarAssistObjetivo,
                         onAssistResposta = analyticsTracker::registrarAssistResposta,
