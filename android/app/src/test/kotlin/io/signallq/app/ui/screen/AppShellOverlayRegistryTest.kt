@@ -22,6 +22,9 @@ import io.signallq.app.feature.speedtest.ModoSpeedtest
 import io.signallq.app.feature.speedtest.ResultadoSpeedtest
 import io.signallq.app.feature.speedtest.SeveridadeBufferbloat
 import io.signallq.app.feature.speedtest.VereditoUso
+import io.signallq.app.ui.OperadoraSource
+import io.signallq.app.ui.ResolvedOperadoraIdentity
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -121,15 +124,71 @@ class AppShellOverlayRegistryTest {
         )
 
     /**
+     * Entrada do diagnóstico guiado para os testes — issue #1704. Primeira entrada do registro no
+     * formato agrupado (`AppShellXxxEntry`), padrão que a ressalva 3 de Caio (PR #1697) tornou
+     * obrigatório para toda migração de overlay a partir daqui.
+     */
+    private fun diagnosticoGuiadoDeTeste(
+        resultado: ResultadoSpeedtest? = null,
+        disparos: MutableList<String> = mutableListOf(),
+        identidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity? = { _, _ -> IDENTIDADE_DE_TESTE },
+    ) = AppShellDiagnosticoGuiadoEntry(
+        dados =
+            AppShellDiagnosticoGuiadoDados(
+                input = null,
+                resultado = resultado,
+                analisadorState = AnalisadorState.Inativo,
+                objetivoPreSelecionado = null,
+                respostaPreSelecionadaPasso0 = null,
+                categoria = null,
+                ispNome = "ISP de teste",
+                operadoraMovel = null,
+                recommendationDecision = null,
+                recommendationFeedback = null,
+            ),
+        operadora =
+            AppShellOperadoraResolvers(
+                identidadeLocal = identidadeLocal,
+                contatoLocal = { _, _ -> null },
+                // Identidade DISTINTA da local de propósito (ressalva RS2 de Caio na re-revisão
+                // da PR #1708): se as duas devolvessem o mesmo objeto, o teste de tela que vai
+                // cobrir a resolução de operadora não conseguiria distinguir local de remota —
+                // ligar identidadeLocal em identidadeRemota passaria. É o mesmo defeito do
+                // achado R1, um nível abaixo, evitado antes de o teste existir.
+                identidadeRemota = { _, _ -> IDENTIDADE_REMOTA_DE_TESTE },
+                contatoRemoto = { _, _ -> error("nao usado neste teste") },
+            ),
+        // Cada lambda grava um id PRÓPRIO em vez de `{}`. Achado R1 do parecer de Caio na
+        // PR #1702, reincidente na PR #1708: com todos os campos fixados no mesmo valor neutro,
+        // trocar dois de lugar no data class (ex.: `onVoltar` recebendo `onIrParaHome`) não é
+        // detectável por nenhuma asserção — e essa troca muda comportamento de verdade, porque
+        // `onIrParaHome` limpa o estado do Assist e navega para a raiz.
+        acoes =
+            AppShellDiagnosticoGuiadoAcoes(
+                onAnalisarProblema = { disparos += "analisarProblema" },
+                onResetarAnalisador = { disparos += "resetarAnalisador" },
+                onVoltar = { disparos += "voltar" },
+                onIrParaHome = { disparos += "irParaHome" },
+                onIniciarModoGamer = { disparos += "iniciarModoGamer" },
+                onAbrirFerramentaSugerida = { disparos += "abrirFerramentaSugerida" },
+                onRecommendationShown = { disparos += "recommendationShown" },
+                onRecommendationClicked = { disparos += "recommendationClicked" },
+                onRecommendationFeedback = { disparos += "recommendationFeedback" },
+            ),
+    )
+
+    /**
      * Wiring padrão do [AppShellOverlayRegistry] para os testes desta classe — os parâmetros que
-     * um teste precisa customizar (pilha, resultado de speedtest, callback de gerenciar dados)
-     * ficam explícitos; o resto é o mínimo neutro para compor sem crash.
+     * um teste precisa customizar (pilha, resultado de speedtest, callback de gerenciar dados,
+     * entrada do diagnóstico guiado) ficam explícitos; o resto é o mínimo neutro para compor sem
+     * crash.
      */
     @Composable
     private fun RegistryDeTeste(
         stack: MutableList<AppShellOverlay>,
         resultadoSpeedtest: ResultadoSpeedtest? = null,
         onAbrirGerenciarDados: () -> Unit = {},
+        diagnosticoGuiado: AppShellDiagnosticoGuiadoEntry = diagnosticoGuiadoDeTeste(),
     ) {
         AppShellOverlayRegistry(
             overlayStack = stack,
@@ -150,7 +209,74 @@ class AppShellOverlayRegistryTest {
             dnsResolverIp = null,
             snapshotRede = SnapshotRede.desconectado(0L),
             onIniciarBenchmarkDns = {},
+            diagnosticoGuiado = diagnosticoGuiado,
         )
+    }
+
+    // ─── Diagnóstico guiado (issue #1704) ──────────────────────────────────────
+
+    @Test
+    fun `diagnostico guiado nao compoe o container sem resultado de speedtest mesmo na pilha`() {
+        // Guarda dupla do overlay: `DiagnosticoGuiado in stack && resultado != null`. Sem o
+        // testTag, este teste seria fachada — o `?.let` interno omite o conteúdo sozinho, então
+        // asserir só a ausência de texto passaria igual com a guarda removida (mesmo achado que
+        // Caio levantou no DetalhesTecnicos na PR #1697).
+        val stack = mutableStateListOf(AppShellOverlay.DiagnosticoGuiado)
+        composeRule.setContent { RegistryDeTeste(stack = stack) }
+        composeRule.onNodeWithTag(TAG_OVERLAY_DIAGNOSTICO_GUIADO).assertDoesNotExist()
+    }
+
+    @Test
+    fun `registry compoe diagnostico guiado quando esta na pilha e ha resultado`() {
+        // Mutante que este teste mata: remover a chamada de AppShellDiagnosticoGuiadoOverlay de
+        // dentro do registro — a tela sumiria do app com a suíte verde.
+        val stack = mutableStateListOf(AppShellOverlay.DiagnosticoGuiado)
+        composeRule.setContent {
+            RegistryDeTeste(
+                stack = stack,
+                diagnosticoGuiado = diagnosticoGuiadoDeTeste(resultado = resultadoSpeedtestDeTeste()),
+            )
+        }
+        composeRule.onNodeWithTag(TAG_OVERLAY_DIAGNOSTICO_GUIADO).assertExists()
+    }
+
+    @Test
+    fun `diagnostico guiado repassa onVoltar e nao onIrParaHome ao botao voltar`() {
+        // Mutante que este teste mata: trocar `onVoltar` com `onIrParaHome` dentro de
+        // AppShellDiagnosticoGuiadoAcoes. Compila, e o efeito é grave — "voltar" passaria a
+        // limpar o estado do Assist e navegar para a raiz Home, em vez de só fechar o overlay.
+        //
+        // Sobrevivia à suíte inteira do :app antes deste teste, porque o helper fixava os 9
+        // lambdas como `{}` e nenhuma asserção olhava para qual disparou. É o achado R1 do
+        // parecer de Caio na PR #1702, reincidente aqui.
+        val disparos = mutableListOf<String>()
+        val stack = mutableStateListOf(AppShellOverlay.DiagnosticoGuiado)
+        composeRule.setContent {
+            RegistryDeTeste(
+                stack = stack,
+                diagnosticoGuiado =
+                    diagnosticoGuiadoDeTeste(
+                        resultado = resultadoSpeedtestDeTeste(),
+                        disparos = disparos,
+                    ),
+            )
+        }
+        // Estado inicial da tela guiada é a lista de objetivos; ali `voltarUmPasso()` cai no
+        // ramo `else -> onVoltar()`.
+        composeRule.onNodeWithContentDescription("Voltar").performClick()
+        composeRule.runOnIdle { assertEquals(listOf("voltar"), disparos) }
+    }
+
+    @Test
+    fun `diagnostico guiado fora da pilha nao compoe`() {
+        val stack = mutableStateListOf<AppShellOverlay>()
+        composeRule.setContent {
+            RegistryDeTeste(
+                stack = stack,
+                diagnosticoGuiado = diagnosticoGuiadoDeTeste(resultado = resultadoSpeedtestDeTeste()),
+            )
+        }
+        composeRule.onNodeWithTag(TAG_OVERLAY_DIAGNOSTICO_GUIADO).assertDoesNotExist()
     }
 
     // ─── Por overlay (visibilidade + onVoltar isolados) ─────────────────────────
@@ -386,3 +512,23 @@ class AppShellOverlayRegistryTest {
         composeRule.onNodeWithText("Comparativo de DNS").assertExists()
     }
 }
+
+private val IDENTIDADE_REMOTA_DE_TESTE =
+    ResolvedOperadoraIdentity(
+        displayName = "Operadora remota de teste",
+        monograma = "R",
+        corMarca = null,
+        logoRes = null,
+        logoUrl = null,
+        source = OperadoraSource.REMOTE,
+    )
+
+private val IDENTIDADE_DE_TESTE =
+    ResolvedOperadoraIdentity(
+        displayName = "Operadora local de teste",
+        monograma = "T",
+        corMarca = null,
+        logoRes = null,
+        logoUrl = null,
+        source = OperadoraSource.LOCAL,
+    )

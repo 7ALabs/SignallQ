@@ -161,6 +161,16 @@ fun DiagnosticoGuiadoScreen(
     onAbrirFerramentaSugerida: (TipoFerramenta) -> Unit = {},
 ) {
     val c = LocalLkTokens.current
+    // GH#1704 — a persistência destes quatro estados foi RETIRADA desta fatia, não esquecida.
+    // Ver a issue #1704: quatro slots `rememberSaveable` independentes conseguem restaurar
+    // incoerentes entre si (objetivo nulo com `passo > 0` estoura em `perguntas[passo]`;
+    // `mostrarResultado` verdadeiro com objetivo novo salta o roteiro e avalia com respostas de
+    // outra jornada). O invariante "objetivo == null ⇒ passo 0, respostas vazias, sem resultado"
+    // hoje vale por construção, porque todo caminho que zera `objetivo` zera os outros três junto.
+    //
+    // A persistência correta é um saver sobre UM objeto de estado, não sobre quatro campos — o
+    // que é exatamente o ViewModel da segunda metade da #1704. Fazer aqui seria criar um remendo
+    // que aquela fatia jogaria fora, com risco de diagnóstico errado no intervalo.
     var objetivo by remember { mutableStateOf(objetivoPreSelecionado) }
     var passo by remember { mutableIntStateOf(0) }
     var respostas by

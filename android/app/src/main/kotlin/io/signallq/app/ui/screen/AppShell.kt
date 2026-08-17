@@ -96,9 +96,6 @@ import io.signallq.app.ui.IspInfo
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
-import io.signallq.app.ui.OperadoraSource
-import io.signallq.app.ui.ResolvedOperadoraContact
-import io.signallq.app.ui.ResolvedOperadoraIdentity
 import io.signallq.app.ui.resumoBandasWifi
 import io.signallq.app.ui.state.UiState
 import kotlinx.coroutines.delay
@@ -246,31 +243,10 @@ fun AppShell(
     // sincrono, sem I/O) + cadeia completa (local -> diretorio remoto do worker
     // signallq-diagnostic -> fallback generico). Injetado a partir da MainActivity
     // (OperadoraDirectoryResolver via Hilt) — AppShell so repassa, nao resolve nada.
-    resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity? =
-        { _, _ -> null },
-    resolveOperadoraContatoLocal: (String?, Boolean) -> ResolvedOperadoraContact? =
-        { _, _ -> null },
-    resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity =
-        { nome, _ ->
-            ResolvedOperadoraIdentity(
-                displayName = nome ?: "Operadora",
-                monograma = nome?.firstOrNull()?.uppercase() ?: "?",
-                corMarca = null,
-                logoRes = null,
-                logoUrl = null,
-                source = OperadoraSource.FALLBACK,
-            )
-        },
-    resolveOperadoraContatoRemoto: suspend (String?, Boolean) -> ResolvedOperadoraContact =
-        { nome, _ ->
-            ResolvedOperadoraContact(
-                displayName = nome ?: "Operadora",
-                sacPhone = null,
-                whatsapp = null,
-                site = null,
-                source = OperadoraSource.FALLBACK,
-            )
-        },
+    // GH#1704 — os 4 resolvers de operadora (GH#970) viraram um grupo só; os dois lambdas de
+    // fallback default ocupavam 28 linhas desta assinatura e agora vivem em `AppShellState.kt`,
+    // ao lado do tipo que descrevem.
+    operadoraResolvers: AppShellOperadoraResolvers = AppShellOperadoraResolvers(),
     // Issue #1476 (Feature #550) — combinação jogo+device salva como padrão do Modo gamer,
     // ou `null` quando o usuário nunca salvou nenhuma (sempre abre pela Etapa 1/3).
     modoGamerPadrao: ModoGamerPadraoPersistido? = null,
@@ -320,6 +296,9 @@ fun AppShell(
 
     val operadoraMovel = signallQ.operadoraMovel
     val onVerificarGemma = signallQ.onVerificarGemma
+
+    val resolveOperadoraIdentidadeLocal = operadoraResolvers.identidadeLocal
+    val resolveOperadoraIdentidadeRemota = operadoraResolvers.identidadeRemota
 
     // Monetizacao nativa (issue #555) -- resolvido uma vez aqui, repassado como
     // booleano simples "adsEnabled" por tela para nao acoplar as 4 telas ao tipo AdsFlags.
@@ -951,6 +930,43 @@ fun AppShell(
                 dnsResolverIp = dnsResolverIp,
                 snapshotRede = snapshotRede,
                 onIniciarBenchmarkDns = onDispararBenchmarkDns,
+                diagnosticoGuiado =
+                    AppShellDiagnosticoGuiadoEntry(
+                        dados =
+                            AppShellDiagnosticoGuiadoDados(
+                                input = snapshotDiagnostico.input,
+                                resultado = snapshotSpeedtest.resultado,
+                                analisadorState = analisadorState,
+                                objetivoPreSelecionado = assistObjetivoPreSelecionado,
+                                respostaPreSelecionadaPasso0 = assistRespostaPreSelecionada,
+                                categoria = snapshotDiagnostico.relatorio?.decisao?.categoriaOrigem,
+                                ispNome = ispInfoData?.isp,
+                                operadoraMovel = operadoraMovel,
+                                recommendationDecision = recommendationDecision,
+                                recommendationFeedback = recommendationFeedback,
+                            ),
+                        operadora = operadoraResolvers,
+                        acoes =
+                            AppShellDiagnosticoGuiadoAcoes(
+                                onAnalisarProblema = onAnalisarProblema,
+                                onResetarAnalisador = onResetarAnalisador,
+                                onVoltar = { overlayStack.remove(Overlay.DiagnosticoGuiado) },
+                                onIrParaHome = {
+                                    overlayStack.remove(Overlay.DiagnosticoGuiado)
+                                    overlayStack.remove(Overlay.ResultadoVelocidade)
+                                    assistObjetivoPreSelecionado = null
+                                    assistRespostaPreSelecionada = null
+                                    navigator.select(AppShellRoot.Home)
+                                },
+                                onIniciarModoGamer = {
+                                    if (Overlay.ModoGamer !in overlayStack) overlayStack.add(Overlay.ModoGamer)
+                                },
+                                onAbrirFerramentaSugerida = onAbrirFerramentaSugeridaOverlay,
+                                onRecommendationShown = onRecommendationShown,
+                                onRecommendationClicked = onRecommendationClicked,
+                                onRecommendationFeedback = onRecommendationFeedback,
+                            ),
+                    ),
             )
 
             AnimatedVisibility(
@@ -996,49 +1012,7 @@ fun AppShell(
                 }
             }
 
-            AnimatedVisibility(
-                visible = Overlay.DiagnosticoGuiado in overlayStack && snapshotSpeedtest.resultado != null,
-                modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.DiagnosticoGuiado, overlayStack)),
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-            ) {
-                snapshotSpeedtest.resultado?.let { resultado ->
-                    DiagnosticoGuiadoScreen(
-                        input = snapshotDiagnostico.input,
-                        resultadoValidoParaConclusao = resultado.status.liberaConclusaoCompleta,
-                        objetivoPreSelecionado = assistObjetivoPreSelecionado,
-                        respostaPreSelecionadaPasso0 = assistRespostaPreSelecionada,
-                        analisadorState = analisadorState,
-                        onAnalisarProblema = onAnalisarProblema,
-                        onResetarAnalisador = onResetarAnalisador,
-                        onVoltar = { overlayStack.remove(Overlay.DiagnosticoGuiado) },
-                        onIrParaHome = {
-                            overlayStack.remove(Overlay.DiagnosticoGuiado)
-                            overlayStack.remove(Overlay.ResultadoVelocidade)
-                            assistObjetivoPreSelecionado = null
-                            assistRespostaPreSelecionada = null
-                            navigator.select(AppShellRoot.Home)
-                        },
-                        categoria = snapshotDiagnostico.relatorio?.decisao?.categoriaOrigem,
-                        ispNome = ispInfoData?.isp,
-                        connectionType = resultado.connectionType,
-                        operadoraMovel = operadoraMovel,
-                        recommendationDecision = recommendationDecision,
-                        recommendationFeedback = recommendationFeedback,
-                        onRecommendationShown = onRecommendationShown,
-                        onRecommendationClicked = onRecommendationClicked,
-                        onRecommendationFeedback = onRecommendationFeedback,
-                        resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
-                        resolveOperadoraContatoLocal = resolveOperadoraContatoLocal,
-                        resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
-                        resolveOperadoraContatoRemoto = resolveOperadoraContatoRemoto,
-                        onIniciarModoGamer = {
-                            if (Overlay.ModoGamer !in overlayStack) overlayStack.add(Overlay.ModoGamer)
-                        },
-                        onAbrirFerramentaSugerida = onAbrirFerramentaSugeridaOverlay,
-                    )
-                }
-            }
+            // GH#1704 — DiagnosticoGuiado migrou para AppShellOverlayRegistry.
 
             AnimatedVisibility(
                 visible = Overlay.ModoGamer in overlayStack,

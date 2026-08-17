@@ -539,10 +539,13 @@ class MainActivity : ComponentActivity() {
                         },
                         // GH#970 — cadeia local -> diretorio remoto -> fallback generico
                         // (io.signallq.app.ui.OperadoraDirectoryResolver, injetado via Hilt).
-                        resolveOperadoraIdentidadeLocal = operadoraDirectoryResolver::resolveLocalIdentity,
-                        resolveOperadoraContatoLocal = operadoraDirectoryResolver::resolveLocalContact,
-                        resolveOperadoraIdentidadeRemota = operadoraDirectoryResolver::resolveIdentity,
-                        resolveOperadoraContatoRemoto = operadoraDirectoryResolver::resolveContact,
+                        operadoraResolvers =
+                            io.signallq.app.ui.screen.AppShellOperadoraResolvers(
+                                identidadeLocal = operadoraDirectoryResolver::resolveLocalIdentity,
+                                contatoLocal = operadoraDirectoryResolver::resolveLocalContact,
+                                identidadeRemota = operadoraDirectoryResolver::resolveIdentity,
+                                contatoRemoto = operadoraDirectoryResolver::resolveContact,
+                            ),
                         modoGamerPadrao = modoGamerPadrao,
                         onSalvarModoGamerPadrao = viewModel::salvarModoGamerPadrao,
                     )
