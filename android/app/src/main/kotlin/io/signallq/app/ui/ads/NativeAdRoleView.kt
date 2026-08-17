@@ -52,9 +52,18 @@ fun buildRoleComposeView(
  * | `NativeAdRow` | anúncio, `density`, `source`, primária, secundária, **terciária** |
  * | `NativeAdListRow` | anúncio, `density`, `source`, primária, secundária |
  *
- * Cada componente passa **exatamente o que captura**; o que não captura fica `null`. Incluir campo
- * a mais recriaria a árvore de Views à toa, o que no AdMob significa re-registrar as role views
- * sem necessidade.
+ * **Chave uniforme, e nenhum campo com valor padrão.** Uma versão intermediária desta correção
+ * deixava `corTextoTerciario` e `origem` como `null` por padrão, para cada componente passar só o
+ * que captura. Parecia economia e **é zero**, medido: `origem` é a constante `NativeAdSource.ADMOB`
+ * nos cinco call sites, e `corTextoTerciario` é o mesmo `onSurfaceVariant` da secundária
+ * (`SignallQTheme.kt:85-86`) — mesmo depois do Design System 2.0 separar as duas, terciária só
+ * muda em troca de tema, quando primária e secundária já mudaram. Zero recriação a mais nos dois
+ * casos.
+ *
+ * O custo do valor padrão, esse é concreto: com ele, esquecer um campo capturado **compila em
+ * silêncio** — que é a forma exata do bug da #1699, reintroduzida como afordância de API. Sem ele,
+ * omitir vira erro de construtor. Achado de Caio na rodada 2 da PR #1716: eu tinha essa garantia
+ * na mão e a entreguei ao default, três parágrafos depois de escrever aqui por que ela importa.
  *
  * ## Por que `density` importa, apesar de parecer improvável
  *
@@ -81,8 +90,6 @@ data class ChaveViewAnuncioNativo(
     val densidade: Density,
     val corTextoPrimario: Color,
     val corTextoSecundario: Color,
-    /** Só `NativeAdRow` captura terciária (tint do chevron). `null` nos demais. */
-    val corTextoTerciario: Color? = null,
-    /** `NativeAdCard` não usa `AdBadge` no factory; `null` nele. */
-    val origem: NativeAdSource? = null,
+    val corTextoTerciario: Color,
+    val origem: NativeAdSource,
 )

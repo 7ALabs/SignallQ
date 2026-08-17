@@ -40,8 +40,8 @@ class ChaveViewAnuncioNativoTest {
         densidade: Density = this.densidade,
         primaria: Color = claro,
         secundaria: Color = claroSecundario,
-        terciaria: Color? = null,
-        origem: NativeAdSource? = null,
+        terciaria: Color = claroSecundario,
+        origem: NativeAdSource = NativeAdSource.ADMOB,
     ) = ChaveViewAnuncioNativo(anuncio, densidade, primaria, secundaria, terciaria, origem)
 
     @Test
@@ -148,13 +148,5 @@ class ChaveViewAnuncioNativoTest {
             chave(origem = NativeAdSource.ADMOB),
             chave(origem = NativeAdSource.SIMULATED),
         )
-    }
-
-    @Test
-    fun `campos opcionais nulos nao quebram a igualdade`() {
-        // `NativeAdCard` não captura terciária nem origem, então passa null nos dois. Duas chaves
-        // idênticas com nulos precisam continuar iguais — senão o card recriaria a árvore de Views
-        // a cada recomposição.
-        assertEquals(chave(terciaria = null, origem = null), chave(terciaria = null, origem = null))
     }
 }
