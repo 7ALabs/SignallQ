@@ -1,5 +1,8 @@
 package io.signallq.app.ui.screen
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -25,6 +29,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import io.signallq.app.feature.speedtest.FaseSpeedtest
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
@@ -105,16 +110,38 @@ internal fun DiagnosticoGuiadoAnaliseSection(
                 // mesmo frame (ver `DiagnosticoGuiadoScreen`), então o estado é uma janela de
                 // um frame. Desenhar uma tela própria para ela produziria um flash de conteúdo
                 // diferente a cada análise.
-                val etapa = (estado as? EstadoAnaliseGuiada.EmAndamento)?.etapa ?: "Preparando a análise"
+                val emAndamento = estado as? EstadoAnaliseGuiada.EmAndamento
+                val etapa = emAndamento?.etapa ?: etapaEmLinguagemHumana(FaseSpeedtest.idle)
                 Box(contentAlignment = Alignment.Center) {
-                    // O indicador é decorativo — quem anuncia o andamento para o TalkBack é o
-                    // texto da etapa abaixo. Sem isso o leitor de tela lê "carregando" repetido
-                    // por cima de uma frase que já diz mais.
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(96.dp).clearAndSetSemantics {},
-                        color = c.primary,
-                        trackColor = c.bgSecondary,
-                    )
+                    // Indicador DETERMINADO quando há progresso — §8.5 pede progresso, e a versão
+                    // anterior desenhava um spinner indeterminado enquanto `EmAndamento.progresso`
+                    // era calculado, testado e nunca chegava a pixel nenhum (ressalva RS3 de Caio
+                    // na PR #1719: cobertura de função pura não é evidência de comportamento).
+                    //
+                    // Decorativo para o TalkBack: quem anuncia o andamento é o texto da etapa
+                    // abaixo. Sem isso o leitor de tela lê "carregando" por cima de uma frase que
+                    // já diz mais.
+                    val modificadorDoIndicador = Modifier.size(96.dp).clearAndSetSemantics {}
+                    if (emAndamento == null) {
+                        CircularProgressIndicator(
+                            modifier = modificadorDoIndicador,
+                            color = c.primary,
+                            trackColor = c.bgSecondary,
+                        )
+                    } else {
+                        val progressoAnimado by
+                            animateFloatAsState(
+                                targetValue = emAndamento.progresso,
+                                animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+                                label = "progressoAnaliseGuiada",
+                            )
+                        CircularProgressIndicator(
+                            progress = { progressoAnimado },
+                            modifier = modificadorDoIndicador,
+                            color = c.primary,
+                            trackColor = c.bgSecondary,
+                        )
+                    }
                 }
                 Text(
                     text = etapa,

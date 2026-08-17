@@ -1,9 +1,14 @@
 package io.signallq.app.ui.screen
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -191,6 +196,70 @@ class DiagnosticoGuiadoScreenTest {
         composeRule.onNodeWithText("Com que frequência isso acontece?").assertIsDisplayed()
     }
 
+    // BLOQUEIO B1 do parecer de Caio na PR #1719. Todos os testes acima passam `estadoAnalise`
+    // ESTÁTICO — e o `LaunchedEffect` + `medicaoObservadaEmCurso` existem exatamente para tratar
+    // mudança no tempo. Com estado parado, esvaziar o ramo
+    // `medicaoObservadaEmCurso -> { emAnalise = false; mostrarResultado = true }` sobrevivia à
+    // suíte: o fluxo NUNCA sairia da rota Analise — a promessa inteira da via B — sem nada
+    // reclamar. Pior: o teste `medicao concluida porem invalida remede` assere que a tela FICA na
+    // análise, ou seja, é a asserção do estado travado.
+    //
+    // Este teste dirige o estado por `mutableStateOf`: NaoIniciada → EmAndamento → Concluida.
+    // Rodado com o mutante: falha. Rodado sem: passa.
+    @Test
+    fun `analise que conclui no tempo leva a tela para a conclusao`() {
+        var estado by mutableStateOf<EstadoAnaliseGuiada>(EstadoAnaliseGuiada.NaoIniciada)
+        var valido by mutableStateOf(false)
+        composeRule.setContent {
+            SignallQTheme {
+                TelaDeTeste(
+                    objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+                    respostaPreSelecionadaPasso0 = 0,
+                    input = inputJogosComWifiFraco(),
+                    estadoAnalise = estado,
+                    resultadoValidoParaConclusao = valido,
+                )
+            }
+        }
+
+        completarSegundaPerguntaJogos()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
+
+        estado = EstadoAnaliseGuiada.EmAndamento(0.4f, "Medindo a velocidade de recebimento")
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
+
+        estado = EstadoAnaliseGuiada.Concluida
+        valido = true
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertDoesNotExist()
+        composeRule.onNodeWithText("Força do sinal Wi-Fi").assertIsDisplayed()
+    }
+
+    // RESSALVA RS1 do parecer. `etapaEmLinguagemHumana` era testada como função pura e nunca como
+    // pixel — fixar a linha da etapa em "Preparando a análise" sobrevivia à suíte, e a tradução
+    // podia nunca chegar à tela sem nada acusar.
+    //
+    // Armadilha que o parecer documenta e que este teste respeita: o `clearAndSetSemantics` do
+    // componente apaga a semântica de texto, então `onNodeWithText` NÃO alcança a etapa — só
+    // `onNodeWithContentDescription`.
+    @Test
+    fun `a etapa em linguagem humana chega a tela, nao so a funcao pura`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.EmAndamento(0.4f, "Medindo a velocidade de recebimento"),
+            resultadoValidoParaConclusao = false,
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule
+            .onNodeWithContentDescription("Analisando: Medindo a velocidade de recebimento")
+            .assertExists()
+    }
+
     @Test
     fun `falha na analise oferece tentar de novo e redispara a medicao`() {
         setContent(
@@ -238,7 +307,7 @@ class DiagnosticoGuiadoScreenTest {
         objetivoPreSelecionado: ObjetivoDiagnostico? = null,
         respostaPreSelecionadaPasso0: Int? = null,
         input: DiagnosticInput? = null,
-        /** GH#1704 — `Concluida` é o caminho de quem chega ao fluxo já com medição feita, que é
+        /** GH#1704 — `Concluida` e o caminho de quem chega ao fluxo ja com medicao feita, que e
          *  o pressuposto de todos os testes anteriores a esta fatia. Os testes da rota `Analise`
          *  passam os outros estados explicitamente. */
         estadoAnalise: EstadoAnaliseGuiada = EstadoAnaliseGuiada.Concluida,
@@ -246,37 +315,59 @@ class DiagnosticoGuiadoScreenTest {
     ) {
         composeRule.setContent {
             SignallQTheme {
-                DiagnosticoGuiadoScreen(
-                    input = input,
-                    resultadoValidoParaConclusao = resultadoValidoParaConclusao,
-                    analise =
-                        AnaliseGuiadaContrato(
-                            estado = estadoAnalise,
-                            onIniciar = { analiseIniciada += 1 },
-                            onCancelar = { analiseCancelada += 1 },
-                        ),
+                TelaDeTeste(
                     objetivoPreSelecionado = objetivoPreSelecionado,
                     respostaPreSelecionadaPasso0 = respostaPreSelecionadaPasso0,
-                    analisadorState = AnalisadorState.Inativo,
-                    onAnalisarProblema = {},
-                    onResetarAnalisador = {},
-                    onVoltar = {},
-                    onIrParaHome = {},
-                    categoria = null,
-                    ispNome = null,
-                    connectionType = null,
-                    operadoraMovel = null,
-                    recommendationDecision = null,
-                    recommendationFeedback = null,
-                    onRecommendationShown = {},
-                    onRecommendationClicked = {},
-                    onRecommendationFeedback = {},
-                    resolveOperadoraIdentidadeLocal = { _, _ -> null },
-                    resolveOperadoraContatoLocal = { _, _ -> null },
-                    resolveOperadoraIdentidadeRemota = { _, _ -> error("categoria=null nunca chama resolução de operadora") },
-                    resolveOperadoraContatoRemoto = { _, _ -> error("categoria=null nunca chama resolução de operadora") },
+                    input = input,
+                    estadoAnalise = estadoAnalise,
+                    resultadoValidoParaConclusao = resultadoValidoParaConclusao,
                 )
             }
         }
+    }
+
+    /**
+     * A tela sob teste. Extraida de [setContent] para que o teste do bloqueio B1 possa dirigir
+     * `estadoAnalise` por `mutableStateOf` — [setContent] recebe valores fixos no momento da
+     * chamada e nao serve para exercitar transicao.
+     */
+    @Composable
+    private fun TelaDeTeste(
+        objetivoPreSelecionado: ObjetivoDiagnostico?,
+        respostaPreSelecionadaPasso0: Int?,
+        input: DiagnosticInput?,
+        estadoAnalise: EstadoAnaliseGuiada,
+        resultadoValidoParaConclusao: Boolean,
+    ) {
+        DiagnosticoGuiadoScreen(
+            input = input,
+            resultadoValidoParaConclusao = resultadoValidoParaConclusao,
+            analise =
+                AnaliseGuiadaContrato(
+                    estado = estadoAnalise,
+                    onIniciar = { analiseIniciada += 1 },
+                    onCancelar = { analiseCancelada += 1 },
+                ),
+            objetivoPreSelecionado = objetivoPreSelecionado,
+            respostaPreSelecionadaPasso0 = respostaPreSelecionadaPasso0,
+            analisadorState = AnalisadorState.Inativo,
+            onAnalisarProblema = {},
+            onResetarAnalisador = {},
+            onVoltar = {},
+            onIrParaHome = {},
+            categoria = null,
+            ispNome = null,
+            connectionType = null,
+            operadoraMovel = null,
+            recommendationDecision = null,
+            recommendationFeedback = null,
+            onRecommendationShown = {},
+            onRecommendationClicked = {},
+            onRecommendationFeedback = {},
+            resolveOperadoraIdentidadeLocal = { _, _ -> null },
+            resolveOperadoraContatoLocal = { _, _ -> null },
+            resolveOperadoraIdentidadeRemota = { _, _ -> error("categoria=null nunca chama resolucao de operadora") },
+            resolveOperadoraContatoRemoto = { _, _ -> error("categoria=null nunca chama resolucao de operadora") },
+        )
     }
 }

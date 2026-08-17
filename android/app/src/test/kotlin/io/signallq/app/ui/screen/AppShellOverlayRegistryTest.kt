@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.feature.dns.EstadoBenchmarkDns
 import io.signallq.app.feature.dns.SnapshotBenchmarkDns
@@ -132,14 +133,16 @@ class AppShellOverlayRegistryTest {
         resultado: ResultadoSpeedtest? = null,
         disparos: MutableList<String> = mutableListOf(),
         identidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity? = { _, _ -> IDENTIDADE_DE_TESTE },
+        objetivoPreSelecionado: ObjetivoDiagnostico? = null,
+        respostaPreSelecionadaPasso0: Int? = null,
     ) = AppShellDiagnosticoGuiadoEntry(
         dados =
             AppShellDiagnosticoGuiadoDados(
                 input = null,
                 resultado = resultado,
                 analisadorState = AnalisadorState.Inativo,
-                objetivoPreSelecionado = null,
-                respostaPreSelecionadaPasso0 = null,
+                objetivoPreSelecionado = objetivoPreSelecionado,
+                respostaPreSelecionadaPasso0 = respostaPreSelecionadaPasso0,
                 categoria = null,
                 ispNome = "ISP de teste",
                 operadoraMovel = null,
@@ -255,6 +258,39 @@ class AppShellOverlayRegistryTest {
             )
         }
         composeRule.onNodeWithTag(TAG_OVERLAY_DIAGNOSTICO_GUIADO).assertExists()
+    }
+
+    // RESSALVA RS2 do parecer de Caio na PR #1719. A expressão
+    // `resultado?.status?.liberaConclusaoCompleta == true` nasceu nesta fatia (antes era
+    // `resultado.status.…`, com o resultado garantido não-nulo pela guarda que saiu). Trocá-la por
+    // `!= false` sobrevivia a todos os testes: sem resultado o fluxo se declarava concluível e
+    // **pulava a medição** — a regressão exata que a fatia existe para impedir.
+    //
+    // Os outros testes deste arquivo só asserem a tela de ENTRADA, e a entrada é idêntica nos dois
+    // casos. Só o fim do roteiro distingue, então este teste percorre o roteiro até lá.
+    @Test
+    fun `sem resultado o registry nao declara o fluxo concluivel e a medicao acontece`() {
+        val disparos = mutableListOf<String>()
+        val stack = mutableStateListOf(AppShellOverlay.DiagnosticoGuiado)
+        composeRule.setContent {
+            RegistryDeTeste(
+                stack = stack,
+                diagnosticoGuiado =
+                    diagnosticoGuiadoDeTeste(
+                        resultado = null,
+                        disparos = disparos,
+                        objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+                        respostaPreSelecionadaPasso0 = 0,
+                    ),
+            )
+        }
+
+        composeRule.onNodeWithText("Continuar").performClick()
+        composeRule.onNodeWithText("Quase sempre").performClick()
+        composeRule.onNodeWithText("Ver o que identifiquei").performClick()
+
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
+        composeRule.runOnIdle { assertEquals(listOf("analiseIniciar"), disparos) }
     }
 
     @Test

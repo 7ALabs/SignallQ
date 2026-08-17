@@ -320,14 +320,26 @@ fun AppShell(
     var modoSelecionado by remember { mutableStateOf(ModoSpeedtest.complete) }
     val overlayStack = navigator.overlayStack
 
-    // GH#1704 parte 4/4 — "a medição em curso pertence ao fluxo guiado".
+    // GH#1704 parte 4/4 — medição pedida pelo fluxo guiado. Estado e regras em
+    // `AppShellMedicaoGuiada.kt`; aqui ficam só as leituras.
     //
-    // O `ExecutorSpeedtest` é `@Singleton`: uma medição disparada de dentro do diagnóstico guiado
-    // é indistinguível, no snapshot, de uma disparada na tela Velocidade. Sem este flag o shell
-    // reagiria a ela como reage a qualquer teste — abrindo o `VelocidadeScreen` em tela cheia
-    // durante a execução e empilhando `Overlay.ResultadoVelocidade` na conclusão, por cima do
-    // fluxo guiado. A pessoa pediria um diagnóstico e receberia a tela de resultado do speedtest.
-    var medicaoDoFluxoGuiado by remember { mutableStateOf(false) }
+    // O `ExecutorSpeedtest` é `@Singleton`: uma medição disparada de dentro do diagnóstico guiado é
+    // indistinguível, no snapshot, de uma disparada na tela Velocidade.
+    //
+    // O shell tem **cinco** reações ao executor. Três são suprimidas explicitamente por
+    // `suprimeReacoesDoShell` — o `VelocidadeScreen` em tela cheia, o `BackHandler` de erro e o
+    // empilhamento de `Overlay.ResultadoVelocidade` na conclusão. As outras duas hoje só não
+    // atrapalham porque o overlay guiado as ocluí: a barra inferior some durante `executando`
+    // (`shouldShowAppShellBottomBar`) e a Início reage via `Inicio2UiStateMapper.map`. Oclusão não
+    // é mecanismo — é a mesma objeção que o comentário do `AnimatedVisibility` abaixo faz ao
+    // zIndex. Se alguma delas passar a ser visível durante a medição guiada, entra na supressão.
+    // (Achado B4 de Caio na PR #1719; a contagem anterior dizia "três reações" e estava errada.)
+    val medicaoGuiada =
+        rememberMedicaoGuiada(
+            snapshot = snapshotSpeedtest,
+            onNovoTeste = onNovoTeste,
+            onCancelarTeste = onCancelarTeste,
+        )
 
     // GH#1358 — menu lateral (Navigation Drawer) no lugar do antigo avatar de perfil no
     // TopBar. Único ponto de entrada agora é o botão hambúrguer nas 5 telas de tab/hub —
@@ -612,10 +624,9 @@ fun AppShell(
                     // resultado guiado sairia com zero dimensões — indistinguível de "sua rede
                     // está ok" (GH#1704, §5 do reconhecimento).
                     onIniciarDiagnostico()
-                    if (medicaoDoFluxoGuiado) {
+                    if (medicaoGuiada.consumirConclusao()) {
                         // Quem conduz a transição é a própria tela guiada, que observa o snapshot
                         // e avança da rota Analise (§8.5) para a conclusão (§8.6).
-                        medicaoDoFluxoGuiado = false
                         testeAtivo = false
                     } else {
                         mostrarConcluido = true
@@ -647,7 +658,9 @@ fun AppShell(
     // handler descartaria o erro por baixo de uma tela que mostra o próprio estado de falha —
     // e o back do usuário não voltaria ao roteiro de perguntas, como ele espera.
     BackHandler(
-        enabled = !medicaoDoFluxoGuiado && snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.erro,
+        enabled =
+            !medicaoGuiada.suprimeReacoesDoShell &&
+                snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.erro,
     ) {
         onCancelarTeste()
     }
@@ -883,7 +896,7 @@ fun AppShell(
             // seu próprio `BackHandler` de erro concorrendo com o do fluxo guiado.
             AnimatedVisibility(
                 visible =
-                    !medicaoDoFluxoGuiado &&
+                    !medicaoGuiada.suprimeReacoesDoShell &&
                         (
                             snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.executando ||
                                 snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.erro
@@ -1000,22 +1013,7 @@ fun AppShell(
                                 onRecommendationClicked = onRecommendationClicked,
                                 onRecommendationFeedback = onRecommendationFeedback,
                             ),
-                        analise =
-                            AnaliseGuiadaContrato(
-                                estado = estadoAnaliseGuiada(snapshotSpeedtest),
-                                onIniciar = {
-                                    medicaoDoFluxoGuiado = true
-                                    // `fast` e não `modoSelecionado`: a análise guiada não deve
-                                    // herdar o modo que a pessoa escolheu na tela Velocidade —
-                                    // são jornadas diferentes, e §8.5 pede progresso curto e
-                                    // compreensível, não a bateria completa.
-                                    onNovoTeste(ModoSpeedtest.fast)
-                                },
-                                onCancelar = {
-                                    medicaoDoFluxoGuiado = false
-                                    onCancelarTeste()
-                                },
-                            ),
+                        analise = medicaoGuiada.contrato,
                     ),
             )
 
