@@ -4,8 +4,8 @@ description: "Como plugar overlay novo no AppShell.kt quase sempre sem editar o 
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-16"
-version: "1.1.0"
+last_updated: "2026-08-17"
+version: "1.2.0"
 ---
 
 # Ponto de extensão de overlays do AppShell
@@ -147,6 +147,53 @@ cada área numa fatia futura, não obrigação retroativa desta issue:
 - `Dispositivos`, `Fibra`/`EquipamentoInternet` (issues #1663/#1664 do épico)
 - `Laudo`, `SinalCanais` (issues #1660/#1661 do épico)
 - `ResultadoVelocidade`, `DiagnosticoGuiado`, `ModoGamer` (issues #1658/#1659/#1667 do épico)
+
+## Delegação de back ao overlay do topo (issue #1704)
+
+Um overlay que contém **fluxo interno de vários passos** — o diagnóstico guiado 2.0 é o primeiro —
+precisa recuar um passo antes de sair inteiro da pilha. `AppShellNavigator` tem um mapa de
+interceptadores por overlay, consultado por `AppShellBackHandlers` **antes** do `pop`:
+
+```kotlin
+if (navigator.consumirBackDoOverlayTopo()) return@BackHandler
+navigator.pop()?.let(onOverlayRemoved)
+```
+
+O overlay registra o seu com `RegistrarBackDoOverlay(navigator, overlay) { ... }`, chamado no nível
+do `AppShellXxxOverlay` — **fora** do conteúdo do `AnimatedVisibility`, senão o desregistro fica
+preso à animação de saída. `onBack` devolve `true` (consumi, recuei um passo) ou `false` (acabou, o
+overlay pode sair).
+
+**Não é um segundo motor de navegação:** segue havendo um dispatcher, uma pilha de overlays e um
+dono do back. O overlay não empilha nada — só responde "consumi" ou "não consumi". Sem interceptador
+registrado, ou com `false`, o back é idêntico ao anterior à issue.
+
+### Por que não 7 valores novos em `AppShellOverlay`
+
+Foi a primeira opção considerada e está errada, por duas propriedades do `AppShellNavigator`:
+
+1. **A pilha é set-like** — `open()` é `if (overlay !in overlayStack)`, não admite duplicata. O
+   fluxo guiado é **cíclico** (`result → guidance → retest → comparison → guidance de novo`);
+   visitar `retest` uma segunda vez seria no-op silencioso.
+2. **Overlays acumulam, não substituem** — cada um renderiza sob `AnimatedVisibility(visible = X in
+   overlayStack)` e nada remove o anterior. Seriam 5 telas cheias vivas ao mesmo tempo.
+
+> **Regra para as próximas migrações:** `AppShellOverlay` guarda **destinos que o shell pode ser
+> mandado abrir de fora do fluxo que os contém**. Um sub-passo que nenhum chamador externo endereça
+> não é overlay.
+
+### A guarda `estaNoTopo` não é redundância
+
+`RegistrarBackDoOverlay` só registra quando o overlay é o topo, e `consumirBackDoOverlayTopo`
+também consulta só o topo. Parecem a mesma checagem em dois lugares — não são. A segunda protege a
+consulta; a primeira é o que **desfaz o registro** quando o overlay deixa o topo sem sair de
+composição, que é o caso normal (o registro compõe todos os overlays sempre).
+
+Consequência prática, medida por mutação: remover a guarda **não muda o comportamento do back** — a
+consulta é por chave do topo, e um registro soterrado dá miss. O que ela evita é o mapa acumular
+entradas de overlays fora do topo. Por isso a invariante é asserida via
+`navigator.overlaysComInterceptador()`, e não por asserção de navegação: vazamento de mapa é
+invisível para essa.
 
 ## Testes
 
