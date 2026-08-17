@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -121,10 +122,18 @@ internal fun DiagnosticoGuiadoAnaliseSection(
                     // Decorativo para o TalkBack: quem anuncia o andamento é o texto da etapa
                     // abaixo. Sem isso o leitor de tela lê "carregando" por cima de uma frase que
                     // já diz mais.
-                    val modificadorDoIndicador = Modifier.size(96.dp).clearAndSetSemantics {}
+                    // `testTag` por ramo, e não asserção sobre `ProgressBarRangeInfo`: o
+                    // `clearAndSetSemantics` acima apaga exatamente essa propriedade, então o
+                    // matcher de semântica não alcança o indicador. A tag testa a mesma coisa que
+                    // Caio pediu na RS13 — a ESCOLHA DO RAMO — sem desfazer a decisão de
+                    // acessibilidade para acomodar o teste.
+                    // A tag vai DENTRO do bloco de semântica: `clearAndSetSemantics` apaga tudo do
+                    // nó, `testTag` de modifier incluído. Descobri isso rodando o teste.
+                    fun indicador(tag: String) =
+                        Modifier.size(96.dp).clearAndSetSemantics { testTag = tag }
                     if (emAndamento == null) {
                         CircularProgressIndicator(
-                            modifier = modificadorDoIndicador,
+                            modifier = indicador(TAG_ANALISE_GUIADA_INDETERMINADO),
                             color = c.primary,
                             trackColor = c.bgSecondary,
                         )
@@ -137,7 +146,7 @@ internal fun DiagnosticoGuiadoAnaliseSection(
                             )
                         CircularProgressIndicator(
                             progress = { progressoAnimado },
-                            modifier = modificadorDoIndicador,
+                            modifier = indicador(TAG_ANALISE_GUIADA_DETERMINADO),
                             color = c.primary,
                             trackColor = c.bgSecondary,
                         )
@@ -174,6 +183,8 @@ internal fun DiagnosticoGuiadoAnaliseSection(
 }
 
 internal const val TAG_ANALISE_GUIADA = "diagnostico_guiado_analise"
+internal const val TAG_ANALISE_GUIADA_DETERMINADO = "diagnostico_guiado_analise_progresso_determinado"
+internal const val TAG_ANALISE_GUIADA_INDETERMINADO = "diagnostico_guiado_analise_progresso_indeterminado"
 internal const val TAG_ANALISE_GUIADA_ETAPA = "diagnostico_guiado_analise_etapa"
 internal const val TAG_ANALISE_GUIADA_CANCELAR = "diagnostico_guiado_analise_cancelar"
 internal const val TAG_ANALISE_GUIADA_TENTAR_NOVAMENTE = "diagnostico_guiado_analise_tentar_novamente"

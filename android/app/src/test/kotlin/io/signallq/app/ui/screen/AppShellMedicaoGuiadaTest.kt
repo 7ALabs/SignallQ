@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.createComposeRule
 import io.mockk.mockk
+import io.signallq.app.core.network.connectivity.ConnectivityDiagnosisEngine
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
 import io.signallq.app.feature.speedtest.FaseSpeedtest
 import io.signallq.app.feature.speedtest.ModoSpeedtest
@@ -206,6 +207,92 @@ class AppShellMedicaoGuiadaTest {
         assertTrue(cenario.atual().consumirConclusao())
         assertFalse("segunda chamada não pode consumir de novo", cenario.atual().consumirConclusao())
         assertFalse(cenario.atual().suprimeReacoesDoShell)
+    }
+
+    // BLOQUEIO B7. `LaunchedEffect(snapshot.estado)` era um detector de TRANSIÇÃO fazendo papel de
+    // detector de ESTADO: com o executor já `executando` no momento do pedido, a chave não mudava,
+    // `registrarInicioObservado()` nunca era chamado, e o limite disparava em cima de uma medição
+    // correndo. Caio executou o cenário e viu medição a 50% com a tela dizendo "não consegui
+    // começar".
+    //
+    // Alcançável pelo cancelar-e-refazer rápido: `cancelar()` marca uma flag, o loop só desenrola
+    // na fronteira de fase, e `execucaoSpeedtestEmAndamento` só libera no `finally` — então
+    // `reiniciarSuite` retorna em `:960` E o snapshot já está `executando`.
+    @Test
+    fun `executor ja executando no momento do pedido nao cai no limite`() {
+        val cenario = montar(limiteMs = 1_000L)
+        cenario.publicar(
+            snapshot(EstadoExecucaoSpeedtest.executando, fase = FaseSpeedtest.download, progressoGlobal = 0.5f),
+        )
+
+        cenario.invocar { it.contrato.onIniciar() }
+        composeRule.mainClock.advanceTimeBy(2_000L)
+
+        assertEquals(
+            EstadoAnaliseGuiada.EmAndamento(0.5f, "Medindo a velocidade de recebimento"),
+            cenario.atual().contrato.estado,
+        )
+    }
+
+    // BLOQUEIO B8. `consumirConclusao()` não limpava `naoIniciou`, quebrando o invariante
+    // `naoIniciou ⇒ emCurso`. Com a falsa falha ativa, a medição concluía de verdade, o shell
+    // ENGOLIA o `Overlay.ResultadoVelocidade` (porque `consumirConclusao` devolvia `true`), e a
+    // rota ficava travada em "Não consegui começar a análise" — resultado completo em mãos e
+    // nenhuma tela para mostrá-lo.
+    @Test
+    fun `conclusao que chega depois da falha destrava a rota`() {
+        val cenario = montar(limiteMs = 1_000L)
+        cenario.invocar { it.contrato.onIniciar() }
+        composeRule.mainClock.advanceTimeBy(1_500L)
+        assertEquals(EstadoAnaliseGuiada.Falhou(MENSAGEM_NAO_INICIOU), cenario.atual().contrato.estado)
+
+        cenario.publicar(snapshot(EstadoExecucaoSpeedtest.concluido, resultado = resultado))
+        var consumiu = false
+        cenario.invocar { consumiu = it.consumirConclusao() }
+
+        assertTrue("a conclusão pertence ao fluxo guiado", consumiu)
+        assertEquals(EstadoAnaliseGuiada.Concluida, cenario.atual().contrato.estado)
+        assertFalse(cenario.atual().suprimeReacoesDoShell)
+    }
+
+    // BLOQUEIO B6. O limite empatava com `GLOBAL_TIMEOUT_MS_DEFAULT` do pré-voo que ele deveria
+    // estar esperando — dois literais `8_000L` iguais em módulos diferentes, por acidente. Este
+    // teste trava a derivação: se alguém voltar a escolher um número solto, ele reprova.
+    @Test
+    fun `o limite de inicio e maior que o teto do pre-voo`() {
+        assertTrue(
+            "o limite ($LIMITE_PARA_INICIAR_MS ms) precisa exceder o timeout global do " +
+                "ConnectivityDiagnosisEngine (${ConnectivityDiagnosisEngine.GLOBAL_TIMEOUT_MS_DEFAULT} ms), " +
+                "que roda ANTES de o executor publicar `executando`",
+            LIMITE_PARA_INICIAR_MS > ConnectivityDiagnosisEngine.GLOBAL_TIMEOUT_MS_DEFAULT,
+        )
+    }
+
+    // RESSALVA RS7. As REGRAS das leituras do shell, testáveis sem compor o `AppShell`. O call site
+    // continua descoberto — isso está declarado, não escondido.
+    @Test
+    fun `medicao guiada suprime o overlay de velocidade e o back de erro`() {
+        EstadoExecucaoSpeedtest.entries.forEach { estado ->
+            assertFalse(
+                "estado $estado não pode mostrar o overlay durante medição guiada",
+                deveMostrarOverlayVelocidade(suprimeReacoesDoShell = true, estado = estado),
+            )
+            assertFalse(
+                "estado $estado não pode tratar o back de erro durante medição guiada",
+                deveTratarBackDeErroDoSpeedtest(suprimeReacoesDoShell = true, estado = estado),
+            )
+        }
+    }
+
+    @Test
+    fun `sem medicao guiada o overlay de velocidade segue a regra original`() {
+        assertTrue(deveMostrarOverlayVelocidade(false, EstadoExecucaoSpeedtest.executando))
+        assertTrue(deveMostrarOverlayVelocidade(false, EstadoExecucaoSpeedtest.erro))
+        assertFalse(deveMostrarOverlayVelocidade(false, EstadoExecucaoSpeedtest.idle))
+        assertFalse(deveMostrarOverlayVelocidade(false, EstadoExecucaoSpeedtest.concluido))
+
+        assertTrue(deveTratarBackDeErroDoSpeedtest(false, EstadoExecucaoSpeedtest.erro))
+        assertFalse(deveTratarBackDeErroDoSpeedtest(false, EstadoExecucaoSpeedtest.executando))
     }
 
     @Test

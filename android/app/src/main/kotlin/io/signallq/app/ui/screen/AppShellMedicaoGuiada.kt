@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import io.signallq.app.core.network.connectivity.ConnectivityDiagnosisEngine
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
 import io.signallq.app.feature.speedtest.FaseSpeedtest
 import io.signallq.app.feature.speedtest.ModoSpeedtest
@@ -21,17 +22,84 @@ import kotlinx.coroutines.delay
 // remover o reset em `onCancelar`, e remover a supressão do `VelocidadeScreen`. "Não tem teste"
 // era consequência de onde o código morava, não de o teste ser difícil.
 //
-// O que a extração cobre e o que não cobre: as **transições de estado** ficaram testáveis
-// (`AppShellMedicaoGuiadaTest`, 9 casos com snapshot dirigido no tempo). As **três leituras** em
-// `AppShell.kt` continuam sem teste — apagar `!medicaoGuiada.suprimeReacoesDoShell` de lá ainda
-// passa na suíte inteira, verificado por mutação. Cobrir isso exige compor o `AppShell`, que tem
-// 30+ parâmetros e nenhum harness; não é escopo desta fatia.
+// O que a extração cobre e o que não cobre — três camadas, e só duas estão fechadas:
+//
+// 1. **transições de estado** — testadas (`AppShellMedicaoGuiadaTest`, snapshot dirigido no tempo);
+// 2. **as regras das leituras do shell** — `deveMostrarOverlayVelocidade` e
+//    `deveTratarBackDeErroDoSpeedtest`, testadas como função pura (ressalva RS7 de Caio: eu tinha
+//    descartado essa cobertura cedo demais dizendo "exige compor o AppShell", o que só vale para o
+//    wiring, não para a regra);
+// 3. **os call sites** — descobertos. Apagar a chamada de `deveMostrarOverlayVelocidade` dentro de
+//    `AppShell.kt` continua passando na suíte inteira. Isso sim exige compor o `AppShell`, que tem
+//    30+ parâmetros e nenhum harness, e segue declarado como resíduo — não como resolvido.
+//
+// ## Contrato de ciclo de vida (ressalva RS11)
+//
+// `rememberMedicaoGuiada` mora no `AppShell`, que nunca sai de composição — então o holder
+// **sobrevive** ao fechamento do overlay guiado. Hoje isso está fechado porque toda saída da rota
+// passa por `voltarUmPasso` → `onCancelar`, mas por convenção de call site, não por construção.
+//
+// Um caminho de saída novo que não cancele (deep link, `onIrParaHome` alcançável da rota Analise)
+// deixa `suprimeReacoesDoShell = true` para sempre, e o app perde a tela de resultado do speedtest
+// até o processo morrer. Um `DisposableEffect` na rota **não** resolve: ele dispararia também na
+// transição normal para a conclusão, cancelando o executor logo depois de a medição terminar.
+// Quem acrescentar saída nova é responsável por cancelar.
+
+/**
+ * Folga sobre o teto do pré-voo antes de declarar que a medição não começou.
+ *
+ * A primeira versão desta constante era `8_000L` literal — e **empatava** com o orçamento do
+ * pré-voo que ela deveria estar esperando (bloqueio B6 de Caio na PR #1719). Antes de publicar
+ * `executando`, `MainViewModel.reiniciarSuite` roda `interromperSpeedtestPorWifiSemInternet()`, que
+ * chama o `ConnectivityDiagnosisEngine` com [ConnectivityDiagnosisEngine.GLOBAL_TIMEOUT_MS_DEFAULT]
+ * — 8000 ms — e ainda soma `existeRedeWifiAtiva()` (IPC de binder), uma escrita no Room e
+ * `garantirPerfilRede()`. O teto real é estritamente maior que 8000 ms.
+ *
+ * O efeito, executado por Caio: em Wi-Fi (o caso majoritário, e justamente a população que abre
+ * "descobrir o que está acontecendo"), a pessoa via "Não consegui começar a análise" e a tela então
+ * voltava sozinha para "Estou medindo sua conexão". Uma espera eterna tinha virado falsa falha.
+ *
+ * Por isso o limite é **derivado**, não escolhido: o acoplamento entre os dois números fica visível
+ * no código em vez de existir por acidente entre dois literais iguais em módulos diferentes.
+ */
+internal const val FOLGA_APOS_PRE_VOO_MS = 7_000L
 
 /** Quanto esperar o executor sair do lugar antes de declarar que a medição não começou. */
-internal const val LIMITE_PARA_INICIAR_MS = 8_000L
+internal const val LIMITE_PARA_INICIAR_MS =
+    ConnectivityDiagnosisEngine.GLOBAL_TIMEOUT_MS_DEFAULT + FOLGA_APOS_PRE_VOO_MS
 
 internal const val MENSAGEM_NAO_INICIOU =
     "Não consegui começar a análise. Verifique se você continua conectado."
+
+/**
+ * O overlay de execução do speedtest em tela cheia deve aparecer?
+ *
+ * Existe como função pura por causa da ressalva RS7 de Caio na PR #1719: apagar a supressão do
+ * `AnimatedVisibility` dentro de `AppShell.kt` sobrevivia à suíte inteira do `:app`, e a resposta
+ * "exige compor o `AppShell`" só vale para testar o **wiring** — a **regra** sai barato daqui.
+ *
+ * O que continua descoberto por teste é alguém parar de *chamar* esta função. Isso é o call site,
+ * não a regra, e segue declarado como resíduo.
+ */
+internal fun deveMostrarOverlayVelocidade(
+    suprimeReacoesDoShell: Boolean,
+    estado: EstadoExecucaoSpeedtest,
+): Boolean =
+    !suprimeReacoesDoShell &&
+        (estado == EstadoExecucaoSpeedtest.executando || estado == EstadoExecucaoSpeedtest.erro)
+
+/**
+ * O `BackHandler` que descarta a tela de erro do speedtest (GH#374) deve estar ativo?
+ *
+ * Durante a medição guiada, não: o `VelocidadeScreen` nem compõe, então este handler descartaria o
+ * erro por baixo de uma tela que mostra o próprio estado de falha, e o back do usuário não voltaria
+ * ao roteiro de perguntas como ele espera. Mesma justificativa de [deveMostrarOverlayVelocidade]
+ * para existir como função pura.
+ */
+internal fun deveTratarBackDeErroDoSpeedtest(
+    suprimeReacoesDoShell: Boolean,
+    estado: EstadoExecucaoSpeedtest,
+): Boolean = !suprimeReacoesDoShell && estado == EstadoExecucaoSpeedtest.erro
 
 /**
  * O que o `AppShell` consome. Reconstruído a cada recomposição a partir do snapshot; o estado que
@@ -76,6 +144,18 @@ internal class MedicaoGuiada {
         disparar()
     }
 
+    /**
+     * Cancela a medição guiada.
+     *
+     * Corrida conhecida e aceita (ressalva RS14 de Caio na PR #1719): `emCurso` zera aqui, mas o
+     * executor só desenrola na fronteira de fase. Se ele alcançar `concluido` antes de ver o
+     * `cancelFlag`, `consumirConclusao()` devolve `false` e o shell empilha
+     * `Overlay.ResultadoVelocidade` por cima do fluxo guiado, depois de a pessoa ter cancelado.
+     *
+     * A janela é estreita e o resultado não é perdido nem inventado — a pessoa vê a tela de
+     * resultado de uma medição que de fato aconteceu. Fechá-la exigiria o executor distinguir
+     * "cancelado" de "concluído" no snapshot, que é mudança de contrato dele, não desta fatia.
+     */
     fun cancelar(cancelarExecutor: () -> Unit) {
         emCurso = false
         aguardandoInicio = false
@@ -93,10 +173,21 @@ internal class MedicaoGuiada {
         naoIniciou = true
     }
 
+    /**
+     * Consome a conclusão. Limpa os **três** campos — `naoIniciou` inclusive.
+     *
+     * A primeira versão deixava `naoIniciou` de pé (bloqueio B8 de Caio na PR #1719), quebrando o
+     * invariante `naoIniciou ⇒ emCurso`. O resultado, executado por ele: com a falsa falha ativa, a
+     * medição concluía de verdade, `consumirConclusao()` devolvia `true` (então o shell **engolia**
+     * o `Overlay.ResultadoVelocidade`), e a rota ficava travada em "Não consegui começar a análise"
+     * — `medicaoObservadaEmCurso` nunca via `Concluida`, então §8.6 nunca chegava. Resultado
+     * completo em mãos e nenhuma tela para mostrá-lo, com saída só por back ou medindo tudo de novo.
+     */
     fun consumirConclusao(): Boolean {
         if (!emCurso) return false
         emCurso = false
         aguardandoInicio = false
+        naoIniciou = false
         return true
     }
 }
@@ -143,14 +234,30 @@ internal fun rememberMedicaoGuiada(
     val dispararTeste by rememberUpdatedState(onNovoTeste)
     val cancelarTeste by rememberUpdatedState(onCancelarTeste)
 
-    LaunchedEffect(snapshot.estado) {
-        if (snapshot.estado == EstadoExecucaoSpeedtest.executando) medicao.registrarInicioObservado()
-    }
-
-    LaunchedEffect(medicao.aguardandoInicio) {
+    // UM efeito, com chave nos dois valores — não dois efeitos separados.
+    //
+    // A primeira versão usava `LaunchedEffect(snapshot.estado)` para observar o início, o que é um
+    // detector de **transição** fazendo o papel de detector de **estado** (bloqueio B7 de Caio na
+    // PR #1719). Se o executor JÁ estivesse `executando` no momento do pedido, a chave não mudava,
+    // o efeito não reexecutava, `registrarInicioObservado()` nunca era chamado — e o limite
+    // disparava em cima de uma medição correndo. Caio executou o cenário: medição a 50% de
+    // progresso com a tela dizendo "não consegui começar".
+    //
+    // Esse caminho é alcançável justamente pelo cancelar-e-refazer rápido que o KDoc abaixo
+    // documenta: `cancelar()` marca uma flag, o loop só desenrola na fronteira de fase, e
+    // `execucaoSpeedtestEmAndamento` só é liberado no `finally` — então `reiniciarSuite` retorna em
+    // `:960` E o snapshot já está `executando`.
+    //
+    // Nivelado por valor e rearmado a cada mudança de estado: a checagem depois do `delay` fecha a
+    // corrida de o executor começar durante a espera.
+    LaunchedEffect(medicao.aguardandoInicio, snapshot.estado) {
         if (!medicao.aguardandoInicio) return@LaunchedEffect
+        if (snapshot.estado == EstadoExecucaoSpeedtest.executando) {
+            medicao.registrarInicioObservado()
+            return@LaunchedEffect
+        }
         delay(limiteParaIniciarMs)
-        medicao.registrarFalhaDeInicio()
+        if (snapshot.estado != EstadoExecucaoSpeedtest.executando) medicao.registrarFalhaDeInicio()
     }
 
     val estado =

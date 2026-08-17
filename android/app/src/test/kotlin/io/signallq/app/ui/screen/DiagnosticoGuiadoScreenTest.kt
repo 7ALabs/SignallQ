@@ -260,6 +260,40 @@ class DiagnosticoGuiadoScreenTest {
             .assertExists()
     }
 
+    // RESSALVA RS13. A RS3 nasceu de eu ter aceitado "função pura testada" como prova de
+    // comportamento — o `progresso` era calculado, testado e nunca chegava a pixel. Aceitar agora
+    // "é visual, confia" repetiria o mesmo erro com outro nome.
+    //
+    // O que se testa aqui é a ESCOLHA DO RAMO, que é lógica: `EmAndamento` → indicador determinado,
+    // qualquer outro → indeterminado. Animação, easing e cor ficam de fora de propósito.
+    //
+    // Por tag e não por `ProgressBarRangeInfo`: o `clearAndSetSemantics` que torna o indicador
+    // decorativo para o TalkBack apaga justamente essa propriedade. Tentei o matcher de semântica
+    // primeiro e ele não acha o nó — mudar a acessibilidade para acomodar o teste seria trocar o
+    // certo pelo conveniente.
+    @Test
+    fun `com progresso o indicador e determinado, sem progresso e indeterminado`() {
+        var estado by mutableStateOf<EstadoAnaliseGuiada>(EstadoAnaliseGuiada.NaoIniciada)
+        composeRule.setContent {
+            SignallQTheme {
+                DiagnosticoGuiadoAnaliseSection(
+                    estado = estado,
+                    onCancelar = {},
+                    onTentarNovamente = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_INDETERMINADO).assertExists()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_DETERMINADO).assertDoesNotExist()
+
+        estado = EstadoAnaliseGuiada.EmAndamento(0.4f, "Medindo a velocidade de recebimento")
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_DETERMINADO).assertExists()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_INDETERMINADO).assertDoesNotExist()
+    }
+
     @Test
     fun `falha na analise oferece tentar de novo e redispara a medicao`() {
         setContent(

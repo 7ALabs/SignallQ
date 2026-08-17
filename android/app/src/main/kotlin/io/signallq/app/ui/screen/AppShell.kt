@@ -659,8 +659,10 @@ fun AppShell(
     // e o back do usuário não voltaria ao roteiro de perguntas, como ele espera.
     BackHandler(
         enabled =
-            !medicaoGuiada.suprimeReacoesDoShell &&
-                snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.erro,
+            deveTratarBackDeErroDoSpeedtest(
+                medicaoGuiada.suprimeReacoesDoShell,
+                snapshotSpeedtest.estado,
+            ),
     ) {
         onCancelarTeste()
     }
@@ -896,11 +898,10 @@ fun AppShell(
             // seu próprio `BackHandler` de erro concorrendo com o do fluxo guiado.
             AnimatedVisibility(
                 visible =
-                    !medicaoGuiada.suprimeReacoesDoShell &&
-                        (
-                            snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.executando ||
-                                snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.erro
-                        ),
+                    deveMostrarOverlayVelocidade(
+                        medicaoGuiada.suprimeReacoesDoShell,
+                        snapshotSpeedtest.estado,
+                    ),
                 enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                 exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
             ) {
