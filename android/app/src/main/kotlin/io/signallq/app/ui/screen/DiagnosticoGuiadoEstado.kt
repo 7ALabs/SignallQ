@@ -141,11 +141,20 @@ data class DiagnosticoGuiadoEstado(
      * Recua um passo interno. Devolve `null` quando não há mais o que recuar — que é o sinal para
      * o `RegistrarBackDoOverlay` responder `false` e deixar o shell fechar o overlay inteiro.
      *
-     * **Obrigação da fiação, sem correspondente aqui:** o `voltarUmPasso()` atual
-     * (`DiagnosticoGuiadoScreen.kt:188-201`) chama `onResetarAnalisador()` ao sair do resultado.
-     * Isso é efeito colateral e não pertence a um data class — mas some da vista se não estiver
-     * escrito. Sem ele, o analisador de IA fica quente ao sair do Resultado. Risco residual 2 do
-     * parecer de Caio na PR #1713.
+     * **Obrigações da fiação, sem correspondente aqui.** `onResetarAnalisador()` é efeito colateral
+     * e não pertence a um data class — mas some da vista se não estiver escrito. Sem ele, o
+     * analisador de IA fica quente. São **três** call sites hoje em `DiagnosticoGuiadoScreen.kt`,
+     * e cada um exige tratamento próprio:
+     *
+     * | Linha | Contexto | Coberto por este `recuar()`? |
+     * |---|---|---|
+     * | `:192` | dentro de `voltarUmPasso()`, ao sair do resultado | não — mapeia para `pilha.dropLast(1)` |
+     * | `:250` | `LaunchedEffect` ao **entrar** no resultado, antes de `onAnalisarProblema` | não — é efeito de entrada, independente da navegação |
+     * | `:262` | `onEscolherOutraSituacao`, reset completo a partir do resultado | não — mapeia para o reset total, e é o mais fácil de esquecer |
+     *
+     * O risco residual 2 do parecer de Caio na PR #1713 citava só o `:192`. O levantamento da
+     * parte 4/4 (comentário na #1704) encontrou os outros dois — o `:262` em particular não estava
+     * documentado em lugar nenhum.
      */
     fun recuar(): DiagnosticoGuiadoEstado? =
         when {
