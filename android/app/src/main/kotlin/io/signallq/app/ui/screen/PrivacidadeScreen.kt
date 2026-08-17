@@ -27,9 +27,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,11 +59,24 @@ fun PrivacidadeScreen(
      */
     mostrarOpcoesAnuncios: Boolean = false,
     onAbrirOpcoesAnuncios: () -> Unit = {},
+    /** Mensagem a exibir quando o formulário da UMP falha ao abrir; `null` = sem erro pendente. */
+    erroOpcoesAnuncios: String? = null,
+    /** Chamado depois de exibir [erroOpcoesAnuncios], para o chamador limpar o estado. */
+    onErroOpcoesAnunciosExibido: () -> Unit = {},
 ) {
     val c = LocalLkTokens.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(erroOpcoesAnuncios) {
+        erroOpcoesAnuncios?.let {
+            snackbarHostState.showSnackbar(it)
+            onErroOpcoesAnunciosExibido()
+        }
+    }
 
     Scaffold(
         containerColor = c.bgPrimary,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
                 title = {

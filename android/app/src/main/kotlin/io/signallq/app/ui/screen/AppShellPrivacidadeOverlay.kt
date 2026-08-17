@@ -1,5 +1,6 @@
 package io.signallq.app.ui.screen
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -12,10 +13,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.zIndex
 import io.signallq.app.ads.ConsentManager
-import io.signallq.app.ui.encontrarActivity
 
 /**
  * Overlay "Privacidade" do menu lateral e do Perfil — extraído do corpo de [AppShell] pela
@@ -34,10 +33,15 @@ internal fun AppShellPrivacidadeOverlay(
     overlayStack: MutableList<AppShellOverlay>,
     onAbrirGerenciarDados: () -> Unit,
 ) {
-    val activity = LocalContext.current.encontrarActivity()
+    // `LocalActivity` (activity-compose 1.10+, projeto em 1.13.0) já resolve a Activity
+    // hospedeira desembrulhando `ContextWrapper` — `LocalContext.current` NÃO é garantidamente uma
+    // Activity. Um helper próprio foi escrito e descartado na revisão da PR #1709: eram 101 linhas
+    // reimplementando o que a plataforma entrega.
+    val activity = LocalActivity.current
     // Recalculado a cada abertura do overlay: o status da UMP muda depois que o usuário responde
     // o formulário inicial, e a tela pode ser aberta antes disso na mesma sessão.
     var precisaOpcoesAnuncios by remember { mutableStateOf(false) }
+    var erroOpcoes by remember { mutableStateOf<String?>(null) }
     val privacidadeAberta = AppShellOverlay.Privacidade in overlayStack
     LaunchedEffect(privacidadeAberta, activity) {
         precisaOpcoesAnuncios =
@@ -58,10 +62,22 @@ internal fun AppShellPrivacidadeOverlay(
                 onAbrirGerenciarDados()
             },
             mostrarOpcoesAnuncios = precisaOpcoesAnuncios,
+            erroOpcoesAnuncios = erroOpcoes,
+            onErroOpcoesAnunciosExibido = { erroOpcoes = null },
             onAbrirOpcoesAnuncios = {
                 // Não fecha o overlay: o formulário da UMP abre por cima e o usuário volta para
                 // a tela de Privacidade onde estava.
-                activity?.let { ConsentManager.mostrarOpcoesPrivacidade(it) }
+                activity?.let { act ->
+                    ConsentManager.mostrarOpcoesPrivacidade(act) { erro ->
+                        // Ressalva R2 da revisão da PR #1709: sem isto, falhar ao carregar o
+                        // formulário (sem rede, por exemplo) deixava o toque sem NENHUM retorno
+                        // visível — só um log. Numa região GDPR, "não consigo abrir minhas opções
+                        // de privacidade e o app não me diz nada" vira reclamação de política.
+                        if (erro != null) {
+                            erroOpcoes = "Não foi possível abrir agora. Verifique sua conexão e tente de novo."
+                        }
+                    }
+                }
             },
         )
     }

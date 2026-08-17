@@ -75,8 +75,24 @@ object ConsentManager {
      * entrada oculta — mostrar um item que abre um formulário vazio seria pior que não mostrar.
      */
     fun precisaOferecerOpcoesPrivacidade(activity: Activity): Boolean =
-        UserMessagingPlatform.getConsentInformation(activity).privacyOptionsRequirementStatus ==
-            ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED
+        precisaOferecer(UserMessagingPlatform.getConsentInformation(activity).privacyOptionsRequirementStatus)
+
+    /**
+     * A regra em si, separada do acesso ao SDK — achado da revisão de Caio na PR #1709.
+     *
+     * Enquanto isto vivia embutido na chamada acima, o predicado **não era testado por nenhum
+     * meio**: em máquina não, porque exige `Activity` e o SDK da UMP; em aparelho tampouco,
+     * porque o caminho `REQUIRED` só ocorre sob GDPR e não temos *debug geography* configurado.
+     * Duas mutações sobreviviam à suíte inteira, e são exatamente as duas formas de errar a
+     * obrigação regulatória: fixar `true` (entrada aparece no Brasil e abre formulário vazio) e
+     * comparar com `NOT_REQUIRED` (entrada some sob GDPR — o descumprimento que a issue corrige,
+     * de volta intacto).
+     *
+     * Separado, vira tabela de três casos sem `Activity`, sem SDK e sem VPN. Não é abstração
+     * nova: é uma função pura, zero interface.
+     */
+    internal fun precisaOferecer(status: ConsentInformation.PrivacyOptionsRequirementStatus): Boolean =
+        status == ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED
 
     /**
      * Abre o formulário de opções de privacidade da própria UMP — não construímos UI de
