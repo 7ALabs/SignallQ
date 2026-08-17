@@ -171,10 +171,15 @@ class AppShellOverlayRegistryTest {
                 onIrParaHome = { disparos += "irParaHome" },
                 onIniciarModoGamer = { disparos += "iniciarModoGamer" },
                 onAbrirFerramentaSugerida = { disparos += "abrirFerramentaSugerida" },
-                onMedirNovamente = { disparos += "medirNovamente" },
                 onRecommendationShown = { disparos += "recommendationShown" },
                 onRecommendationClicked = { disparos += "recommendationClicked" },
                 onRecommendationFeedback = { disparos += "recommendationFeedback" },
+            ),
+        analise =
+            AnaliseGuiadaContrato(
+                estado = EstadoAnaliseGuiada.Concluida,
+                onIniciar = { disparos += "analiseIniciar" },
+                onCancelar = { disparos += "analiseCancelar" },
             ),
     )
 
@@ -217,19 +222,25 @@ class AppShellOverlayRegistryTest {
     // ─── Diagnóstico guiado (issue #1704) ──────────────────────────────────────
 
     @Test
-    fun `diagnostico guiado sem resultado compoe o estado vazio, nao um container mudo`() {
-        // COMPORTAMENTO INVERTIDO PELA #1714, de propósito. A versão anterior deste teste afirmava
-        // que o container NÃO compunha sem resultado — e isso era justamente o bug: a pilha de
-        // overlays sobrevive ao process death, o `ResultadoSpeedtest` não, e o usuário voltava com
-        // um overlay na pilha que não desenhava nada. O back consumia um `pop()` invisível.
+    fun `diagnostico guiado sem resultado abre o fluxo, nao um estado vazio`() {
+        // TERCEIRA redação deste teste, e as três descrevem comportamentos diferentes de verdade:
         //
-        // Agora a ausência de resultado decide O QUE mostrar em vez de esconder. O `testTag`
-        // continua sendo o que distingue "compôs" de "não compôs" — segue valendo o achado de Caio
-        // no DetalhesTecnicos (PR #1697), só que agora a asserção é a oposta.
+        // 1. antes da #1714: afirmava que o container NÃO compunha sem resultado — que era o bug
+        //    (pilha sobrevive ao process death, `ResultadoSpeedtest` não, back consumia um `pop()`
+        //    invisível);
+        // 2. #1714: passou a compor `ResultadoIndisponivelScreen` — honesto, mas um beco sem saída:
+        //    dizia que o resultado sumiu e mandava a pessoa para outra tela medir;
+        // 3. agora (GH#1704 parte 4/4): o fluxo **não depende mais** de medição anterior. Sem
+        //    resultado ele abre normalmente na escolha do sintoma (§8.2) e a rota `Analise` (§8.5)
+        //    produz a medição que falta, dentro do próprio fluxo.
+        //
+        // O `testTag` continua sendo o que distingue "compôs" de "não compôs" — segue valendo o
+        // achado de Caio no DetalhesTecnicos (PR #1697).
         val stack = mutableStateListOf(AppShellOverlay.DiagnosticoGuiado)
         composeRule.setContent { RegistryDeTeste(stack = stack) }
         composeRule.onNodeWithTag(TAG_OVERLAY_DIAGNOSTICO_GUIADO).assertExists()
-        composeRule.onNodeWithText("Este resultado não está mais disponível").assertExists()
+        composeRule.onNodeWithText("Vamos descobrir o que está acontecendo").assertExists()
+        composeRule.onNodeWithText("Este resultado não está mais disponível").assertDoesNotExist()
     }
 
     @Test

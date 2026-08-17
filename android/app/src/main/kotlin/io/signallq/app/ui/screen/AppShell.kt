@@ -320,6 +320,15 @@ fun AppShell(
     var modoSelecionado by remember { mutableStateOf(ModoSpeedtest.complete) }
     val overlayStack = navigator.overlayStack
 
+    // GH#1704 parte 4/4 — "a medição em curso pertence ao fluxo guiado".
+    //
+    // O `ExecutorSpeedtest` é `@Singleton`: uma medição disparada de dentro do diagnóstico guiado
+    // é indistinguível, no snapshot, de uma disparada na tela Velocidade. Sem este flag o shell
+    // reagiria a ela como reage a qualquer teste — abrindo o `VelocidadeScreen` em tela cheia
+    // durante a execução e empilhando `Overlay.ResultadoVelocidade` na conclusão, por cima do
+    // fluxo guiado. A pessoa pediria um diagnóstico e receberia a tela de resultado do speedtest.
+    var medicaoDoFluxoGuiado by remember { mutableStateOf(false) }
+
     // GH#1358 — menu lateral (Navigation Drawer) no lugar do antigo avatar de perfil no
     // TopBar. Único ponto de entrada agora é o botão hambúrguer nas 5 telas de tab/hub —
     // hoisted aqui pra ter uma só fonte de estado aberto/fechado.
@@ -598,12 +607,25 @@ fun AppShell(
             EstadoExecucaoSpeedtest.executando -> testeAtivo = true
             EstadoExecucaoSpeedtest.concluido -> {
                 if (testeAtivo) {
+                    // `onIniciarDiagnostico()` roda nos dois caminhos: é ele que produz o
+                    // `DiagnosticInput` que o `DiagnosticoGuiadoEngine` consome. Sem ele o
+                    // resultado guiado sairia com zero dimensões — indistinguível de "sua rede
+                    // está ok" (GH#1704, §5 do reconhecimento).
                     onIniciarDiagnostico()
-                    mostrarConcluido = true
-                    delay(400)
-                    mostrarConcluido = false
-                    if (Overlay.ResultadoVelocidade !in overlayStack) overlayStack.add(Overlay.ResultadoVelocidade)
-                    testeAtivo = false
+                    if (medicaoDoFluxoGuiado) {
+                        // Quem conduz a transição é a própria tela guiada, que observa o snapshot
+                        // e avança da rota Analise (§8.5) para a conclusão (§8.6).
+                        medicaoDoFluxoGuiado = false
+                        testeAtivo = false
+                    } else {
+                        mostrarConcluido = true
+                        delay(400)
+                        mostrarConcluido = false
+                        if (Overlay.ResultadoVelocidade !in overlayStack) {
+                            overlayStack.add(Overlay.ResultadoVelocidade)
+                        }
+                        testeAtivo = false
+                    }
                 }
             }
             else -> {}
@@ -621,7 +643,12 @@ fun AppShell(
 
     // #374: tela de erro do speedtest (overlay VelocidadeScreen) não tinha BackHandler
     // próprio — o back físico do sistema saía direto do app em vez de descartar o erro.
-    BackHandler(enabled = snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.erro) {
+    // GH#1704: durante a medição do fluxo guiado o `VelocidadeScreen` nem compõe, então este
+    // handler descartaria o erro por baixo de uma tela que mostra o próprio estado de falha —
+    // e o back do usuário não voltaria ao roteiro de perguntas, como ele espera.
+    BackHandler(
+        enabled = !medicaoDoFluxoGuiado && snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.erro,
+    ) {
         onCancelarTeste()
     }
 
@@ -849,11 +876,18 @@ fun AppShell(
                 }
             }
 
-            // Overlay de execução do speedtest — cobre toda a tela durante o teste
+            // Overlay de execução do speedtest — cobre toda a tela durante o teste.
+            // GH#1704: suprimido quando a medição pertence ao fluxo guiado, que desenha a própria
+            // rota Analise (§8.5). A supressão é explícita, e não por zIndex, porque zIndex só
+            // decide quem fica por cima — o `VelocidadeScreen` continuaria composto por baixo, com
+            // seu próprio `BackHandler` de erro concorrendo com o do fluxo guiado.
             AnimatedVisibility(
                 visible =
-                    snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.executando ||
-                        snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.erro,
+                    !medicaoDoFluxoGuiado &&
+                        (
+                            snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.executando ||
+                                snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.erro
+                        ),
                 enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                 exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
             ) {
@@ -962,13 +996,25 @@ fun AppShell(
                                     if (Overlay.ModoGamer !in overlayStack) overlayStack.add(Overlay.ModoGamer)
                                 },
                                 onAbrirFerramentaSugerida = onAbrirFerramentaSugeridaOverlay,
-                                onMedirNovamente = {
-                                    overlayStack.remove(Overlay.DiagnosticoGuiado)
-                                    navigator.select(AppShellRoot.Speed)
-                                },
                                 onRecommendationShown = onRecommendationShown,
                                 onRecommendationClicked = onRecommendationClicked,
                                 onRecommendationFeedback = onRecommendationFeedback,
+                            ),
+                        analise =
+                            AnaliseGuiadaContrato(
+                                estado = estadoAnaliseGuiada(snapshotSpeedtest),
+                                onIniciar = {
+                                    medicaoDoFluxoGuiado = true
+                                    // `fast` e não `modoSelecionado`: a análise guiada não deve
+                                    // herdar o modo que a pessoa escolheu na tela Velocidade —
+                                    // são jornadas diferentes, e §8.5 pede progresso curto e
+                                    // compreensível, não a bateria completa.
+                                    onNovoTeste(ModoSpeedtest.fast)
+                                },
+                                onCancelar = {
+                                    medicaoDoFluxoGuiado = false
+                                    onCancelarTeste()
+                                },
                             ),
                     ),
             )

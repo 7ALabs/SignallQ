@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import io.signallq.app.core.diagnostico.DiagnosticInput
@@ -11,6 +12,7 @@ import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 import io.signallq.app.ui.SignallQTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -40,6 +42,9 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34])
 class DiagnosticoGuiadoScreenTest {
     @get:Rule val composeRule = createComposeRule()
+
+    private var analiseIniciada = 0
+    private var analiseCancelada = 0
 
     @Test
     fun `sem pre-selecao mostra a lista de objetivos como antes`() {
@@ -96,6 +101,112 @@ class DiagnosticoGuiadoScreenTest {
         composeRule.onNodeWithText("Força do sinal Wi-Fi").assertIsDisplayed()
     }
 
+    // ---------------------------------------------------------------------------------------
+    // Rota `Analise` (spec 2.0 §8.5) — GH#1704 parte 4/4.
+    // ---------------------------------------------------------------------------------------
+
+    @Test
+    fun `fim do roteiro sem medicao entra na analise e dispara a medicao`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
+            resultadoValidoParaConclusao = false,
+        )
+
+        completarSegundaPerguntaJogos()
+
+        assertEquals(1, analiseIniciada)
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
+    }
+
+    // Este é o teste que prova o objetivo da fatia: antes dela, `resultadoValidoParaConclusao =
+    // false` fazia o banner de resultado inválido substituir a tela INTEIRA já na entrada — nem a
+    // lista de objetivos aparecia, e não havia ação nenhuma disponível para a pessoa.
+    @Test
+    fun `sem medicao valida a entrada mostra a lista de objetivos, nao o banner`() {
+        setContent(
+            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
+            resultadoValidoParaConclusao = false,
+        )
+
+        composeRule.onNodeWithText("Vamos descobrir o que está acontecendo").assertIsDisplayed()
+        composeRule.onNodeWithText(ObjetivoDiagnostico.JOGOS_COM_LAG.titulo).assertIsDisplayed()
+    }
+
+    // Mutante: trocar `podeConcluirSemMedir` por `analise.estado is Concluida` (isto é, ignorar
+    // `resultadoValidoParaConclusao`). Rodado — este teste falha, porque o fluxo pularia a
+    // remedição e cairia direto no banner com um resultado que o motor não aceita.
+    @Test
+    fun `medicao concluida porem invalida remede em vez de concluir`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.Concluida,
+            resultadoValidoParaConclusao = false,
+        )
+
+        completarSegundaPerguntaJogos()
+
+        assertEquals(1, analiseIniciada)
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
+    }
+
+    // Mutante: remover a cláusula `podeConcluirSemMedir` do `onAvancar`, deixando todo fim de
+    // roteiro cair na análise. Rodado — este teste falha: quem chega ao fluxo já medido mediria
+    // de novo, que é a regressão de jornada mais provável desta fatia.
+    @Test
+    fun `medicao ja concluida e valida vai direto para a conclusao sem remedir`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            input = inputJogosComWifiFraco(),
+            estadoAnalise = EstadoAnaliseGuiada.Concluida,
+        )
+
+        completarSegundaPerguntaJogos()
+
+        assertEquals(0, analiseIniciada)
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertDoesNotExist()
+        composeRule.onNodeWithText("Força do sinal Wi-Fi").assertIsDisplayed()
+    }
+
+    // Mutante: remover a cláusula `emAnalise ->` de `voltarUmPasso`. Rodado — este teste falha
+    // com a tela ainda na análise: o back "vazaria" para a cláusula seguinte e voltaria uma
+    // pergunta sem nunca cancelar a medição, deixando o executor rodando sozinho.
+    @Test
+    fun `voltar durante a analise cancela a medicao e retorna ao roteiro`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
+            resultadoValidoParaConclusao = false,
+        )
+        completarSegundaPerguntaJogos()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
+
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_CANCELAR).performClick()
+
+        assertEquals(1, analiseCancelada)
+        composeRule.onNodeWithText("Com que frequência isso acontece?").assertIsDisplayed()
+    }
+
+    @Test
+    fun `falha na analise oferece tentar de novo e redispara a medicao`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.Falhou("sem conexão"),
+            resultadoValidoParaConclusao = false,
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithText("sem conexão").assertIsDisplayed()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_TENTAR_NOVAMENTE).performClick()
+        assertEquals(2, analiseIniciada) // 1 ao entrar na rota + 1 no "Tentar de novo"
+    }
+
     /** Avança da primeira pergunta (já pré-preenchida pelo Assist) até o resultado,
      *  respondendo a segunda pergunta do roteiro de Jogos com lag normalmente. */
     private fun completarSegundaPerguntaJogos() {
@@ -127,12 +238,23 @@ class DiagnosticoGuiadoScreenTest {
         objetivoPreSelecionado: ObjetivoDiagnostico? = null,
         respostaPreSelecionadaPasso0: Int? = null,
         input: DiagnosticInput? = null,
+        /** GH#1704 — `Concluida` é o caminho de quem chega ao fluxo já com medição feita, que é
+         *  o pressuposto de todos os testes anteriores a esta fatia. Os testes da rota `Analise`
+         *  passam os outros estados explicitamente. */
+        estadoAnalise: EstadoAnaliseGuiada = EstadoAnaliseGuiada.Concluida,
+        resultadoValidoParaConclusao: Boolean = true,
     ) {
         composeRule.setContent {
             SignallQTheme {
                 DiagnosticoGuiadoScreen(
                     input = input,
-                    resultadoValidoParaConclusao = true,
+                    resultadoValidoParaConclusao = resultadoValidoParaConclusao,
+                    analise =
+                        AnaliseGuiadaContrato(
+                            estado = estadoAnalise,
+                            onIniciar = { analiseIniciada += 1 },
+                            onCancelar = { analiseCancelada += 1 },
+                        ),
                     objetivoPreSelecionado = objetivoPreSelecionado,
                     respostaPreSelecionadaPasso0 = respostaPreSelecionadaPasso0,
                     analisadorState = AnalisadorState.Inativo,
