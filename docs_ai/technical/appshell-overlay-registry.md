@@ -67,6 +67,14 @@ não mais overlays — é de lá que vieram os outros ~85%. Ver
 [#1698](https://github.com/buildea-labs/signallq/issues/1698), aberta a partir do achado da
 revisão da PR #1697 e sequenciada antes da Task 2.0.09 (#1657).
 
+**Atualização (2026-08-16, #1698 entregue):** o registro irmão para root content existe —
+[`appshell-root-content-registry.md`](appshell-root-content-registry.md), com 2 das 5 raízes
+migradas. Ele também resolveu a decisão pendente que a ressalva 3 de Caio deixou para este
+arquivo: **grupo por entrada, nunca campos soltos**. `AppShellOverlayRegistry` continua com os 17
+parâmetros soltos de hoje; quem migrar o próximo overlay deve convertê-lo ao mesmo formato
+(`AppShellXxxOverlayEntry`) em vez de acrescentar mais 4 campos à assinatura. A dívida está
+registrada e não foi refeita retroativamente aqui para não misturar escopo com a #1698.
+
 ## O padrão
 
 Duas responsabilidades, dois arquivos, sem sobreposição:

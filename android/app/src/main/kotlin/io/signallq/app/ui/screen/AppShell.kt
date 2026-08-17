@@ -85,13 +85,11 @@ import io.signallq.app.core.telephony.MovelSnapshot
 import io.signallq.app.feature.devices.ehClienteFinal
 import io.signallq.app.feature.dns.SnapshotBenchmarkDns
 import io.signallq.app.feature.fibra.SnapshotFibra
-import io.signallq.app.feature.history.ResumoHistorico
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
 import io.signallq.app.feature.speedtest.ModoSpeedtest
 import io.signallq.app.feature.speedtest.connectivity.ConnectivityAction
 import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisMensagem
 import io.signallq.app.modogamer.resolverPadraoModoGamer
-import io.signallq.app.ui.FiltroConexaoHistorico
 import io.signallq.app.ui.GatewayInfo
 import io.signallq.app.ui.HistoryPoint
 import io.signallq.app.ui.IspInfo
@@ -151,8 +149,9 @@ fun AppShell(
     gateways: List<GatewayInfo>,
     deviceName: String,
     dnsResolverIp: String?,
+    // Lista bruta — alimenta `resolverPrimeiraHistoria` (Home/Laudo, GH#1223/#1265). A lista
+    // FILTRADA que a tela de Histórico exibe vive em [historicoTela] (GH#1698).
     historico: List<MedicaoEntity>,
-    resumoHistorico: ResumoHistorico? = null,
     snapshotFibra: SnapshotFibra,
     // GH#865 Fase 1 — snapshot normalizado do equipamento local (ONT Nokia),
     // null ate a primeira leitura de fibra concluir com sucesso.
@@ -233,13 +232,10 @@ fun AppShell(
     // #82 — Banner Anatel dismissível
     anatelBannerDismissed: Boolean = false,
     onDispensarBannerAnatel: () -> Unit = {},
-    // #95 — Filtros do Historico
-    historicoFiltrado: List<MedicaoEntity> = emptyList(),
-    filtroConexaoHistorico: FiltroConexaoHistorico = FiltroConexaoHistorico.TODOS,
-    onFiltroConexaoHistoricoChange: (FiltroConexaoHistorico) -> Unit = {},
-    filtroOperadoraHistorico: String? = null,
-    onFiltroOperadoraHistoricoChange: (String?) -> Unit = {},
-    operadorasDisponiveisHistorico: List<String> = emptyList(),
+    // #95 (filtros) + GH#1698 — os 7 parâmetros soltos da tela de Histórico (lista filtrada,
+    // resumo, 2 filtros com seus callbacks e a lista de operadoras) viraram um grupo só,
+    // montado pela MainActivity como os demais `AppShellXxxState`.
+    historicoTela: AppShellHistoricoState = AppShellHistoricoState(),
     onScreenView: (screenName: String) -> Unit = {},
     onAssistObjetivo: (AssistObjetivoSelecionado) -> Unit = {},
     onAssistResposta: (AssistPerguntaRespondida) -> Unit = {},
@@ -411,6 +407,12 @@ fun AppShell(
         }
     }
 
+    // GH#1698 — a mesma decisão "quem responde ao botão de menu nesta raiz" estava repetida
+    // literalmente em 4 call sites de tela. Uma fonte só: na Jornada 2.0 o hambúrguer vira
+    // entrada de Perfil; no legado continua abrindo o Navigation Drawer (GH#1358).
+    val onAbrirMenuDaRaiz: () -> Unit =
+        if (shellMode == AppShellMode.Guided2) onAbrirPerfilOverlay else onAbrirMenu
+
     // GH#936 — Fase 7 MD3 (5f): "Monitoramento" agora é sheet dedicado (MonitoramentoSheet.kt),
     // hoisted aqui pra ser destino único do atalho no hub Ferramentas e da linha equivalente
     // dentro de Perfil/Ajustes — nenhum dos dois reimplementa os toggles.
@@ -494,33 +496,15 @@ fun AppShell(
             overlayStack.add(Overlay.SinalCanais)
         }
     }
+    // GH#1698 — a regra em si vive em `AppShellFerramentasRoot.kt` (função pura, testável sem
+    // Compose). Aqui fica só a ligação com o estado corrente do shell.
     val disponibilidadeFerramenta: (TipoFerramenta) -> FerramentaDisponibilidade = { tipo ->
-        val flagEnabled =
-            when (tipo) {
-                TipoFerramenta.SINAL_CANAIS_MOVEL, TipoFerramenta.SINAL_WIFI -> featureFlags.wifiEnabled
-                TipoFerramenta.DISPOSITIVOS -> featureFlags.devicesEnabled
-                TipoFerramenta.EQUIPAMENTO_INTERNET -> featureFlags.fibraEnabled
-                TipoFerramenta.DNS -> featureFlags.dnsEnabled
-                TipoFerramenta.LAUDO -> featureFlags.diagnosticoEnabled
-                TipoFerramenta.MONITORAMENTO -> featureFlags.settingsEnabled
-                TipoFerramenta.PING, TipoFerramenta.MODO_JOGOS -> true
-            }
-        when {
-            !flagEnabled -> FerramentaDisponibilidade.IndisponivelRemotamente("Tente novamente mais tarde.")
-            !snapshotRede.conectado &&
-                tipo in
-                setOf(
-                    TipoFerramenta.EQUIPAMENTO_INTERNET,
-                    TipoFerramenta.PING,
-                    TipoFerramenta.DNS,
-                    TipoFerramenta.MODO_JOGOS,
-                ) -> FerramentaDisponibilidade.Offline("Reconecte-se e tente novamente.")
-            !temPermissaoLocalizacao &&
-                tipo in
-                setOf(TipoFerramenta.SINAL_CANAIS_MOVEL, TipoFerramenta.SINAL_WIFI, TipoFerramenta.DISPOSITIVOS) ->
-                FerramentaDisponibilidade.PermissaoNecessaria("Abra para permitir redes próximas.")
-            else -> FerramentaDisponibilidade.Disponivel
-        }
+        resolverDisponibilidadeFerramenta(
+            tipo = tipo,
+            featureFlags = featureFlags,
+            conectado = snapshotRede.conectado,
+            temPermissaoLocalizacao = temPermissaoLocalizacao,
+        )
     }
     val onAbrirDnsOverlay: () -> Unit = {
         if (bloquearRota(featureFlags.dnsEnabled, ConsumerFeatureModuleIds.DNS) &&
@@ -552,6 +536,22 @@ fun AppShell(
             }
         }
     }
+
+    // GH#1698 — os 9 destinos do hub Ferramentas num grupo só. Antes eram 9 atribuições
+    // repetidas literalmente duas vezes neste arquivo (a tab 4 e o Overlay.Ferramentas), que
+    // precisavam ser editadas em dupla a cada ferramenta nova.
+    val acoesFerramentas =
+        AppShellFerramentasAcoes(
+            onAbrirSinalCanais = onAbrirSinalCanaisOverlay,
+            onAbrirDispositivos = onAbrirDispositivosOverlay,
+            onAbrirEquipamentoInternet = onAbrirEquipamentoInternetOverlay,
+            onAbrirPing = onAbrirPingOverlay,
+            onAbrirDns = onAbrirDnsOverlay,
+            onAbrirLaudo = onAbrirLaudoOverlay,
+            onAbrirMonitoramento = onAbrirMonitoramentoOverlay,
+            onAbrirModoGamer = onAbrirModoGamerOverlay,
+            onAbrirSinalWifi = onAbrirSinalWifiOverlay,
+        )
 
     // Callback unico chamado quando a GatewayConnectionSheet conecta com sucesso, em qualquer
     // um dos dois entry points — persiste a sessao e navega ao destino provisorio.
@@ -700,168 +700,162 @@ fun AppShell(
                             .padding(padding),
                 ) {
                     CompositionLocalProvider(LocalAppShellMode provides shellMode) {
-                        when (navigator.selectedTab) {
-                            // NAV-E: Tab 0 — Home
-                            0 ->
-                                if (shellMode.usaInicio2()) {
-                                    Inicio2Screen(
-                                        uiState =
-                                            Inicio2UiStateMapper.map(
-                                                snapshotRede = snapshotRede,
-                                                estadoSpeedtest = snapshotSpeedtest.estado,
-                                                diagnostico = snapshotDiagnostico,
-                                                medicao = medicaoHomeResolvida,
-                                            ),
-                                        onAnalisarConexao = onSolicitarDiagnostico,
-                                        onAbrirPerfil = onAbrirPerfilOverlay,
-                                        connectionTrail =
-                                            Inicio2ConnectionTrailMapper.map(
-                                                snapshotRede = snapshotRede,
-                                                snapshotWifi = snapshotWifi,
-                                                temPermissaoLocalizacao = temPermissaoLocalizacao,
-                                            ),
-                                        onAbrirTrailRoute = { route ->
-                                            when (route) {
-                                                Inicio2TrailRoute.Equipamento -> onAbrirEquipamentoInternetOverlay()
-                                                Inicio2TrailRoute.Wifi -> onAbrirSinalWifiOverlay()
-                                                Inicio2TrailRoute.SinalMovel -> onAbrirSinalCanaisOverlay()
-                                            }
-                                        },
-                                        onAbrirAssist = {
-                                            if (Overlay.Assist !in overlayStack) overlayStack.add(Overlay.Assist)
-                                        },
-                                    )
-                                } else {
-                                    HomeScreen(
-                                        snapshotRede = snapshotRede,
+                        // GH#1698 (épico #1647) — ponto de extensão de root content. Raiz migrada
+                        // mora em `AppShellXxxRoot.kt` e é despachada por `AppShellRootRegistry`;
+                        // as três ainda inline (Home/Speed/Wifi) chegam pelo slot `naoMigradas`,
+                        // que encolhe a cada fatia até sumir. Ver
+                        // `docs_ai/technical/appshell-root-content-registry.md`.
+                        AppShellRootRegistry(
+                            root = navigator.selectedRoot,
+                            historico =
+                                AppShellHistoricoRootEntry(
+                                    state = historicoTela,
+                                    adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.HISTORICO),
+                                    onAbrirMenu = onAbrirMenuDaRaiz,
+                                    onIniciarTeste = { navigator.select(AppShellRoot.Speed) },
+                                ),
+                            ferramentas =
+                                AppShellFerramentasRootEntry(
+                                    acoes = acoesFerramentas,
+                                    disponibilidade = disponibilidadeFerramenta,
+                                    onAbrirMenu = onAbrirMenuDaRaiz,
+                                    onRegistrarAbertura = { tipo -> onScreenView(tipo.screenName()) },
+                                ),
+                        ) { rootNaoMigrada ->
+                            when (rootNaoMigrada) {
+                                // NAV-E: Tab 0 — Home
+                                AppShellRoot.Home ->
+                                    if (shellMode.usaInicio2()) {
+                                        Inicio2Screen(
+                                            uiState =
+                                                Inicio2UiStateMapper.map(
+                                                    snapshotRede = snapshotRede,
+                                                    estadoSpeedtest = snapshotSpeedtest.estado,
+                                                    diagnostico = snapshotDiagnostico,
+                                                    medicao = medicaoHomeResolvida,
+                                                ),
+                                            onAnalisarConexao = onSolicitarDiagnostico,
+                                            onAbrirPerfil = onAbrirPerfilOverlay,
+                                            connectionTrail =
+                                                Inicio2ConnectionTrailMapper.map(
+                                                    snapshotRede = snapshotRede,
+                                                    snapshotWifi = snapshotWifi,
+                                                    temPermissaoLocalizacao = temPermissaoLocalizacao,
+                                                ),
+                                            onAbrirTrailRoute = { route ->
+                                                when (route) {
+                                                    Inicio2TrailRoute.Equipamento -> onAbrirEquipamentoInternetOverlay()
+                                                    Inicio2TrailRoute.Wifi -> onAbrirSinalWifiOverlay()
+                                                    Inicio2TrailRoute.SinalMovel -> onAbrirSinalCanaisOverlay()
+                                                }
+                                            },
+                                            onAbrirAssist = {
+                                                if (Overlay.Assist !in overlayStack) overlayStack.add(Overlay.Assist)
+                                            },
+                                        )
+                                    } else {
+                                        HomeScreen(
+                                            snapshotRede = snapshotRede,
+                                            snapshotSpeedtest = snapshotSpeedtest,
+                                            history = history,
+                                            ultimaMedicao = primeiraHistoria,
+                                            localIp = localIpStr,
+                                            publicIp = publicIpStr,
+                                            ispInfo = ispInfoData,
+                                            isIspInfoLoading = isIspInfoLoading,
+                                            gateways = gateways,
+                                            deviceName = deviceName,
+                                            connectedNetwork = connectedNetwork,
+                                            movelSnapshot = movelSnapshot,
+                                            simsAtivos = simsAtivos,
+                                            // GH#530 — nó do gateway na trilha: sessão válida pula a sheet,
+                                            // sem sessão abre a GatewayConnectionSheet (mesmo componente do Ajustes).
+                                            gatewaySessaoValida = gatewaySessaoValida,
+                                            conectarGateway = gatewayConnectionServiceIndisponivel,
+                                            modemUsername = modemUsername,
+                                            modemPassword = modemPassword,
+                                            modemPermanecerConectado = modemPermanecerConectado,
+                                            onAbrirGatewayDetalhe = onAbrirGatewayDetalhe,
+                                            onGatewayConectado = onGatewayConectado,
+                                            onIniciarTeste = { modo ->
+                                                if (snapshotRede.estadoConexao == EstadoConexao.movel) {
+                                                    // AppShell decide: em rede móvel mostra ForaDoWifiDialog
+                                                    // O modo fica registrado no modoSelecionado para uso posterior
+                                                    modoSelecionado = modo
+                                                    showForaDoWifiDialog = true
+                                                } else {
+                                                    modoSelecionado = modo
+                                                    onNovoTeste(modo)
+                                                }
+                                            },
+                                            onAbrirHistorico = { navigator.select(AppShellRoot.History) },
+                                            onAbrirMenu = onAbrirMenuDaRaiz,
+                                            // NAV-B: Sinal agora é tab 2 — navega por tab em vez de overlay
+                                            onAbrirRedes = onAbrirSinalWifiOverlay,
+                                            anatelBannerDismissed = anatelBannerDismissed,
+                                            onDismissAnatelBanner = onDispensarBannerAnatel,
+                                            resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
+                                            resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
+                                        )
+                                    }
+                                // NAV-E: Tab 1 — Velocidade (SpeedTestScreen como tab fixa)
+                                AppShellRoot.Speed ->
+                                    SpeedTestScreen(
                                         snapshotSpeedtest = snapshotSpeedtest,
-                                        history = history,
-                                        ultimaMedicao = primeiraHistoria,
-                                        localIp = localIpStr,
-                                        publicIp = publicIpStr,
+                                        snapshotRede = snapshotRede,
                                         ispInfo = ispInfoData,
-                                        isIspInfoLoading = isIspInfoLoading,
-                                        gateways = gateways,
-                                        deviceName = deviceName,
-                                        connectedNetwork = connectedNetwork,
-                                        movelSnapshot = movelSnapshot,
-                                        simsAtivos = simsAtivos,
-                                        // GH#530 — nó do gateway na trilha: sessão válida pula a sheet,
-                                        // sem sessão abre a GatewayConnectionSheet (mesmo componente do Ajustes).
-                                        gatewaySessaoValida = gatewaySessaoValida,
-                                        conectarGateway = gatewayConnectionServiceIndisponivel,
-                                        modemUsername = modemUsername,
-                                        modemPassword = modemPassword,
-                                        modemPermanecerConectado = modemPermanecerConectado,
-                                        onAbrirGatewayDetalhe = onAbrirGatewayDetalhe,
-                                        onGatewayConectado = onGatewayConectado,
-                                        onIniciarTeste = { modo ->
-                                            if (snapshotRede.estadoConexao == EstadoConexao.movel) {
-                                                // AppShell decide: em rede móvel mostra ForaDoWifiDialog
-                                                // O modo fica registrado no modoSelecionado para uso posterior
-                                                modoSelecionado = modo
-                                                showForaDoWifiDialog = true
-                                            } else {
-                                                modoSelecionado = modo
-                                                onNovoTeste(modo)
+                                        localizacaoServidor = localizacaoServidorStr,
+                                        modoSelecionado = modoSelecionado,
+                                        onModoSelecionado = { modoSelecionado = it },
+                                        onIniciarTeste = { onNovoTeste(modoSelecionado) },
+                                        onCancelarTeste = onCancelarTeste,
+                                        onAbrirDnsBenchmark = onAbrirDnsOverlay,
+                                        onAbrirPing = onAbrirPingOverlay,
+                                        onVerResultado = {
+                                            if (Overlay.ResultadoVelocidade !in
+                                                overlayStack
+                                            ) {
+                                                overlayStack.add(Overlay.ResultadoVelocidade)
                                             }
                                         },
                                         onAbrirHistorico = { navigator.select(AppShellRoot.History) },
-                                        onAbrirMenu = if (shellMode == AppShellMode.Guided2) onAbrirPerfilOverlay else onAbrirMenu,
-                                        // NAV-B: Sinal agora é tab 2 — navega por tab em vez de overlay
-                                        onAbrirRedes = onAbrirSinalWifiOverlay,
-                                        anatelBannerDismissed = anatelBannerDismissed,
-                                        onDismissAnatelBanner = onDispensarBannerAnatel,
+                                        onAbrirAjustes = onAbrirPerfilOverlay,
+                                        onAbrirMenu = onAbrirMenuDaRaiz,
+                                        planoInternet = planoInternet,
+                                        speedtestPendenteModoMovel = speedtestPendenteModoMovel,
+                                        onConfirmarSpeedtestMovel = onConfirmarSpeedtestMovel,
+                                        onCancelarSpeedtestMovel = onCancelarSpeedtestMovel,
+                                        movelSnapshot = movelSnapshot,
+                                        adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.VELOCIDADE),
+                                    )
+                                // NAV-B: Tab 2 — Sinal (SinalScreen como tab fixa, sem botão voltar).
+                                // `else` cobre só Wifi: History e Tools já foram desviadas pelo
+                                // registro antes de chegar aqui, e o `when` externo é exaustivo.
+                                else ->
+                                    SinalScreen(
+                                        snapshotWifi = snapshotWifi,
+                                        connectedNetwork = connectedNetwork,
+                                        estadoConexao = snapshotRede.estadoConexao,
+                                        conectado = snapshotRede.conectado,
+                                        movelSnapshot = movelSnapshot,
+                                        simsAtivos = simsAtivos,
+                                        localIp = localIpStr,
+                                        temPermissaoTelefonia = temPermissaoTelefonia,
+                                        onSolicitarPermissaoTelefonia = onSolicitarPermissaoTelefonia,
+                                        temPermissaoLocalizacao = temPermissaoLocalizacao,
+                                        localizacaoBloqueadaPermanentemente = localizacaoBloqueadaPermanentemente,
+                                        onSolicitarPermissaoLocalizacao = onSolicitarPermissaoLocalizacao,
+                                        onRefresh = onRefreshSinal,
+                                        onVoltar = { navigator.select(AppShellRoot.Home) },
+                                        onAbrirMenu = onAbrirMenu,
+                                        wifiLinkSnapshot = snapshotRede.wifiLinkSnapshot,
+                                        dispositivosRede = snapshotDevices.dispositivos,
+                                        apelidos = apelidos,
+                                        onSalvarApelido = onSalvarApelido,
                                         resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
                                         resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
                                     )
-                                }
-                            // NAV-E: Tab 1 — Velocidade (SpeedTestScreen como tab fixa)
-                            1 ->
-                                SpeedTestScreen(
-                                    snapshotSpeedtest = snapshotSpeedtest,
-                                    snapshotRede = snapshotRede,
-                                    ispInfo = ispInfoData,
-                                    localizacaoServidor = localizacaoServidorStr,
-                                    modoSelecionado = modoSelecionado,
-                                    onModoSelecionado = { modoSelecionado = it },
-                                    onIniciarTeste = { onNovoTeste(modoSelecionado) },
-                                    onCancelarTeste = onCancelarTeste,
-                                    onAbrirDnsBenchmark = onAbrirDnsOverlay,
-                                    onAbrirPing = onAbrirPingOverlay,
-                                    onVerResultado = {
-                                        if (Overlay.ResultadoVelocidade !in
-                                            overlayStack
-                                        ) {
-                                            overlayStack.add(Overlay.ResultadoVelocidade)
-                                        }
-                                    },
-                                    onAbrirHistorico = { navigator.select(AppShellRoot.History) },
-                                    onAbrirAjustes = onAbrirPerfilOverlay,
-                                    onAbrirMenu = if (shellMode == AppShellMode.Guided2) onAbrirPerfilOverlay else onAbrirMenu,
-                                    planoInternet = planoInternet,
-                                    speedtestPendenteModoMovel = speedtestPendenteModoMovel,
-                                    onConfirmarSpeedtestMovel = onConfirmarSpeedtestMovel,
-                                    onCancelarSpeedtestMovel = onCancelarSpeedtestMovel,
-                                    movelSnapshot = movelSnapshot,
-                                    adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.VELOCIDADE),
-                                )
-                            // NAV-B: Tab 2 — Sinal (SinalScreen como tab fixa, sem botão voltar)
-                            2 ->
-                                SinalScreen(
-                                    snapshotWifi = snapshotWifi,
-                                    connectedNetwork = connectedNetwork,
-                                    estadoConexao = snapshotRede.estadoConexao,
-                                    conectado = snapshotRede.conectado,
-                                    movelSnapshot = movelSnapshot,
-                                    simsAtivos = simsAtivos,
-                                    localIp = localIpStr,
-                                    temPermissaoTelefonia = temPermissaoTelefonia,
-                                    onSolicitarPermissaoTelefonia = onSolicitarPermissaoTelefonia,
-                                    temPermissaoLocalizacao = temPermissaoLocalizacao,
-                                    localizacaoBloqueadaPermanentemente = localizacaoBloqueadaPermanentemente,
-                                    onSolicitarPermissaoLocalizacao = onSolicitarPermissaoLocalizacao,
-                                    onRefresh = onRefreshSinal,
-                                    onVoltar = { navigator.select(AppShellRoot.Home) },
-                                    onAbrirMenu = onAbrirMenu,
-                                    wifiLinkSnapshot = snapshotRede.wifiLinkSnapshot,
-                                    dispositivosRede = snapshotDevices.dispositivos,
-                                    apelidos = apelidos,
-                                    onSalvarApelido = onSalvarApelido,
-                                    resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
-                                    resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
-                                )
-                            // Tab 3 — Historico (indice mantido conforme spec)
-                            3 ->
-                                HistoricoScreen(
-                                    historico = historicoFiltrado,
-                                    resumoHistorico = resumoHistorico,
-                                    onAbrirMenu = if (shellMode == AppShellMode.Guided2) onAbrirPerfilOverlay else onAbrirMenu,
-                                    onIniciarTeste = { navigator.select(AppShellRoot.Speed) },
-                                    filtroConexao = filtroConexaoHistorico,
-                                    onFiltroConexaoChange = onFiltroConexaoHistoricoChange,
-                                    filtroOperadora = filtroOperadoraHistorico,
-                                    onFiltroOperadoraChange = onFiltroOperadoraHistoricoChange,
-                                    operadorasDisponiveis = operadorasDisponiveisHistorico,
-                                    adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.HISTORICO),
-                                )
-                            // Tab 4 — Ferramentas (GH#930: substitui Ajustes; Ajustes virou overlay
-                            // "Perfil", acessado pelo avatar no TopBar — ver Overlay.Perfil abaixo)
-                            else ->
-                                FerramentasScreen(
-                                    onAbrirMenu = if (shellMode == AppShellMode.Guided2) onAbrirPerfilOverlay else onAbrirMenu,
-                                    onAbrirSinalCanais = onAbrirSinalCanaisOverlay,
-                                    onAbrirDispositivos = onAbrirDispositivosOverlay,
-                                    onAbrirEquipamentoInternet = onAbrirEquipamentoInternetOverlay,
-                                    onAbrirPing = onAbrirPingOverlay,
-                                    onAbrirDns = onAbrirDnsOverlay,
-                                    onAbrirLaudo = onAbrirLaudoOverlay,
-                                    onAbrirMonitoramento = onAbrirMonitoramentoOverlay,
-                                    onAbrirJogos = onAbrirModoGamerOverlay,
-                                    onAbrirSinalWifi = onAbrirSinalWifiOverlay,
-                                    disponibilidade = disponibilidadeFerramenta,
-                                    onRegistrarAbertura = { tipo -> onScreenView(tipo.screenName()) },
-                                )
+                            }
                         }
                     }
                 }
@@ -1168,15 +1162,15 @@ fun AppShell(
             ) {
                 FerramentasScreen(
                     onAbrirMenu = onAbrirMenu,
-                    onAbrirSinalCanais = onAbrirSinalCanaisOverlay,
-                    onAbrirDispositivos = onAbrirDispositivosOverlay,
-                    onAbrirEquipamentoInternet = onAbrirEquipamentoInternetOverlay,
-                    onAbrirPing = onAbrirPingOverlay,
-                    onAbrirDns = onAbrirDnsOverlay,
-                    onAbrirLaudo = onAbrirLaudoOverlay,
-                    onAbrirMonitoramento = onAbrirMonitoramentoOverlay,
-                    onAbrirJogos = onAbrirModoGamerOverlay,
-                    onAbrirSinalWifi = onAbrirSinalWifiOverlay,
+                    onAbrirSinalCanais = acoesFerramentas.onAbrirSinalCanais,
+                    onAbrirDispositivos = acoesFerramentas.onAbrirDispositivos,
+                    onAbrirEquipamentoInternet = acoesFerramentas.onAbrirEquipamentoInternet,
+                    onAbrirPing = acoesFerramentas.onAbrirPing,
+                    onAbrirDns = acoesFerramentas.onAbrirDns,
+                    onAbrirLaudo = acoesFerramentas.onAbrirLaudo,
+                    onAbrirMonitoramento = acoesFerramentas.onAbrirMonitoramento,
+                    onAbrirJogos = acoesFerramentas.onAbrirModoGamer,
+                    onAbrirSinalWifi = acoesFerramentas.onAbrirSinalWifi,
                     disponibilidade = disponibilidadeFerramenta,
                     onRegistrarAbertura = { tipo -> onScreenView(tipo.screenName()) },
                     // Issue #1503 — único consumidor real de Overlay.Ferramentas hoje: o
