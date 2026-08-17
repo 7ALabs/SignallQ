@@ -26,7 +26,7 @@ Linka em preparação (`foundation-linka/`, ver seção própria abaixo). Perím
 2. [`POSICIONAMENTO_PRODUTO.md`](POSICIONAMENTO_PRODUTO.md) — posicionamento obrigatório para Android e Web/PWA
 3. [`design-system/SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md`](design-system/SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md) — direção futura de identidade e experiência
 4. [`functional/JORNADA_ANDROID_GUIADA_2_SPEC.md`](functional/JORNADA_ANDROID_GUIADA_2_SPEC.md) — arquitetura futura da jornada Android
-5. [`prototypes/open-design-signallq-android-v2/`](prototypes/open-design-signallq-android-v2/) — pacote para a primeira rodada no Open Design
+5. [`prototypes/signallq-android-2-0/`](prototypes/signallq-android-2-0/) — protótipo navegável da Jornada 2.0 (abrir `index.html`)
 6. [`README.md`](README.md) — perímetro e mapa das pastas
 7. [`FUNCIONAL.md`](FUNCIONAL.md) — o que o app faz
 8. [`TECNICO.md`](TECNICO.md) — como é construído
@@ -153,7 +153,15 @@ renomeação SignallQ Design, separação DS/protótipos, três seções do cons
 aplicação, auditoria de telas, endosso de marca. Conteúdo implementado no Android consolidado em
 `DESIGN_SYSTEM.md`; direção futura compartilhada em `SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md` (draft).
 
-## Protótipos — `prototypes/` (0 documentos na raiz; 3 no pacote Android 2.0)
+## Protótipos — `prototypes/` (0 documentos na raiz; 3 pacotes)
+
+`signallq-android-2-0/` — **protótipo navegável da Jornada Android 2.0** (`README.md` ·
+`COVERAGE.md` · `NAVIGATION_AUDIT.md` · `brand-spec.md` + `index.html`). Referência visual e de
+navegação do épico #1647, contra a qual cada fatia é comparada. Versionado em 2026-08-16; antes
+disso existia só numa máquina, fora de repositório.
+
+`signallq-design-system-2-board/README.md` — prancha visual de foundations e componentes do
+Design System 2.0.
 
 `open-design-signallq-android-v2/README.md` · `PROMPT_INICIAL.md` ·
 `CHECKLIST_REVISAO.md`. Pacote operacional para gerar e revisar a primeira rodada no Open Design;
