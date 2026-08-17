@@ -38,6 +38,7 @@ import com.google.android.gms.ads.nativead.NativeAdView
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.ads.ChaveViewAnuncioNativo
 import io.signallq.app.ui.ads.buildRoleComposeView
 
 /**
@@ -98,11 +99,10 @@ fun NativeAdCard(
 
             Spacer(Modifier.height(LkSpacing.sm))
 
-            // key(nativeAd): forca o AndroidView a reconstruir a arvore de Views do zero
-            // quando um NativeAd novo carrega -- o factory captura headline/body/cta no
-            // closure em tempo de criacao, entao precisa recriar (nao so re-`update`) a
-            // cada anuncio novo para nunca mostrar texto de um anuncio anterior.
-            key(nativeAd) {
+            // GH#1699 — a chave tem que conter TUDO que o `factory` captura no closure, senão o
+            // valor congela no estado antigo sem erro nem log. O inventário por componente e o
+            // porquê de cada campo estão no KDoc de `ChaveViewAnuncioNativo` — fonte única.
+            key(ChaveViewAnuncioNativo(nativeAd, density, textPrimary, textSecondary, c.textTertiary, source)) {
                 AndroidView(
                     modifier = Modifier.fillMaxWidth(),
                     factory = { context ->
