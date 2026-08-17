@@ -150,7 +150,12 @@ class AppShellOverlayRegistryTest {
             AppShellOperadoraResolvers(
                 identidadeLocal = identidadeLocal,
                 contatoLocal = { _, _ -> null },
-                identidadeRemota = { _, _ -> IDENTIDADE_DE_TESTE },
+                // Identidade DISTINTA da local de propósito (ressalva RS2 de Caio na re-revisão
+                // da PR #1708): se as duas devolvessem o mesmo objeto, o teste de tela que vai
+                // cobrir a resolução de operadora não conseguiria distinguir local de remota —
+                // ligar identidadeLocal em identidadeRemota passaria. É o mesmo defeito do
+                // achado R1, um nível abaixo, evitado antes de o teste existir.
+                identidadeRemota = { _, _ -> IDENTIDADE_REMOTA_DE_TESTE },
                 contatoRemoto = { _, _ -> error("nao usado neste teste") },
             ),
         // Cada lambda grava um id PRÓPRIO em vez de `{}`. Achado R1 do parecer de Caio na
@@ -508,9 +513,19 @@ class AppShellOverlayRegistryTest {
     }
 }
 
+private val IDENTIDADE_REMOTA_DE_TESTE =
+    ResolvedOperadoraIdentity(
+        displayName = "Operadora remota de teste",
+        monograma = "R",
+        corMarca = null,
+        logoRes = null,
+        logoUrl = null,
+        source = OperadoraSource.REMOTE,
+    )
+
 private val IDENTIDADE_DE_TESTE =
     ResolvedOperadoraIdentity(
-        displayName = "Operadora de teste",
+        displayName = "Operadora local de teste",
         monograma = "T",
         corMarca = null,
         logoRes = null,
