@@ -245,9 +245,17 @@ class AppShellNavigationComposeTest {
         composeRule.setContent {
             navigator = rememberAppShellNavigator(AppShellMode.Guided2)
             AppShellBackHandlers(navigator)
+            // `passosCapturados` é lido NA COMPOSIÇÃO e é inerte — a lambda captura um Int, não
+            // o `MutableIntState`. Isso é o que faz o teste medir o que promete. Com
+            // `passosRestantes` capturado direto (versão anterior), a lambda congelada continuava
+            // lendo estado vivo, o congelamento não produzia sintoma, e o mutante
+            // `registrarBackDoOverlay(overlay, onBack)` — a regressão que a R2 existe para
+            // impedir — SOBREVIVIA. Ressalva R5 de Caio na PR #1710, e é a mesma lição do B2 um
+            // nível acima: capturar estado observável neutraliza o mutante.
+            val passosCapturados = passosRestantes
             RegistrarBackDoOverlay(navigator, AppShellOverlay.DiagnosticoGuiado) {
-                if (passosRestantes > 0) {
-                    passosRestantes -= 1
+                if (passosCapturados > 0) {
+                    passosRestantes = passosCapturados - 1
                     true
                 } else {
                     false
