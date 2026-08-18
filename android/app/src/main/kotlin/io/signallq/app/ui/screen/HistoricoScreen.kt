@@ -67,7 +67,7 @@ import androidx.compose.ui.unit.sp
 import io.signallq.app.R
 import io.signallq.app.ads.AdSlot
 import io.signallq.app.ads.AdUnitIds
-import io.signallq.app.ads.NativeAdContentSignals
+import io.signallq.app.ads.NativeAdContentSignal
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.diagnostico.BandaWifi
 import io.signallq.app.core.diagnostico.MetricClassifier
@@ -415,7 +415,7 @@ fun HistoricoScreen(
                     item(key = "native_ad_historico") {
                         val nativeAd by rememberNativeAd(
                             adUnitId = AdUnitIds.para(AdSlot.HISTORICO),
-                            contentSignal = NativeAdContentSignals.forSlot(AdSlot.HISTORICO),
+                            contentSignal = NativeAdContentSignal.forSlot(AdSlot.HISTORICO),
                             eligible = adsEnabled,
                         )
                         NativeAdCard(

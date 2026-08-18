@@ -15,8 +15,13 @@ import org.junit.Test
  * as URLs são sintéticas e `signallq.app` sequer é domínio registrado.
  *
  * Com os marcadores fora, a garantia fica mais forte e mais barata de provar: o sinal é **função
- * apenas do slot**, e slot é fixo por tela. Não há caminho por onde dado de usuário entre — não
- * porque é filtrado, mas porque não existe parâmetro para ele.
+ * apenas do slot**, e slot é fixo por tela.
+ *
+ * A primeira versão deste KDoc dizia que "não existe caminho por onde dado de usuário entre" — e
+ * era falso, porque o  tinha construtor público e qualquer call site podia montar a URL
+ * à mão (bloqueio B8 de Caio na PR #1717, provado com SSID e IP passando pela suíte inteira). O
+ * construtor virou privado e `forSlot` é a única entrada, então agora a frase se sustenta: o
+ * caminho não é filtrado, ele não compila.
  *
  * Os payloads realistas de dado de device continuam aqui, agora asserindo o invariante novo: por
  * mais que a tela saiba deles, nada disso alcança a URL.
@@ -24,7 +29,7 @@ import org.junit.Test
 class NativeAdContentSignalsTest {
     @Test
     fun `cada slot tem um topico distinto`() {
-        val urls = AdSlot.entries.map { NativeAdContentSignals.forSlot(it).contentUrl }
+        val urls = AdSlot.entries.map { NativeAdContentSignal.forSlot(it).contentUrl }
 
         assertEquals("topicos repetidos entre slots", urls.size, urls.distinct().size)
         urls.forEach { assertTrue(it.startsWith("https://signallq.app/contexto-anuncio/")) }
@@ -39,8 +44,8 @@ class NativeAdContentSignalsTest {
         AdSlot.entries.forEach { slot ->
             assertEquals(
                 "chamadas repetidas para o mesmo slot precisam dar o mesmo sinal",
-                NativeAdContentSignals.forSlot(slot),
-                NativeAdContentSignals.forSlot(slot),
+                NativeAdContentSignal.forSlot(slot).contentUrl,
+                NativeAdContentSignal.forSlot(slot).contentUrl,
             )
         }
     }
@@ -63,7 +68,7 @@ class NativeAdContentSignalsTest {
                 "bufferbloat-alto",
             )
 
-        val tudo = AdSlot.entries.joinToString(" ") { NativeAdContentSignals.forSlot(it).contentUrl }.lowercase()
+        val tudo = AdSlot.entries.joinToString(" ") { NativeAdContentSignal.forSlot(it).contentUrl }.lowercase()
 
         valoresCrus.forEach { valor ->
             assertFalse("sinal do anuncio nao pode conter '$valor': $tudo", tudo.contains(valor))

@@ -22,9 +22,16 @@ import org.robolectric.annotation.Config
  * oferecer caminho para revisá-lo depois. Isso é exigência da própria UMP quando
  * `privacyOptionsRequirementStatus == REQUIRED` (regiões sob GDPR), não preferência de produto.
  *
- * A condicionalidade é o ponto delicado e é o que estes testes travam: a entrada **precisa**
- * aparecer quando exigida e **precisa** sumir quando não exigida. Mostrar sempre abriria um
- * formulário vazio fora da região; nunca mostrar mantém o descumprimento que a issue corrige.
+ * A condicionalidade é o ponto delicado, e o que estes testes travam MUDOU na GH#1717: a entrada
+ * **precisa existir em toda região**, e o **destino** dela é que acompanha o status da UMP.
+ *
+ * A redação anterior dizia que a entrada precisava sumir fora do GDPR, e estava certa enquanto o
+ * formulário da UMP era o único destino — mostrar sempre abriria tela vazia. O que faltava era o
+ * outro lado: fora do GDPR o app serve anúncio personalizado, e esconder o item deixava essa
+ * pessoa sem controle nenhum. Com as configurações de anúncios do Android como destino
+ * alternativo, existe o que mostrar em qualquer região.
+ *
+ * (Bloqueio B7 de Caio: este KDoc ficou contradizendo os testes logo abaixo dele por uma rodada.)
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])

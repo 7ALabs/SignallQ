@@ -1006,7 +1006,6 @@ fun AppShell(
                         onVerDetalhesTecnicos = {
                             if (Overlay.DetalhesTecnicos !in overlayStack) overlayStack.add(Overlay.DetalhesTecnicos)
                         },
-                        recommendationDecision = recommendationDecision,
                         adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.RESULTADO),
                     )
                 }

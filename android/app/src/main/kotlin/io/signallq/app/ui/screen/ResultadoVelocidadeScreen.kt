@@ -66,12 +66,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.signallq.app.ads.AdSlot
 import io.signallq.app.ads.AdUnitIds
-import io.signallq.app.ads.NativeAdContentSignals
+import io.signallq.app.ads.NativeAdContentSignal
 import io.signallq.app.core.diagnostico.DiagnosticResult
 import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.MetricClassifier
 import io.signallq.app.core.diagnostico.MetricStatus
-import io.signallq.app.core.recommendation.RecommendationDecision
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.feature.speedtest.ResultadoSpeedtest
 import io.signallq.app.feature.speedtest.VereditoUso
@@ -164,10 +163,6 @@ fun ResultadoVelocidadeScreen(
     /** Ver detalhes técnicos (métricas cruas, sem IA/recomendação) — issue #1475
      *  ([DetalhesTecnicosScreen]). */
     onVerDetalhesTecnicos: () -> Unit = {},
-    /** Recomendacao do Recommendation Engine (#790/#811/#812) para este diagnostico -- #813.
-     *  Usada aqui só como sinal de conteúdo do anúncio nativo (`NativeAdContentSignals`);
-     *  o card de recomendação em si mora em [DiagnosticoGuiadoScreen] agora (issue #1475). */
-    recommendationDecision: RecommendationDecision? = null,
     /** Toggle remoto (Firebase Remote Config) + gate de consentimento UMP -- issue #555.
      *  Default `false`: nunca mostra anuncio sem sinal explicito de que pode. */
     adsEnabled: Boolean = false,
@@ -475,7 +470,7 @@ fun ResultadoVelocidadeScreen(
                         val nativeAd by rememberNativeAd(
                             adUnitId = AdUnitIds.para(AdSlot.RESULTADO),
                             contentSignal =
-                                NativeAdContentSignals.forSlot(AdSlot.RESULTADO),
+                                NativeAdContentSignal.forSlot(AdSlot.RESULTADO),
                             eligible = adsEnabled,
                         )
                         NativeAdCard(

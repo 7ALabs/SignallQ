@@ -64,7 +64,7 @@ import androidx.compose.ui.unit.sp
 import io.signallq.app.R
 import io.signallq.app.ads.AdSlot
 import io.signallq.app.ads.AdUnitIds
-import io.signallq.app.ads.NativeAdContentSignals
+import io.signallq.app.ads.NativeAdContentSignal
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.core.telephony.MovelSnapshot
@@ -302,7 +302,7 @@ private fun ConteudoSpeedTest(
             Spacer(Modifier.height(LkSpacing.md))
             val nativeAd by rememberNativeAd(
                 adUnitId = AdUnitIds.para(AdSlot.VELOCIDADE),
-                contentSignal = NativeAdContentSignals.forSlot(AdSlot.VELOCIDADE),
+                contentSignal = NativeAdContentSignal.forSlot(AdSlot.VELOCIDADE),
                 eligible = adsEnabled,
             )
             NativeAdRow(

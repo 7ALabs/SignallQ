@@ -130,7 +130,7 @@ object ConsentManager {
      * **não consegui confirmar** como ação registrada; um item que nunca resolve é um `forEach`
      * que finge cobertura (bloqueio B2 de Caio na PR #1717).
      */
-    private val ACOES_ANUNCIOS_DO_SISTEMA =
+    internal val ACOES_ANUNCIOS_DO_SISTEMA =
         listOf(
             "com.google.android.gms.settings.ADS_PRIVACY",
             Settings.ACTION_PRIVACY_SETTINGS,

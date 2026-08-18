@@ -162,4 +162,23 @@ class ConsentManagerPrecisaOferecerTest {
 
         assertFalse("toque mudo e pior que aviso", abriu)
     }
+
+    // RESSALVA R8 de Caio na PR #1717. A lista de acoes nao tinha teste: apagar a acao especifica
+    // de anuncios e deixar so a tela generica de Privacidade passava na suite inteira. Sob esse
+    // mutante, todo mundo fora do GDPR aterrissa na Privacidade generica e precisa achar
+    // "Anuncios" sozinho -- e a §4 da politica publicada afirma que o item "leva as configuracoes
+    // de anuncios do Android, onde e possivel limitar a personalizacao". A frase viraria falsa
+    // sem nada reclamar.
+    @Test
+    fun `a primeira acao e a tela de anuncios, nao a de privacidade generica`() {
+        assertEquals(
+            "a acao especifica precisa vir primeiro, senao a §4 da politica deixa de ser verdade",
+            "com.google.android.gms.settings.ADS_PRIVACY",
+            ConsentManager.ACOES_ANUNCIOS_DO_SISTEMA.first(),
+        )
+        assertTrue(
+            "precisa haver um fallback depois da acao especifica",
+            ConsentManager.ACOES_ANUNCIOS_DO_SISTEMA.size >= 2,
+        )
+    }
 }
