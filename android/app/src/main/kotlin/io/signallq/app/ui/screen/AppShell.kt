@@ -1036,7 +1036,6 @@ fun AppShell(
                         localizacaoServidor = localizacaoServidorStr,
                         ispInfo = ispInfoData,
                         operadoraMovel = operadoraMovel,
-                        recommendationDecision = recommendationDecision,
                         adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.RESULTADO),
                         onTestarNovamente = {
                             overlayStack.remove(Overlay.ResultadoVelocidade)
