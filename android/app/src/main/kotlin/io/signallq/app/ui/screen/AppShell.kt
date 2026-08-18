@@ -75,6 +75,8 @@ import io.signallq.app.core.diagnostico.topology.model.NatStatus
 import io.signallq.app.core.network.AssistAbandonado
 import io.signallq.app.core.network.AssistObjetivoSelecionado
 import io.signallq.app.core.network.AssistPerguntaRespondida
+import io.signallq.app.core.network.DiagnosticoBloqueioEncontrado
+import io.signallq.app.core.network.DiagnosticoPlanoIniciado
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.core.network.contracts.gateway.GatewayConnectionResultado
@@ -237,6 +239,9 @@ fun AppShell(
     onAssistObjetivo: (AssistObjetivoSelecionado) -> Unit = {},
     onAssistResposta: (AssistPerguntaRespondida) -> Unit = {},
     onAssistAbandono: (AssistAbandonado) -> Unit = {},
+    // GH#1706 — funil do diagnostico guiado (plano apresentado / bloqueio encontrado).
+    onDiagnosticoPlanoIniciado: (DiagnosticoPlanoIniciado) -> Unit = {},
+    onDiagnosticoBloqueio: (DiagnosticoBloqueioEncontrado) -> Unit = {},
     // GH#784 — etapa "compartilhou" do funil do teste de velocidade.
     onCompartilharResultadoVelocidade: () -> Unit = {},
     // GH#970 — resolucao de identidade/contato de operadora: nivel 1 (catalogo local,
@@ -997,6 +1002,7 @@ fun AppShell(
                                     ContextoDoPlano(
                                         temPermissaoLocalizacao = temPermissaoLocalizacao,
                                         conectadoPorWifi = snapshotRede.wifiLinkSnapshot != null,
+                                        localizacaoBloqueadaPermanentemente = localizacaoBloqueadaPermanentemente,
                                     ),
                             ),
                         operadora = operadoraResolvers,
@@ -1016,6 +1022,9 @@ fun AppShell(
                                     if (Overlay.ModoGamer !in overlayStack) overlayStack.add(Overlay.ModoGamer)
                                 },
                                 onAbrirFerramentaSugerida = onAbrirFerramentaSugeridaOverlay,
+                                onSolicitarPermissaoLocalizacao = onSolicitarPermissaoLocalizacao,
+                                onPlanoIniciado = onDiagnosticoPlanoIniciado,
+                                onBloqueioEncontrado = onDiagnosticoBloqueio,
                                 onRecommendationShown = onRecommendationShown,
                                 onRecommendationClicked = onRecommendationClicked,
                                 onRecommendationFeedback = onRecommendationFeedback,

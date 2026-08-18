@@ -54,6 +54,13 @@ enum class Capacidade(
 data class ContextoDoPlano(
     val temPermissaoLocalizacao: Boolean,
     val conectadoPorWifi: Boolean,
+    /**
+     * O sistema nao vai mais mostrar o dialogo de permissao (usuario marcou "nao perguntar de
+     * novo"). Distingue `NEGADO` de `NEGADO_PERMANENTE` na telemetria, e decide se ainda faz
+     * sentido oferecer o botao de permitir — pedir de novo o que o sistema nao vai perguntar e
+     * um toque que nao faz nada.
+     */
+    val localizacaoBloqueadaPermanentemente: Boolean = false,
 )
 
 /**

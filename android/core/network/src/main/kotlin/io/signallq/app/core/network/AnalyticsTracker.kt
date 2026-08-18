@@ -52,4 +52,14 @@ interface AnalyticsTracker {
     fun registrarAssistResposta(evento: AssistPerguntaRespondida)
 
     fun registrarAssistAbandono(evento: AssistAbandonado)
+
+    /**
+     * Issue #1706 — funil do diagnostico guiado (plano apresentado / bloqueio encontrado).
+     *
+     * Sem corpo default pelo mesmo motivo dos tres do Assist, documentado acima: um `= Unit` aqui
+     * deixaria uma implementacao futura perder estes eventos em silencio, sem erro de compilacao.
+     */
+    fun registrarDiagnosticoPlanoIniciado(evento: DiagnosticoPlanoIniciado)
+
+    fun registrarDiagnosticoBloqueio(evento: DiagnosticoBloqueioEncontrado)
 }

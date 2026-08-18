@@ -18,6 +18,10 @@ import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
+import io.signallq.app.core.network.DiagnosticoBloqueioEncontrado
+import io.signallq.app.core.network.DiagnosticoPlanoIniciado
+import io.signallq.app.core.network.ResolucaoBloqueioDiagnostico
+import io.signallq.app.core.network.TipoBloqueioDiagnostico
 import io.signallq.app.feature.speedtest.MeasurementStatus
 import io.signallq.app.ui.SignallQTheme
 import org.junit.Assert.assertEquals
@@ -54,6 +58,9 @@ class DiagnosticoGuiadoScreenTest {
 
     private var analiseIniciada = 0
     private var analiseCancelada = 0
+    private var permissoesSolicitadas = 0
+    private val planosIniciados = mutableListOf<DiagnosticoPlanoIniciado>()
+    private val bloqueios = mutableListOf<DiagnosticoBloqueioEncontrado>()
 
     @Test
     fun `sem pre-selecao mostra a lista de objetivos como antes`() {
@@ -585,6 +592,163 @@ class DiagnosticoGuiadoScreenTest {
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_LIMITE).assertDoesNotExist()
     }
 
+    // ---------------------------------------------------------------------------------------
+    // Funil e preparacao contextual - GH#1706 (spec §12 passos 3 e 4, §8.4).
+    // ---------------------------------------------------------------------------------------
+
+    @Test
+    fun `o plano exibido dispara o evento do funil com os ids de capacidade`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
+            statusMedicao = null,
+        )
+
+        completarSegundaPerguntaJogos()
+        composeRule.waitForIdle()
+
+        assertEquals(1, planosIniciados.size)
+        val evento = planosIniciados.first()
+        assertEquals(ObjetivoDiagnostico.JOGOS_COM_LAG.name, evento.objetivoId)
+        assertEquals(
+            evento.capacidades
+                .split(",")
+                .size
+                .toLong(),
+            evento.qtdCapacidades,
+        )
+        assertTrue("os ids de capacidade precisam ir no evento", evento.capacidades.contains("estado_conexao"))
+    }
+
+    // Mutante que este teste mata: mandar `planoAdaptado = false` fixo. A propriedade existe para
+    // medir quantas jornadas rodam com plano reduzido - com ela fixa, o dado nao serve para nada.
+    @Test
+    fun `plano reduzido por permissao vai marcado como adaptado no funil`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
+            statusMedicao = null,
+            contextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = true),
+        )
+
+        completarSegundaPerguntaJogos()
+        composeRule.waitForIdle()
+
+        assertTrue("plano reduzido tem que ir marcado", planosIniciados.first().planoAdaptado)
+    }
+
+    // §8.4: a preparacao aparece quando o beneficio dela e evidente - com o limite do plano na
+    // tela, nao no cold start. E OFERECE: a analise ja esta correndo enquanto o botao esta ali.
+    @Test
+    fun `sem permissao a rota de analise oferece pedir a permissao`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
+            statusMedicao = null,
+            contextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = true),
+        )
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PERMITIR).performClick()
+
+        assertEquals(1, permissoesSolicitadas)
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
+    }
+
+    // Mutante: oferecer o botao mesmo com bloqueio permanente. Pedir o que o sistema nao vai mais
+    // perguntar e um toque que nao faz nada - a mesma classe de defeito do formulario vazio da UMP.
+    @Test
+    fun `com bloqueio permanente o botao de permitir nao aparece`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
+            statusMedicao = null,
+            contextoDoPlano =
+                ContextoDoPlano(
+                    temPermissaoLocalizacao = false,
+                    conectadoPorWifi = true,
+                    localizacaoBloqueadaPermanentemente = true,
+                ),
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PERMITIR).assertDoesNotExist()
+    }
+
+    // Com a permissao ja concedida nao houve bloqueio, entao o evento do passo 4 NAO dispara -
+    // a spec §12 exclui explicitamente a checagem silenciosa de estado.
+    @Test
+    fun `sem bloqueio apresentado nenhum evento de bloqueio dispara`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
+            statusMedicao = null,
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PERMITIR).assertDoesNotExist()
+        assertTrue("nao houve bloqueio, nao pode haver evento", bloqueios.isEmpty())
+    }
+
+    // §8.4, a regra inteira: desistir da permissao NAO encerra a jornada. O evento registra a
+    // negativa e `planoContinuou` prova que a analise seguiu.
+    @Test
+    fun `desistir da permissao registra a negativa com a jornada seguindo`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
+            statusMedicao = null,
+            contextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = true),
+        )
+        completarSegundaPerguntaJogos()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PERMITIR).performClick()
+
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_CANCELAR).performClick()
+
+        assertEquals(1, bloqueios.size)
+        val evento = bloqueios.first()
+        assertEquals(TipoBloqueioDiagnostico.PERMISSAO_LOCALIZACAO, evento.tipo)
+        assertEquals(ResolucaoBloqueioDiagnostico.NEGADO, evento.resolucao)
+        assertTrue("permissao negada nao pode encerrar a jornada", evento.planoContinuou)
+    }
+
+    @Test
+    fun `bloqueio permanente e registrado com resolucao propria`() {
+        var contexto by mutableStateOf(
+            ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = true),
+        )
+        composeRule.setContent {
+            SignallQTheme {
+                TelaDeTeste(
+                    objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+                    respostaPreSelecionadaPasso0 = 0,
+                    input = null,
+                    estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
+                    statusMedicao = null,
+                    contextoDoPlano = contexto,
+                )
+            }
+        }
+        completarSegundaPerguntaJogos()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PERMITIR).performClick()
+
+        // O sistema respondeu "nao perguntar de novo" enquanto a rota estava aberta.
+        contexto = contexto.copy(localizacaoBloqueadaPermanentemente = true)
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_CANCELAR).performClick()
+
+        assertEquals(ResolucaoBloqueioDiagnostico.NEGADO_PERMANENTE, bloqueios.first().resolucao)
+    }
+
     @Suppress("LongParameterList")
     private fun setContent(
         objetivoPreSelecionado: ObjetivoDiagnostico? = null,
@@ -631,6 +795,9 @@ class DiagnosticoGuiadoScreenTest {
         DiagnosticoGuiadoScreen(
             input = input,
             contextoDoPlano = contextoDoPlano,
+            onSolicitarPermissaoLocalizacao = { permissoesSolicitadas += 1 },
+            onPlanoIniciado = { planosIniciados += it },
+            onBloqueioEncontrado = { bloqueios += it },
             statusMedicao = statusMedicao,
             medidasConfiaveis = medidasConfiaveis,
             analise =

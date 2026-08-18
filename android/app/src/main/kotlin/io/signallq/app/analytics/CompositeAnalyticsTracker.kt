@@ -10,6 +10,8 @@ import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.AssistAbandonado
 import io.signallq.app.core.network.AssistObjetivoSelecionado
 import io.signallq.app.core.network.AssistPerguntaRespondida
+import io.signallq.app.core.network.DiagnosticoBloqueioEncontrado
+import io.signallq.app.core.network.DiagnosticoPlanoIniciado
 import io.signallq.app.di.ApplicationScope
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
 import io.signallq.app.feature.diagnostico.ingest.AnalyticsEventIngestPayload
@@ -128,6 +130,15 @@ class CompositeAnalyticsTracker
 
         override fun registrarAssistAbandono(evento: AssistAbandonado) =
             firebaseTracker.registrarAssistAbandono(evento)
+
+        // Issue #1706 — mesmo racional do bloco do Assist acima: só Firebase (GA4). O schema D1
+        // do `signallq-admin-worker` não tem campo para o funil do diagnóstico guiado, e estender
+        // esse contrato é escopo separado.
+        override fun registrarDiagnosticoPlanoIniciado(evento: DiagnosticoPlanoIniciado) =
+            firebaseTracker.registrarDiagnosticoPlanoIniciado(evento)
+
+        override fun registrarDiagnosticoBloqueio(evento: DiagnosticoBloqueioEncontrado) =
+            firebaseTracker.registrarDiagnosticoBloqueio(evento)
 
         private fun enviarEvento(
             name: String,

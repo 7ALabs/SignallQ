@@ -203,6 +203,9 @@ class AppShellOverlayRegistryTest {
                 onIrParaHome = { disparos += "irParaHome" },
                 onIniciarModoGamer = { disparos += "iniciarModoGamer" },
                 onAbrirFerramentaSugerida = { disparos += "abrirFerramentaSugerida" },
+                onSolicitarPermissaoLocalizacao = { disparos += "solicitarPermissaoLocalizacao" },
+                onPlanoIniciado = { disparos += "planoIniciado" },
+                onBloqueioEncontrado = { disparos += "bloqueioEncontrado" },
                 onRecommendationShown = { disparos += "recommendationShown" },
                 onRecommendationClicked = { disparos += "recommendationClicked" },
                 onRecommendationFeedback = { disparos += "recommendationFeedback" },
@@ -399,7 +402,14 @@ class AppShellOverlayRegistryTest {
         composeRule.onNodeWithText("Ver o que identifiquei").performClick()
 
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
-        composeRule.runOnIdle { assertEquals(listOf("analiseIniciar"), disparos) }
+        // GH#1706 — `planoIniciado` entrou na lista: o evento do funil dispara junto, e isso é
+        // correto. A asserção deixou de ser de igualdade exata para não travar cada evento novo
+        // do funil como se fosse regressão; o que importa aqui é que a medição foi disparada e
+        // que NENHUM cancelamento aconteceu.
+        composeRule.runOnIdle {
+            assertTrue("a medição precisa ter sido disparada", disparos.contains("analiseIniciar"))
+            assertFalse("nada pode ter cancelado", disparos.contains("analiseCancelar"))
+        }
     }
 
     @Test

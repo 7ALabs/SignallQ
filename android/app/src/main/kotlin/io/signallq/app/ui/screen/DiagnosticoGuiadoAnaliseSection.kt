@@ -65,6 +65,9 @@ internal fun DiagnosticoGuiadoAnaliseSection(
     /** GH#1706 — o plano como frase curta (spec §7) mais o limite declarado quando ele foi
      *  adaptado (§8.4). `null` enquanto não há objetivo escolhido. */
     plano: PlanoDeAnalise? = null,
+    /** GH#1706 — `null` quando nao ha permissao a pedir, ou quando o sistema nao vai mais
+     *  perguntar. Ver o call site em `DiagnosticoGuiadoScreen`. */
+    onPermitirLocalizacao: (() -> Unit)? = null,
 ) {
     val c = LocalLkTokens.current
     Column(
@@ -189,6 +192,18 @@ internal fun DiagnosticoGuiadoAnaliseSection(
                         modifier = Modifier.padding(top = LkSpacing.sm).testTag(TAG_ANALISE_GUIADA_LIMITE),
                     )
                 }
+                // §8.4: permissao recusada nao encerra a jornada — este botao OFERECE, nao exige.
+                // A analise ja esta correndo com o plano reduzido enquanto ele esta na tela.
+                onPermitirLocalizacao?.let { permitir ->
+                    Button(
+                        onClick = permitir,
+                        shape = RoundedCornerShape(LkRadius.button),
+                        colors = ButtonDefaults.buttonColors(containerColor = c.primary, contentColor = c.onPrimary),
+                        modifier = Modifier.padding(top = LkSpacing.lg).testTag(TAG_ANALISE_GUIADA_PERMITIR),
+                    ) {
+                        Text("Permitir acesso às redes próximas")
+                    }
+                }
                 TextButton(
                     onClick = onCancelar,
                     modifier = Modifier.padding(top = LkSpacing.lg).testTag(TAG_ANALISE_GUIADA_CANCELAR),
@@ -201,6 +216,7 @@ internal fun DiagnosticoGuiadoAnaliseSection(
 }
 
 internal const val TAG_ANALISE_GUIADA = "diagnostico_guiado_analise"
+internal const val TAG_ANALISE_GUIADA_PERMITIR = "diagnostico_guiado_analise_permitir"
 internal const val TAG_ANALISE_GUIADA_PLANO = "diagnostico_guiado_analise_plano"
 internal const val TAG_ANALISE_GUIADA_LIMITE = "diagnostico_guiado_analise_limite"
 internal const val TAG_ANALISE_GUIADA_DETERMINADO = "diagnostico_guiado_analise_progresso_determinado"

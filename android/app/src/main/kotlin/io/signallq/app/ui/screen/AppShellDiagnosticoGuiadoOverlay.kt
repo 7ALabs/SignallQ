@@ -12,6 +12,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.zIndex
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
+import io.signallq.app.core.network.DiagnosticoBloqueioEncontrado
+import io.signallq.app.core.network.DiagnosticoPlanoIniciado
 import io.signallq.app.core.recommendation.RecommendationDecision
 import io.signallq.app.core.recommendation.RecommendationFeedbackType
 import io.signallq.app.feature.speedtest.ResultadoSpeedtest
@@ -72,6 +74,12 @@ internal data class AppShellDiagnosticoGuiadoAcoes(
     val onIrParaHome: () -> Unit,
     val onIniciarModoGamer: () -> Unit,
     val onAbrirFerramentaSugerida: (TipoFerramenta) -> Unit,
+    /** GH#1706 — pedir a permissao que o plano precisa, da propria rota de analise (spec §8.4). */
+    val onSolicitarPermissaoLocalizacao: () -> Unit,
+    /** GH#1706 — funil: o plano foi montado e exibido (spec §12, passo 3). */
+    val onPlanoIniciado: (DiagnosticoPlanoIniciado) -> Unit,
+    /** GH#1706 — funil: um bloqueio foi apresentado e a pessoa respondeu (spec §12, passo 4). */
+    val onBloqueioEncontrado: (DiagnosticoBloqueioEncontrado) -> Unit,
     val onRecommendationShown: () -> Unit,
     val onRecommendationClicked: () -> Unit,
     val onRecommendationFeedback: (RecommendationFeedbackType) -> Unit,
@@ -110,6 +118,9 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
         DiagnosticoGuiadoScreen(
             input = dados.input,
             contextoDoPlano = dados.contextoDoPlano,
+            onSolicitarPermissaoLocalizacao = entry.acoes.onSolicitarPermissaoLocalizacao,
+            onPlanoIniciado = entry.acoes.onPlanoIniciado,
+            onBloqueioEncontrado = entry.acoes.onBloqueioEncontrado,
             statusMedicao = resultado?.status,
             medidasConfiaveis = medidasConfiaveis(resultado),
             analise = entry.analise,
