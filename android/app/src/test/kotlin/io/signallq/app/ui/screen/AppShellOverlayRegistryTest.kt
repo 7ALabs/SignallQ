@@ -2,7 +2,10 @@ package io.signallq.app.ui.screen
 
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -11,6 +14,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import io.signallq.app.core.diagnostico.DiagnosticInput
+import io.signallq.app.core.diagnostico.InternetDiagnosticInput
+import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
+import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.feature.dns.EstadoBenchmarkDns
 import io.signallq.app.feature.dns.SnapshotBenchmarkDns
@@ -59,7 +66,11 @@ class AppShellOverlayRegistryTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
-    private fun resultadoSpeedtestDeTeste(): ResultadoSpeedtest =
+    private fun resultadoSpeedtestDeTeste(
+        status: MeasurementStatus = MeasurementStatus.COMPLETE,
+        downloadEncerradaPor: String = "",
+        uploadNaoDetectado: Boolean = false,
+    ): ResultadoSpeedtest =
         ResultadoSpeedtest(
             timestampEpochMs = 0L,
             specVersion = "1",
@@ -100,7 +111,7 @@ class AppShellOverlayRegistryTest {
                     downloadAmostrasValidas = 0,
                     downloadRequisicoesSucesso = 0,
                     downloadRequisicoesErro = 0,
-                    downloadEncerradaPor = "",
+                    downloadEncerradaPor = downloadEncerradaPor,
                     downloadThroughputOrigem = "",
                     downloadUltimoErro = null,
                     uploadBytesTotal = 0L,
@@ -112,7 +123,24 @@ class AppShellOverlayRegistryTest {
                     uploadUltimoErro = null,
                     dnsErroMensagem = null,
                 ),
-            status = MeasurementStatus.COMPLETE,
+            status = status,
+            uploadNaoDetectado = uploadNaoDetectado,
+        )
+
+    /** Wi-Fi fraco o bastante para o motor gerar a evidencia "Forca do sinal Wi-Fi" — mesmos
+     *  valores de `DiagnosticoGuiadoScreenTest`. Sem input o motor devolve zero dimensoes, e
+     *  qualquer assercao de AUSENCIA sobre a conclusao vira vacua (foi o bloqueio B5). */
+    private fun inputJogosComWifiFraco() =
+        DiagnosticInput(
+            internet =
+                InternetDiagnosticInput(
+                    downloadMbps = 80.0,
+                    uploadMbps = 20.0,
+                    latencyMs = 187.0,
+                    jitterMs = 44.0,
+                    perdaPercentual = 0.5,
+                ),
+            wifi = WifiDiagnosticInput(rssiDbm = -50, linkSpeedMbps = 300, frequenciaMhz = 5200),
         )
 
     private fun snapshotDnsDeTeste(): SnapshotBenchmarkDns =
@@ -132,14 +160,17 @@ class AppShellOverlayRegistryTest {
         resultado: ResultadoSpeedtest? = null,
         disparos: MutableList<String> = mutableListOf(),
         identidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity? = { _, _ -> IDENTIDADE_DE_TESTE },
+        objetivoPreSelecionado: ObjetivoDiagnostico? = null,
+        respostaPreSelecionadaPasso0: Int? = null,
+        input: DiagnosticInput? = null,
     ) = AppShellDiagnosticoGuiadoEntry(
         dados =
             AppShellDiagnosticoGuiadoDados(
-                input = null,
+                input = input,
                 resultado = resultado,
                 analisadorState = AnalisadorState.Inativo,
-                objetivoPreSelecionado = null,
-                respostaPreSelecionadaPasso0 = null,
+                objetivoPreSelecionado = objetivoPreSelecionado,
+                respostaPreSelecionadaPasso0 = respostaPreSelecionadaPasso0,
                 categoria = null,
                 ispNome = "ISP de teste",
                 operadoraMovel = null,
@@ -174,6 +205,12 @@ class AppShellOverlayRegistryTest {
                 onRecommendationShown = { disparos += "recommendationShown" },
                 onRecommendationClicked = { disparos += "recommendationClicked" },
                 onRecommendationFeedback = { disparos += "recommendationFeedback" },
+            ),
+        analise =
+            AnaliseGuiadaContrato(
+                estado = EstadoAnaliseGuiada.Concluida,
+                onIniciar = { disparos += "analiseIniciar" },
+                onCancelar = { disparos += "analiseCancelar" },
             ),
     )
 
@@ -216,14 +253,25 @@ class AppShellOverlayRegistryTest {
     // ─── Diagnóstico guiado (issue #1704) ──────────────────────────────────────
 
     @Test
-    fun `diagnostico guiado nao compoe o container sem resultado de speedtest mesmo na pilha`() {
-        // Guarda dupla do overlay: `DiagnosticoGuiado in stack && resultado != null`. Sem o
-        // testTag, este teste seria fachada — o `?.let` interno omite o conteúdo sozinho, então
-        // asserir só a ausência de texto passaria igual com a guarda removida (mesmo achado que
-        // Caio levantou no DetalhesTecnicos na PR #1697).
+    fun `diagnostico guiado sem resultado abre o fluxo, nao um estado vazio`() {
+        // TERCEIRA redação deste teste, e as três descrevem comportamentos diferentes de verdade:
+        //
+        // 1. antes da #1714: afirmava que o container NÃO compunha sem resultado — que era o bug
+        //    (pilha sobrevive ao process death, `ResultadoSpeedtest` não, back consumia um `pop()`
+        //    invisível);
+        // 2. #1714: passou a compor `ResultadoIndisponivelScreen` — honesto, mas um beco sem saída:
+        //    dizia que o resultado sumiu e mandava a pessoa para outra tela medir;
+        // 3. agora (GH#1704 parte 4/4): o fluxo **não depende mais** de medição anterior. Sem
+        //    resultado ele abre normalmente na escolha do sintoma (§8.2) e a rota `Analise` (§8.5)
+        //    produz a medição que falta, dentro do próprio fluxo.
+        //
+        // O `testTag` continua sendo o que distingue "compôs" de "não compôs" — segue valendo o
+        // achado de Caio no DetalhesTecnicos (PR #1697).
         val stack = mutableStateListOf(AppShellOverlay.DiagnosticoGuiado)
         composeRule.setContent { RegistryDeTeste(stack = stack) }
-        composeRule.onNodeWithTag(TAG_OVERLAY_DIAGNOSTICO_GUIADO).assertDoesNotExist()
+        composeRule.onNodeWithTag(TAG_OVERLAY_DIAGNOSTICO_GUIADO).assertExists()
+        composeRule.onNodeWithText("Vamos descobrir o que está acontecendo").assertExists()
+        composeRule.onNodeWithText("Este resultado não está mais disponível").assertDoesNotExist()
     }
 
     @Test
@@ -238,6 +286,119 @@ class AppShellOverlayRegistryTest {
             )
         }
         composeRule.onNodeWithTag(TAG_OVERLAY_DIAGNOSTICO_GUIADO).assertExists()
+    }
+
+    // BLOQUEIO B8 da rodada 2 da PR #1723. `continuidadeDaMedicao(PARTIAL, medidasConfiaveis =
+    // false)` estava testado; a DERIVAÇÃO que produz esse `false` não estava — trocá-la por `true`
+    // fixo passava na suíte inteira do :app.
+    @Test
+    fun `as duas causas de parcial tornam as medidas nao confiaveis`() {
+        assertTrue(
+            "resultado ausente não tem medida ruim a proteger",
+            medidasConfiaveis(null),
+        )
+        assertTrue(
+            "medição íntegra libera conclusão",
+            medidasConfiaveis(resultadoSpeedtestDeTeste()),
+        )
+        assertFalse(
+            "429 é o nosso rate limit derrubando o download",
+            medidasConfiaveis(
+                resultadoSpeedtestDeTeste(
+                    status = MeasurementStatus.PARTIAL,
+                    downloadEncerradaPor = "download_bloqueado_429",
+                ),
+            ),
+        )
+        assertFalse(
+            "upload não detectado é a nossa medição desistindo, não o upload da pessoa",
+            medidasConfiaveis(
+                resultadoSpeedtestDeTeste(
+                    status = MeasurementStatus.PARTIAL,
+                    uploadNaoDetectado = true,
+                ),
+            ),
+        )
+    }
+
+    // O CALL SITE da derivação, não só a regra. O mutante `medidasConfiaveis = true` fixo dentro do
+    // overlay sobrevivia mesmo com `medidasConfiaveis(...)` coberto — é a linha de fiação.
+    //
+    // Para chegar à conclusão com `PARTIAL` é preciso passar pela rota `Analise` (só `COMPLETE`
+    // dispensa medir, bloqueio B2), então o estado da análise é dirigido por `mutableStateOf`: o
+    // roteiro termina, o fluxo mede, e só então o `PARTIAL` chega.
+    @Test
+    fun `overlay repassa medidas nao confiaveis e a conclusao parcial nao aparece`() {
+        val stack = mutableStateListOf(AppShellOverlay.DiagnosticoGuiado)
+        val resultado =
+            resultadoSpeedtestDeTeste(
+                status = MeasurementStatus.PARTIAL,
+                uploadNaoDetectado = true,
+            )
+        var estadoAnalise by mutableStateOf<EstadoAnaliseGuiada>(EstadoAnaliseGuiada.NaoIniciada)
+        var resultadoAtual by mutableStateOf<ResultadoSpeedtest?>(null)
+
+        composeRule.setContent {
+            RegistryDeTeste(
+                stack = stack,
+                diagnosticoGuiado =
+                    diagnosticoGuiadoDeTeste(
+                        resultado = resultadoAtual,
+                        objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+                        respostaPreSelecionadaPasso0 = 0,
+                        input = inputJogosComWifiFraco(),
+                    ).let { it.copy(analise = it.analise.copy(estado = estadoAnalise)) },
+            )
+        }
+
+        composeRule.onNodeWithText("Continuar").performClick()
+        composeRule.onNodeWithText("Quase sempre").performClick()
+        composeRule.onNodeWithText("Ver o que identifiquei").performClick()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
+
+        estadoAnalise = EstadoAnaliseGuiada.Concluida
+        resultadoAtual = resultado
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Consegui medir parte da sua conexão").assertExists()
+        // A conclusão NÃO pode aparecer: o upload não medido faria o motor afirmar que o upload da
+        // pessoa está comprometido, quando o que falhou foi a nossa medição. A evidência do motor é
+        // o que distingue - e ela só existe porque o `input` foi passado, senão a asserção de
+        // ausência seria vácua (mesmo defeito do bloqueio B5, um nível acima).
+        composeRule.onNodeWithText("Força do sinal Wi-Fi").assertDoesNotExist()
+    }
+
+    // RESSALVA RS2 do parecer de Caio na PR #1719. A expressão
+    // `resultado?.status?.liberaConclusaoCompleta == true` nasceu nesta fatia (antes era
+    // `resultado.status.…`, com o resultado garantido não-nulo pela guarda que saiu). Trocá-la por
+    // `!= false` sobrevivia a todos os testes: sem resultado o fluxo se declarava concluível e
+    // **pulava a medição** — a regressão exata que a fatia existe para impedir.
+    //
+    // Os outros testes deste arquivo só asserem a tela de ENTRADA, e a entrada é idêntica nos dois
+    // casos. Só o fim do roteiro distingue, então este teste percorre o roteiro até lá.
+    @Test
+    fun `sem resultado o registry nao declara o fluxo concluivel e a medicao acontece`() {
+        val disparos = mutableListOf<String>()
+        val stack = mutableStateListOf(AppShellOverlay.DiagnosticoGuiado)
+        composeRule.setContent {
+            RegistryDeTeste(
+                stack = stack,
+                diagnosticoGuiado =
+                    diagnosticoGuiadoDeTeste(
+                        resultado = null,
+                        disparos = disparos,
+                        objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+                        respostaPreSelecionadaPasso0 = 0,
+                    ),
+            )
+        }
+
+        composeRule.onNodeWithText("Continuar").performClick()
+        composeRule.onNodeWithText("Quase sempre").performClick()
+        composeRule.onNodeWithText("Ver o que identifiquei").performClick()
+
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
+        composeRule.runOnIdle { assertEquals(listOf("analiseIniciar"), disparos) }
     }
 
     @Test
@@ -342,7 +503,15 @@ class AppShellOverlayRegistryTest {
     }
 
     @Test
-    fun `detalhes tecnicos nao compoe o container quando resultado e nulo mesmo com overlay na pilha`() {
+    fun `detalhes tecnicos sem resultado compoe o estado vazio, nao um container mudo`() {
+        // COMPORTAMENTO INVERTIDO PELA #1714, de propósito — mesmo motivo do diagnóstico guiado
+        // acima. A versão anterior deste teste nasceu de um achado de Caio na PR #1697: asserir só
+        // a ausência do texto era fachada, porque o `?.let` interno omitia o conteúdo sozinho, e o
+        // `testTag` foi acrescentado para distinguir "não compôs" de "compôs vazio".
+        //
+        // O `testTag` continua sendo o instrumento certo; o que mudou é o veredito. "Compôs vazio"
+        // deixou de ser o defeito a evitar e passou a ser o comportamento correto — só que agora o
+        // vazio tem conteúdo: uma tela que explica por que o resultado sumiu.
         val stack = mutableStateListOf(AppShellOverlay.DetalhesTecnicos)
         composeRule.setContent {
             AppShellDetalhesTecnicosOverlay(
@@ -352,14 +521,8 @@ class AppShellOverlayRegistryTest {
                 localDevice = null,
             )
         }
-        // Achado do parecer da PR #1697: asserir só a ausência do texto "Detalhes da conexão"
-        // era fachada -- o `?.let` interno já omite o texto sozinho, então a asserção passava
-        // igual com a guarda `&& resultadoSpeedtest != null` do `visible` removida (o container
-        // `AnimatedVisibility` compunha vazio, mas sem nenhum node de texto para achar). O
-        // `testTag` no modifier do container (ver AppShellDetalhesTecnicosOverlay.kt) existe só
-        // para este teste distinguir "container não compôs" (guarda presente, comportamento
-        // real) de "container compôs vazio" (guarda removida, mutante).
-        composeRule.onNodeWithTag("appshell_overlay_detalhes_tecnicos").assertDoesNotExist()
+        composeRule.onNodeWithTag("appshell_overlay_detalhes_tecnicos").assertExists()
+        composeRule.onNodeWithText("Este resultado não está mais disponível").assertExists()
     }
 
     @Test

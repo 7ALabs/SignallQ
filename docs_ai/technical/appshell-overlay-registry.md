@@ -5,7 +5,7 @@ type: "técnico"
 status: "ativo"
 owner: "Camilo"
 last_updated: "2026-08-17"
-version: "1.2.0"
+version: "1.3.0"
 ---
 
 # Ponto de extensão de overlays do AppShell
@@ -147,6 +147,44 @@ cada área numa fatia futura, não obrigação retroativa desta issue:
 - `Dispositivos`, `Fibra`/`EquipamentoInternet` (issues #1663/#1664 do épico)
 - `Laudo`, `SinalCanais` (issues #1660/#1661 do épico)
 - `ResultadoVelocidade`, `DiagnosticoGuiado`, `ModoGamer` (issues #1658/#1659/#1667 do épico)
+
+## Rota `Analise`: o overlay guiado deixou de depender de medição anterior (issue #1704)
+
+`AppShellDiagnosticoGuiadoEntry` ganhou um quarto grupo, `analise: AnaliseGuiadaContrato` — estado
+da medição derivado do snapshot do executor, mais `onIniciar`/`onCancelar`. O grupo é separado de
+`dados` porque tem outra origem: sai do `ExecutorSpeedtest`, não dos snapshots de diagnóstico.
+
+Antes disso o overlay só compunha com `snapshotSpeedtest.resultado != null`. Como o executor é
+`@Singleton` em memória e a pilha de overlays sobrevive ao process death, o fluxo ficava
+inalcançável na volta. A #1714 tinha coberto o buraco com um estado vazio honesto; a #1704 removeu
+a dependência: o fluxo abre sempre e mede por conta própria quando precisa.
+
+**Consequência para o shell:** o `ExecutorSpeedtest` é global, então uma medição pedida pelo fluxo
+guiado é indistinguível de uma pedida na tela Velocidade. O estado vive em
+`AppShellMedicaoGuiada.kt` (`rememberMedicaoGuiada`), fora do `AppShell`, para ser testável.
+
+O shell tem **cinco** reações ao executor. Três são suprimidas explicitamente por
+`suprimeReacoesDoShell`:
+
+| Reação | Onde |
+|---|---|
+| `VelocidadeScreen` em tela cheia | `AppShell.kt`, `AnimatedVisibility` do overlay de execução |
+| `BackHandler` que descarta o erro | `AppShell.kt`, guarda `estado == erro` |
+| Empilhar `Overlay.ResultadoVelocidade` na conclusão | `AppShell.kt`, `LaunchedEffect(snapshotSpeedtest.estado)` |
+
+As outras duas **não** são suprimidas e hoje só não atrapalham porque o overlay guiado as ocluí: a
+barra inferior some durante `executando` (`shouldShowAppShellBottomBar`) e a Início reage via
+`Inicio2UiStateMapper.map`. Oclusão não é mecanismo — se alguma delas passar a ser visível durante a
+medição guiada, entra na supressão. (A versão anterior deste parágrafo dizia "três reações" e estava
+errada; achado B4 da revisão da PR #1719.)
+
+`rememberMedicaoGuiada` também impõe um **limite de início**: `onNovoTeste` não garante medição —
+`MainViewModel.reiniciarSuite` tem dois `return` silenciosos alcançáveis (execução já em andamento,
+e Wi-Fi conectado sem internet). Passado o limite sem ver `executando`, o estado vira `Falhou`, que
+já oferece "Tentar de novo". Sem isso a rota exibia "Estou medindo sua conexão" indefinidamente.
+
+`ResultadoIndisponivelScreen` continua em uso pelos overlays `ResultadoVelocidade` e
+`DetalhesTecnicos`, que consomem o `ResultadoSpeedtest` inteiro e não têm como regenerá-lo.
 
 ## Delegação de back ao overlay do topo (issue #1704)
 

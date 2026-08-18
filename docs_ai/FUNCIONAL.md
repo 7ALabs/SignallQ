@@ -4,7 +4,7 @@ description: "O que o app Android SignallQ (io.signallq.app) entrega ao usuário
 type: "funcional"
 status: "ativo"
 owner: "Claudete"
-last_updated: "2026-08-16"
+last_updated: "2026-08-17"
 ---
 
 - **Fonte de verdade:** o código do app consumer em `android/app/src/main/kotlin/io/signallq/app/`
@@ -125,7 +125,7 @@ Lista exata de `AppShellOverlay` (`AppShellNavigation.kt`) — 18 valores, todos
 | `SinalCanais` | `SinalScreen` | Ferramentas; Wi-Fi, canais e rede móvel em fluxo profundo 2.0 |
 | `SinalWifi` | `SinalWifiScreen` | Ferramentas |
 | `Termos` | `TermosDeUsoScreen` | menu lateral |
-| `DiagnosticoGuiado` | `DiagnosticoGuiadoScreen` | CTA "Descobrir o que está acontecendo" no resultado do teste |
+| `DiagnosticoGuiado` | `DiagnosticoGuiadoScreen` | CTA "Descobrir o que está acontecendo" no resultado do teste. Desde a #1704 o fluxo **não exige medição anterior**: sem resultado disponível ele abre na escolha do sintoma e mede sozinho na rota `Analise` (§8.5 da spec 2.0) antes de concluir. Desde a #1705 a conclusão distingue os 5 valores de `MeasurementStatus` — parcial, contaminado, inconclusivo e cancelado têm explicação própria e ação concreta, em vez de um banner único sem saída |
 | `DetalhesTecnicos` | `DetalhesTecnicosScreen` | CTA "Ver detalhes da conexão" no resultado do teste |
 | `ModoGamer` | `ModoGamerScreen` | 3 entradas: card "Modo Jogos" em Ferramentas, CTA no resultado do teste, botão no resultado do diagnóstico guiado (objetivo "Jogos atrasam ou travam") |
 

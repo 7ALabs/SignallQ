@@ -320,6 +320,27 @@ fun AppShell(
     var modoSelecionado by remember { mutableStateOf(ModoSpeedtest.complete) }
     val overlayStack = navigator.overlayStack
 
+    // GH#1704 parte 4/4 — medição pedida pelo fluxo guiado. Estado e regras em
+    // `AppShellMedicaoGuiada.kt`; aqui ficam só as leituras.
+    //
+    // O `ExecutorSpeedtest` é `@Singleton`: uma medição disparada de dentro do diagnóstico guiado é
+    // indistinguível, no snapshot, de uma disparada na tela Velocidade.
+    //
+    // O shell tem **cinco** reações ao executor. Três são suprimidas explicitamente por
+    // `suprimeReacoesDoShell` — o `VelocidadeScreen` em tela cheia, o `BackHandler` de erro e o
+    // empilhamento de `Overlay.ResultadoVelocidade` na conclusão. As outras duas hoje só não
+    // atrapalham porque o overlay guiado as ocluí: a barra inferior some durante `executando`
+    // (`shouldShowAppShellBottomBar`) e a Início reage via `Inicio2UiStateMapper.map`. Oclusão não
+    // é mecanismo — é a mesma objeção que o comentário do `AnimatedVisibility` abaixo faz ao
+    // zIndex. Se alguma delas passar a ser visível durante a medição guiada, entra na supressão.
+    // (Achado B4 de Caio na PR #1719; a contagem anterior dizia "três reações" e estava errada.)
+    val medicaoGuiada =
+        rememberMedicaoGuiada(
+            snapshot = snapshotSpeedtest,
+            onNovoTeste = onNovoTeste,
+            onCancelarTeste = onCancelarTeste,
+        )
+
     // GH#1358 — menu lateral (Navigation Drawer) no lugar do antigo avatar de perfil no
     // TopBar. Único ponto de entrada agora é o botão hambúrguer nas 5 telas de tab/hub —
     // hoisted aqui pra ter uma só fonte de estado aberto/fechado.
@@ -598,12 +619,24 @@ fun AppShell(
             EstadoExecucaoSpeedtest.executando -> testeAtivo = true
             EstadoExecucaoSpeedtest.concluido -> {
                 if (testeAtivo) {
+                    // `onIniciarDiagnostico()` roda nos dois caminhos: é ele que produz o
+                    // `DiagnosticInput` que o `DiagnosticoGuiadoEngine` consome. Sem ele o
+                    // resultado guiado sairia com zero dimensões — indistinguível de "sua rede
+                    // está ok" (GH#1704, §5 do reconhecimento).
                     onIniciarDiagnostico()
-                    mostrarConcluido = true
-                    delay(400)
-                    mostrarConcluido = false
-                    if (Overlay.ResultadoVelocidade !in overlayStack) overlayStack.add(Overlay.ResultadoVelocidade)
-                    testeAtivo = false
+                    if (medicaoGuiada.consumirConclusao()) {
+                        // Quem conduz a transição é a própria tela guiada, que observa o snapshot
+                        // e avança da rota Analise (§8.5) para a conclusão (§8.6).
+                        testeAtivo = false
+                    } else {
+                        mostrarConcluido = true
+                        delay(400)
+                        mostrarConcluido = false
+                        if (Overlay.ResultadoVelocidade !in overlayStack) {
+                            overlayStack.add(Overlay.ResultadoVelocidade)
+                        }
+                        testeAtivo = false
+                    }
                 }
             }
             else -> {}
@@ -621,7 +654,16 @@ fun AppShell(
 
     // #374: tela de erro do speedtest (overlay VelocidadeScreen) não tinha BackHandler
     // próprio — o back físico do sistema saía direto do app em vez de descartar o erro.
-    BackHandler(enabled = snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.erro) {
+    // GH#1704: durante a medição do fluxo guiado o `VelocidadeScreen` nem compõe, então este
+    // handler descartaria o erro por baixo de uma tela que mostra o próprio estado de falha —
+    // e o back do usuário não voltaria ao roteiro de perguntas, como ele espera.
+    BackHandler(
+        enabled =
+            deveTratarBackDeErroDoSpeedtest(
+                medicaoGuiada.suprimeReacoesDoShell,
+                snapshotSpeedtest.estado,
+            ),
+    ) {
         onCancelarTeste()
     }
 
@@ -849,11 +891,17 @@ fun AppShell(
                 }
             }
 
-            // Overlay de execução do speedtest — cobre toda a tela durante o teste
+            // Overlay de execução do speedtest — cobre toda a tela durante o teste.
+            // GH#1704: suprimido quando a medição pertence ao fluxo guiado, que desenha a própria
+            // rota Analise (§8.5). A supressão é explícita, e não por zIndex, porque zIndex só
+            // decide quem fica por cima — o `VelocidadeScreen` continuaria composto por baixo, com
+            // seu próprio `BackHandler` de erro concorrendo com o do fluxo guiado.
             AnimatedVisibility(
                 visible =
-                    snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.executando ||
-                        snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.erro,
+                    deveMostrarOverlayVelocidade(
+                        medicaoGuiada.suprimeReacoesDoShell,
+                        snapshotSpeedtest.estado,
+                    ),
                 enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                 exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
             ) {
@@ -966,22 +1014,26 @@ fun AppShell(
                                 onRecommendationClicked = onRecommendationClicked,
                                 onRecommendationFeedback = onRecommendationFeedback,
                             ),
+                        analise = medicaoGuiada.contrato,
                     ),
             )
 
-            AnimatedVisibility(
-                visible = Overlay.ResultadoVelocidade in overlayStack && snapshotSpeedtest.resultado != null,
-                modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.ResultadoVelocidade, overlayStack)),
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-            ) {
-                snapshotSpeedtest.resultado?.let { resultado ->
-                    ResultadoVelocidadeScreen(
-                        resultado = resultado,
+            // GH#1714 — ResultadoVelocidade extraído para AppShellResultadoVelocidadeOverlay.kt,
+            // aplicando ao terceiro overlay de resultado o padrão que os outros dois já usavam.
+            AppShellResultadoVelocidadeOverlay(
+                overlayStack = overlayStack,
+                entry =
+                    AppShellResultadoVelocidadeEntry(
+                        resultado = snapshotSpeedtest.resultado,
                         snapshotDiagnostico = snapshotDiagnostico,
+                        analisadorState = analisadorState,
+                        localizacaoServidor = localizacaoServidorStr,
+                        ispInfo = ispInfoData,
+                        operadoraMovel = operadoraMovel,
+                        adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.RESULTADO),
                         onTestarNovamente = {
                             overlayStack.remove(Overlay.ResultadoVelocidade)
-                            // Issue #1656 — novo teste invalida a pré-seleção do Assist do teste anterior.
+                            // Issue #1656 — novo teste invalida a pré-seleção do Assist do anterior.
                             assistObjetivoPreSelecionado = null
                             assistRespostaPreSelecionada = null
                         },
@@ -993,10 +1045,10 @@ fun AppShell(
                         },
                         onVoltar = { overlayStack.remove(Overlay.ResultadoVelocidade) },
                         onCompartilhar = onCompartilharResultadoVelocidade,
-                        localizacaoServidor = localizacaoServidorStr,
-                        ispInfo = ispInfoData,
-                        operadoraMovel = operadoraMovel,
-                        analisadorState = analisadorState,
+                        onMedirNovamente = {
+                            overlayStack.remove(Overlay.ResultadoVelocidade)
+                            navigator.select(AppShellRoot.Speed)
+                        },
                         onIniciarDiagnosticoGuiado = {
                             if (Overlay.DiagnosticoGuiado !in overlayStack) overlayStack.add(Overlay.DiagnosticoGuiado)
                         },
@@ -1006,10 +1058,8 @@ fun AppShell(
                         onVerDetalhesTecnicos = {
                             if (Overlay.DetalhesTecnicos !in overlayStack) overlayStack.add(Overlay.DetalhesTecnicos)
                         },
-                        adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.RESULTADO),
-                    )
-                }
-            }
+                    ),
+            )
 
             // GH#1704 — DiagnosticoGuiado migrou para AppShellOverlayRegistry.
 

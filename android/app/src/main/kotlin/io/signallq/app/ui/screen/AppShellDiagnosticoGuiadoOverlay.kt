@@ -40,6 +40,9 @@ internal data class AppShellDiagnosticoGuiadoEntry(
     val dados: AppShellDiagnosticoGuiadoDados,
     val operadora: AppShellOperadoraResolvers,
     val acoes: AppShellDiagnosticoGuiadoAcoes,
+    /** Rota `Analise` — GH#1704 parte 4/4. Quarto grupo, e não campos dentro de [dados], porque
+     *  tem dono diferente dos outros três: sai do `ExecutorSpeedtest`, não dos snapshots. */
+    val analise: AnaliseGuiadaContrato,
 )
 
 /** Dados de diagnóstico e contexto de rede que a tela exibe. */
@@ -87,7 +90,7 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
 ) {
     val dados = entry.dados
     AnimatedVisibility(
-        visible = AppShellOverlay.DiagnosticoGuiado in overlayStack && dados.resultado != null,
+        visible = AppShellOverlay.DiagnosticoGuiado in overlayStack,
         modifier =
             Modifier
                 .zIndex(rememberOverlayZIndex(AppShellOverlay.DiagnosticoGuiado, overlayStack))
@@ -95,35 +98,69 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
         exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
     ) {
-        dados.resultado?.let { resultado ->
-            DiagnosticoGuiadoScreen(
-                input = dados.input,
-                resultadoValidoParaConclusao = resultado.status.liberaConclusaoCompleta,
-                objetivoPreSelecionado = dados.objetivoPreSelecionado,
-                respostaPreSelecionadaPasso0 = dados.respostaPreSelecionadaPasso0,
-                analisadorState = dados.analisadorState,
-                onAnalisarProblema = entry.acoes.onAnalisarProblema,
-                onResetarAnalisador = entry.acoes.onResetarAnalisador,
-                onVoltar = entry.acoes.onVoltar,
-                onIrParaHome = entry.acoes.onIrParaHome,
-                categoria = dados.categoria,
-                ispNome = dados.ispNome,
-                connectionType = resultado.connectionType,
-                operadoraMovel = dados.operadoraMovel,
-                recommendationDecision = dados.recommendationDecision,
-                recommendationFeedback = dados.recommendationFeedback,
-                onRecommendationShown = entry.acoes.onRecommendationShown,
-                onRecommendationClicked = entry.acoes.onRecommendationClicked,
-                onRecommendationFeedback = entry.acoes.onRecommendationFeedback,
-                resolveOperadoraIdentidadeLocal = entry.operadora.identidadeLocal,
-                resolveOperadoraContatoLocal = entry.operadora.contatoLocal,
-                resolveOperadoraIdentidadeRemota = entry.operadora.identidadeRemota,
-                resolveOperadoraContatoRemoto = entry.operadora.contatoRemoto,
-                onIniciarModoGamer = entry.acoes.onIniciarModoGamer,
-                onAbrirFerramentaSugerida = entry.acoes.onAbrirFerramentaSugerida,
-            )
-        }
+        // GH#1704 parte 4/4 — o estado vazio da #1714 saiu daqui. Ele existia porque o fluxo não
+        // conseguia começar sem um resultado anterior; agora começa, e a rota `Analise` produz o
+        // resultado que falta. `ResultadoIndisponivelScreen` continua em uso pelos outros dois
+        // overlays de resultado, que consomem o `ResultadoSpeedtest` inteiro e não têm como
+        // regenerá-lo.
+        val resultado = dados.resultado
+        DiagnosticoGuiadoScreen(
+            input = dados.input,
+            statusMedicao = resultado?.status,
+            medidasConfiaveis = medidasConfiaveis(resultado),
+            analise = entry.analise,
+            objetivoPreSelecionado = dados.objetivoPreSelecionado,
+            respostaPreSelecionadaPasso0 = dados.respostaPreSelecionadaPasso0,
+            analisadorState = dados.analisadorState,
+            onAnalisarProblema = entry.acoes.onAnalisarProblema,
+            onResetarAnalisador = entry.acoes.onResetarAnalisador,
+            onVoltar = entry.acoes.onVoltar,
+            onIrParaHome = entry.acoes.onIrParaHome,
+            categoria = dados.categoria,
+            ispNome = dados.ispNome,
+            connectionType = resultado?.connectionType,
+            operadoraMovel = dados.operadoraMovel,
+            recommendationDecision = dados.recommendationDecision,
+            recommendationFeedback = dados.recommendationFeedback,
+            onRecommendationShown = entry.acoes.onRecommendationShown,
+            onRecommendationClicked = entry.acoes.onRecommendationClicked,
+            onRecommendationFeedback = entry.acoes.onRecommendationFeedback,
+            resolveOperadoraIdentidadeLocal = entry.operadora.identidadeLocal,
+            resolveOperadoraContatoLocal = entry.operadora.contatoLocal,
+            resolveOperadoraIdentidadeRemota = entry.operadora.identidadeRemota,
+            resolveOperadoraContatoRemoto = entry.operadora.contatoRemoto,
+            onIniciarModoGamer = entry.acoes.onIniciarModoGamer,
+            onAbrirFerramentaSugerida = entry.acoes.onAbrirFerramentaSugerida,
+        )
     }
 }
+
+/** Marcador que `calcularMeasurementStatus` usa para o 429 — string literal do executor. */
+private const val DOWNLOAD_BLOQUEADO_429 = "download_bloqueado_429"
+
+/**
+ * As medidas deste resultado podem alimentar conclusão? — GH#1705, bloqueios B3, B7 e B8.
+ *
+ * As **duas** causas de `MeasurementStatus.PARTIAL`, que o enum achata num valor só:
+ *
+ * - `downloadEncerradaPor == "download_bloqueado_429"` — o nosso rate limit derrubou a fase de
+ *   download e o número ficou artificialmente baixo;
+ * - `uploadNaoDetectado` — a nossa medição de upload desistiu depois do retry, e o `MainViewModel`
+ *   passa `0.0` cru para o motor.
+ *
+ * Nos dois casos o número que sobra não descreve a conexão da pessoa, e o motor concluiria defeito
+ * dela a partir dele — mandando acionar a operadora, ou afirmando que "o upload está comprometido".
+ *
+ * Função separada porque a derivação inline não tinha teste: trocá-la por `true` fixo passava na
+ * suíte inteira do `:app` (bloqueio B8). O call site também está coberto desde então, por
+ * `overlay repassa medidas nao confiaveis e a conclusao parcial nao aparece` — este comentário
+ * dizia o contrário e ficou desatualizado no mesmo commit que o cobriu (ressalva RS13).
+ */
+internal fun medidasConfiaveis(resultado: ResultadoSpeedtest?): Boolean =
+    resultado == null ||
+        (
+            resultado.diagnosticoFases.downloadEncerradaPor != DOWNLOAD_BLOQUEADO_429 &&
+                !resultado.uploadNaoDetectado
+        )
 
 internal const val TAG_OVERLAY_DIAGNOSTICO_GUIADO = "appshell_overlay_diagnostico_guiado"
