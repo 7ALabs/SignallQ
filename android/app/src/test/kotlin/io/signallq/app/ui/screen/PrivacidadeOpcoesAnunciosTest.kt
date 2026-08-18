@@ -45,29 +45,66 @@ class PrivacidadeOpcoesAnunciosTest {
         composeRule.onNodeWithText(rotulo).assertExists()
     }
 
+    // COMPORTAMENTO INVERTIDO PELA #1717, de propósito.
+    //
+    // Estes dois testes afirmavam que a entrada **não aparecia** fora de região GDPR, e isso estava
+    // certo enquanto o único destino era o formulário da UMP: fora do GDPR ele vem vazio, e um item
+    // que abre tela vazia é pior que item ausente.
+    //
+    // O que a #1717 mostrou é que a conclusão estava certa e a premissa era incompleta. O app serve
+    // anúncio **personalizado** no Brasil, e quem está lá — a maior parte da base — não tinha
+    // nenhum controle de anúncio dentro do aplicativo. A saída não é esconder o item: é dar a ele
+    // um destino que exista em toda região. Onde a UMP tem formulário, abre o formulário; onde não
+    // tem, leva às configurações de anúncios do Android, onde dá para limitar a personalização e
+    // redefinir o identificador de publicidade.
+    //
+    // `mostrarOpcoesAnuncios` continua existindo e continua vindo da UMP — deixou de decidir se o
+    // item existe e passou a decidir para onde ele vai (e o subtítulo que anuncia isso).
     @Test
-    fun `entrada nao aparece quando a UMP nao exige`() {
-        // Mutante que este teste mata: ignorar `mostrarOpcoesAnuncios` e renderizar sempre.
-        // Fora de região GDPR o formulário da UMP não tem o que mostrar — um item que abre tela
-        // vazia é pior que item ausente.
+    fun `entrada aparece mesmo sem exigencia da UMP, com destino diferente`() {
         composeRule.setContent {
             SignallQTheme {
                 PrivacidadeScreen(onVoltar = {}, mostrarOpcoesAnuncios = false)
             }
         }
-        rolarAteOFimDaLista()
-        composeRule.onNodeWithText(rotulo).assertDoesNotExist()
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(rotulo))
+
+        composeRule.onNodeWithText(rotulo).assertExists()
+        composeRule
+            .onNodeWithText("Controlar a personalização dos anúncios nas configurações do Android")
+            .assertExists()
+    }
+
+    // Mutante que este teste mata: fixar o subtítulo. O item passaria a prometer "rever a escolha
+    // que você fez" para quem nunca fez escolha nenhuma — não há formulário da UMP fora do GDPR.
+    @Test
+    fun `o subtitulo diz para onde o item leva`() {
+        composeRule.setContent {
+            SignallQTheme {
+                PrivacidadeScreen(onVoltar = {}, mostrarOpcoesAnuncios = true)
+            }
+        }
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(rotulo))
+
+        composeRule
+            .onNodeWithText("Rever a escolha que você fez sobre anúncios neste aparelho")
+            .assertExists()
+        composeRule
+            .onNodeWithText("Controlar a personalização dos anúncios nas configurações do Android")
+            .assertDoesNotExist()
     }
 
     @Test
-    fun `default e nao mostrar`() {
-        // Omitir o parâmetro não pode ligar a entrada por acidente: as chamadas que não sabem o
-        // status da UMP (previews, outros call sites) devem cair no lado seguro.
+    fun `o default nao esconde mais a entrada`() {
+        // Antes da #1717 omitir o parâmetro era o "lado seguro" porque escondia o item. Com o item
+        // sempre presente, o default só escolhe o destino — e o seguro passou a ser o destino que
+        // funciona em qualquer região.
         composeRule.setContent {
             SignallQTheme { PrivacidadeScreen(onVoltar = {}) }
         }
-        rolarAteOFimDaLista()
-        composeRule.onNodeWithText(rotulo).assertDoesNotExist()
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(rotulo))
+
+        composeRule.onNodeWithText(rotulo).assertExists()
     }
 
     /**

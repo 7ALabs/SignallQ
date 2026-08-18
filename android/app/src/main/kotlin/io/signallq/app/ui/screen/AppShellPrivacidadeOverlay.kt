@@ -68,14 +68,23 @@ internal fun AppShellPrivacidadeOverlay(
                 // Não fecha o overlay: o formulário da UMP abre por cima e o usuário volta para
                 // a tela de Privacidade onde estava.
                 activity?.let { act ->
-                    ConsentManager.mostrarOpcoesPrivacidade(act) { erro ->
-                        // Ressalva R2 da revisão da PR #1709: sem isto, falhar ao carregar o
-                        // formulário (sem rede, por exemplo) deixava o toque sem NENHUM retorno
-                        // visível — só um log. Numa região GDPR, "não consigo abrir minhas opções
-                        // de privacidade e o app não me diz nada" vira reclamação de política.
-                        if (erro != null) {
-                            erroOpcoes = "Não foi possível abrir agora. Verifique sua conexão e tente de novo."
+                    if (precisaOpcoesAnuncios) {
+                        ConsentManager.mostrarOpcoesPrivacidade(act) { erro ->
+                            // Ressalva R2 da revisão da PR #1709: sem isto, falhar ao carregar o
+                            // formulário (sem rede, por exemplo) deixava o toque sem NENHUM retorno
+                            // visível — só um log. Numa região GDPR, "não consigo abrir minhas
+                            // opções de privacidade e o app não me diz nada" vira reclamação de
+                            // política.
+                            if (erro != null) {
+                                erroOpcoes = "Não foi possível abrir agora. Verifique sua conexão e tente de novo."
+                            }
                         }
+                    } else if (!ConsentManager.abrirConfiguracoesDeAnuncios(act)) {
+                        // Mesmo princípio da ressalva R2, no outro destino: aparelho sem a tela de
+                        // anúncios do Play services existe, e um toque mudo é pior que um aviso.
+                        erroOpcoes =
+                            "Este aparelho não tem a tela de anúncios do Google. " +
+                            "Procure por \"Anúncios\" nas configurações de privacidade."
                     }
                 }
             },

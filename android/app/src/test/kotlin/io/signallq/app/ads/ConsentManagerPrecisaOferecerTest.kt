@@ -1,7 +1,9 @@
 package io.signallq.app.ads
 
 import com.google.android.ump.ConsentInformation
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -56,5 +58,45 @@ class ConsentManagerPrecisaOferecerTest {
             "esperado exatamente [REQUIRED], veio $queExigem",
             queExigem == listOf(ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED),
         )
+    }
+
+    // GH#1717 — o destino da entrada "Preferências de anúncios".
+    //
+    // Até esta issue a entrada só existia sob GDPR: quem está no Brasil recebia anúncio
+    // personalizado e não tinha NENHUM controle dentro do app. Agora ela existe sempre, e é o
+    // destino que muda — o que exige que a regra de destino seja total, não parcial.
+    //
+    // Mutante que estes testes matam: devolver `FORMULARIO_UMP` sempre. A pessoa fora do GDPR
+    // abriria um formulário vazio, que é exatamente o que o KDoc de
+    // `precisaOferecerOpcoesPrivacidade` diz ser pior que não abrir nada.
+    @Test
+    fun `sob GDPR o destino e o formulario da UMP`() {
+        assertEquals(
+            ConsentManager.DestinoOpcoesAnuncios.FORMULARIO_UMP,
+            ConsentManager.destinoDasOpcoes(ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED),
+        )
+    }
+
+    @Test
+    fun `sem exigencia da UMP o destino sao as configuracoes do Android`() {
+        listOf(
+            ConsentInformation.PrivacyOptionsRequirementStatus.NOT_REQUIRED,
+            ConsentInformation.PrivacyOptionsRequirementStatus.UNKNOWN,
+        ).forEach { status ->
+            assertEquals(
+                "status $status nao pode abrir formulario vazio",
+                ConsentManager.DestinoOpcoesAnuncios.CONFIGURACOES_DO_ANDROID,
+                ConsentManager.destinoDasOpcoes(status),
+            )
+        }
+    }
+
+    // A regra tem que cobrir TODOS os status — um `when` que esquecesse um valor novo do SDK
+    // deixaria a pessoa sem destino, e a entrada existe para todos desde a #1717.
+    @Test
+    fun `todo status tem destino`() {
+        ConsentInformation.PrivacyOptionsRequirementStatus.entries.forEach { status ->
+            assertNotNull("status $status ficou sem destino", ConsentManager.destinoDasOpcoes(status))
+        }
     }
 }

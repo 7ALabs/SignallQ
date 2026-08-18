@@ -50,12 +50,18 @@ fun PrivacidadeScreen(
     onVoltar: () -> Unit,
     onAbrirGerenciarDados: () -> Unit = {},
     /**
-     * GH#1703 — entrada para rever o consentimento de anúncios. `false` por padrão porque a UMP
-     * só **exige** a entrada quando `privacyOptionsRequirementStatus == REQUIRED` (regiões sob
-     * GDPR); fora disso o formulário não tem o que mostrar, e um item que abre tela vazia é pior
-     * que item ausente. Quem resolve isso é `ConsentManager.precisaOferecerOpcoesPrivacidade`,
-     * que precisa de uma `Activity` — por isso chega como parâmetro em vez de ser consultado
-     * aqui: mantém a tela testável sem Activity real.
+     * A UMP tem formulário próprio para esta pessoa? — GH#1703/#1717.
+     *
+     * `true` só quando `privacyOptionsRequirementStatus == REQUIRED` (regiões sob GDPR). Quem
+     * resolve isso é `ConsentManager.precisaOferecerOpcoesPrivacidade`, que precisa de uma
+     * `Activity` — por isso chega como parâmetro, o que mantém a tela testável sem Activity real.
+     *
+     * **Não decide mais se o item aparece.** Até a #1717 decidia: fora do GDPR o item sumia, e
+     * quem está no Brasil — a maior parte da base — não tinha nenhum controle de anúncio dentro do
+     * app, embora receba anúncio personalizado. O item agora aparece para todos; o que muda é o
+     * destino, e é por isso que o subtítulo depende deste flag em vez de ser fixo. Abrir um
+     * formulário vazio continua sendo pior que não abrir nada — a diferença é que agora existe
+     * para onde mandar quem não tem formulário.
      */
     mostrarOpcoesAnuncios: Boolean = false,
     onAbrirOpcoesAnuncios: () -> Unit = {},
@@ -232,9 +238,14 @@ fun PrivacidadeScreen(
             }
 
             // GH#1703 — a UMP exige entrada permanente para rever o consentimento de anúncios
-            // depois de já tê-lo dado. Antes desta issue o app só sabia coletar; não havia
+            // depois de já tê-lo dado. Antes daquela issue o app só sabia coletar; não havia
             // caminho de volta.
-            if (mostrarOpcoesAnuncios) {
+            //
+            // GH#1717 — e o item deixou de depender da UMP para existir. Ele aparecia só sob GDPR,
+            // então quem está no Brasil recebia anúncio personalizado sem nenhum controle dentro
+            // do app. O destino é que muda: formulário da UMP onde ele existe, configurações de
+            // anúncios do Android onde não existe.
+            run {
                 item {
                     Row(
                         modifier =
@@ -258,7 +269,12 @@ fun PrivacidadeScreen(
                                 color = c.textPrimary,
                             )
                             Text(
-                                text = "Rever a escolha que você fez sobre anúncios neste aparelho",
+                                text =
+                                    if (mostrarOpcoesAnuncios) {
+                                        "Rever a escolha que você fez sobre anúncios neste aparelho"
+                                    } else {
+                                        "Controlar a personalização dos anúncios nas configurações do Android"
+                                    },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = c.textSecondary,
                             )

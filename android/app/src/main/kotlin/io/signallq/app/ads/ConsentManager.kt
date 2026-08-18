@@ -1,6 +1,7 @@
 package io.signallq.app.ads
 
 import android.app.Activity
+import android.content.Intent
 import com.google.android.ump.ConsentInformation
 import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.UserMessagingPlatform
@@ -93,6 +94,57 @@ object ConsentManager {
      */
     internal fun precisaOferecer(status: ConsentInformation.PrivacyOptionsRequirementStatus): Boolean =
         status == ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED
+
+    /**
+     * Para onde a entrada "Preferências de anúncios" leva — GH#1717.
+     *
+     * Até esta issue a entrada só existia sob GDPR, então quem está no Brasil recebia anúncio
+     * personalizado sem nenhum controle dentro do app. Agora ela existe para todos, e o destino
+     * depende de haver ou não formulário da UMP:
+     *
+     * - [FORMULARIO_UMP] — a UMP tem o que mostrar (`REQUIRED`);
+     * - [CONFIGURACOES_DO_ANDROID] — não tem. Abrir o formulário vazio seria pior que não abrir
+     *   nada (é o que o KDoc de [precisaOferecerOpcoesPrivacidade] já dizia), mas existe controle
+     *   real fora do app: a tela de anúncios do Google Play services, onde dá para limitar a
+     *   personalização e apagar o identificador de publicidade.
+     */
+    enum class DestinoOpcoesAnuncios { FORMULARIO_UMP, CONFIGURACOES_DO_ANDROID }
+
+    internal fun destinoDasOpcoes(status: ConsentInformation.PrivacyOptionsRequirementStatus): DestinoOpcoesAnuncios =
+        if (precisaOferecer(status)) {
+            DestinoOpcoesAnuncios.FORMULARIO_UMP
+        } else {
+            DestinoOpcoesAnuncios.CONFIGURACOES_DO_ANDROID
+        }
+
+    /**
+     * Ações que abrem a tela de anúncios do sistema, da mais específica para a mais genérica.
+     *
+     * A primeira é a tela de privacidade de anúncios do Play services (Android 13+ / GMS recente);
+     * a segunda é a versão antiga da mesma tela. Nem toda instalação tem as duas, e nenhuma é
+     * garantida — por isso a lista, e por isso o retorno de [abrirConfiguracoesDeAnuncios] diz se
+     * alguma abriu. Sem esse retorno, um toque que não faz nada seria indistinguível de sucesso —
+     * exatamente a ressalva R2 da PR #1709, que já custou uma rodada.
+     */
+    private val ACOES_ANUNCIOS_DO_SISTEMA =
+        listOf(
+            "com.google.android.gms.settings.ADS_PRIVACY",
+            "com.google.android.gms.settings.ADS",
+        )
+
+    /** `true` se alguma tela de anúncios do sistema pôde ser aberta. */
+    fun abrirConfiguracoesDeAnuncios(activity: Activity): Boolean {
+        ACOES_ANUNCIOS_DO_SISTEMA.forEach { acao ->
+            val intent = Intent(acao).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (intent.resolveActivity(activity.packageManager) != null) {
+                runCatching { activity.startActivity(intent) }
+                    .onSuccess { return true }
+                    .onFailure { Timber.w("UMP: falha ao abrir $acao: ${it.message}") }
+            }
+        }
+        Timber.w("UMP: nenhuma tela de anuncios do sistema disponivel neste aparelho")
+        return false
+    }
 
     /**
      * Abre o formulário de opções de privacidade da própria UMP — não construímos UI de
