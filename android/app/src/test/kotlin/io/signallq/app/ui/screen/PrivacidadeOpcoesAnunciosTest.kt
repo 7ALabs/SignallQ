@@ -34,17 +34,6 @@ class PrivacidadeOpcoesAnunciosTest {
 
     private val rotulo = "Preferências de anúncios"
 
-    @Test
-    fun `entrada aparece quando a UMP exige opcoes de privacidade`() {
-        composeRule.setContent {
-            SignallQTheme {
-                PrivacidadeScreen(onVoltar = {}, mostrarOpcoesAnuncios = true)
-            }
-        }
-        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(rotulo))
-        composeRule.onNodeWithText(rotulo).assertExists()
-    }
-
     // COMPORTAMENTO INVERTIDO PELA #1717, de propósito.
     //
     // Estes dois testes afirmavam que a entrada **não aparecia** fora de região GDPR, e isso estava
@@ -105,22 +94,6 @@ class PrivacidadeOpcoesAnunciosTest {
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(rotulo))
 
         composeRule.onNodeWithText(rotulo).assertExists()
-    }
-
-    /**
-     * Rola até a última entrada fixa da tela antes de negar a presença da entrada nova.
-     *
-     * Sem isto os dois testes negativos eram VACUOSOS (bloqueio 1 do parecer de Caio na PR #1709):
-     * o item fica fora da viewport, o `LazyColumn` não compõe o que está fora da tela, e o
-     * `assertDoesNotExist` passava com a guarda `if (mostrarOpcoesAnuncios)` presente OU removida.
-     * A prova está nos próprios testes positivos, que precisam de `performScrollToNode` para achar
-     * o rótulo. "Gerenciar dados e privacidade" é o último item antes de onde a entrada nova
-     * apareceria — rolar até ela garante que a região já foi composta.
-     */
-    private fun rolarAteOFimDaLista() {
-        composeRule
-            .onNode(hasScrollAction())
-            .performScrollToNode(hasText("Gerenciar dados e privacidade"))
     }
 
     @Test

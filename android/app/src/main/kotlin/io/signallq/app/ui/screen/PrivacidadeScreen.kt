@@ -245,47 +245,45 @@ fun PrivacidadeScreen(
             // então quem está no Brasil recebia anúncio personalizado sem nenhum controle dentro
             // do app. O destino é que muda: formulário da UMP onde ele existe, configurações de
             // anúncios do Android onde não existe.
-            run {
-                item {
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable(onClick = onAbrirOpcoesAnuncios)
-                                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Campaign,
-                            contentDescription = null,
-                            tint = c.primary,
-                            modifier = Modifier.size(20.dp),
+            item {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onAbrirOpcoesAnuncios)
+                            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Campaign,
+                        contentDescription = null,
+                        tint = c.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Preferências de anúncios",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = c.textPrimary,
                         )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Preferências de anúncios",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = c.textPrimary,
-                            )
-                            Text(
-                                text =
-                                    if (mostrarOpcoesAnuncios) {
-                                        "Rever a escolha que você fez sobre anúncios neste aparelho"
-                                    } else {
-                                        "Controlar a personalização dos anúncios nas configurações do Android"
-                                    },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = c.textSecondary,
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                            contentDescription = null,
-                            tint = c.textTertiary,
-                            modifier = Modifier.size(14.dp),
+                        Text(
+                            text =
+                                if (mostrarOpcoesAnuncios) {
+                                    "Rever a escolha que você fez sobre anúncios neste aparelho"
+                                } else {
+                                    "Controlar a personalização dos anúncios nas configurações do Android"
+                                },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = c.textSecondary,
                         )
                     }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                        contentDescription = null,
+                        tint = c.textTertiary,
+                        modifier = Modifier.size(14.dp),
+                    )
                 }
             }
 

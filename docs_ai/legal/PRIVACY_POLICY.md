@@ -13,7 +13,7 @@ version: "2.0.0"
 **Última atualização:** 17 de agosto de 2026
 **Vigência:** a partir de 17 de agosto de 2026
 
-> Alteração desta revisão: a versão anterior afirmava que o aplicativo não exibia anúncios. O SignallQ exibe anúncios do Google AdMob, que são **personalizados** pelo Google, e as seções 1, 2, 3, 4, 6 e 7 foram atualizadas para descrever isso com precisão — incluindo o identificador de publicidade e como controlá-lo.
+> Alteração desta revisão: a versão anterior afirmava que o aplicativo não exibia anúncios. O SignallQ exibe anúncios do Google AdMob, que são **personalizados** pelo Google, e as seções 1, 2, 3, 6 e 7 foram atualizadas para descrever isso com precisão — incluindo o identificador de publicidade, os sinais de contexto enviados e como controlar a personalização. Uma seção nova sobre consentimento entrou como 4, e as seções seguintes foram renumeradas.
 
 O SignallQ é um aplicativo de diagnóstico de conexão à internet para Android. Esta política descreve quais dados são coletados, como são usados, com quem são compartilhados e quais são os seus direitos como usuário.
 
@@ -37,7 +37,7 @@ O SignallQ coleta dados técnicos de conectividade para fins de diagnóstico. N�
 
 O SignallQ **não** coleta: nome, e-mail, endereço, localização GPS, contatos, fotos, arquivos nem histórico de navegação.
 
-O aplicativo também **não envia** ao AdMob nenhuma métrica de conectividade, nome de rede Wi-Fi (SSID), endereço MAC de dispositivo da sua rede nem o laudo de diagnóstico. Isso é diferente de dizer que o anúncio não é personalizado: o Google personaliza a partir do que ele já sabe do seu aparelho e da sua conta, não a partir do que o SignallQ mede.
+O aplicativo **não envia** ao AdMob nenhum valor de medição, nome de rede Wi-Fi (SSID), endereço MAC, endereço IP nem o texto do laudo. Envia o assunto da tela e, no resultado, até três marcadores do tipo de problema detectado — a lista completa está na seção 3. Isso é diferente de dizer que o anúncio não é personalizado: o Google personaliza principalmente a partir do que ele já sabe do seu aparelho e da sua conta.
 
 ---
 
@@ -46,7 +46,7 @@ O aplicativo também **não envia** ao AdMob nenhuma métrica de conectividade, 
 - Exibição de diagnóstico local no próprio dispositivo.
 - Envio ao motor de inteligência artificial para geração de laudo técnico de conectividade.
 - Monitoramento periódico em segundo plano para alertas de queda de qualidade.
-- Exibição de anúncios para sustentar a gratuidade do aplicativo. O SignallQ informa ao AdMob apenas o assunto da tela em que o anúncio aparece (por exemplo, "resultado de teste de velocidade"); a personalização em si é feita pelo Google.
+- Exibição de anúncios para sustentar a gratuidade do aplicativo. O SignallQ informa ao AdMob o assunto da tela em que o anúncio aparece e, na tela de resultado, até três marcadores do tipo de problema detectado. A personalização em si é feita pelo Google. A seção 3 detalha exatamente o que sai do aparelho.
 
 Os dados enviados ao servidor de IA são processados em tempo real e descartados imediatamente após a geração do laudo. Nenhum dado é armazenado de forma persistente no servidor.
 
@@ -60,7 +60,14 @@ Além disso, o app utiliza:
 
 - **Firebase Analytics:** coleta de eventos anônimos de uso (telas visitadas, ações realizadas). Nenhum dado pessoal é vinculado a esses eventos.
 - **Firebase Crashlytics:** coleta automática de relatórios de falha (crash reports) anônimos para melhoria da estabilidade do app.
-- **Google AdMob:** o SignallQ exibe anúncios para sustentar a gratuidade do aplicativo. Os anúncios são **personalizados pelo Google**, que usa o identificador de publicidade do seu aparelho e os dados que ele já possui. O SignallQ acrescenta a isso um único sinal: o assunto da tela em que o anúncio aparece. **Nenhuma métrica de conectividade, nome de rede Wi-Fi (SSID), endereço MAC ou laudo de diagnóstico é enviado ao AdMob.** Consulte a [política de privacidade do Google](https://policies.google.com/privacy).
+- **Google AdMob:** o SignallQ exibe anúncios para sustentar a gratuidade do aplicativo. Os anúncios são **personalizados pelo Google**, que usa o identificador de publicidade do seu aparelho e os dados que ele já possui.
+
+  O SignallQ acrescenta a isso dois sinais de contexto, e apenas eles:
+
+  1. **o assunto da tela** em que o anúncio aparece — por exemplo, "resultado de teste de velocidade";
+  2. **na tela de resultado, até três marcadores do tipo de problema detectado**, escolhidos de uma lista fechada. São eles: `wifi_fraco`, `sinal_baixo`, `latencia_alta`, `perda_pacotes_alta`, `bufferbloat_alto`, `dns_lento`, `muitos_dispositivos` e `velocidade_abaixo_do_contratado`.
+
+  Os marcadores dizem **que tipo** de problema foi identificado, nunca os números medidos. **Nenhum valor de medição, nome de rede Wi-Fi (SSID), endereço MAC, endereço IP ou o texto do laudo é enviado ao AdMob** — o aplicativo só consegue enviar marcadores dessa lista, porque qualquer outro formato é descartado antes do envio. Consulte a [política de privacidade do Google](https://policies.google.com/privacy).
 
 Nenhum dado é vendido ou alugado pelo SignallQ, e nós não construímos perfil de comportamento nem compartilhamos dados de diagnóstico com anunciantes. O Google, por sua vez, usa o identificador de publicidade para personalizar anúncios — é isso que a seção 4 explica como controlar.
 
@@ -94,6 +101,7 @@ Em qualquer região, você encontra **Privacidade → Preferências de anúncios
 | **FOREGROUND_SERVICE** | Manter o monitoramento ativo em segundo plano com notificação visível | — |
 | **ACCESS_NETWORK_STATE / ACCESS_WIFI_STATE / CHANGE_NETWORK_STATE** | Leitura de estado da conexão e configuração de rede | — |
 | **com.google.android.gms.permission.AD_ID** | Acesso ao identificador de publicidade, usado pelo Google AdMob para escolher e medir anúncios. Vem do SDK do Google, não é pedida em tela | Não identifica você pessoalmente e pode ser redefinida ou excluída por você nas configurações do Android |
+| **ACCESS_ADSERVICES_TOPICS / ACCESS_ADSERVICES_AD_ID / ACCESS_ADSERVICES_ATTRIBUTION** | APIs de anúncios do Android (Privacy Sandbox), usadas pelo SDK do Google para personalizar e medir anúncios com interesses inferidos pelo sistema. Vêm do SDK, não são pedidas em tela | O SignallQ não lê nem armazena esses interesses; quem os usa é o Google |
 
 ---
 

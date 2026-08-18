@@ -3,7 +3,6 @@ package io.signallq.app.ads
 import com.google.android.ump.ConsentInformation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -91,12 +90,76 @@ class ConsentManagerPrecisaOferecerTest {
         }
     }
 
-    // A regra tem que cobrir TODOS os status — um `when` que esquecesse um valor novo do SDK
-    // deixaria a pessoa sem destino, e a entrada existe para todos desde a #1717.
+    // Ressalva R5 de Caio: a versão anterior deste teste usava `assertNotNull` sobre um retorno
+    // Kotlin não-nulo — tautologia que nenhuma mutação mata. O que importa é que só `REQUIRED`
+    // leve ao formulário; qualquer status novo do SDK cai no destino que funciona em toda região.
     @Test
-    fun `todo status tem destino`() {
+    fun `so REQUIRED leva ao formulario, todo o resto vai para o sistema`() {
         ConsentInformation.PrivacyOptionsRequirementStatus.entries.forEach { status ->
-            assertNotNull("status $status ficou sem destino", ConsentManager.destinoDasOpcoes(status))
+            val esperado =
+                if (status == ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED) {
+                    ConsentManager.DestinoOpcoesAnuncios.FORMULARIO_UMP
+                } else {
+                    ConsentManager.DestinoOpcoesAnuncios.CONFIGURACOES_DO_ANDROID
+                }
+            assertEquals("destino errado para $status", esperado, ConsentManager.destinoDasOpcoes(status))
         }
+    }
+
+    // BLOQUEIO B3 de Caio na PR #1717. O roteamento e a mudanca central da issue e nao tinha um
+    // unico teste: trocar o `if` do overlay por `if (true)` passava na suite inteira do :app, e
+    // todo mundo fora do GDPR cairia no formulario vazio da UMP.
+    @Test
+    fun `sob GDPR abre o formulario e nao mexe no sistema`() {
+        var formulario = 0
+        var sistema = 0
+
+        val abriu =
+            ConsentManager.executarOpcoesDeAnuncios(
+                destino = ConsentManager.DestinoOpcoesAnuncios.FORMULARIO_UMP,
+                abrirFormulario = { formulario += 1 },
+                abrirSistema = {
+                    sistema += 1
+                    true
+                },
+            )
+
+        assertTrue(abriu)
+        assertEquals(1, formulario)
+        assertEquals("nao pode abrir a tela do sistema sob GDPR", 0, sistema)
+    }
+
+    @Test
+    fun `fora do GDPR abre o sistema e nao o formulario vazio`() {
+        var formulario = 0
+        var sistema = 0
+
+        val abriu =
+            ConsentManager.executarOpcoesDeAnuncios(
+                destino = ConsentManager.DestinoOpcoesAnuncios.CONFIGURACOES_DO_ANDROID,
+                abrirFormulario = { formulario += 1 },
+                abrirSistema = {
+                    sistema += 1
+                    true
+                },
+            )
+
+        assertTrue(abriu)
+        assertEquals("nao pode abrir formulario vazio fora do GDPR", 0, formulario)
+        assertEquals(1, sistema)
+    }
+
+    // A mensagem de erro tambem nao tinha teste (mutante M2 do parecer): fazer
+    // `abrirConfiguracoesDeAnuncios` devolver `true` sempre matava o aviso sem nada reclamar.
+    @Test
+    fun `aparelho sem tela de anuncios devolve falso para o chamador avisar`() {
+        val abriu =
+            ConsentManager.executarOpcoesDeAnuncios(
+                destino = ConsentManager.DestinoOpcoesAnuncios.CONFIGURACOES_DO_ANDROID,
+                abrirFormulario = { error("nao deve abrir formulario") },
+                abrirSistema = { false },
+            )
+
+        assertFalse("toque mudo e pior que aviso", abriu)
     }
 }

@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.zIndex
+import com.google.android.ump.UserMessagingPlatform
 import io.signallq.app.ads.ConsentManager
 
 /**
@@ -41,12 +42,25 @@ internal fun AppShellPrivacidadeOverlay(
     // Recalculado a cada abertura do overlay: o status da UMP muda depois que o usuário responde
     // o formulário inicial, e a tela pode ser aberta antes disso na mesma sessão.
     var precisaOpcoesAnuncios by remember { mutableStateOf(false) }
+    // GH#1717 / bloqueio B3 — o destino vem da regra, não de um `if` solto aqui. Enquanto o `if`
+    // vivia neste arquivo, trocá-lo por `if (true)` passava na suíte inteira do `:app`: todo
+    // brasileiro cairia no formulário vazio da UMP e nada quebrava. E `destinoDasOpcoes`, que
+    // existia para ser essa regra, não tinha nenhum chamador de produção — o mutante que a PR
+    // citava como prova matava só o teste da própria função morta.
+    var destinoDasOpcoes by remember {
+        mutableStateOf(ConsentManager.DestinoOpcoesAnuncios.CONFIGURACOES_DO_ANDROID)
+    }
     var erroOpcoes by remember { mutableStateOf<String?>(null) }
     val privacidadeAberta = AppShellOverlay.Privacidade in overlayStack
     LaunchedEffect(privacidadeAberta, activity) {
-        precisaOpcoesAnuncios =
-            activity != null &&
-            ConsentManager.precisaOferecerOpcoesPrivacidade(activity)
+        val status =
+            activity?.let {
+                UserMessagingPlatform.getConsentInformation(it).privacyOptionsRequirementStatus
+            }
+        precisaOpcoesAnuncios = status != null && ConsentManager.precisaOferecer(status)
+        destinoDasOpcoes =
+            status?.let { ConsentManager.destinoDasOpcoes(it) }
+                ?: ConsentManager.DestinoOpcoesAnuncios.CONFIGURACOES_DO_ANDROID
     }
 
     AnimatedVisibility(
@@ -68,20 +82,25 @@ internal fun AppShellPrivacidadeOverlay(
                 // Não fecha o overlay: o formulário da UMP abre por cima e o usuário volta para
                 // a tela de Privacidade onde estava.
                 activity?.let { act ->
-                    if (precisaOpcoesAnuncios) {
-                        ConsentManager.mostrarOpcoesPrivacidade(act) { erro ->
-                            // Ressalva R2 da revisão da PR #1709: sem isto, falhar ao carregar o
-                            // formulário (sem rede, por exemplo) deixava o toque sem NENHUM retorno
-                            // visível — só um log. Numa região GDPR, "não consigo abrir minhas
-                            // opções de privacidade e o app não me diz nada" vira reclamação de
-                            // política.
-                            if (erro != null) {
-                                erroOpcoes = "Não foi possível abrir agora. Verifique sua conexão e tente de novo."
-                            }
-                        }
-                    } else if (!ConsentManager.abrirConfiguracoesDeAnuncios(act)) {
-                        // Mesmo princípio da ressalva R2, no outro destino: aparelho sem a tela de
-                        // anúncios do Play services existe, e um toque mudo é pior que um aviso.
+                    val abriu =
+                        ConsentManager.executarOpcoesDeAnuncios(
+                            destino = destinoDasOpcoes,
+                            abrirFormulario = {
+                                ConsentManager.mostrarOpcoesPrivacidade(act) { erro ->
+                                    // Ressalva R2 da revisão da PR #1709: sem isto, falhar ao
+                                    // carregar o formulário (sem rede, por exemplo) deixava o toque
+                                    // sem NENHUM retorno visível — só um log. Numa região GDPR,
+                                    // "não consigo abrir minhas opções de privacidade e o app não
+                                    // me diz nada" vira reclamação de política.
+                                    if (erro != null) {
+                                        erroOpcoes =
+                                            "Não foi possível abrir agora. Verifique sua conexão e tente de novo."
+                                    }
+                                }
+                            },
+                            abrirSistema = { ConsentManager.abrirConfiguracoesDeAnuncios(act) },
+                        )
+                    if (!abriu) {
                         erroOpcoes =
                             "Este aparelho não tem a tela de anúncios do Google. " +
                             "Procure por \"Anúncios\" nas configurações de privacidade."
