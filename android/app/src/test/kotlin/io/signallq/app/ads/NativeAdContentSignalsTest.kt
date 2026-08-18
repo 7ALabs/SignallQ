@@ -6,70 +6,67 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Issue #555 -- garante que o sinal contextual enviado ao AdMob nunca carrega dado
- * pessoal/de device, mesmo que um chamador futuro tente passar algo assim.
+ * O sinal contextual enviado ao AdMob — issue #555, reduzido pela #1703/#1717.
+ *
+ * A suíte anterior cobria a **sanitização** dos marcadores de diagnóstico: garantia de que SSID,
+ * BSSID, IP, MAC e afins nunca sobreviveriam como `neighboringContentUrls`. Ela cumpria o papel, e
+ * o que mudou não foi a qualidade dela — foi a decisão de não enviar marcador nenhum (GH#1717,
+ * decisão de Luiz em 2026-08-17), depois de a própria PR mostrar que o mecanismo estava inerte:
+ * as URLs são sintéticas e `signallq.app` sequer é domínio registrado.
+ *
+ * Com os marcadores fora, a garantia fica mais forte e mais barata de provar: o sinal é **função
+ * apenas do slot**, e slot é fixo por tela. Não há caminho por onde dado de usuário entre — não
+ * porque é filtrado, mas porque não existe parâmetro para ele.
+ *
+ * Os payloads realistas de dado de device continuam aqui, agora asserindo o invariante novo: por
+ * mais que a tela saiba deles, nada disso alcança a URL.
  */
 class NativeAdContentSignalsTest {
     @Test
-    fun `cada slot tem um topico distinto sem tags`() {
+    fun `cada slot tem um topico distinto`() {
         val urls = AdSlot.entries.map { NativeAdContentSignals.forSlot(it).contentUrl }
-        assertEquals(urls.size, urls.distinct().size)
+
+        assertEquals("topicos repetidos entre slots", urls.size, urls.distinct().size)
         urls.forEach { assertTrue(it.startsWith("https://signallq.app/contexto-anuncio/")) }
     }
 
+    // Mutante que este teste mata: fazer o sinal depender de qualquer coisa além do slot. Com a
+    // assinatura atual isso nem compila — e essa é a proteção. O teste registra o invariante para
+    // quem for tentado a reintroduzir o parâmetro: a política publicada declara que apenas o
+    // tópico da tela é enviado, então mexer aqui exige mexer nela antes.
     @Test
-    fun `tags validas viram neighboring content urls`() {
-        val signal = NativeAdContentSignals.forSlot(AdSlot.RESULTADO, setOf("wifi_fraco", "bufferbloat_alto"))
-        assertEquals(2, signal.neighboringContentUrls.size)
-        signal.neighboringContentUrls.forEach { assertTrue(it.contains("resultado-teste")) }
-    }
-
-    @Test
-    fun `nunca inclui SSID BSSID IP MAC ou identificador de device`() {
-        // Payloads realistas de dado de device -- todos tem caractere fora de [a-z0-9-]
-        // (":", ".", ",", espaco), entao a sanitizacao os descarta inteiros; nenhum
-        // deveria sobreviver como neighboring content url.
-        val tagsProibidas =
-            setOf(
-                "ssid:MinhaCasa5G",
-                "bssid:AA:BB:CC:DD:EE:FF",
-                "ip:192.168.1.10",
-                "mac:00:11:22:33:44:55",
-                "imei:123456789012345",
-                "imsi:310150123456789",
-                "deviceId:abc-123",
-                "GPS -23.5,-46.6",
+    fun `o sinal e funcao apenas do slot`() {
+        AdSlot.entries.forEach { slot ->
+            assertEquals(
+                "chamadas repetidas para o mesmo slot precisam dar o mesmo sinal",
+                NativeAdContentSignals.forSlot(slot),
+                NativeAdContentSignals.forSlot(slot),
             )
-        val signal = NativeAdContentSignals.forSlot(AdSlot.HISTORICO, tagsProibidas)
-
-        assertTrue(
-            "nenhum payload de device deveria sobreviver a sanitizacao: ${signal.neighboringContentUrls}",
-            signal.neighboringContentUrls.isEmpty(),
-        )
-        val valoresCrus = listOf("minhacasa5g", "aa:bb:cc:dd:ee:ff", "192.168.1.10", "123456789012345", "-23.5,-46.6")
-        val tudo = (listOf(signal.contentUrl) + signal.neighboringContentUrls).joinToString(" ").lowercase()
-        valoresCrus.forEach { valor ->
-            assertFalse("sinal do anuncio nao pode conter o valor cru '$valor': $tudo", tudo.contains(valor))
         }
     }
 
     @Test
-    fun `limita a no maximo 3 tags vizinhas`() {
-        val muitasTags = (1..10).map { "tag-$it" }.toSet()
-        val signal = NativeAdContentSignals.forSlot(AdSlot.VELOCIDADE, muitasTags)
-        assertTrue(signal.neighboringContentUrls.size <= 3)
-    }
+    fun `nenhum dado de device alcanca a url do anuncio`() {
+        // Payloads realistas do que a tela de fato conhece. Antes da #1717 eles eram descartados
+        // por sanitização; agora não há por onde entrarem.
+        val valoresCrus =
+            listOf(
+                "minhacasa5g",
+                "aa:bb:cc:dd:ee:ff",
+                "192.168.1.10",
+                "00:11:22:33:44:55",
+                "123456789012345",
+                "-23.5,-46.6",
+                // Conclusões de diagnóstico — o que saía como `neighboringContentUrls` até a #1717.
+                "wifi-fraco",
+                "velocidade-abaixo-do-contratado",
+                "bufferbloat-alto",
+            )
 
-    @Test
-    fun `tags com espaco ou pontuacao sao descartadas`() {
-        val signal = NativeAdContentSignals.forSlot(AdSlot.DISPOSITIVOS, setOf("tag valida-1", "tag com espaco", "tag:com:dois:pontos"))
-        assertTrue(signal.neighboringContentUrls.isEmpty())
-    }
+        val tudo = AdSlot.entries.joinToString(" ") { NativeAdContentSignals.forSlot(it).contentUrl }.lowercase()
 
-    @Test
-    fun `underscore e normalizado para hifen -- vocabulario real do DiagnosticTag`() {
-        val signal = NativeAdContentSignals.forSlot(AdSlot.RESULTADO, setOf("wifi_fraco"))
-        assertEquals(1, signal.neighboringContentUrls.size)
-        assertTrue(signal.neighboringContentUrls.first().endsWith("wifi-fraco"))
+        valoresCrus.forEach { valor ->
+            assertFalse("sinal do anuncio nao pode conter '$valor': $tudo", tudo.contains(valor))
+        }
     }
 }

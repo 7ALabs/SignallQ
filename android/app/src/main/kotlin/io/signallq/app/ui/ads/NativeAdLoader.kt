@@ -156,9 +156,8 @@ private class GoogleNativeAdRequester(
 }
 
 private fun buildAdRequest(signal: NativeAdContentSignal): AdRequest {
+    // GH#1717 — `setNeighboringContentUrls` saiu junto com os marcadores de diagnóstico. O único
+    // sinal enviado é o tópico da tela; ver o KDoc de `NativeAdContentSignal`.
     val builder = AdRequest.Builder().setContentUrl(signal.contentUrl)
-    if (signal.neighboringContentUrls.isNotEmpty()) {
-        builder.setNeighboringContentUrls(signal.neighboringContentUrls)
-    }
     return builder.build()
 }

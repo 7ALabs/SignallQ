@@ -475,10 +475,7 @@ fun ResultadoVelocidadeScreen(
                         val nativeAd by rememberNativeAd(
                             adUnitId = AdUnitIds.para(AdSlot.RESULTADO),
                             contentSignal =
-                                NativeAdContentSignals.forSlot(
-                                    AdSlot.RESULTADO,
-                                    recommendationDecision?.matchedTags?.map { it.id }?.toSet() ?: emptySet(),
-                                ),
+                                NativeAdContentSignals.forSlot(AdSlot.RESULTADO),
                             eligible = adsEnabled,
                         )
                         NativeAdCard(

@@ -22,7 +22,7 @@ const HTML = `<!DOCTYPE html>
 <body>
   <h1>Política de Privacidade</h1>
   <p class="meta">SignallQ &mdash; Última atualização: 17 de agosto de 2026 &middot; Vigência: a partir de 17 de agosto de 2026</p>
-  <p class="revisao">Alteração desta revisão: a versão anterior afirmava que o aplicativo não exibia anúncios. O SignallQ exibe anúncios do Google AdMob, que são <strong>personalizados</strong> pelo Google, e as seções 1, 2, 3, 6 e 7 foram atualizadas para descrever isso com precisão &mdash; incluindo o identificador de publicidade, os sinais de contexto enviados e como controlar a personalização. Uma seção nova sobre consentimento entrou como 4, e as seções seguintes foram renumeradas.</p>
+  <p class="revisao">Alteração desta revisão: a versão anterior afirmava que o aplicativo não exibia anúncios. O SignallQ exibe anúncios do Google AdMob, que são <strong>personalizados</strong> pelo Google, e as seções 1, 2, 3, 6 e 7 foram atualizadas para descrever isso com precisão &mdash; incluindo o identificador de publicidade e como controlar a personalização. Uma seção nova sobre consentimento entrou como 4, e as seções seguintes foram renumeradas.</p>
 
   <p>O SignallQ é um aplicativo de diagnóstico de conexão à internet para Android. Esta política descreve quais dados são coletados, como são usados, com quem são compartilhados e quais são os seus direitos como usuário.</p>
 
@@ -42,14 +42,14 @@ const HTML = `<!DOCTYPE html>
 
   <h3>Dados NÃO coletados</h3>
   <p>O SignallQ <strong>não</strong> coleta: nome, e-mail, endereço, localização GPS, contatos, fotos, arquivos nem histórico de navegação.</p>
-  <p>O aplicativo <strong>não envia</strong> ao AdMob nenhum valor de medição, nome de rede Wi-Fi (SSID), endereço MAC, endereço IP nem o texto do laudo. Envia o assunto da tela e, no resultado, até três marcadores do tipo de problema detectado &mdash; a lista completa está na seção 3. Isso é diferente de dizer que o anúncio não é personalizado: o Google personaliza principalmente a partir do que ele já sabe do seu aparelho e da sua conta.</p>
+  <p>O aplicativo <strong>não envia</strong> ao AdMob nenhum valor de medição, nenhum resultado ou conclusão do seu diagnóstico, nome de rede Wi-Fi (SSID), endereço MAC, endereço IP nem o texto do laudo &mdash; só o assunto da tela. Isso é diferente de dizer que o anúncio não é personalizado: o Google personaliza a partir do que ele já sabe do seu aparelho e da sua conta, não a partir do que o SignallQ mede.</p>
 
   <h2>2. Como os dados são usados</h2>
   <ul>
     <li>Exibição de diagnóstico local no próprio dispositivo</li>
     <li>Envio ao motor de inteligência artificial para geração de laudo técnico de conectividade</li>
     <li>Monitoramento periódico em segundo plano para alertas de queda de qualidade</li>
-    <li>Exibição de anúncios para sustentar a gratuidade do aplicativo. O SignallQ informa ao AdMob o assunto da tela em que o anúncio aparece e, na tela de resultado, até três marcadores do tipo de problema detectado. A personalização em si é feita pelo Google. A seção 3 detalha exatamente o que sai do aparelho</li>
+    <li>Exibição de anúncios para sustentar a gratuidade do aplicativo. O SignallQ informa ao AdMob apenas o assunto da tela em que o anúncio aparece; a personalização em si é feita pelo Google</li>
   </ul>
   <p>Os dados enviados ao servidor de IA são processados em tempo real e descartados imediatamente após a geração do laudo. Nenhum dado é armazenado de forma persistente no servidor.</p>
 
@@ -60,13 +60,9 @@ const HTML = `<!DOCTYPE html>
     <li><strong>Firebase Analytics:</strong> coleta de eventos anônimos de uso (telas visitadas, ações realizadas). Nenhum dado pessoal é vinculado a esses eventos.</li>
     <li><strong>Firebase Crashlytics:</strong> coleta automática de relatórios de falha (crash reports) anônimos para melhoria da estabilidade do app.</li>
     <li><strong>Google AdMob:</strong> o SignallQ exibe anúncios para sustentar a gratuidade do aplicativo. Os anúncios são <strong>personalizados pelo Google</strong>, que usa o identificador de publicidade do seu aparelho e os dados que ele já possui.
-      <p>O SignallQ acrescenta a isso dois sinais de contexto, e apenas eles:</p>
-      <ol>
-        <li><strong>o assunto da tela</strong> em que o anúncio aparece &mdash; por exemplo, &quot;resultado de teste de velocidade&quot;;</li>
-        <li><strong>na tela de resultado, até três marcadores do tipo de problema detectado</strong>, escolhidos de uma lista fechada: <code>wifi_fraco</code>, <code>sinal_baixo</code>, <code>latencia_alta</code>, <code>perda_pacotes_alta</code>, <code>bufferbloat_alto</code>, <code>dns_lento</code>, <code>muitos_dispositivos</code> e <code>velocidade_abaixo_do_contratado</code>.</li>
-      </ol>
-      <p>Os marcadores dizem <strong>que tipo</strong> de problema foi identificado, nunca os números medidos. <strong>Nenhum valor de medição, nome de rede Wi-Fi (SSID), endereço MAC, endereço IP ou o texto do laudo é enviado ao AdMob</strong> &mdash; o aplicativo só consegue enviar marcadores dessa lista, porque qualquer outro formato é descartado antes do envio. Consulte a <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">política de privacidade do Google</a>.</p></li>
+      <p>O SignallQ acrescenta a isso <strong>um único sinal</strong>: o assunto da tela em que o anúncio aparece &mdash; por exemplo, &quot;resultado de teste de velocidade&quot;. Nada mais sai do aparelho para o AdMob. <strong>Nenhum valor de medição, resultado ou conclusão do seu diagnóstico, nome de rede Wi-Fi (SSID), endereço MAC, endereço IP ou o texto do laudo é enviado.</strong> Consulte a <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">política de privacidade do Google</a>.</p></li>
   </ul>
+
   <p>Nenhum dado é vendido ou alugado pelo SignallQ, e nós não construímos perfil de comportamento nem compartilhamos dados de diagnóstico com anunciantes. O Google, por sua vez, usa o identificador de publicidade para personalizar anúncios &mdash; é isso que a seção 4 explica como controlar.</p>
 
   <h2>4. Consentimento para anúncios</h2>

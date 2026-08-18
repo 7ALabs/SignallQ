@@ -2,28 +2,36 @@ package io.signallq.app.ads
 
 /**
  * Sinal de contexto enviado ao AdMob via [com.google.android.gms.ads.AdRequest.Builder]
- * (`setContentUrl` / `setNeighboringContentUrls`) -- issue #555, passo 3 do plano.
+ * (`setContentUrl`) -- issue #555, passo 3 do plano; reduzido pela #1703/#1717.
  *
  * Deliberadamente NAO usa a API de `keywords`/`addKeyword()`: foi removida das versoes
- * atuais do Google Mobile Ads SDK para Android. `setContentUrl`/`setNeighboringContentUrls`
- * e o mecanismo real e vigente de contextual targeting -- e o unico usado aqui.
+ * atuais do Google Mobile Ads SDK para Android. `setContentUrl` e o mecanismo real e vigente
+ * de contextual targeting -- e o unico usado aqui.
  *
- * As URLs sao sinteticas (nao apontam para paginas reais, so classificam o topico) e
- * construidas so a partir de: (a) o [AdSlot] atual -- fixo por tela, sem dado de usuario;
- * (b) ids de [io.signallq.app.core.recommendation.DiagnosticTag] -- vocabulario fechado
- * de tags de diagnostico (ex.: "wifi_fraco", "bufferbloat_alto"), nunca SSID/BSSID/IP/
- * device id. [sanitizarTag] reforca isso descartando qualquer valor fora do padrao
- * alfanumerico+hifen esperado desse vocabulario, blindando contra qualquer regressao
- * futura que tente enfiar dado bruto aqui.
+ * ## O que saiu, e por que (GH#1717, decisao de Luiz em 2026-08-17)
+ *
+ * Ate esta issue o sinal tambem carregava ate 3 ids de `DiagnosticTag` em
+ * `setNeighboringContentUrls` -- isto e, a CONCLUSAO do diagnostico da pessoa
+ * (ex.: `velocidade_abaixo_do_contratado`) saia do aparelho para o Google. A politica de
+ * privacidade publicada precisava declarar isso, e declarar era o problema: o ganho nao
+ * justificava a frase.
+ *
+ * O que decidiu foi a medicao do ganho. `setContentUrl` e `setNeighboringContentUrls` valem
+ * pelo conteudo que o Google encontra na URL, e estas URLs sao sinteticas -- alem disso,
+ * `signallq.app` **nao e um dominio registrado** (NXDOMAIN em dois resolvedores publicos,
+ * verificado em 2026-08-17; o dominio do projeto e `signallq.com`). Nao ha pagina para
+ * rastrear, entao o mecanismo esta inerte hoje. Remover os marcadores nao custou receita
+ * mensuravel, e tirou do texto publico a parte mais dificil de defender.
+ *
+ * O `BASE` apontar para dominio inexistente e problema proprio, registrado em issue: e o que
+ * precisa ser corrigido ANTES de qualquer discussao sobre valor de sinal contextual.
  */
 data class NativeAdContentSignal(
     val contentUrl: String,
-    val neighboringContentUrls: List<String> = emptyList(),
 )
 
 object NativeAdContentSignals {
     private const val BASE = "https://signallq.app/contexto-anuncio"
-    private const val MAX_TAGS = 3
 
     private val topicoPorSlot =
         mapOf(
@@ -35,34 +43,12 @@ object NativeAdContentSignals {
         )
 
     /**
-     * @param diagnosticTagIds ids de [io.signallq.app.core.recommendation.DiagnosticTag]
-     *   (ex.: `decision.matchedTags.map { it.id }.toSet()`). Vazio nas telas sem diagnostico
-     *   ativo (Dispositivos/Historico/Velocidade idle) -- o slot sozinho ja da contexto.
+     * O unico sinal enviado: o topico do [slot], fixo por tela e sem nenhum dado do usuario.
+     *
+     * Nao ha parametro de diagnostico, e a ausencia e o ponto -- ver o KDoc do arquivo. Quem
+     * precisar reintroduzir contexto por diagnostico tem que passar pela politica de privacidade
+     * primeiro, porque a versao publicada declara que apenas o topico da tela e enviado.
      */
-    fun forSlot(
-        slot: AdSlot,
-        diagnosticTagIds: Set<String> = emptySet(),
-    ): NativeAdContentSignal {
-        val topico = topicoPorSlot.getValue(slot)
-        val vizinhos =
-            diagnosticTagIds
-                .mapNotNull(::sanitizarTag)
-                .take(MAX_TAGS)
-                .map { "$BASE/$topico/$it" }
-        return NativeAdContentSignal(
-            contentUrl = "$BASE/$topico",
-            neighboringContentUrls = vizinhos,
-        )
-    }
-
-    /** Normaliza `_` para `-` (vocabulario real de [io.signallq.app.core.recommendation.DiagnosticTag]
-     *  usa underscore, ex. "wifi_fraco") e so aceita `[a-z0-9-]` depois disso -- descarta
-     *  qualquer coisa fora desse formato (defesa em profundidade: mesmo que um chamador
-     *  futuro passe dado que nao devia, como SSID/IP/MAC com `:`/`.`/espaco). */
-    private fun sanitizarTag(tag: String): String? {
-        val normalizado = tag.trim().lowercase().replace('_', '-')
-        if (normalizado.isEmpty()) return null
-        if (!normalizado.matches(Regex("^[a-z0-9-]+$"))) return null
-        return normalizado
-    }
+    fun forSlot(slot: AdSlot): NativeAdContentSignal =
+        NativeAdContentSignal(contentUrl = "$BASE/${topicoPorSlot.getValue(slot)}")
 }
