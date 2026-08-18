@@ -43,18 +43,18 @@ class PlanoDeAnaliseTest {
         }
     }
 
-    // §8.4, a metade que costuma ser esquecida: adaptar em silêncio é falhar em silêncio.
-    // O mutante que este teste mata: devolver `limite = null` mesmo com capacidade removida.
+    // §8.4, a metade que costuma ser esquecida: adaptar em silencio e falhar em silencio. O
+    // cenario vivo hoje e a rede, nao a permissao — ver `sinal wifi nao depende de permissao`.
     @Test
-    fun `permissao negada reduz o plano e diz o que ficou de fora`() {
-        val semLocalizacao = comTudo.copy(temPermissaoLocalizacao = false)
+    fun `fora do wifi o plano e reduzido e diz o que ficou de fora`() {
+        val semWifi = comTudo.copy(conectadoPorWifi = false)
 
-        val plano = montarPlano(ObjetivoDiagnostico.WIFI_VS_OPERADORA, semLocalizacao)
+        // JOGOS_COM_LAG e o caso vivo: convoca `SINAL_WIFI` (resposta "Wi-Fi") e perde fora dele.
+        // `WIFI_VS_OPERADORA` nao serve mais — desde o B7 ele troca de capacidade em vez de perder.
+        val plano = montarPlano(ObjetivoDiagnostico.JOGOS_COM_LAG, semWifi, respostas = listOf(0))
 
-        assertTrue("o plano tinha que ter sido reduzido", plano.adaptado)
-        assertNotNull("plano adaptado sem limite declarado é falha silenciosa", plano.limite)
+        assertNotNull("plano adaptado sem limite declarado e falha silenciosa", plano.limite)
         assertFalse(Capacidade.SINAL_WIFI in plano.capacidades)
-        assertFalse(Capacidade.CANAIS_WIFI in plano.capacidades)
     }
 
     // A regra inteira de §8.4 num teste só: a jornada CONTINUA.
@@ -73,12 +73,17 @@ class PlanoDeAnaliseTest {
     }
 
     @Test
-    fun `o limite fala da consequencia, nao da permissao do sistema`() {
-        val plano = montarPlano(ObjetivoDiagnostico.WIFI_VS_OPERADORA, comTudo.copy(temPermissaoLocalizacao = false))
+    fun `o limite fala da consequencia, nao do vocabulario do sistema`() {
+        val plano =
+            montarPlano(
+                ObjetivoDiagnostico.JOGOS_COM_LAG,
+                comTudo.copy(conectadoPorWifi = false),
+                respostas = listOf(0),
+            )
 
         val limite = plano.limite!!.lowercase()
         listOf("permissão", "localização", "gps", "android").forEach { termo ->
-            assertFalse("o limite virou vocabulário de sistema: \"$limite\"", limite.contains(termo))
+            assertFalse("o limite virou vocabulario de sistema: \"$limite\"", limite.contains(termo))
         }
     }
 
@@ -152,13 +157,10 @@ class PlanoDeAnaliseTest {
         assertEquals(plano.capacidades.joinToString(",") { it.id }, plano.idsParaTelemetria)
     }
 
-    // BLOQUEIO B3 de Caio na PR #1732: a tabela por objetivo nao era travada por teste nenhum —
-    // trocar as capacidades de um objetivo deixava a suite verde. E ela divergia do motor: 3 das 10
-    // capacidades nao eram avaliadas por objetivo nenhum, e era essa divergencia que fazia o app
-    // pedir permissao de localizacao em jornadas onde conceder nao muda o resultado.
-    //
-    // Esta tabela espelha as dimensoes que cada `avaliar*` do `DiagnosticoGuiadoEngine` produz.
-    // Mudou o motor? Mude aqui junto — e ao contrario tambem.
+    // BLOQUEIO B3: a tabela nao era travada por teste, e divergia do motor. Espelha as dimensoes
+    // que cada `avaliar*` produz — inclusive as CONDICOES, que a primeira correcao ignorou
+    // (bloqueios B6 e B7 de Caio: `JOGOS_COM_LAG` descarta Wi-Fi no cabo, e `WIFI_VS_OPERADORA` e
+    // um `when` exclusivo por tipo de conexao).
     @Test
     fun `a tabela de capacidades espelha o que o motor avalia`() {
         val esperado =
@@ -189,7 +191,7 @@ class PlanoDeAnaliseTest {
                 ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA to
                     listOf(Capacidade.ESTADO_CONEXAO, Capacidade.DOWNLOAD_UPLOAD),
                 ObjetivoDiagnostico.WIFI_VS_OPERADORA to
-                    listOf(Capacidade.ESTADO_CONEXAO, Capacidade.SINAL_WIFI, Capacidade.REDE_MOVEL),
+                    listOf(Capacidade.ESTADO_CONEXAO, Capacidade.SINAL_WIFI),
             )
 
         ObjetivoDiagnostico.entries.forEach { objetivo ->
@@ -199,6 +201,35 @@ class PlanoDeAnaliseTest {
                 montarPlano(objetivo, comTudo).capacidades,
             )
         }
+    }
+
+    // BLOQUEIO B6: `avaliarJogosComLag` descarta a dimensao de Wi-Fi quando a resposta 0 e "Cabo de
+    // rede" — a suite ja assere essa supressao no resultado desde a #1683. O plano prometia mesmo
+    // assim, e o texto na tela nomeava o que o motor ia jogar fora.
+    @Test
+    fun `jogos por cabo nao promete sinal wifi`() {
+        val porCabo = montarPlano(ObjetivoDiagnostico.JOGOS_COM_LAG, comTudo, respostas = listOf(1))
+        val porWifi = montarPlano(ObjetivoDiagnostico.JOGOS_COM_LAG, comTudo, respostas = listOf(0))
+
+        assertFalse("no cabo o motor descarta o Wi-Fi", Capacidade.SINAL_WIFI in porCabo.capacidades)
+        assertTrue("no Wi-Fi ele avalia", Capacidade.SINAL_WIFI in porWifi.capacidades)
+    }
+
+    // BLOQUEIO B7: `avaliarWifiVsOperadora` e um `when` exclusivo por `connectionType` — nunca
+    // produz as duas dimensoes. O plano prometia as duas incondicionalmente.
+    @Test
+    fun `wifi vs operadora promete so o lado que o motor vai medir`() {
+        val noWifi = montarPlano(ObjetivoDiagnostico.WIFI_VS_OPERADORA, comTudo)
+        val noMovel =
+            montarPlano(
+                ObjetivoDiagnostico.WIFI_VS_OPERADORA,
+                comTudo.copy(conectadoPorWifi = false),
+            )
+
+        assertTrue(Capacidade.SINAL_WIFI in noWifi.capacidades)
+        assertFalse("no Wi-Fi o motor nao mede a operadora", Capacidade.REDE_MOVEL in noWifi.capacidades)
+        assertTrue(Capacidade.REDE_MOVEL in noMovel.capacidades)
+        assertFalse("no movel ele nao mede o Wi-Fi", Capacidade.SINAL_WIFI in noMovel.capacidades)
     }
 
     // As tres capacidades que a spec §7 preve e o motor ainda nao implementa nao podem ser
@@ -220,22 +251,42 @@ class PlanoDeAnaliseTest {
         }
     }
 
-    // BLOQUEIO B1: o botao de permissao seguia `limite != null`, e `limite` tambem vem de reducao
-    // por REDE. Em `VELOCIDADE_NAO_CHEGA` sem Wi-Fi o botao aparecia e conceder devolvia zero
-    // capacidade — e ainda emitia um evento de bloqueio que nunca existiu.
+    // BLOQUEIO B5 de Caio na PR #1732: `SINAL_WIFI` NAO depende de permissao de localizacao. O
+    // RSSI e lido incondicionalmente por `MonitorRedeAndroid`; o que a localizacao gateia e
+    // ssid/bssid, e por `locationManager.isLocationEnabled`, que e outro sinal.
+    //
+    // A fatia inteira de "preparacao contextual" estava sobre essa premissa falsa. Restou
+    // `CANAIS_WIFI`, que o motor ainda nao avalia — entao HOJE nenhuma capacidade e recuperavel por
+    // permissao, e foi isso que tirou o CTA desta entrega (decisao de Luiz em 2026-08-18).
+    //
+    // Este teste trava a premissa corrigida: se alguem recolocar `SINAL_WIFI` na dependencia de
+    // localizacao, o plano volta a mentir sobre o que consegue medir.
     @Test
-    fun `so oferece permissao quando conceder devolve capacidade`() {
-        val semNada = ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = false)
+    fun `sinal wifi nao depende de permissao de localizacao`() {
+        val noWifiSemPermissao =
+            ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = true)
+
+        val plano = montarPlano(ObjetivoDiagnostico.WIFI_VS_OPERADORA, noWifiSemPermissao)
+
+        assertTrue(
+            "o RSSI e lido sem a permissao — o plano nao pode remover SINAL_WIFI por isso",
+            Capacidade.SINAL_WIFI in plano.capacidades,
+        )
+        assertTrue("nada a declarar", plano.removidasPorPermissao.isEmpty())
+        assertNull("nao ha limite quando nada foi removido", plano.limite)
+    }
+
+    // Enquanto o motor nao avaliar canais Wi-Fi, nenhuma capacidade e recuperavel por permissao —
+    // e por isso a preparacao contextual saiu desta fatia. Se este teste comecar a falhar, o gatilho
+    // voltou a existir e o CTA pode voltar junto.
+    @Test
+    fun `hoje nenhum plano perde capacidade por falta de permissao`() {
+        val semPermissao = ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = true)
 
         ObjetivoDiagnostico.entries.forEach { objetivo ->
-            val plano = montarPlano(objetivo, semNada)
-            val comPermissao = montarPlano(objetivo, semNada.copy(temPermissaoLocalizacao = true))
-
-            val ganharia = comPermissao.capacidades.size > plano.capacidades.size
-            assertEquals(
-                "$objetivo: oferecer permissao so faz sentido se ela devolve capacidade",
-                ganharia,
-                plano.podeMelhorarComLocalizacao,
+            assertTrue(
+                "$objetivo perdeu capacidade por permissao — a preparacao precisa voltar",
+                montarPlano(objetivo, semPermissao).removidasPorPermissao.isEmpty(),
             )
         }
     }
@@ -279,17 +330,21 @@ class PlanoDeAnaliseTest {
         assertFalse("nao pode culpar a permissao: \"$limite\"", limite.contains("redes próximas"))
     }
 
-    // RESSALVA R1: a ordem entre permissao e rede nao era travada. Ela decide qual causa a pessoa
-    // le primeiro, e capacidade que falha nos dois criterios conta como de PERMISSAO — que e a que
-    // ela pode resolver ali mesmo.
+    // Com `SINAL_WIFI` fora da dependencia de localizacao, nenhuma capacidade falha nos dois
+    // criterios hoje. O teste guarda a consequencia: a atribuicao de causa nunca conta duas vezes.
     @Test
-    fun `capacidade que falha nos dois criterios conta como removida por rede`() {
+    fun `nenhuma capacidade e contada nas duas causas`() {
         val semNada = ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = false)
 
-        val plano = montarPlano(ObjetivoDiagnostico.WIFI_VS_OPERADORA, semNada)
-
-        assertTrue("rede e a restricao que manda", Capacidade.SINAL_WIFI in plano.removidasPorRede)
-        assertFalse("nao pode contar duas vezes", Capacidade.SINAL_WIFI in plano.removidasPorPermissao)
+        ObjetivoDiagnostico.entries.forEach { objetivo ->
+            val plano = montarPlano(objetivo, semNada)
+            plano.removidasPorPermissao.forEach { capacidade ->
+                assertFalse(
+                    "$objetivo contou $capacidade nas duas causas",
+                    capacidade in plano.removidasPorRede,
+                )
+            }
+        }
     }
 
     // RESSALVA R8: a frase juntava trechos com "e", e trechos que ja traziam "e" produziam

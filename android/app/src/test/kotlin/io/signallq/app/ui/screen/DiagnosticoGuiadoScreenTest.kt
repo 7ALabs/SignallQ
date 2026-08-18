@@ -18,10 +18,7 @@ import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
-import io.signallq.app.core.network.DiagnosticoBloqueioEncontrado
 import io.signallq.app.core.network.DiagnosticoPlanoIniciado
-import io.signallq.app.core.network.ResolucaoBloqueioDiagnostico
-import io.signallq.app.core.network.TipoBloqueioDiagnostico
 import io.signallq.app.feature.speedtest.MeasurementStatus
 import io.signallq.app.ui.SignallQTheme
 import org.junit.Assert.assertEquals
@@ -59,9 +56,7 @@ class DiagnosticoGuiadoScreenTest {
 
     private var analiseIniciada = 0
     private var analiseCancelada = 0
-    private var permissoesSolicitadas = 0
     private val planosIniciados = mutableListOf<DiagnosticoPlanoIniciado>()
-    private val bloqueios = mutableListOf<DiagnosticoBloqueioEncontrado>()
 
     @Test
     fun `sem pre-selecao mostra a lista de objetivos como antes`() {
@@ -558,16 +553,16 @@ class DiagnosticoGuiadoScreenTest {
         composeRule.onNodeWithText("Vamos verificar", substring = true).assertIsDisplayed()
     }
 
-    // A regra de §8.4 inteira: permissao recusada NAO encerra a jornada. A analise acontece, o
-    // plano vem reduzido, e o limite e DITO. Sem a ultima parte, adaptar e falhar em silencio.
+    // §8.4: contexto que reduz o plano NAO encerra a jornada — a analise acontece, o plano vem
+    // reduzido, e o limite e DITO. Sem a ultima parte, adaptar e falhar em silencio.
     @Test
-    fun `sem permissao a analise continua e o limite e declarado`() {
+    fun `fora do wifi a analise continua e o limite e declarado`() {
         setContent(
             objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
             respostaPreSelecionadaPasso0 = 0,
             estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
             statusMedicao = null,
-            contextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = true),
+            contextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = false),
         )
 
         completarSegundaPerguntaJogos()
@@ -623,131 +618,24 @@ class DiagnosticoGuiadoScreenTest {
     }
 
     // Mutante que este teste mata: mandar `planoAdaptado = false` fixo. A propriedade existe para
-    // medir quantas jornadas rodam com plano reduzido - com ela fixa, o dado nao serve para nada.
+    // medir quantas jornadas rodam com plano reduzido — fixa, o dado nao serve para nada.
+    //
+    // O caso vivo de reducao hoje e a REDE, nao a permissao: desde o bloqueio B5 nenhuma capacidade
+    // e recuperavel por localizacao (`SINAL_WIFI` nunca dependeu dela).
     @Test
-    fun `plano reduzido por permissao vai marcado como adaptado no funil`() {
+    fun `plano reduzido por rede vai marcado como adaptado no funil`() {
         setContent(
             objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
             respostaPreSelecionadaPasso0 = 0,
             estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
             statusMedicao = null,
-            contextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = true),
+            contextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = false),
         )
 
         completarSegundaPerguntaJogos()
         composeRule.waitForIdle()
 
         assertTrue("plano reduzido tem que ir marcado", planosIniciados.first().planoAdaptado)
-    }
-
-    // §8.4: a preparacao aparece quando o beneficio dela e evidente - com o limite do plano na
-    // tela, nao no cold start. E OFERECE: a analise ja esta correndo enquanto o botao esta ali.
-    @Test
-    fun `sem permissao a rota de analise oferece pedir a permissao`() {
-        setContent(
-            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
-            respostaPreSelecionadaPasso0 = 0,
-            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
-            statusMedicao = null,
-            contextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = true),
-        )
-        completarSegundaPerguntaJogos()
-
-        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PERMITIR).performClick()
-
-        assertEquals(1, permissoesSolicitadas)
-        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
-    }
-
-    // Mutante: oferecer o botao mesmo com bloqueio permanente. Pedir o que o sistema nao vai mais
-    // perguntar e um toque que nao faz nada - a mesma classe de defeito do formulario vazio da UMP.
-    @Test
-    fun `com bloqueio permanente o botao de permitir nao aparece`() {
-        setContent(
-            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
-            respostaPreSelecionadaPasso0 = 0,
-            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
-            statusMedicao = null,
-            contextoDoPlano =
-                ContextoDoPlano(
-                    temPermissaoLocalizacao = false,
-                    conectadoPorWifi = true,
-                    localizacaoBloqueadaPermanentemente = true,
-                ),
-        )
-
-        completarSegundaPerguntaJogos()
-
-        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
-        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PERMITIR).assertDoesNotExist()
-    }
-
-    // Com a permissao ja concedida nao houve bloqueio, entao o evento do passo 4 NAO dispara -
-    // a spec §12 exclui explicitamente a checagem silenciosa de estado.
-    @Test
-    fun `sem bloqueio apresentado nenhum evento de bloqueio dispara`() {
-        setContent(
-            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
-            respostaPreSelecionadaPasso0 = 0,
-            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
-            statusMedicao = null,
-        )
-
-        completarSegundaPerguntaJogos()
-
-        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PERMITIR).assertDoesNotExist()
-        assertTrue("nao houve bloqueio, nao pode haver evento", bloqueios.isEmpty())
-    }
-
-    // §8.4, a regra inteira: desistir da permissao NAO encerra a jornada. O evento registra a
-    // negativa e `planoContinuou` prova que a analise seguiu.
-    @Test
-    fun `desistir da permissao registra a negativa com a jornada seguindo`() {
-        setContent(
-            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
-            respostaPreSelecionadaPasso0 = 0,
-            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
-            statusMedicao = null,
-            contextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = true),
-        )
-        completarSegundaPerguntaJogos()
-        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PERMITIR).performClick()
-
-        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_CANCELAR).performClick()
-
-        assertEquals(1, bloqueios.size)
-        val evento = bloqueios.first()
-        assertEquals(TipoBloqueioDiagnostico.PERMISSAO_LOCALIZACAO, evento.tipo)
-        assertEquals(ResolucaoBloqueioDiagnostico.NEGADO, evento.resolucao)
-        assertTrue("permissao negada nao pode encerrar a jornada", evento.planoContinuou)
-    }
-
-    @Test
-    fun `bloqueio permanente e registrado com resolucao propria`() {
-        var contexto by mutableStateOf(
-            ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = true),
-        )
-        composeRule.setContent {
-            SignallQTheme {
-                TelaDeTeste(
-                    objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
-                    respostaPreSelecionadaPasso0 = 0,
-                    input = null,
-                    estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
-                    statusMedicao = null,
-                    contextoDoPlano = contexto,
-                )
-            }
-        }
-        completarSegundaPerguntaJogos()
-        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PERMITIR).performClick()
-
-        // O sistema respondeu "nao perguntar de novo" enquanto a rota estava aberta.
-        contexto = contexto.copy(localizacaoBloqueadaPermanentemente = true)
-        composeRule.waitForIdle()
-        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_CANCELAR).performClick()
-
-        assertEquals(ResolucaoBloqueioDiagnostico.NEGADO_PERMANENTE, bloqueios.first().resolucao)
     }
 
     /** Monta a tela com contexto e estado da analise dirigidos, para exercitar transicao. */
@@ -775,59 +663,18 @@ class DiagnosticoGuiadoScreenTest {
 
     private var estadoDirigido: (EstadoAnaliseGuiada) -> Unit = {}
 
-    // BLOQUEIO B2 do parecer: `registrarNegativaDoBloqueio` so era chamada em `voltarUmPasso`. A
-    // saida NORMAL da rota e a analise concluir — e a propria PR diz que a medicao ja esta correndo
-    // enquanto o botao esta na tela. O evento chegava enviesado para quem desiste da jornada
-    // inteira, e `planoContinuou`, que existe para comprovar a §8.4 em campo, era o que mais se
-    // perdia.
-    @Test
-    fun `bloqueio pendente e resolvido quando a analise conclui, nao so quando se volta`() {
-        val semPermissao =
-            ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = true)
-        cenarioDirigido(semPermissao)
-        completarSegundaPerguntaJogos()
-        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PERMITIR).performClick()
-
-        // A medicao termina sozinha, que e o caminho dominante.
-        estadoDirigido(EstadoAnaliseGuiada.Concluida)
-        composeRule.waitForIdle()
-
-        assertEquals("a negativa nao pode se perder no caminho normal", 1, bloqueios.size)
-        assertEquals(ResolucaoBloqueioDiagnostico.NEGADO, bloqueios.first().resolucao)
-        assertTrue(bloqueios.first().planoContinuou)
-    }
-
-    // RESSALVA R3: o ramo `CONCEDIDO` era inteiramente nao testado — `planoContinuou = false` ali
-    // passava verde.
-    @Test
-    fun `permissao concedida depois do pedido registra CONCEDIDO com a jornada seguindo`() {
-        val semPermissao =
-            ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = true)
-        val (_, mudarContexto) = cenarioDirigido(semPermissao)
-        completarSegundaPerguntaJogos()
-        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PERMITIR).performClick()
-
-        mudarContexto(semPermissao.copy(temPermissaoLocalizacao = true))
-        composeRule.waitForIdle()
-
-        assertEquals(1, bloqueios.size)
-        assertEquals(ResolucaoBloqueioDiagnostico.CONCEDIDO, bloqueios.first().resolucao)
-        assertTrue("a jornada segue de qualquer forma", bloqueios.first().planoContinuou)
-    }
-
     // RESSALVA R2: a chave do efeito do funil nao era travada — trocar `LaunchedEffect(emAnalise,
     // plano)` por `LaunchedEffect(emAnalise)` passava verde. A afirmacao do corpo da PR ("mudanca de
-    // permissao no meio da jornada conta como plano novo") nao tinha teste.
+    // contexto no meio da jornada conta como plano novo") nao tinha teste.
     @Test
-    fun `conceder permissao no meio da jornada dispara o funil de novo, com plano maior`() {
-        val semPermissao =
-            ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = true)
-        val (_, mudarContexto) = cenarioDirigido(semPermissao)
+    fun `entrar no wifi no meio da jornada dispara o funil de novo, com plano maior`() {
+        val foraDoWifi = ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = false)
+        val (_, mudarContexto) = cenarioDirigido(foraDoWifi)
         completarSegundaPerguntaJogos()
         composeRule.waitForIdle()
         val primeiro = planosIniciados.single()
 
-        mudarContexto(semPermissao.copy(temPermissaoLocalizacao = true))
+        mudarContexto(foraDoWifi.copy(conectadoPorWifi = true))
         composeRule.waitForIdle()
 
         assertEquals("o plano mudou, entao o evento tem que sair de novo", 2, planosIniciados.size)
@@ -883,9 +730,7 @@ class DiagnosticoGuiadoScreenTest {
         DiagnosticoGuiadoScreen(
             input = input,
             contextoDoPlano = contextoDoPlano,
-            onSolicitarPermissaoLocalizacao = { permissoesSolicitadas += 1 },
             onPlanoIniciado = { planosIniciados += it },
-            onBloqueioEncontrado = { bloqueios += it },
             statusMedicao = statusMedicao,
             medidasConfiaveis = medidasConfiaveis,
             analise =

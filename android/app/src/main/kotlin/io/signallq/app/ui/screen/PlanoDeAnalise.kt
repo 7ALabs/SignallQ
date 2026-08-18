@@ -20,7 +20,7 @@ import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 //
 // A tabela agora espelha as dimensões que cada `avaliar*` de fato produz. As capacidades que a spec
 // prevê e o motor ainda não implementa continuam no enum — os ids são contrato de telemetria — mas
-// não são prometidas a ninguém até existirem. A convergência está registrada em issue.
+// não são prometidas a ninguém até existirem. A convergência está registrada na issue #1733.
 
 /**
  * As 10 capacidades da spec §7.
@@ -83,15 +83,6 @@ data class PlanoDeAnalise(
 ) {
     val adaptado: Boolean get() = removidasPorPermissao.isNotEmpty() || removidasPorRede.isNotEmpty()
 
-    /**
-     * Conceder localização devolve capacidade a este plano? É o que decide se o botão aparece.
-     *
-     * Vale porque `removidasPorPermissao` já exclui o que a rede bloqueia — ver a nota de ordem em
-     * [montarPlano]. Sem essa exclusão, isto seria `true` em rede móvel e o botão não restauraria
-     * nada.
-     */
-    val podeMelhorarComLocalizacao: Boolean get() = removidasPorPermissao.isNotEmpty()
-
     /** Contrato do evento `diagnostico_plano_iniciado`, propriedade `capacidades`. */
     val idsParaTelemetria: String get() = capacidades.joinToString(",") { it.id }
 }
@@ -103,7 +94,11 @@ data class PlanoDeAnalise(
  * o cabeçalho deste arquivo. `ESTADO_CONEXAO` está em todos porque o veredito do motor é, ele
  * mesmo, o estado da conexão: não vira dimensão medida, vira a conclusão.
  */
-private fun capacidadesDoObjetivo(objetivo: ObjetivoDiagnostico): List<Capacidade> =
+private fun capacidadesDoObjetivo(
+    objetivo: ObjetivoDiagnostico,
+    contexto: ContextoDoPlano,
+    respostas: List<Int?>,
+): List<Capacidade> =
     when (objetivo) {
         // perda de pacotes + jitter
         ObjetivoDiagnostico.INTERNET_CAI_OSCILA ->
@@ -117,13 +112,17 @@ private fun capacidadesDoObjetivo(objetivo: ObjetivoDiagnostico): List<Capacidad
                 Capacidade.DOWNLOAD_UPLOAD,
             )
 
-        // latência sob carga + jitter + perda + RSSI
+        // latência sob carga + jitter + perda + RSSI (este só fora do cabo)
+        //
+        // `avaliarJogosComLag` descarta a dimensão de Wi-Fi quando a resposta 0 é "Cabo de rede"
+        // (`if (!jogaPorCabo)`), e a suíte já assere essa supressão desde a #1683. O plano
+        // prometia mesmo assim — bloqueio B6 de Caio na PR #1732.
         ObjetivoDiagnostico.JOGOS_COM_LAG ->
-            listOf(
+            listOfNotNull(
                 Capacidade.ESTADO_CONEXAO,
                 Capacidade.LATENCIA_VARIACAO,
                 Capacidade.COMPORTAMENTO_SOB_CARGA,
-                Capacidade.SINAL_WIFI,
+                Capacidade.SINAL_WIFI.takeIf { respostas.getOrNull(0) != RESPOSTA_JOGA_POR_CABO },
             )
 
         // jitter + perda + upload
@@ -142,13 +141,38 @@ private fun capacidadesDoObjetivo(objetivo: ObjetivoDiagnostico): List<Capacidad
         ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA ->
             listOf(Capacidade.ESTADO_CONEXAO, Capacidade.DOWNLOAD_UPLOAD)
 
-        // RSSI do Wi-Fi + sinal da operadora
+        // RSSI do Wi-Fi **ou** sinal da operadora — `avaliarWifiVsOperadora` é um `when` exclusivo
+        // por `connectionType`, nunca produz as duas. O plano prometia as duas incondicionalmente
+        // (bloqueio B7 de Caio na PR #1732).
         ObjetivoDiagnostico.WIFI_VS_OPERADORA ->
-            listOf(Capacidade.ESTADO_CONEXAO, Capacidade.SINAL_WIFI, Capacidade.REDE_MOVEL)
+            listOf(
+                Capacidade.ESTADO_CONEXAO,
+                if (contexto.conectadoPorWifi) Capacidade.SINAL_WIFI else Capacidade.REDE_MOVEL,
+            )
     }
 
-/** Capacidades que só existem com permissão de localização concedida. */
-private val DEPENDEM_DE_LOCALIZACAO = setOf(Capacidade.SINAL_WIFI, Capacidade.CANAIS_WIFI)
+/**
+ * Capacidades que só existem com permissão de localização concedida.
+ *
+ * `SINAL_WIFI` **não** está aqui, e a primeira versão desta fatia foi construída inteira sobre a
+ * suposição contrária (bloqueio B5 de Caio na PR #1732). O RSSI vem de
+ * `MonitorRedeAndroid.capturarWifiLinkSnapshot`, que o lê **incondicionalmente**: o que a
+ * localização gateia ali é `ssid`/`bssid`, e nem por permissão — por `locationManager
+ * .isLocationEnabled`, o interruptor do sistema, que é outro sinal. O plano usava
+ * `checkSelfPermission(ACCESS_FINE_LOCATION)` para prever o comportamento de algo que não olha
+ * essa permissão.
+ *
+ * O efeito era o pior texto da fatia: no Wi-Fi sem permissão, a frase prometia o que o motor não ia
+ * medir e o limite negava a única coisa que ele ia.
+ *
+ * Sobra `CANAIS_WIFI`, que depende de scan de redes vizinhas e aí sim exige localização. Como o
+ * motor ainda não a avalia, ela não entra em plano nenhum — e por isso **não há hoje capacidade
+ * recuperável por permissão**. É o que tirou a "preparação contextual" desta fatia; ver a issue #1733.
+ */
+private val DEPENDEM_DE_LOCALIZACAO = setOf(Capacidade.CANAIS_WIFI)
+
+/** Índice da resposta "Cabo de rede" na primeira pergunta do roteiro de jogos. */
+private const val RESPOSTA_JOGA_POR_CABO = 1
 
 /** Capacidades que só fazem sentido com o aparelho no Wi-Fi. */
 private val DEPENDEM_DE_WIFI =
@@ -177,8 +201,10 @@ private val DEPENDEM_DE_WIFI =
 fun montarPlano(
     objetivo: ObjetivoDiagnostico,
     contexto: ContextoDoPlano,
+    /** Respostas já dadas no roteiro. Mudam o que o motor avalia — ver `JOGOS_COM_LAG`. */
+    respostas: List<Int?> = emptyList(),
 ): PlanoDeAnalise {
-    val completo = capacidadesDoObjetivo(objetivo)
+    val completo = capacidadesDoObjetivo(objetivo, contexto, respostas)
 
     val removidasPorRede =
         completo.filter { it in DEPENDEM_DE_WIFI && !contexto.conectadoPorWifi }

@@ -9,7 +9,6 @@ import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.AssistAbandonado
 import io.signallq.app.core.network.AssistObjetivoSelecionado
 import io.signallq.app.core.network.AssistPerguntaRespondida
-import io.signallq.app.core.network.DiagnosticoBloqueioEncontrado
 import io.signallq.app.core.network.DiagnosticoPlanoIniciado
 import java.util.UUID
 import javax.inject.Inject
@@ -187,18 +186,6 @@ class FirebaseAnalyticsTracker
                     putString("capacidades", evento.capacidades)
                     putLong("qtd_capacidades", evento.qtdCapacidades)
                     putBoolean("plano_adaptado", evento.planoAdaptado)
-                },
-            )
-        }
-
-        override fun registrarDiagnosticoBloqueio(evento: DiagnosticoBloqueioEncontrado) {
-            firebaseAnalytics.logEvent(
-                "diagnostico_bloqueio_encontrado",
-                Bundle().apply {
-                    putString("analise_id", evento.analiseId)
-                    putString("tipo_bloqueio", evento.tipo.analyticsId)
-                    putString("resolucao", evento.resolucao.analyticsId)
-                    putBoolean("plano_continuou", evento.planoContinuou)
                 },
             )
         }

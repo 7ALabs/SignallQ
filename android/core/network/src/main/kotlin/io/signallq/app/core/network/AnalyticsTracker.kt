@@ -61,5 +61,4 @@ interface AnalyticsTracker {
      */
     fun registrarDiagnosticoPlanoIniciado(evento: DiagnosticoPlanoIniciado)
 
-    fun registrarDiagnosticoBloqueio(evento: DiagnosticoBloqueioEncontrado)
 }

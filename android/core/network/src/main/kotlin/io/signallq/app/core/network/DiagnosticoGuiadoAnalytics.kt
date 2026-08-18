@@ -26,35 +26,10 @@ data class DiagnosticoPlanoIniciado(
     val planoAdaptado: Boolean,
 )
 
-/**
- * Passo 4 do funil: um bloqueio foi **apresentado** a pessoa e ela respondeu (ou abandonou).
- *
- * NAO dispara em checagem silenciosa de estado: se a permissao ja estava concedida, nao houve
- * bloqueio. O que se quer medir e quantas jornadas encontram uma parede e o que acontece depois —
- * em especial [planoContinuou], porque a spec §8.4 exige que permissao negada **nao** encerre a
- * jornada, e sem esse dado nao da para saber se a regra esta valendo em campo.
- */
-data class DiagnosticoBloqueioEncontrado(
-    val analiseId: String,
-    val tipo: TipoBloqueioDiagnostico,
-    val resolucao: ResolucaoBloqueioDiagnostico,
-    val planoContinuou: Boolean,
-)
-
-/** Vocabulario fechado da spec de telemetria da 2.0.09a. */
-enum class TipoBloqueioDiagnostico(val analyticsId: String) {
-    PERMISSAO_LOCALIZACAO("permissao_localizacao"),
-    PERMISSAO_TELEFONIA("permissao_telefonia"),
-    OFFLINE("offline"),
-    REMOTO_INDISPONIVEL("remoto_indisponivel"),
-    REDE_MOVEL_DADOS("rede_movel_dados"),
-}
-
-/** Vocabulario fechado da spec de telemetria da 2.0.09a. */
-enum class ResolucaoBloqueioDiagnostico(val analyticsId: String) {
-    CONCEDIDO("concedido"),
-    NEGADO("negado"),
-    NEGADO_PERMANENTE("negado_permanente"),
-    CONTORNADO("contornado"),
-    ABANDONOU("abandonou"),
-}
+// O passo 4 do funil (`diagnostico_bloqueio_encontrado`) NAO entra nesta fatia. Ele existia aqui e
+// saiu junto com a preparacao contextual: a premissa de que o sinal Wi-Fi depende da permissao de
+// localizacao era falsa (bloqueio B5 de Caio na PR #1732 — o RSSI e lido incondicionalmente), e a
+// unica capacidade que de fato exige localizacao, `CANAIS_WIFI`, o motor ainda nao avalia.
+//
+// Sem gatilho vivo, o evento nao teria produtor e o vocabulario de tipo/resolucao seria enum morto.
+// Decisao de Luiz em 2026-08-18: entregar o plano sem a preparacao. Volta com ela.

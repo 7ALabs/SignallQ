@@ -10,7 +10,6 @@ import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.AssistAbandonado
 import io.signallq.app.core.network.AssistObjetivoSelecionado
 import io.signallq.app.core.network.AssistPerguntaRespondida
-import io.signallq.app.core.network.DiagnosticoBloqueioEncontrado
 import io.signallq.app.core.network.DiagnosticoPlanoIniciado
 import io.signallq.app.di.ApplicationScope
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
@@ -136,9 +135,6 @@ class CompositeAnalyticsTracker
         // esse contrato é escopo separado.
         override fun registrarDiagnosticoPlanoIniciado(evento: DiagnosticoPlanoIniciado) =
             firebaseTracker.registrarDiagnosticoPlanoIniciado(evento)
-
-        override fun registrarDiagnosticoBloqueio(evento: DiagnosticoBloqueioEncontrado) =
-            firebaseTracker.registrarDiagnosticoBloqueio(evento)
 
         private fun enviarEvento(
             name: String,
