@@ -27,7 +27,19 @@ class FirebaseRecommendationAnalyticsTracker
                 Bundle().apply {
                     putString("recommendation_id", payload.recommendationId)
                     putString("type", payload.type.name)
-                    putString("matched_tags", payload.matchedTags.joinToString(",") { it.id })
+                    // GH#1717 — `matched_tags` NAO e mais enviado. Levava o mesmo vocabulario de
+                    // `DiagnosticTag` que acabou de sair do AdMob (`wifi_fraco`,
+                    // `velocidade_abaixo_do_contratado`), isto e, a CONCLUSAO do diagnostico da
+                    // pessoa indo para o Google por uma segunda porta -- e a politica de
+                    // privacidade descreve o Firebase Analytics como "eventos anonimos de uso
+                    // (telas visitadas, acoes realizadas)". Conclusao de diagnostico nao e nem uma
+                    // coisa nem outra.
+                    //
+                    // Achado do bloqueio B9 de Caio na PR #1717, decidido por Luiz em 2026-08-17:
+                    // tirar o rotulo em vez de alargar o texto. `recommendation_id`, `type`,
+                    // `rule_origin` e `diagnostic_id` continuam permitindo medir o funil de
+                    // recomendacao -- o que se perde e conseguir quebrar a metrica POR TIPO DE
+                    // PROBLEMA da pessoa, que era justamente o dado sensivel.
                     putDouble("score", payload.score)
                     payload.diagnosticId?.let { putString("diagnostic_id", it) }
                     putBoolean("monetized", payload.monetized)
