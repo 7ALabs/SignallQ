@@ -35,8 +35,27 @@ enum class RecommendationAnalyticsEventName(val eventName: String) {
  * sustenta nao pode morar em comentario.
  *
  * O funil de recomendacao segue mensuravel por [recommendationId], [type], [score], [ruleOrigin],
- * [diagnosticId], [monetized] e [feedback]. O que se perde e quebrar a metrica POR TIPO DE PROBLEMA
- * da pessoa -- que era justamente o dado sensivel.
+ * [diagnosticId], [monetized] e [feedback].
+ *
+ * ## O que NAO se perde, e a versao anterior deste KDoc afirmava que sim
+ *
+ * A redacao anterior dizia que "o que se perde e quebrar a metrica por tipo de problema da pessoa".
+ * E falso, e Caio mostrou por que (rodada 5 da PR #1717): [recommendationId] e proxy deterministico
+ * da tag.
+ *
+ * - `RecommendationEngine.passesTagRelevance` so elege candidato cujas tags **intersectam** as do
+ *   relatorio da pessoa (excecao: candidato de `tags` vazio);
+ * - `LocalRecommendationCatalog` mapeia id -> tag **1:1**: `free_tip_reposicionar_roteador` ->
+ *   `WIFI_FRACO`, `configuration_trocar_dns` -> `DNS_LENTO`,
+ *   `operator_offer_upgrade_plano` -> `VELOCIDADE_ABAIXO_DO_CONTRATADO`, e assim por diante. So o
+ *   `native_ad_fallback_default` e neutro.
+ *
+ * Quem tiver os eventos e o catalogo -- que viaja dentro do APK -- recupera a conclusao do
+ * diagnostico. E o mesmo dado, escrito com outro alfabeto.
+ *
+ * Tirar [matchedTags] continua valendo: reduz exposicao de forma estrita e remove o rotulo
+ * explicito. Mas nao fecha o canal derivado, e este KDoc nao pode dar a entender que fecha.
+ * Fechar (ou aceitar por escrito) e decisao de produto em aberto -- ver a issue #1730.
  */
 data class RecommendationAnalyticsPayload(
     val eventName: RecommendationAnalyticsEventName,
