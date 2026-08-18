@@ -26,7 +26,7 @@ class NativeAdLoaderLifecycleTest {
 
     private val eligibility =
         NativeAdEligibility(AdSlot.VELOCIDADE, flagEnabled = true, canRequestAds = true, online = true)
-    private val signal = NativeAdContentSignal("https://signallq.com/velocidade")
+    private val signal = NativeAdContentSignal.forSlot(AdSlot.VELOCIDADE)
 
     @Test
     fun `flag consent and connectivity gate requests before loader`() {

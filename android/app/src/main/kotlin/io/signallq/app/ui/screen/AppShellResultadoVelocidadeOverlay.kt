@@ -10,7 +10,6 @@ import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.zIndex
-import io.signallq.app.core.recommendation.RecommendationDecision
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.feature.speedtest.ResultadoSpeedtest
 import io.signallq.app.ui.IspInfo
@@ -36,7 +35,6 @@ internal data class AppShellResultadoVelocidadeEntry(
     val localizacaoServidor: String?,
     val ispInfo: IspInfo?,
     val operadoraMovel: String?,
-    val recommendationDecision: RecommendationDecision?,
     val adsEnabled: Boolean,
     val onTestarNovamente: () -> Unit,
     val onIrParaHome: () -> Unit,
@@ -89,7 +87,6 @@ internal fun AppShellResultadoVelocidadeOverlay(
                 onIniciarDiagnosticoGuiado = entry.onIniciarDiagnosticoGuiado,
                 onIniciarModoGamer = entry.onIniciarModoGamer,
                 onVerDetalhesTecnicos = entry.onVerDetalhesTecnicos,
-                recommendationDecision = entry.recommendationDecision,
                 adsEnabled = entry.adsEnabled,
             )
         }

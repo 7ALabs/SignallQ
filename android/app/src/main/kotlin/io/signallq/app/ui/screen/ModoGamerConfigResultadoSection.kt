@@ -45,7 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.signallq.app.ads.AdSlot
 import io.signallq.app.ads.AdUnitIds
-import io.signallq.app.ads.NativeAdContentSignals
+import io.signallq.app.ads.NativeAdContentSignal
 import io.signallq.app.core.diagnostico.DeviceJogo
 import io.signallq.app.feature.diagnostico.topology.lan.NatUdpResultado
 import io.signallq.app.feature.diagnostico.topology.lan.NatUdpTipo
@@ -350,7 +350,7 @@ internal fun ModoGamerResultadoConteudo(
             Spacer(Modifier.height(LkSpacing.lg))
             val nativeAd by rememberNativeAd(
                 adUnitId = AdUnitIds.para(AdSlot.JOGOS),
-                contentSignal = NativeAdContentSignals.forSlot(AdSlot.JOGOS),
+                contentSignal = NativeAdContentSignal.forSlot(AdSlot.JOGOS),
                 eligible = adsEnabled,
             )
             NativeAdCard(

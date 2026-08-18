@@ -72,7 +72,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.signallq.app.ads.AdSlot
 import io.signallq.app.ads.AdUnitIds
-import io.signallq.app.ads.NativeAdContentSignals
+import io.signallq.app.ads.NativeAdContentSignal
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.core.network.contracts.localdevice.TipoConexaoFisica
@@ -262,7 +262,7 @@ private fun DispositivosLista(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val nativeAd by rememberNativeAd(
         adUnitId = AdUnitIds.para(AdSlot.DISPOSITIVOS),
-        contentSignal = NativeAdContentSignals.forSlot(AdSlot.DISPOSITIVOS),
+        contentSignal = NativeAdContentSignal.forSlot(AdSlot.DISPOSITIVOS),
         eligible = adsEnabled,
     )
 

@@ -27,7 +27,10 @@ class FirebaseRecommendationAnalyticsTracker
                 Bundle().apply {
                     putString("recommendation_id", payload.recommendationId)
                     putString("type", payload.type.name)
-                    putString("matched_tags", payload.matchedTags.joinToString(",") { it.id })
+                    // `matched_tags` NAO e enviado, e o campo nem existe mais no payload --
+                    // ver o KDoc de `RecommendationAnalyticsPayload` para o porque. A primeira
+                    // versao desta correcao removeu so esta linha, e Caio provou que reinseri-la
+                    // passava na suite inteira: a decisao ficava guardada por comentario.
                     putDouble("score", payload.score)
                     payload.diagnosticId?.let { putString("diagnostic_id", it) }
                     putBoolean("monetized", payload.monetized)

@@ -1,6 +1,8 @@
 package io.signallq.app.ads
 
 import android.app.Activity
+import android.content.Intent
+import android.provider.Settings
 import com.google.android.ump.ConsentInformation
 import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.UserMessagingPlatform
@@ -70,9 +72,13 @@ object ConsentManager {
      * *coletar* o consentimento, via [atualizarEMostrarSeNecessario] — não havia caminho de
      * volta, o que é exigência do Google em regiões sob GDPR, não preferência nossa.
      *
-     * `REQUIRED` é o único valor que obriga a mostrar a entrada. `NOT_REQUIRED` (fora da
-     * região) e `UNKNOWN` (antes do primeiro `requestConsentInfoUpdate` da sessão) mantêm a
-     * entrada oculta — mostrar um item que abre um formulário vazio seria pior que não mostrar.
+     * `REQUIRED` é o único valor em que a UMP tem formulário para mostrar. `NOT_REQUIRED` (fora
+     * da região) e `UNKNOWN` (antes do primeiro `requestConsentInfoUpdate` da sessão) não têm.
+     *
+     * Isto **não decide mais se a entrada aparece** — decidia até a GH#1717, e o efeito era que
+     * quem está fora do GDPR recebia anúncio personalizado sem controle nenhum dentro do app.
+     * Hoje decide para onde ela leva; ver [destinoDasOpcoes]. Continua valendo que abrir um
+     * formulário vazio é pior que não abrir nada — o que mudou é existir outro destino.
      */
     fun precisaOferecerOpcoesPrivacidade(activity: Activity): Boolean =
         precisaOferecer(UserMessagingPlatform.getConsentInformation(activity).privacyOptionsRequirementStatus)
@@ -93,6 +99,91 @@ object ConsentManager {
      */
     internal fun precisaOferecer(status: ConsentInformation.PrivacyOptionsRequirementStatus): Boolean =
         status == ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED
+
+    /**
+     * Para onde a entrada "Preferências de anúncios" leva — GH#1717.
+     *
+     * Até esta issue a entrada só existia sob GDPR, então quem está no Brasil recebia anúncio
+     * personalizado sem nenhum controle dentro do app. Agora ela existe para todos, e o destino
+     * depende de haver ou não formulário da UMP:
+     *
+     * - [FORMULARIO_UMP] — a UMP tem o que mostrar (`REQUIRED`);
+     * - [CONFIGURACOES_DO_ANDROID] — não tem. Abrir o formulário vazio seria pior que não abrir
+     *   nada, mas existe controle real fora do app: a tela de anúncios do Google Play services, onde dá para limitar a
+     *   personalização e apagar o identificador de publicidade.
+     */
+    enum class DestinoOpcoesAnuncios { FORMULARIO_UMP, CONFIGURACOES_DO_ANDROID }
+
+    internal fun destinoDasOpcoes(status: ConsentInformation.PrivacyOptionsRequirementStatus): DestinoOpcoesAnuncios =
+        if (precisaOferecer(status)) {
+            DestinoOpcoesAnuncios.FORMULARIO_UMP
+        } else {
+            DestinoOpcoesAnuncios.CONFIGURACOES_DO_ANDROID
+        }
+
+    /**
+     * Ações que abrem a tela de anúncios do sistema, da mais específica para a mais genérica.
+     *
+     * A primeira é a tela de privacidade de anúncios do Play services. A segunda é a tela de
+     * privacidade do próprio Android — constante de plataforma, e não string de pacote de
+     * terceiro. A versão anterior desta lista usava `com.google.android.gms.settings.ADS`, que
+     * **não consegui confirmar** como ação registrada; um item que nunca resolve é um `forEach`
+     * que finge cobertura (bloqueio B2 de Caio na PR #1717).
+     */
+    internal val ACOES_ANUNCIOS_DO_SISTEMA =
+        listOf(
+            "com.google.android.gms.settings.ADS_PRIVACY",
+            Settings.ACTION_PRIVACY_SETTINGS,
+        )
+
+    /**
+     * Abre a tela de anúncios do sistema. `true` se alguma abriu.
+     *
+     * **Sem `resolveActivity`**, e isso não é descuido — bloqueio B2. Com `targetSdk = 36`,
+     * `resolveActivity` passa pelo filtro de visibilidade de pacotes da API 30+, e o manifesto
+     * mesclado deste app não declara `<queries>` que torne `com.google.android.gms` visível para
+     * essas ações. O filtro devolveria `null` mesmo com a tela existindo, e **todo brasileiro**
+     * que tocasse em "Preferências de anúncios" receberia "este aparelho não tem a tela" — com a
+     * política publicada afirmando o contrário.
+     *
+     * `startActivity` não depende de visibilidade de pacote; quem não existe lança
+     * `ActivityNotFoundException`, que é o sinal honesto e é o que se trata aqui.
+     */
+    fun abrirConfiguracoesDeAnuncios(activity: Activity): Boolean {
+        ACOES_ANUNCIOS_DO_SISTEMA.forEach { acao ->
+            val intent = Intent(acao).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            runCatching { activity.startActivity(intent) }
+                .onSuccess { return true }
+                .onFailure { Timber.w("UMP: nao abriu $acao: ${it.message}") }
+        }
+        Timber.w("UMP: nenhuma tela de anuncios do sistema disponivel neste aparelho")
+        return false
+    }
+
+    /**
+     * Executa o roteamento da entrada "Preferências de anúncios" — GH#1717, bloqueio B3.
+     *
+     * Existe como função porque, enquanto o `if` vivia dentro de `AppShellPrivacidadeOverlay`,
+     * trocá-lo por `if (true)` passava na suíte inteira do `:app`: todo mundo fora do GDPR cairia
+     * no formulário vazio da UMP — a regressão que esta issue existe para impedir — e nada
+     * quebrava. `destinoDasOpcoes` estava testada, mas não tinha chamador de produção, então o
+     * mutante que a citava como prova matava só o teste da própria função morta.
+     *
+     * Devolve `false` quando **nada** pôde ser aberto, para o chamador avisar em vez de deixar o
+     * toque mudo — mesmo princípio da ressalva R2 da PR #1709.
+     */
+    internal fun executarOpcoesDeAnuncios(
+        destino: DestinoOpcoesAnuncios,
+        abrirFormulario: () -> Unit,
+        abrirSistema: () -> Boolean,
+    ): Boolean =
+        when (destino) {
+            DestinoOpcoesAnuncios.FORMULARIO_UMP -> {
+                abrirFormulario()
+                true
+            }
+            DestinoOpcoesAnuncios.CONFIGURACOES_DO_ANDROID -> abrirSistema()
+        }
 
     /**
      * Abre o formulário de opções de privacidade da própria UMP — não construímos UI de
