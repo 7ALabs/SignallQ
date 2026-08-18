@@ -151,4 +151,155 @@ class PlanoDeAnaliseTest {
 
         assertEquals(plano.capacidades.joinToString(",") { it.id }, plano.idsParaTelemetria)
     }
+
+    // BLOQUEIO B3 de Caio na PR #1732: a tabela por objetivo nao era travada por teste nenhum —
+    // trocar as capacidades de um objetivo deixava a suite verde. E ela divergia do motor: 3 das 10
+    // capacidades nao eram avaliadas por objetivo nenhum, e era essa divergencia que fazia o app
+    // pedir permissao de localizacao em jornadas onde conceder nao muda o resultado.
+    //
+    // Esta tabela espelha as dimensoes que cada `avaliar*` do `DiagnosticoGuiadoEngine` produz.
+    // Mudou o motor? Mude aqui junto — e ao contrario tambem.
+    @Test
+    fun `a tabela de capacidades espelha o que o motor avalia`() {
+        val esperado =
+            mapOf(
+                ObjetivoDiagnostico.INTERNET_CAI_OSCILA to
+                    listOf(Capacidade.ESTADO_CONEXAO, Capacidade.LATENCIA_VARIACAO),
+                ObjetivoDiagnostico.VIDEOS_TRAVAM to
+                    listOf(
+                        Capacidade.ESTADO_CONEXAO,
+                        Capacidade.COMPORTAMENTO_SOB_CARGA,
+                        Capacidade.DOWNLOAD_UPLOAD,
+                    ),
+                ObjetivoDiagnostico.JOGOS_COM_LAG to
+                    listOf(
+                        Capacidade.ESTADO_CONEXAO,
+                        Capacidade.LATENCIA_VARIACAO,
+                        Capacidade.COMPORTAMENTO_SOB_CARGA,
+                        Capacidade.SINAL_WIFI,
+                    ),
+                ObjetivoDiagnostico.CHAMADAS_CONGELAM to
+                    listOf(
+                        Capacidade.ESTADO_CONEXAO,
+                        Capacidade.LATENCIA_VARIACAO,
+                        Capacidade.DOWNLOAD_UPLOAD,
+                    ),
+                ObjetivoDiagnostico.SITES_DEMORAM to
+                    listOf(Capacidade.ESTADO_CONEXAO, Capacidade.DNS, Capacidade.LATENCIA_VARIACAO),
+                ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA to
+                    listOf(Capacidade.ESTADO_CONEXAO, Capacidade.DOWNLOAD_UPLOAD),
+                ObjetivoDiagnostico.WIFI_VS_OPERADORA to
+                    listOf(Capacidade.ESTADO_CONEXAO, Capacidade.SINAL_WIFI, Capacidade.REDE_MOVEL),
+            )
+
+        ObjetivoDiagnostico.entries.forEach { objetivo ->
+            assertEquals(
+                "plano de $objetivo divergiu",
+                esperado.getValue(objetivo),
+                montarPlano(objetivo, comTudo).capacidades,
+            )
+        }
+    }
+
+    // As tres capacidades que a spec §7 preve e o motor ainda nao implementa nao podem ser
+    // prometidas a ninguem ate existirem. O enum as mantem porque os ids sao contrato de
+    // telemetria; o que nao pode e um plano convoca-las.
+    @Test
+    fun `capacidades que o motor nao avalia nao entram em plano nenhum`() {
+        val naoImplementadas =
+            setOf(Capacidade.CANAIS_WIFI, Capacidade.DISPOSITIVOS, Capacidade.EQUIPAMENTO_INTERNET)
+
+        ObjetivoDiagnostico.entries.forEach { objetivo ->
+            val plano = montarPlano(objetivo, comTudo)
+            naoImplementadas.forEach { capacidade ->
+                assertFalse(
+                    "$objetivo promete $capacidade, que o motor nunca avalia",
+                    capacidade in plano.capacidades,
+                )
+            }
+        }
+    }
+
+    // BLOQUEIO B1: o botao de permissao seguia `limite != null`, e `limite` tambem vem de reducao
+    // por REDE. Em `VELOCIDADE_NAO_CHEGA` sem Wi-Fi o botao aparecia e conceder devolvia zero
+    // capacidade — e ainda emitia um evento de bloqueio que nunca existiu.
+    @Test
+    fun `so oferece permissao quando conceder devolve capacidade`() {
+        val semNada = ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = false)
+
+        ObjetivoDiagnostico.entries.forEach { objetivo ->
+            val plano = montarPlano(objetivo, semNada)
+            val comPermissao = montarPlano(objetivo, semNada.copy(temPermissaoLocalizacao = true))
+
+            val ganharia = comPermissao.capacidades.size > plano.capacidades.size
+            assertEquals(
+                "$objetivo: oferecer permissao so faz sentido se ela devolve capacidade",
+                ganharia,
+                plano.podeMelhorarComLocalizacao,
+            )
+        }
+    }
+
+    // BLOQUEIO B4 do parecer: o `when` de `limiteDoPlano` retornava so a primeira causa, e a outra
+    // capacidade saia em silencio — o que a §8.4 proibe. A funcao agora declara as duas.
+    //
+    // Achado ao escrever este teste: com os conjuntos de dependencia atuais as duas causas NAO
+    // coexistem. Toda capacidade que depende de localizacao (`SINAL_WIFI`, `CANAIS_WIFI`) tambem
+    // depende de Wi-Fi, entao fora do Wi-Fi a remocao e sempre por rede, e no Wi-Fi nunca ha
+    // remocao por rede dessas duas. O tratamento das duas causas em `limiteDoPlano` fica como
+    // defesa para quando os conjuntos mudarem — e este teste trava o invariante enquanto nao mudam,
+    // em vez de fingir que exercita um cenario inalcancavel.
+    @Test
+    fun `as duas causas nao coexistem com os conjuntos de dependencia atuais`() {
+        val contextos =
+            listOf(
+                ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = false),
+                ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = true),
+                ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = false),
+            )
+
+        contextos.forEach { contexto ->
+            ObjetivoDiagnostico.entries.forEach { objetivo ->
+                val plano = montarPlano(objetivo, contexto)
+                assertTrue(
+                    "$objetivo em $contexto teve as duas causas — o limite precisa declarar as duas",
+                    plano.removidasPorPermissao.isEmpty() || plano.removidasPorRede.isEmpty(),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `fora do wifi o limite fala de rede, nao de permissao`() {
+        val semNada = ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = false)
+
+        val limite = montarPlano(ObjetivoDiagnostico.JOGOS_COM_LAG, semNada).limite!!
+
+        assertTrue("a causa que manda e a rede: \"$limite\"", limite.contains("não está no Wi-Fi"))
+        assertFalse("nao pode culpar a permissao: \"$limite\"", limite.contains("redes próximas"))
+    }
+
+    // RESSALVA R1: a ordem entre permissao e rede nao era travada. Ela decide qual causa a pessoa
+    // le primeiro, e capacidade que falha nos dois criterios conta como de PERMISSAO — que e a que
+    // ela pode resolver ali mesmo.
+    @Test
+    fun `capacidade que falha nos dois criterios conta como removida por rede`() {
+        val semNada = ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = false)
+
+        val plano = montarPlano(ObjetivoDiagnostico.WIFI_VS_OPERADORA, semNada)
+
+        assertTrue("rede e a restricao que manda", Capacidade.SINAL_WIFI in plano.removidasPorRede)
+        assertFalse("nao pode contar duas vezes", Capacidade.SINAL_WIFI in plano.removidasPorPermissao)
+    }
+
+    // RESSALVA R8: a frase juntava trechos com "e", e trechos que ja traziam "e" produziam
+    // "A e B e C". Lia mal em voz alta na maioria dos objetivos.
+    @Test
+    fun `a frase nao encadeia dois e`() {
+        ObjetivoDiagnostico.entries.forEach { objetivo ->
+            val frase = fraseDoPlano(montarPlano(objetivo, comTudo))
+            val ocorrencias = Regex(" e ").findAll(frase).count()
+            assertTrue("frase de $objetivo tem $ocorrencias \" e \": \"$frase\"", ocorrencias <= 1)
+        }
+    }
 }

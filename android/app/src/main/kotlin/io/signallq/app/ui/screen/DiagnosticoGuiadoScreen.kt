@@ -55,6 +55,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -330,6 +331,12 @@ fun DiagnosticoGuiadoScreen(
             !emAnalise -> medicaoObservadaEmCurso = false
             analise.estado !is EstadoAnaliseGuiada.Concluida -> medicaoObservadaEmCurso = true
             medicaoObservadaEmCurso -> {
+                // GH#1706 / bloqueio B2 — resolver o bloqueio pendente TAMBEM aqui. Concluir e o
+                // caminho dominante ("a analise ja esta correndo enquanto o botao esta na tela"),
+                // e voltar e a excecao: registrar so no `voltarUmPasso` fazia o evento chegar
+                // enviesado para quem desiste da jornada inteira. `planoContinuou`, que existe
+                // justamente para comprovar a §8.4 em campo, era o que mais se perdia.
+                registrarNegativaDoBloqueio()
                 emAnalise = false
                 mostrarResultado = true
             }
@@ -469,7 +476,25 @@ fun DiagnosticoGuiadoScreen(
                     c = c,
                 )
             }
-            emAnalise ->
+            emAnalise -> {
+                // Sair de composicao com bloqueio pendente (troca de raiz, overlay fechado por
+                // fora) e abandono — nao da para saber a resposta, e fingir que foi negativa seria
+                // inventar. `ABANDONOU` existe no vocabulario para exatamente isto.
+                DisposableEffect(Unit) {
+                    onDispose {
+                        if (bloqueioApresentado) {
+                            bloqueioApresentado = false
+                            onBloqueioEncontrado(
+                                DiagnosticoBloqueioEncontrado(
+                                    analiseId = analiseId,
+                                    tipo = TipoBloqueioDiagnostico.PERMISSAO_LOCALIZACAO,
+                                    resolucao = ResolucaoBloqueioDiagnostico.ABANDONOU,
+                                    planoContinuou = true,
+                                ),
+                            )
+                        }
+                    }
+                }
                 DiagnosticoGuiadoAnaliseSection(
                     modifier = Modifier.padding(padding),
                     estado = analise.estado,
@@ -480,7 +505,7 @@ fun DiagnosticoGuiadoScreen(
                     // limite do plano na tela logo acima. Some quando o sistema nao vai mais
                     // perguntar: pedir o que nao sera perguntado e um toque que nao faz nada.
                     onPermitirLocalizacao =
-                        if (plano?.limite != null &&
+                        if (plano?.podeMelhorarComLocalizacao == true &&
                             !contextoDoPlano.temPermissaoLocalizacao &&
                             !contextoDoPlano.localizacaoBloqueadaPermanentemente
                         ) {
@@ -492,6 +517,7 @@ fun DiagnosticoGuiadoScreen(
                             null
                         },
                 )
+            }
             else -> {
                 val perguntas = remember(objetivoAtual) { PerguntasDiagnosticoGuiado.perguntas(objetivoAtual) }
                 val pergunta = perguntas[passo]

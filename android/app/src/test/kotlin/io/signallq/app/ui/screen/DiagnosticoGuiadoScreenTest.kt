@@ -25,6 +25,7 @@ import io.signallq.app.core.network.TipoBloqueioDiagnostico
 import io.signallq.app.feature.speedtest.MeasurementStatus
 import io.signallq.app.ui.SignallQTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -747,6 +748,93 @@ class DiagnosticoGuiadoScreenTest {
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_CANCELAR).performClick()
 
         assertEquals(ResolucaoBloqueioDiagnostico.NEGADO_PERMANENTE, bloqueios.first().resolucao)
+    }
+
+    /** Monta a tela com contexto e estado da analise dirigidos, para exercitar transicao. */
+    private fun cenarioDirigido(
+        contextoInicial: ContextoDoPlano,
+        estadoInicial: EstadoAnaliseGuiada = EstadoAnaliseGuiada.NaoIniciada,
+    ): Pair<() -> ContextoDoPlano, (ContextoDoPlano) -> Unit> {
+        var contexto by mutableStateOf(contextoInicial)
+        var estado by mutableStateOf(estadoInicial)
+        estadoDirigido = { estado = it }
+        composeRule.setContent {
+            SignallQTheme {
+                TelaDeTeste(
+                    objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+                    respostaPreSelecionadaPasso0 = 0,
+                    input = null,
+                    estadoAnalise = estado,
+                    statusMedicao = null,
+                    contextoDoPlano = contexto,
+                )
+            }
+        }
+        return Pair({ contexto }, { contexto = it })
+    }
+
+    private var estadoDirigido: (EstadoAnaliseGuiada) -> Unit = {}
+
+    // BLOQUEIO B2 do parecer: `registrarNegativaDoBloqueio` so era chamada em `voltarUmPasso`. A
+    // saida NORMAL da rota e a analise concluir — e a propria PR diz que a medicao ja esta correndo
+    // enquanto o botao esta na tela. O evento chegava enviesado para quem desiste da jornada
+    // inteira, e `planoContinuou`, que existe para comprovar a §8.4 em campo, era o que mais se
+    // perdia.
+    @Test
+    fun `bloqueio pendente e resolvido quando a analise conclui, nao so quando se volta`() {
+        val semPermissao =
+            ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = true)
+        cenarioDirigido(semPermissao)
+        completarSegundaPerguntaJogos()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PERMITIR).performClick()
+
+        // A medicao termina sozinha, que e o caminho dominante.
+        estadoDirigido(EstadoAnaliseGuiada.Concluida)
+        composeRule.waitForIdle()
+
+        assertEquals("a negativa nao pode se perder no caminho normal", 1, bloqueios.size)
+        assertEquals(ResolucaoBloqueioDiagnostico.NEGADO, bloqueios.first().resolucao)
+        assertTrue(bloqueios.first().planoContinuou)
+    }
+
+    // RESSALVA R3: o ramo `CONCEDIDO` era inteiramente nao testado — `planoContinuou = false` ali
+    // passava verde.
+    @Test
+    fun `permissao concedida depois do pedido registra CONCEDIDO com a jornada seguindo`() {
+        val semPermissao =
+            ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = true)
+        val (_, mudarContexto) = cenarioDirigido(semPermissao)
+        completarSegundaPerguntaJogos()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PERMITIR).performClick()
+
+        mudarContexto(semPermissao.copy(temPermissaoLocalizacao = true))
+        composeRule.waitForIdle()
+
+        assertEquals(1, bloqueios.size)
+        assertEquals(ResolucaoBloqueioDiagnostico.CONCEDIDO, bloqueios.first().resolucao)
+        assertTrue("a jornada segue de qualquer forma", bloqueios.first().planoContinuou)
+    }
+
+    // RESSALVA R2: a chave do efeito do funil nao era travada — trocar `LaunchedEffect(emAnalise,
+    // plano)` por `LaunchedEffect(emAnalise)` passava verde. A afirmacao do corpo da PR ("mudanca de
+    // permissao no meio da jornada conta como plano novo") nao tinha teste.
+    @Test
+    fun `conceder permissao no meio da jornada dispara o funil de novo, com plano maior`() {
+        val semPermissao =
+            ContextoDoPlano(temPermissaoLocalizacao = false, conectadoPorWifi = true)
+        val (_, mudarContexto) = cenarioDirigido(semPermissao)
+        completarSegundaPerguntaJogos()
+        composeRule.waitForIdle()
+        val primeiro = planosIniciados.single()
+
+        mudarContexto(semPermissao.copy(temPermissaoLocalizacao = true))
+        composeRule.waitForIdle()
+
+        assertEquals("o plano mudou, entao o evento tem que sair de novo", 2, planosIniciados.size)
+        val segundo = planosIniciados.last()
+        assertTrue("o plano ficou maior", segundo.qtdCapacidades > primeiro.qtdCapacidades)
+        assertTrue("o primeiro estava adaptado", primeiro.planoAdaptado)
+        assertFalse("o segundo nao esta mais adaptado", segundo.planoAdaptado)
     }
 
     @Suppress("LongParameterList")

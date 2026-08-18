@@ -6,35 +6,39 @@ import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 // Plano de análise — issue #1706 (2.0.09d), épico #1647.
 //
 // A spec 2.0 §7 define que o plano é montado a partir de **capacidades, não de telas**, e que ele
-// aparece como **uma frase curta** — "Vamos verificar a estabilidade da conexão e como ela se
-// comporta quando fica ocupada". A spec proíbe explicitamente checklist técnica.
+// aparece como **uma frase curta**. §8.4 acrescenta a regra que dá sentido a tudo: permissão
+// recusada não encerra a jornada — o plano se adapta e **informa o limite**.
 //
-// §8.4 acrescenta a regra que dá sentido a tudo isto: **permissão recusada não encerra a jornada**.
-// O plano se adapta e **informa o limite**.
+// ## O plano promete o que o motor entrega, e só isso
 //
-// ## Não é motor de decisão novo
+// A primeira versão desta fatia montou a tabela lendo a coluna "quando pode ser convocada" da spec
+// §7. Caio confrontou com o `DiagnosticoGuiadoEngine` (bloqueio B3 da PR #1732) e o resultado foi
+// que **3 das 10 capacidades não eram avaliadas por objetivo nenhum** — `CANAIS_WIFI`,
+// `DISPOSITIVOS` e `EQUIPAMENTO_INTERNET` — e `SINAL_WIFI` aparecia em dois objetivos que o motor
+// não lê. Não era divergência decorativa: era ela que fazia o app pedir permissão de localização
+// para "olhar o Wi-Fi" em jornadas onde conceder não muda uma linha do resultado.
 //
-// A issue proíbe criar motor paralelo, e não há um aqui: quem decide o que a análise mede continua
-// sendo `DiagnosticoGuiadoEngine` com os dados que o executor produz. "Capacidade" é vocabulário de
-// **apresentação** — serve para dizer à pessoa o que vai ser verificado e o que ficou de fora. Se
-// esta tabela e o motor divergirem, quem está errado é esta tabela.
+// A tabela agora espelha as dimensões que cada `avaliar*` de fato produz. As capacidades que a spec
+// prevê e o motor ainda não implementa continuam no enum — os ids são contrato de telemetria — mas
+// não são prometidas a ninguém até existirem. A convergência está registrada em issue.
 
 /**
  * As 10 capacidades da spec §7.
  *
- * [id] é contrato de telemetria: o evento `diagnostico_plano_iniciado` envia a lista destes ids em
- * `capacidades`. Renomear um id quebra a série histórica — trate como nome persistido.
+ * [id] é contrato de telemetria: `diagnostico_plano_iniciado` envia a lista destes ids em
+ * `capacidades`. Renomear quebra a série histórica — trate como nome persistido.
  *
  * [trecho] é a metade da frase do plano, escrita para caber depois de "Vamos verificar". Sem
- * jargão: a pessoa lê "o tempo de resposta e a variação dele", não "latência e jitter".
+ * jargão, e **sem "e" interno**: a frase junta dois trechos com "e", e trecho que já traz um produz
+ * "A e B e C", que lê mal em voz alta (ressalva R8 de Caio na PR #1732).
  */
 enum class Capacidade(
     val id: String,
     val trecho: String,
 ) {
     ESTADO_CONEXAO("estado_conexao", "como sua conexão está agora"),
-    LATENCIA_VARIACAO("latencia_variacao", "o tempo de resposta e a variação dele"),
-    DOWNLOAD_UPLOAD("download_upload", "a velocidade de recebimento e de envio"),
+    LATENCIA_VARIACAO("latencia_variacao", "quanto sua conexão demora para responder"),
+    DOWNLOAD_UPLOAD("download_upload", "a velocidade da sua internet"),
     COMPORTAMENTO_SOB_CARGA("comportamento_sob_carga", "como ela se comporta quando fica ocupada"),
     SINAL_WIFI("sinal_wifi", "a força do sinal do Wi-Fi onde você está"),
     CANAIS_WIFI("canais_wifi", "a interferência das redes vizinhas"),
@@ -45,65 +49,75 @@ enum class Capacidade(
 }
 
 /**
- * O que o app sabe no momento de montar o plano.
+ * O que o app sabe ao montar o plano.
  *
- * Só entram aqui sinais que **mudam o plano**. A spec §8.3 é explícita — "não perguntar algo que
- * não muda motor, recomendação ou confiança" — e o mesmo critério vale para o que se consulta.
+ * Só entram sinais que **mudam o plano**. A spec §8.3 diz "não perguntar algo que não muda motor,
+ * recomendação ou confiança", e o mesmo critério vale para o que se consulta.
  */
 @Stable
 data class ContextoDoPlano(
     val temPermissaoLocalizacao: Boolean,
     val conectadoPorWifi: Boolean,
     /**
-     * O sistema nao vai mais mostrar o dialogo de permissao (usuario marcou "nao perguntar de
-     * novo"). Distingue `NEGADO` de `NEGADO_PERMANENTE` na telemetria, e decide se ainda faz
-     * sentido oferecer o botao de permitir — pedir de novo o que o sistema nao vai perguntar e
-     * um toque que nao faz nada.
+     * O sistema não vai mais mostrar o diálogo de permissão. Distingue `NEGADO` de
+     * `NEGADO_PERMANENTE` na telemetria, e decide se ainda faz sentido oferecer o botão de
+     * permitir — pedir o que o sistema não vai perguntar é um toque que não faz nada.
      */
     val localizacaoBloqueadaPermanentemente: Boolean = false,
 )
 
 /**
- * Plano montado. [adaptado] é `true` quando alguma capacidade saiu por permissão ou contexto.
+ * Plano montado.
  *
- * [limite] é o que a pessoa lê quando isso acontece — nunca `null` com [adaptado] verdadeiro, e
- * nunca preenchido quando o plano saiu completo. É a metade de §8.4 que costuma ser esquecida:
- * adaptar sem dizer é falhar em silêncio.
+ * [removidasPorPermissao] e [removidasPorRede] são expostas, e não internas ao cálculo, porque
+ * **quem pergunta precisa distinguir a causa**. Enquanto o plano só dizia "foi adaptado", o botão
+ * de permissão aparecia também quando a redução tinha sido por rede — e ali conceder localização
+ * devolvia zero capacidade (bloqueio B1 de Caio na PR #1732).
  */
 @Stable
 data class PlanoDeAnalise(
     val capacidades: List<Capacidade>,
-    val adaptado: Boolean,
+    val removidasPorPermissao: List<Capacidade>,
+    val removidasPorRede: List<Capacidade>,
     val limite: String?,
 ) {
+    val adaptado: Boolean get() = removidasPorPermissao.isNotEmpty() || removidasPorRede.isNotEmpty()
+
+    /**
+     * Conceder localização devolve capacidade a este plano? É o que decide se o botão aparece.
+     *
+     * Vale porque `removidasPorPermissao` já exclui o que a rede bloqueia — ver a nota de ordem em
+     * [montarPlano]. Sem essa exclusão, isto seria `true` em rede móvel e o botão não restauraria
+     * nada.
+     */
+    val podeMelhorarComLocalizacao: Boolean get() = removidasPorPermissao.isNotEmpty()
+
     /** Contrato do evento `diagnostico_plano_iniciado`, propriedade `capacidades`. */
     val idsParaTelemetria: String get() = capacidades.joinToString(",") { it.id }
 }
 
 /**
- * As capacidades que cada objetivo convoca, antes de qualquer adaptação.
+ * As capacidades que cada objetivo convoca, antes de adaptação.
  *
- * Vem da coluna "quando pode ser convocada" da tabela da spec §7. `ESTADO_CONEXAO` está em todos
- * porque a spec diz "sempre".
+ * Espelha as dimensões que o `DiagnosticoGuiadoEngine` **de fato produz** em cada `avaliar*` — ver
+ * o cabeçalho deste arquivo. `ESTADO_CONEXAO` está em todos porque o veredito do motor é, ele
+ * mesmo, o estado da conexão: não vira dimensão medida, vira a conclusão.
  */
 private fun capacidadesDoObjetivo(objetivo: ObjetivoDiagnostico): List<Capacidade> =
     when (objetivo) {
+        // perda de pacotes + jitter
         ObjetivoDiagnostico.INTERNET_CAI_OSCILA ->
-            listOf(
-                Capacidade.ESTADO_CONEXAO,
-                Capacidade.LATENCIA_VARIACAO,
-                Capacidade.SINAL_WIFI,
-                Capacidade.EQUIPAMENTO_INTERNET,
-            )
+            listOf(Capacidade.ESTADO_CONEXAO, Capacidade.LATENCIA_VARIACAO)
 
+        // bufferbloat + download
         ObjetivoDiagnostico.VIDEOS_TRAVAM ->
             listOf(
                 Capacidade.ESTADO_CONEXAO,
-                Capacidade.DOWNLOAD_UPLOAD,
                 Capacidade.COMPORTAMENTO_SOB_CARGA,
-                Capacidade.LATENCIA_VARIACAO,
+                Capacidade.DOWNLOAD_UPLOAD,
             )
 
+        // latência sob carga + jitter + perda + RSSI
         ObjetivoDiagnostico.JOGOS_COM_LAG ->
             listOf(
                 Capacidade.ESTADO_CONEXAO,
@@ -112,53 +126,53 @@ private fun capacidadesDoObjetivo(objetivo: ObjetivoDiagnostico): List<Capacidad
                 Capacidade.SINAL_WIFI,
             )
 
+        // jitter + perda + upload
         ObjetivoDiagnostico.CHAMADAS_CONGELAM ->
             listOf(
                 Capacidade.ESTADO_CONEXAO,
                 Capacidade.LATENCIA_VARIACAO,
                 Capacidade.DOWNLOAD_UPLOAD,
-                Capacidade.SINAL_WIFI,
             )
 
+        // tempo de DNS + latência
         ObjetivoDiagnostico.SITES_DEMORAM ->
-            listOf(
-                Capacidade.ESTADO_CONEXAO,
-                Capacidade.DNS,
-                Capacidade.LATENCIA_VARIACAO,
-            )
+            listOf(Capacidade.ESTADO_CONEXAO, Capacidade.DNS, Capacidade.LATENCIA_VARIACAO)
 
+        // percentual do plano + download
         ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA ->
-            listOf(
-                Capacidade.ESTADO_CONEXAO,
-                Capacidade.DOWNLOAD_UPLOAD,
-                Capacidade.DISPOSITIVOS,
-                Capacidade.EQUIPAMENTO_INTERNET,
-            )
+            listOf(Capacidade.ESTADO_CONEXAO, Capacidade.DOWNLOAD_UPLOAD)
 
+        // RSSI do Wi-Fi + sinal da operadora
         ObjetivoDiagnostico.WIFI_VS_OPERADORA ->
-            listOf(
-                Capacidade.ESTADO_CONEXAO,
-                Capacidade.SINAL_WIFI,
-                Capacidade.CANAIS_WIFI,
-                Capacidade.REDE_MOVEL,
-            )
+            listOf(Capacidade.ESTADO_CONEXAO, Capacidade.SINAL_WIFI, Capacidade.REDE_MOVEL)
     }
 
 /** Capacidades que só existem com permissão de localização concedida. */
-private val DEPENDEM_DE_LOCALIZACAO =
-    setOf(Capacidade.SINAL_WIFI, Capacidade.CANAIS_WIFI)
+private val DEPENDEM_DE_LOCALIZACAO = setOf(Capacidade.SINAL_WIFI, Capacidade.CANAIS_WIFI)
 
 /** Capacidades que só fazem sentido com o aparelho no Wi-Fi. */
 private val DEPENDEM_DE_WIFI =
-    setOf(Capacidade.SINAL_WIFI, Capacidade.CANAIS_WIFI, Capacidade.DISPOSITIVOS, Capacidade.EQUIPAMENTO_INTERNET)
+    setOf(
+        Capacidade.SINAL_WIFI,
+        Capacidade.CANAIS_WIFI,
+        Capacidade.DISPOSITIVOS,
+        Capacidade.EQUIPAMENTO_INTERNET,
+    )
 
 /**
  * Monta o plano do [objetivo] adaptado ao [contexto].
  *
- * A adaptação **remove** capacidades e diz o que ficou de fora; nunca cancela a análise. §8.4:
- * "permissão recusada não encerra a jornada — o plano se adapta e informa o limite".
+ * A adaptação **remove** capacidades e diz o que ficou de fora; nunca cancela a análise (§8.4).
  *
- * `ESTADO_CONEXAO` nunca sai: a spec a marca como "sempre", e um plano vazio não é plano.
+ * A ordem importa, e a primeira versão dela estava errada. Eu tinha posto permissão primeiro,
+ * argumentando que é "a que a pessoa pode resolver ali mesmo" — mas o meu próprio teste derrubou:
+ * em rede móvel, `SINAL_WIFI` falha nos dois critérios, e conceder localização **não devolve nada**,
+ * porque o aparelho continua fora do Wi-Fi. O botão aparecia e não restaurava capacidade alguma —
+ * o mesmo defeito do bloqueio B1, uma camada abaixo.
+ *
+ * Rede é avaliada primeiro porque é a restrição que manda: capacidade bloqueada por rede não volta
+ * com permissão. Assim `removidasPorPermissao` contém só o que a permissão de fato recupera, e o
+ * limite declara a causa que a pessoa precisa resolver.
  */
 fun montarPlano(
     objetivo: ObjetivoDiagnostico,
@@ -166,39 +180,53 @@ fun montarPlano(
 ): PlanoDeAnalise {
     val completo = capacidadesDoObjetivo(objetivo)
 
-    val removidasPorPermissao =
-        completo.filter { it in DEPENDEM_DE_LOCALIZACAO && !contexto.temPermissaoLocalizacao }
     val removidasPorRede =
-        completo.filter { it in DEPENDEM_DE_WIFI && !contexto.conectadoPorWifi } - removidasPorPermissao.toSet()
+        completo.filter { it in DEPENDEM_DE_WIFI && !contexto.conectadoPorWifi }
+    val removidasPorPermissao =
+        completo.filter { it in DEPENDEM_DE_LOCALIZACAO && !contexto.temPermissaoLocalizacao } -
+            removidasPorRede.toSet()
 
-    val restantes = completo - removidasPorPermissao.toSet() - removidasPorRede.toSet()
-    val capacidades = restantes.ifEmpty { listOf(Capacidade.ESTADO_CONEXAO) }
+    val capacidades = completo - removidasPorPermissao.toSet() - removidasPorRede.toSet()
+
+    // `ESTADO_CONEXAO` está em todos os objetivos e em nenhum dos dois conjuntos de dependência,
+    // então o plano nunca fica vazio — por construção, não por fallback. A versão anterior tinha
+    // aqui um `ifEmpty` que lia como garantia e não garantia nada (ressalva R4 de Caio).
+    check(capacidades.isNotEmpty()) {
+        "plano vazio para $objetivo — ESTADO_CONEXAO deveria ser inegociável"
+    }
 
     return PlanoDeAnalise(
         capacidades = capacidades,
-        adaptado = capacidades.size < completo.size,
+        removidasPorPermissao = removidasPorPermissao,
+        removidasPorRede = removidasPorRede,
         limite = limiteDoPlano(removidasPorPermissao, removidasPorRede),
     )
 }
 
 /**
- * A frase que a pessoa lê. `null` quando não há nada a declarar.
+ * A frase que a pessoa lê sobre o que ficou de fora. `null` quando não há nada a declarar.
  *
- * Fala da **consequência**, não da permissão: "não vou conseguir olhar o Wi-Fi" diz o que ela perde;
- * "permissão de localização negada" diz o que o Android chama aquilo. O mesmo critério de linguagem
- * que `ResultadoIndisponivelScreen` e `etapaEmLinguagemHumana` já aplicam.
+ * Declara as **duas** causas quando as duas acontecem. A versão anterior era um `when` que
+ * retornava só a primeira, e em rede móvel sem permissão uma capacidade saía em silêncio — que é
+ * literalmente o que a §8.4 proíbe (bloqueio B4 de Caio na PR #1732).
+ *
+ * Fala da consequência, não da permissão: "não consigo olhar o Wi-Fi" diz o que ela perde;
+ * "permissão de localização negada" diz o que o Android chama aquilo.
  */
 private fun limiteDoPlano(
     porPermissao: List<Capacidade>,
     porRede: List<Capacidade>,
-): String? =
-    when {
-        porPermissao.isNotEmpty() ->
-            "Sem acesso às redes próximas eu não consigo olhar o Wi-Fi — sigo com o resto."
-        porRede.isNotEmpty() ->
-            "Você não está no Wi-Fi agora, então vou olhar só o que dá pela rede móvel."
-        else -> null
+): String? {
+    val partes = mutableListOf<String>()
+    if (porPermissao.isNotEmpty()) {
+        partes += "sem acesso às redes próximas eu não consigo olhar o Wi-Fi"
     }
+    if (porRede.isNotEmpty()) {
+        partes += "você não está no Wi-Fi agora, então parte da sua rede local fica fora"
+    }
+    if (partes.isEmpty()) return null
+    return partes.joinToString("; ").replaceFirstChar { it.uppercase() } + " — sigo com o resto."
+}
 
 /** Quantas capacidades a frase do plano nomeia antes de virar checklist. */
 private const val MAXIMO_DE_TRECHOS_NA_FRASE = 2
@@ -206,18 +234,12 @@ private const val MAXIMO_DE_TRECHOS_NA_FRASE = 2
 /**
  * O plano como **frase curta** — spec §7, que proíbe checklist técnica por padrão.
  *
- * Nomeia no máximo [MAXIMO_DE_TRECHOS_NA_FRASE] capacidades. Um plano de 4 vira "Vamos verificar A
- * e B" e não "Vamos verificar A, B, C e D" — a segunda forma é a checklist que a spec recusa, mesmo
- * escrita em prosa. As capacidades que não entram na frase continuam no plano e na telemetria; o
- * que muda é só o que a pessoa lê.
+ * Nomeia no máximo [MAXIMO_DE_TRECHOS_NA_FRASE] capacidades, que é a forma do próprio exemplo da
+ * spec ("a estabilidade da conexão **e** como ela se comporta quando fica ocupada"). As demais
+ * continuam no plano e na telemetria; muda só o que a pessoa lê.
  */
 fun fraseDoPlano(plano: PlanoDeAnalise): String {
     val trechos = plano.capacidades.take(MAXIMO_DE_TRECHOS_NA_FRASE).map { it.trecho }
-    val corpo =
-        when (trechos.size) {
-            0 -> Capacidade.ESTADO_CONEXAO.trecho
-            1 -> trechos.first()
-            else -> trechos.dropLast(1).joinToString(", ") + " e " + trechos.last()
-        }
+    val corpo = if (trechos.size == 1) trechos.first() else trechos.joinToString(" e ")
     return "Vamos verificar $corpo."
 }
