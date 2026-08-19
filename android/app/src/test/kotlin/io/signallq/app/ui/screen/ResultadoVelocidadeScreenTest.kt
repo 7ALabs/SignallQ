@@ -1,11 +1,15 @@
 package io.signallq.app.ui.screen
 
+import io.signallq.app.ads.AdSlot
 import io.signallq.app.core.diagnostico.DiagnosticResult
 import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.MetricClassifier
 import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.core.recommendation.RecommendationType
+import io.signallq.app.ui.ads.NativeAdIneligibleReason
+import io.signallq.app.ui.ads.NativeAdLoadState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -160,5 +164,70 @@ class ResultadoVelocidadeScreenTest {
         val achados = listOf(achadoAtivo("IN-NORMAL-04", DiagnosticStatus.critical))
         val statusConciliado = MetricStatus.inconclusivo.comSeveridadeConciliada(achados, idPrefix = "IN-NORMAL-04")
         assertEquals(MetricStatus.inconclusivo, statusConciliado)
+    }
+
+    // =========================================================================
+    // GH#1659a — migração AdMob: rememberNativeAd() (colapsa tudo em NativeAd? nulo) para o
+    // contrato tipado NativeAdLoadState via rememberNativeAdState(). eligibilidadeAnuncioResultado
+    // é o mapeamento puro entre o único sinal que a tela recebe de fora (adsEnabled) e
+    // NativeAdEligibility -- a parte determinística e testável sem SDK/rede real do AdMob (mesmo
+    // limite documentado em AppShellRootRegistryTest: sob Robolectric não há fill real, então não
+    // existe asserção de UI capaz de distinguir eligible=true de eligible=false).
+    // =========================================================================
+
+    @Test
+    fun `eligibilidadeAnuncioResultado com adsEnabled true habilita flag e consentimento e assume online`() {
+        val eligibility = eligibilidadeAnuncioResultado(adsEnabled = true)
+
+        assertEquals(AdSlot.RESULTADO, eligibility.slot)
+        assertTrue(eligibility.flagEnabled)
+        assertTrue(eligibility.canRequestAds)
+        assertTrue(eligibility.online)
+        assertTrue(eligibility.canLoad)
+        assertEquals(NativeAdLoadState.Loading, eligibility.initialState())
+    }
+
+    @Test
+    fun `eligibilidadeAnuncioResultado com adsEnabled false desabilita flag e consentimento`() {
+        val eligibility = eligibilidadeAnuncioResultado(adsEnabled = false)
+
+        assertFalse(eligibility.flagEnabled)
+        assertFalse(eligibility.canRequestAds)
+        assertFalse(eligibility.canLoad)
+        assertEquals(
+            NativeAdLoadState.Ineligible(NativeAdIneligibleReason.FlagDisabled),
+            eligibility.initialState(),
+        )
+    }
+
+    @Test
+    fun `eligibilidadeAnuncioResultado sempre usa o slot RESULTADO`() {
+        assertEquals(AdSlot.RESULTADO, eligibilidadeAnuncioResultado(adsEnabled = true).slot)
+        assertEquals(AdSlot.RESULTADO, eligibilidadeAnuncioResultado(adsEnabled = false).slot)
+    }
+
+    // =========================================================================
+    // GH#1659a — try/catch no compartilhamento: antes, uma IllegalStateException de
+    // ResultadoPdfGenerator.gerarECompartilhar (dentro de scope.launch{}) travava o spinner
+    // "compartilhando = true" pra sempre, sem nada visível pro usuário. mensagemErroCompartilhamento
+    // Resultado é a mensagem que agora fica visível no lugar (mesmo padrão de
+    // LaudoScreen.compartilharLaudo).
+    // =========================================================================
+
+    @Test
+    fun `mensagem de erro de compartilhamento nunca fica vazia e cita o motivo original`() {
+        val mensagem = mensagemErroCompartilhamentoResultado(IllegalStateException("Falha ao gerar PDF via WebView"))
+
+        assertTrue(mensagem.isNotBlank())
+        assertTrue(mensagem.contains("compartilhar", ignoreCase = true))
+        assertTrue(mensagem.contains("Falha ao gerar PDF via WebView"))
+    }
+
+    @Test
+    fun `mensagem de erro de compartilhamento nao quebra quando a excecao nao tem detalhe`() {
+        val mensagem = mensagemErroCompartilhamentoResultado(IllegalStateException())
+
+        assertTrue(mensagem.isNotBlank())
+        assertTrue(mensagem.contains("compartilhar", ignoreCase = true))
     }
 }
