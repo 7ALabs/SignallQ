@@ -534,6 +534,8 @@ class MainActivity : ComponentActivity() {
                         onAssistObjetivo = analyticsTracker::registrarAssistObjetivo,
                         onAssistResposta = analyticsTracker::registrarAssistResposta,
                         onAssistAbandono = analyticsTracker::registrarAssistAbandono,
+                        // GH#1706 — funil do diagnostico guiado (spec §12, passos 3 e 4).
+                        onDiagnosticoPlanoIniciado = analyticsTracker::registrarDiagnosticoPlanoIniciado,
                         onCompartilharResultadoVelocidade = {
                             analyticsTracker.registrarFeatureUsada("speedtest_compartilhou")
                         },

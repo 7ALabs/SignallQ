@@ -18,9 +18,11 @@ import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
+import io.signallq.app.core.network.DiagnosticoPlanoIniciado
 import io.signallq.app.feature.speedtest.MeasurementStatus
 import io.signallq.app.ui.SignallQTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -54,6 +56,7 @@ class DiagnosticoGuiadoScreenTest {
 
     private var analiseIniciada = 0
     private var analiseCancelada = 0
+    private val planosIniciados = mutableListOf<DiagnosticoPlanoIniciado>()
 
     @Test
     fun `sem pre-selecao mostra a lista de objetivos como antes`() {
@@ -525,6 +528,166 @@ class DiagnosticoGuiadoScreenTest {
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
     }
 
+    // ---------------------------------------------------------------------------------------
+    // Plano de analise - GH#1706 (2.0.09d), spec 2.0 §7 e §8.4.
+    // ---------------------------------------------------------------------------------------
+    //
+    // Os tres usam o roteiro de JOGOS_COM_LAG porque o plano dele inclui `SINAL_WIFI`, que depende
+    // de estar conectado por Wi-Fi (nao de permissao de localizacao - bloqueio B5 de Caio na PR
+    // #1732 derrubou essa premissa) - entao o mesmo roteiro deterministico exercita o caso
+    // completo (no Wi-Fi) e o adaptado (fora dele).
+
+    // Spec §7: o plano aparece como frase curta, dizendo o que sera verificado. A rota `Analise`
+    // mostrava um texto generico ("estou medindo sua conexao") que nao diz isso.
+    @Test
+    fun `a rota de analise mostra o plano em vez do texto generico`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
+            statusMedicao = null,
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PLANO).assertExists()
+        composeRule.onNodeWithText("Vamos verificar", substring = true).assertIsDisplayed()
+    }
+
+    // §8.4: contexto que reduz o plano NAO encerra a jornada — a analise acontece, o plano vem
+    // reduzido, e o limite e DITO. Sem a ultima parte, adaptar e falhar em silencio.
+    @Test
+    fun `fora do wifi a analise continua e o limite e declarado`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
+            statusMedicao = null,
+            contextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = false),
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_LIMITE).assertExists()
+    }
+
+    // Mutante que este teste mata: renderizar o limite sempre. Com contexto completo nao ha nada a
+    // declarar, e um aviso fixo na tela seria ruido - ou mentira.
+    @Test
+    fun `com contexto completo nenhum limite aparece`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
+            statusMedicao = null,
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PLANO).assertExists()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_LIMITE).assertDoesNotExist()
+    }
+
+    // ---------------------------------------------------------------------------------------
+    // Funil do plano - GH#1706 (spec §12 passo 3, §8.4).
+    //
+    // O passo 4 (preparacao contextual / `diagnostico_bloqueio_encontrado`) saiu desta fatia no
+    // bloqueio B5 (PR #1732, Rodada 3): a premissa de que `SINAL_WIFI` dependia de permissao de
+    // localizacao era falsa, e sem ela nao ha capacidade recuperavel por permissao hoje. Volta
+    // quando o motor avaliar `CANAIS_WIFI` - ver issue #1733.
+    // ---------------------------------------------------------------------------------------
+
+    @Test
+    fun `o plano exibido dispara o evento do funil com os ids de capacidade`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
+            statusMedicao = null,
+        )
+
+        completarSegundaPerguntaJogos()
+        composeRule.waitForIdle()
+
+        assertEquals(1, planosIniciados.size)
+        val evento = planosIniciados.first()
+        assertEquals(ObjetivoDiagnostico.JOGOS_COM_LAG.name, evento.objetivoId)
+        assertEquals(
+            evento.capacidades
+                .split(",")
+                .size
+                .toLong(),
+            evento.qtdCapacidades,
+        )
+        assertTrue("os ids de capacidade precisam ir no evento", evento.capacidades.contains("estado_conexao"))
+    }
+
+    // Mutante que este teste mata: mandar `planoAdaptado = false` fixo. A propriedade existe para
+    // medir quantas jornadas rodam com plano reduzido — fixa, o dado nao serve para nada.
+    //
+    // O caso vivo de reducao hoje e a REDE, nao a permissao: desde o bloqueio B5 nenhuma capacidade
+    // e recuperavel por localizacao (`SINAL_WIFI` nunca dependeu dela).
+    @Test
+    fun `plano reduzido por rede vai marcado como adaptado no funil`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
+            statusMedicao = null,
+            contextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = false),
+        )
+
+        completarSegundaPerguntaJogos()
+        composeRule.waitForIdle()
+
+        assertTrue("plano reduzido tem que ir marcado", planosIniciados.first().planoAdaptado)
+    }
+
+    /**
+     * Monta a tela com contexto dirigido, para exercitar transicao de contexto no meio da
+     * jornada. `estadoAnalise` fica fixo em `NaoIniciada` porque o unico chamador so precisa
+     * variar o contexto — versao anterior tambem dirigia `estadoAnalise` via um segundo
+     * `mutableStateOf` e um callback que nunca chegou a ser usado (achado no B12 da PR #1732).
+     */
+    private fun cenarioDirigido(contextoInicial: ContextoDoPlano): (ContextoDoPlano) -> Unit {
+        var contexto by mutableStateOf(contextoInicial)
+        composeRule.setContent {
+            SignallQTheme {
+                TelaDeTeste(
+                    objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+                    respostaPreSelecionadaPasso0 = 0,
+                    input = null,
+                    estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
+                    statusMedicao = null,
+                    contextoDoPlano = contexto,
+                )
+            }
+        }
+        return { contexto = it }
+    }
+
+    // RESSALVA R2: a chave do efeito do funil nao era travada — trocar `LaunchedEffect(emAnalise,
+    // plano)` por `LaunchedEffect(emAnalise)` passava verde. A afirmacao do corpo da PR ("mudanca de
+    // contexto no meio da jornada conta como plano novo") nao tinha teste.
+    @Test
+    fun `entrar no wifi no meio da jornada dispara o funil de novo, com plano maior`() {
+        val foraDoWifi = ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = false)
+        val mudarContexto = cenarioDirigido(foraDoWifi)
+        completarSegundaPerguntaJogos()
+        composeRule.waitForIdle()
+        val primeiro = planosIniciados.single()
+
+        mudarContexto(foraDoWifi.copy(conectadoPorWifi = true))
+        composeRule.waitForIdle()
+
+        assertEquals("o plano mudou, entao o evento tem que sair de novo", 2, planosIniciados.size)
+        val segundo = planosIniciados.last()
+        assertTrue("o plano ficou maior", segundo.qtdCapacidades > primeiro.qtdCapacidades)
+        assertTrue("o primeiro estava adaptado", primeiro.planoAdaptado)
+        assertFalse("o segundo nao esta mais adaptado", segundo.planoAdaptado)
+    }
+
     @Suppress("LongParameterList")
     private fun setContent(
         objetivoPreSelecionado: ObjetivoDiagnostico? = null,
@@ -536,6 +699,7 @@ class DiagnosticoGuiadoScreenTest {
         estadoAnalise: EstadoAnaliseGuiada = EstadoAnaliseGuiada.Concluida,
         statusMedicao: MeasurementStatus? = MeasurementStatus.COMPLETE,
         medidasConfiaveis: Boolean = true,
+        contextoDoPlano: ContextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = true),
     ) {
         composeRule.setContent {
             SignallQTheme {
@@ -546,6 +710,7 @@ class DiagnosticoGuiadoScreenTest {
                     estadoAnalise = estadoAnalise,
                     statusMedicao = statusMedicao,
                     medidasConfiaveis = medidasConfiaveis,
+                    contextoDoPlano = contextoDoPlano,
                 )
             }
         }
@@ -564,9 +729,12 @@ class DiagnosticoGuiadoScreenTest {
         estadoAnalise: EstadoAnaliseGuiada,
         statusMedicao: MeasurementStatus?,
         medidasConfiaveis: Boolean = true,
+        contextoDoPlano: ContextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = true),
     ) {
         DiagnosticoGuiadoScreen(
             input = input,
+            contextoDoPlano = contextoDoPlano,
+            onPlanoIniciado = { planosIniciados += it },
             statusMedicao = statusMedicao,
             medidasConfiaveis = medidasConfiaveis,
             analise =

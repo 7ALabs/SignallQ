@@ -75,6 +75,7 @@ import io.signallq.app.core.diagnostico.topology.model.NatStatus
 import io.signallq.app.core.network.AssistAbandonado
 import io.signallq.app.core.network.AssistObjetivoSelecionado
 import io.signallq.app.core.network.AssistPerguntaRespondida
+import io.signallq.app.core.network.DiagnosticoPlanoIniciado
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.core.network.contracts.gateway.GatewayConnectionResultado
@@ -237,6 +238,8 @@ fun AppShell(
     onAssistObjetivo: (AssistObjetivoSelecionado) -> Unit = {},
     onAssistResposta: (AssistPerguntaRespondida) -> Unit = {},
     onAssistAbandono: (AssistAbandonado) -> Unit = {},
+    // GH#1706 — funil do diagnostico guiado (plano apresentado / bloqueio encontrado).
+    onDiagnosticoPlanoIniciado: (DiagnosticoPlanoIniciado) -> Unit = {},
     // GH#784 — etapa "compartilhou" do funil do teste de velocidade.
     onCompartilharResultadoVelocidade: () -> Unit = {},
     // GH#970 — resolucao de identidade/contato de operadora: nivel 1 (catalogo local,
@@ -869,7 +872,6 @@ fun AppShell(
                                         onSolicitarPermissaoTelefonia = onSolicitarPermissaoTelefonia,
                                         temPermissaoLocalizacao = temPermissaoLocalizacao,
                                         localizacaoBloqueadaPermanentemente = localizacaoBloqueadaPermanentemente,
-                                        onSolicitarPermissaoLocalizacao = onSolicitarPermissaoLocalizacao,
                                         onRefresh = onRefreshSinal,
                                         onVoltar = { navigator.select(AppShellRoot.Home) },
                                         onAbrirMenu = onAbrirMenu,
@@ -992,6 +994,16 @@ fun AppShell(
                                 operadoraMovel = operadoraMovel,
                                 recommendationDecision = recommendationDecision,
                                 recommendationFeedback = recommendationFeedback,
+                                // GH#1706 — o shell já tinha os sinais; faltava repassá-los.
+                                // `estadoConexao` entrou no bloqueio B10 (PR #1732, Rodada 5):
+                                // `conectadoPorWifi` sozinho não distingue "estou no móvel" de
+                                // "não tenho snapshot de Wi-Fi" (ethernet, desconectado, VPN).
+                                contextoDoPlano =
+                                    ContextoDoPlano(
+                                        temPermissaoLocalizacao = temPermissaoLocalizacao,
+                                        conectadoPorWifi = snapshotRede.wifiLinkSnapshot != null,
+                                        estadoConexao = snapshotRede.estadoConexao,
+                                    ),
                             ),
                         operadora = operadoraResolvers,
                         acoes =
@@ -1010,6 +1022,7 @@ fun AppShell(
                                     if (Overlay.ModoGamer !in overlayStack) overlayStack.add(Overlay.ModoGamer)
                                 },
                                 onAbrirFerramentaSugerida = onAbrirFerramentaSugeridaOverlay,
+                                onPlanoIniciado = onDiagnosticoPlanoIniciado,
                                 onRecommendationShown = onRecommendationShown,
                                 onRecommendationClicked = onRecommendationClicked,
                                 onRecommendationFeedback = onRecommendationFeedback,

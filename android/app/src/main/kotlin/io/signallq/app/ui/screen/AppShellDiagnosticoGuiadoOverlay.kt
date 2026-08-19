@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.zIndex
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
+import io.signallq.app.core.network.DiagnosticoPlanoIniciado
 import io.signallq.app.core.recommendation.RecommendationDecision
 import io.signallq.app.core.recommendation.RecommendationFeedbackType
 import io.signallq.app.feature.speedtest.ResultadoSpeedtest
@@ -58,6 +59,9 @@ internal data class AppShellDiagnosticoGuiadoDados(
     val operadoraMovel: String?,
     val recommendationDecision: RecommendationDecision?,
     val recommendationFeedback: RecommendationFeedbackType?,
+    /** GH#1706 — contexto que adapta o plano de análise (spec §7 e §8.4). O registry já tinha estes
+     *  sinais em mãos para o Sinal Wi-Fi e simplesmente não os repassava ao fluxo guiado. */
+    val contextoDoPlano: ContextoDoPlano,
 )
 
 /** Navegação e efeitos colaterais que só o shell sabe executar. */
@@ -69,6 +73,8 @@ internal data class AppShellDiagnosticoGuiadoAcoes(
     val onIrParaHome: () -> Unit,
     val onIniciarModoGamer: () -> Unit,
     val onAbrirFerramentaSugerida: (TipoFerramenta) -> Unit,
+    /** GH#1706 — funil: o plano foi montado e exibido (spec §12, passo 3). */
+    val onPlanoIniciado: (DiagnosticoPlanoIniciado) -> Unit,
     val onRecommendationShown: () -> Unit,
     val onRecommendationClicked: () -> Unit,
     val onRecommendationFeedback: (RecommendationFeedbackType) -> Unit,
@@ -106,6 +112,8 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
         val resultado = dados.resultado
         DiagnosticoGuiadoScreen(
             input = dados.input,
+            contextoDoPlano = dados.contextoDoPlano,
+            onPlanoIniciado = entry.acoes.onPlanoIniciado,
             statusMedicao = resultado?.status,
             medidasConfiaveis = medidasConfiaveis(resultado),
             analise = entry.analise,

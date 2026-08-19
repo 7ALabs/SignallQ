@@ -52,4 +52,15 @@ interface AnalyticsTracker {
     fun registrarAssistResposta(evento: AssistPerguntaRespondida)
 
     fun registrarAssistAbandono(evento: AssistAbandonado)
+
+    /**
+     * Issue #1706 — funil do diagnostico guiado (plano apresentado).
+     *
+     * O passo 4 do funil (bloqueio encontrado) saiu desta fatia no bloqueio B5 da PR #1732 —
+     * volta quando o motor avaliar `CANAIS_WIFI` (issue #1733).
+     *
+     * Sem corpo default pelo mesmo motivo dos tres do Assist, documentado acima: um `= Unit` aqui
+     * deixaria uma implementacao futura perder este evento em silencio, sem erro de compilacao.
+     */
+    fun registrarDiagnosticoPlanoIniciado(evento: DiagnosticoPlanoIniciado)
 }

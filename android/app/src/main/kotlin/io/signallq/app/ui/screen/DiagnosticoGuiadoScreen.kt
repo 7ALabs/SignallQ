@@ -60,6 +60,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,6 +82,7 @@ import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.diagnostico.PerguntaFechada
 import io.signallq.app.core.diagnostico.PerguntasDiagnosticoGuiado
 import io.signallq.app.core.diagnostico.ResultadoDiagnosticoGuiado
+import io.signallq.app.core.network.DiagnosticoPlanoIniciado
 import io.signallq.app.core.recommendation.RecommendationDecision
 import io.signallq.app.core.recommendation.RecommendationFeedbackType
 import io.signallq.app.core.recommendation.RecommendationType
@@ -100,6 +102,7 @@ import io.signallq.app.ui.component.OperadoraBadge
 import io.signallq.app.ui.component.OperadoraBottomSheet
 import io.signallq.app.ui.component.rememberResolvedOperadoraContact
 import io.signallq.app.ui.component.rememberResolvedOperadoraIdentity
+import java.util.UUID
 
 /**
  * Diagnóstico guiado por objetivo — Feature #550, issue #1475. 7 objetivos fechados,
@@ -119,6 +122,11 @@ import io.signallq.app.ui.component.rememberResolvedOperadoraIdentity
 @Composable
 fun DiagnosticoGuiadoScreen(
     input: DiagnosticInput?,
+    /** GH#1706 — o que o app sabe ao montar o plano (spec §7). Sem isto o fluxo guiado não tinha
+     *  como adaptar o plano nem declarar o limite que §8.4 exige. */
+    contextoDoPlano: ContextoDoPlano,
+    /** GH#1706 — funil, passo 3 da spec §12. */
+    onPlanoIniciado: (DiagnosticoPlanoIniciado) -> Unit,
     /** Status real da medição — GH#1705. Era `resultadoValidoParaConclusao: Boolean`, e os 5
      *  valores de `MeasurementStatus` viravam um bit exatamente aqui. `null` = ainda não há
      *  medição. Ver [continuidadeDaMedicao]. */
@@ -208,6 +216,35 @@ fun DiagnosticoGuiadoScreen(
      * substituía a tela inteira já na entrada, e a pessoa não tinha ação nenhuma disponível.
      */
     val continuidade = statusMedicao?.let { continuidadeDaMedicao(it, medidasConfiaveis) }
+
+    // GH#1706 — o plano só existe depois de haver objetivo; antes disso não há o que verificar.
+    val plano = objetivo?.let { montarPlano(it, contextoDoPlano, respostas) }
+
+    // Correlaciona os eventos desta jornada. `rememberSaveable` para o id sobreviver à recriação
+    // da tela — trocar de id no meio quebraria a correlação, que é a única coisa que ele faz.
+    //
+    // Ressalva honesta: os eventos do Assist (`diagnostico_objetivo_selecionado`) usam outra
+    // origem de id, então a correlação ponta a ponta do funil AINDA não fecha. Fica declarado.
+    val analiseId = rememberSaveable { UUID.randomUUID().toString() }
+
+    // Passo 3 do funil: dispara quando o plano é exibido, uma vez por (objetivo, plano). A chave
+    // inclui o plano porque uma mudança de permissão no meio da jornada muda o que foi exibido —
+    // e não dispara em recomposição sem mudança, que a spec §12 também exclui.
+    LaunchedEffect(emAnalise, plano) {
+        val planoAtual = plano
+        val objetivoAtualParaFunil = objetivo
+        if (emAnalise && planoAtual != null && objetivoAtualParaFunil != null) {
+            onPlanoIniciado(
+                DiagnosticoPlanoIniciado(
+                    analiseId = analiseId,
+                    objetivoId = objetivoAtualParaFunil.name,
+                    capacidades = planoAtual.idsParaTelemetria,
+                    qtdCapacidades = planoAtual.capacidades.size.toLong(),
+                    planoAdaptado = planoAtual.adaptado,
+                ),
+            )
+        }
+    }
 
     // Só medição COMPLETA dispensa medir de novo — bloqueio B2 de Caio na PR #1723.
     //
@@ -388,6 +425,7 @@ fun DiagnosticoGuiadoScreen(
                     estado = analise.estado,
                     onCancelar = ::voltarUmPasso,
                     onTentarNovamente = analise.onIniciar,
+                    plano = plano,
                 )
             else -> {
                 val perguntas = remember(objetivoAtual) { PerguntasDiagnosticoGuiado.perguntas(objetivoAtual) }

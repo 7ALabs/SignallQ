@@ -9,6 +9,7 @@ import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.AssistAbandonado
 import io.signallq.app.core.network.AssistObjetivoSelecionado
 import io.signallq.app.core.network.AssistPerguntaRespondida
+import io.signallq.app.core.network.DiagnosticoPlanoIniciado
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -172,6 +173,19 @@ class FirebaseAnalyticsTracker
                     putString("etapa", evento.etapa.analyticsId)
                     evento.objetivoId?.let { putString("objetivo", it) }
                     putBoolean("retomavel", evento.retomavel)
+                },
+            )
+        }
+
+        override fun registrarDiagnosticoPlanoIniciado(evento: DiagnosticoPlanoIniciado) {
+            firebaseAnalytics.logEvent(
+                "diagnostico_plano_iniciado",
+                Bundle().apply {
+                    putString("analise_id", evento.analiseId)
+                    putString("objetivo", evento.objetivoId)
+                    putString("capacidades", evento.capacidades)
+                    putLong("qtd_capacidades", evento.qtdCapacidades)
+                    putBoolean("plano_adaptado", evento.planoAdaptado)
                 },
             )
         }

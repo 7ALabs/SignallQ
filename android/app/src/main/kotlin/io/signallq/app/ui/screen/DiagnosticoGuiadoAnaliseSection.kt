@@ -62,6 +62,9 @@ internal fun DiagnosticoGuiadoAnaliseSection(
     onCancelar: () -> Unit,
     onTentarNovamente: () -> Unit,
     modifier: Modifier = Modifier,
+    /** GH#1706 — o plano como frase curta (spec §7) mais o limite declarado quando ele foi
+     *  adaptado (§8.4). `null` enquanto não há objetivo escolhido. */
+    plano: PlanoDeAnalise? = null,
 ) {
     val c = LocalLkTokens.current
     Column(
@@ -164,13 +167,28 @@ internal fun DiagnosticoGuiadoAnaliseSection(
                             .testTag(TAG_ANALISE_GUIADA_ETAPA)
                             .clearAndSetSemantics { contentDescription = "Analisando: $etapa" },
                 )
+                // A frase do plano SUBSTITUI o texto genérico quando existe — §7 pede que a pessoa
+                // saiba o que está sendo verificado, e "estou medindo sua conexão" não diz isso.
                 Text(
-                    text = "Estou medindo sua conexão para responder com base em evidência, não em palpite.",
+                    text =
+                        plano?.let { fraseDoPlano(it) }
+                            ?: "Estou medindo sua conexão para responder com base em evidência, não em palpite.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = c.textSecondary,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = LkSpacing.sm),
+                    modifier = Modifier.padding(top = LkSpacing.sm).testTag(TAG_ANALISE_GUIADA_PLANO),
                 )
+                // §8.4: permissão recusada não encerra a jornada — o plano se adapta e INFORMA o
+                // limite. Adaptar sem dizer é falhar em silêncio.
+                plano?.limite?.let { limite ->
+                    Text(
+                        text = limite,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.textTertiary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = LkSpacing.sm).testTag(TAG_ANALISE_GUIADA_LIMITE),
+                    )
+                }
                 TextButton(
                     onClick = onCancelar,
                     modifier = Modifier.padding(top = LkSpacing.lg).testTag(TAG_ANALISE_GUIADA_CANCELAR),
@@ -183,6 +201,8 @@ internal fun DiagnosticoGuiadoAnaliseSection(
 }
 
 internal const val TAG_ANALISE_GUIADA = "diagnostico_guiado_analise"
+internal const val TAG_ANALISE_GUIADA_PLANO = "diagnostico_guiado_analise_plano"
+internal const val TAG_ANALISE_GUIADA_LIMITE = "diagnostico_guiado_analise_limite"
 internal const val TAG_ANALISE_GUIADA_DETERMINADO = "diagnostico_guiado_analise_progresso_determinado"
 internal const val TAG_ANALISE_GUIADA_INDETERMINADO = "diagnostico_guiado_analise_progresso_indeterminado"
 internal const val TAG_ANALISE_GUIADA_ETAPA = "diagnostico_guiado_analise_etapa"
