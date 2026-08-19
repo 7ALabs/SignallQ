@@ -17,7 +17,6 @@ class SpeedtestMbEstimativaTest {
         when (modo) {
             ModoSpeedtest.fast -> 10L
             ModoSpeedtest.complete -> 25L
-            ModoSpeedtest.triplo -> 30L
         }
 
     @Test
@@ -31,20 +30,14 @@ class SpeedtestMbEstimativaTest {
     }
 
     @Test
-    fun `triplo consome 30 MB estimados`() {
-        assertEquals(30L, mbEstimadoPorModo(ModoSpeedtest.triplo))
-    }
-
-    @Test
-    fun `fast e o modo mais leve entre os tres`() {
+    fun `fast e o modo mais leve entre os dois`() {
         val modos = ModoSpeedtest.entries.map { mbEstimadoPorModo(it) }
         assertEquals(10L, modos.min())
     }
 
     @Test
-    fun `triplo e o modo mais pesado entre os tres`() {
-        val modos = ModoSpeedtest.entries.map { mbEstimadoPorModo(it) }
-        assertEquals(30L, modos.max())
+    fun `GH1737 so restam dois modos apos a remocao do triplo`() {
+        assertEquals(2, ModoSpeedtest.entries.size)
     }
 
     @Test

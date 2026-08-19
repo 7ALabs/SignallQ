@@ -222,8 +222,6 @@
     <string name="cd_rede_aberta">Rede aberta</string>
     <string name="cd_rede_protegida">Rede protegida</string>
     <string name="cd_fibra_erro_icone">Ícone de erro</string>
-    <string name="cd_expandir_detalhes_medicoes">Expandir detalhes das medições</string>
-    <string name="cd_recolher_detalhes_medicoes">Recolher detalhes das medições</string>
 
     <!-- Global: ações comuns (SIG-238) -->
     <string name="global_btn_cancelar">Cancelar</string>
@@ -350,7 +348,7 @@
     <string name="ajustes_menu_sobre">Sobre o SignallQ</string>
     <string name="ajustes_menu_sobre_sub">v%1$s · Android · Kotlin</string>
     <string name="ajustes_menu_testes_moveis">Sempre permitir testes pesados em dados móveis</string>
-    <string name="ajustes_menu_testes_moveis_sub">Não mostrar aviso para modo Completo e Triplo na próxima vez</string>
+    <string name="ajustes_menu_testes_moveis_sub">Não mostrar aviso para modo Completo na próxima vez</string>
     <string name="ajustes_menu_fibra">Roteador e rede</string>
     <string name="ajustes_menu_monitoramento">Monitoramento passivo</string>
     <string name="ajustes_menu_analise_avancada">Análise avançada</string>

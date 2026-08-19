@@ -1065,14 +1065,13 @@ class MainViewModel
         /**
          * Acumula MB estimados consumidos no mes corrente.
          * Reset automatico quando o mes muda em relacao ao valor salvo em [speedtestMesReferencia].
-         * Estimativas: fast=10 MB, complete=25 MB, triplo=30 MB.
+         * Estimativas: fast=10 MB, complete=25 MB.
          */
         private fun acumularMbConsumidos(modo: ModoSpeedtest) {
             val mbEstimado =
                 when (modo) {
                     ModoSpeedtest.fast -> 10L
                     ModoSpeedtest.complete -> 25L
-                    ModoSpeedtest.triplo -> 30L
                 }
             // Usa Calendar para compatibilidade com minSdk 24 (java.time requer API 26+ ou desugaring)
             val cal = java.util.Calendar.getInstance()

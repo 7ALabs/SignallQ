@@ -4,7 +4,7 @@ description: "O que o app Android SignallQ (io.signallq.app) entrega ao usuário
 type: "funcional"
 status: "ativo"
 owner: "Claudete"
-last_updated: "2026-08-17"
+last_updated: "2026-08-18"
 ---
 
 - **Fonte de verdade:** o código do app consumer em `android/app/src/main/kotlin/io/signallq/app/`
@@ -278,17 +278,18 @@ legal.
 **Telas:** `SpeedTestScreen` (aba 1) → `VelocidadeScreen` (execução em tela cheia) →
 `ResultadoVelocidadeScreen` (overlay).
 
-**O que o usuário faz.** Escolhe um dos três modos no seletor de pills — **Rápido**, **Completo**
-(padrão) e **3 testes** (`SpeedTestScreen.kt:622-627`) — e toca no círculo central "Iniciar teste".
-O mesmo teste também pode ser iniciado pela Início, pela sheet "Tipo de medição", que descreve cada
-modo em tempo estimado: Rápido "somente download · ~30 seg", Completo "download e upload · ~90 seg"
-(badge "Recomendado"), Triplo "média de 3 testes consecutivos · ~3 min" (badge "Só Wi-Fi")
-(`HomeScreen.kt:2438`).
+**O que o usuário faz.** Toca no círculo central "Iniciar teste" (aba Velocidade) ou no card
+"Medições" da Início — sem escolher modo. **GH#1737 (épico #1647):** desde a 2.0, o modo é
+automático por tipo de rede, decidido em `modoAutomaticoPara` (`feature/speedtest/ModoSpeedtest.kt`)
+no ponto de disparo em `AppShell.kt`: rede móvel usa **Rápido** (somente download, ~10 MB); Wi-Fi
+(e demais conexões) usa **Completo** (download e upload). O antigo seletor manual de pills
+(`ModeSelector`) e a sheet "Tipo de medição" (`MedicaoTipoSheet`) foram removidos, junto com o modo
+**Triplo** (3 medições consecutivas com médias) — irrelevante para a pessoa ver ou decidir.
 
 **O que o usuário vê durante.** A `VelocidadeScreen` cobre a tela inteira com um gauge circular
 animado, as quatro fases em pills (LATÊNCIA → DOWNLOAD → UPLOAD → CONCLUÍDO), uma frase narrativa
 por fase e haptics nas transições. Durante o upload, o download já concluído continua visível.
-Cancelar durante a execução exige confirmação. No modo triplo, um indicador mostra "Medição N de 3".
+Cancelar durante a execução exige confirmação.
 
 **O que o usuário vê depois.** O resultado abre sozinho ao concluir. Título e mensagem vêm da decisão
 do motor de diagnóstico, não de texto fixo (`ResultadoVelocidadeScreen.kt:306-321`). Dois cards
