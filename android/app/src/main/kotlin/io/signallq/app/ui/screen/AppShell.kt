@@ -1101,28 +1101,28 @@ fun AppShell(
 
             // GH#1695 — DetalhesTecnicos migrou para AppShellOverlayRegistry.
 
-            AnimatedVisibility(
-                visible = Overlay.Laudo in overlayStack,
-                modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.Laudo, overlayStack)),
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-            ) {
-                LaudoScreen(
-                    snapshotDiagnostico = snapshotDiagnostico,
-                    ultimaMedicao = primeiraHistoria,
-                    nomeUsuario = nomeUsuario,
-                    operadora = operadora,
-                    ssid = connectedNetwork?.ssid,
-                    ipLocal = localIpStr,
-                    ipPublico = publicIpStr,
-                    onVoltar = {
-                        overlayStack.remove(Overlay.Laudo)
-                        onLaudoFechado()
-                    },
-                    velocidadeContratadaMbps = planoInternet.filter { it.isDigit() }.toIntOrNull(),
-                    conectado = snapshotRede.conectado,
-                )
-            }
+            // GH#1659 — Laudo extraído para AppShellLaudoOverlay.kt (épico #1647), mesmo padrão
+            // já aplicado a AppShellResultadoVelocidadeOverlay.kt (#1714) e
+            // AppShellDetalhesTecnicosOverlay.kt (#1695).
+            AppShellLaudoOverlay(
+                overlayStack = overlayStack,
+                entry =
+                    AppShellLaudoEntry(
+                        snapshotDiagnostico = snapshotDiagnostico,
+                        ultimaMedicao = primeiraHistoria,
+                        nomeUsuario = nomeUsuario,
+                        operadora = operadora,
+                        ssid = connectedNetwork?.ssid,
+                        ipLocal = localIpStr,
+                        ipPublico = publicIpStr,
+                        velocidadeContratadaMbps = planoInternet.filter { it.isDigit() }.toIntOrNull(),
+                        conectado = snapshotRede.conectado,
+                        onVoltar = {
+                            overlayStack.remove(Overlay.Laudo)
+                            onLaudoFechado()
+                        },
+                    ),
+            )
 
             // GH#1695 — Privacidade, Novidades e Ping migraram para AppShellOverlayRegistry.
 
