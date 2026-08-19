@@ -45,18 +45,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.signallq.app.BuildConfig
 import io.signallq.app.core.database.MedicaoEntity
-import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.component.DecisaoDiagnosticoLocal
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkStatusDot
 import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.corContainer
 import io.signallq.app.ui.component.corConteudo
 import io.signallq.app.ui.component.labelPt
+import io.signallq.app.ui.component.paraDecisaoDiagnosticoLocal
 import io.signallq.app.ui.relatorio.RelatorioDiagnosticoExporter
 import io.signallq.app.ui.relatorio.RelatorioDiagnosticoSnapshot
 import io.signallq.app.ui.relatorio.RelatorioPrivacidade
@@ -86,16 +87,18 @@ fun LaudoScreen(
     var gerando by remember { mutableStateOf(false) }
     var erro by remember { mutableStateOf<String?>(null) }
 
-    val relatorio = snapshotDiagnostico.relatorio
+    // NDS-02e (#1754, ADR-017) — le o relatorio local so atraves do seam DecisaoDiagnosticoLocal
+    // (`ui/component/DecisaoDiagnosticoLocal.kt`), nunca DiagnosticReport/DiagnosticResult direto.
+    val decisaoLocal = snapshotDiagnostico.relatorio?.paraDecisaoDiagnosticoLocal()
     // GH#1228 (Fase 3, corrige P0-3) — so usa a decisao (veredito/resumo/recomendacao) do
     // diagnostico em memoria quando ela pertence a MESMA execucao da medicao persistida
     // sendo exibida (ultimaMedicao); nunca combina metricas de uma execucao com o veredito
     // de outra ("Frankenstein" ja documentado na auditoria da #1228). Sem medicao persistida
     // ainda (ultimaMedicao == null), nao ha metrica pra conflitar — decisao segue disponivel.
     val diagnosticoCorresponde =
-        ultimaMedicao == null || diagnosticoCorrespondeAMedicao(relatorio?.executionId, ultimaMedicao.executionId)
-    val decisao = relatorio?.decisao.takeIf { diagnosticoCorresponde }
-    val diagnosticoIndisponivelPorDivergencia = relatorio != null && !diagnosticoCorresponde
+        ultimaMedicao == null || diagnosticoCorrespondeAMedicao(decisaoLocal?.executionId, ultimaMedicao.executionId)
+    val decisao = decisaoLocal.takeIf { diagnosticoCorresponde }
+    val diagnosticoIndisponivelPorDivergencia = decisaoLocal != null && !diagnosticoCorresponde
 
     val compartilharLaudo: () -> Unit = {
         scope.launch {
@@ -209,7 +212,7 @@ fun LaudoScreen(
             verticalArrangement = Arrangement.spacedBy(LkSpacing.lg),
         ) {
             // Banner de status — colorido por severidade da decisão
-            if (relatorio != null && decisao != null) {
+            if (decisao != null) {
                 item {
                     val containerColor = decisao.status.corContainer(c)
                     val textColor = decisao.status.corConteudo(c)
@@ -248,13 +251,13 @@ fun LaudoScreen(
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
-                                "${relatorio.scoreConexao}",
+                                "${decisao.scoreConexao}",
                                 style = MaterialTheme.typography.headlineLarge,
                                 fontWeight = FontWeight.W700,
                                 color = textColor,
                             )
                             Text(
-                                relatorio.veredito,
+                                decisao.veredito,
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.W600,
                                 color = textColor,
@@ -534,17 +537,20 @@ internal fun diagnosticoCorrespondeAMedicao(
 
 /**
  * GH#1228 (Fase 3, corrige P0-3) — monta o [RelatorioDiagnosticoSnapshot] exportável usando
- * SOMENTE a decisão (veredito/resumo/recomendação) do [relatorio] quando ela pertence à MESMA
+ * SOMENTE a decisão (veredito/resumo/recomendação) do [decisaoLocal] quando ela pertence à MESMA
  * execução da [ultimaMedicao] persistida — nunca combina métricas de uma execução com o
  * veredito de outra ("Frankenstein" já documentado na auditoria da #1228, ex.: um diagnóstico
  * de Wi-Fi sem internet rodado depois de um speedtest antigo). Quando não há correspondência
  * (mas há diagnóstico em memória), o resumo exibido é explícito sobre a indisponibilidade —
  * nunca busca automaticamente um diagnóstico de outra execução para preencher a lacuna.
  *
- * Função pura (sem Context/IO/Compose) — testável diretamente, sem instrumentação Android.
+ * NDS-02e (#1754, ADR-017) — recebe [DecisaoDiagnosticoLocal] em vez de `DiagnosticReport` (o
+ * call site, [gerarECompartilharLaudo], converte pelo seam `ui/component/
+ * DecisaoDiagnosticoLocal.kt` antes de chamar esta função). Função pura (sem Context/IO/Compose)
+ * — testável diretamente, sem instrumentação Android.
  */
 internal fun montarSnapshotLaudo(
-    relatorio: DiagnosticReport?,
+    decisaoLocal: DecisaoDiagnosticoLocal?,
     ultimaMedicao: MedicaoEntity?,
     operadora: String,
     ssid: String?,
@@ -556,8 +562,8 @@ internal fun montarSnapshotLaudo(
     agoraEpochMs: Long = System.currentTimeMillis(),
 ): RelatorioDiagnosticoSnapshot {
     val diagnosticoCorresponde =
-        ultimaMedicao == null || diagnosticoCorrespondeAMedicao(relatorio?.executionId, ultimaMedicao.executionId)
-    val decisao = relatorio?.decisao.takeIf { diagnosticoCorresponde }
+        ultimaMedicao == null || diagnosticoCorrespondeAMedicao(decisaoLocal?.executionId, ultimaMedicao.executionId)
+    val decisao = decisaoLocal.takeIf { diagnosticoCorresponde }
 
     // #375: offline reaproveita a ultima medicao salva — o horario exibido precisa ser o
     // da MEDICAO real, nunca o momento da geracao do PDF (GH#1219 item 5).
@@ -574,7 +580,7 @@ internal fun montarSnapshotLaudo(
     val resumo =
         when {
             decisao != null -> decisao.mensagemUsuario.ifBlank { null }
-            relatorio != null && !diagnosticoCorresponde ->
+            decisaoLocal != null && !diagnosticoCorresponde ->
                 "Diagnóstico não disponível para esta medição — o último diagnóstico calculado " +
                     "pertence a uma execução diferente da medição exibida acima."
             else -> null
@@ -633,7 +639,9 @@ private suspend fun gerarECompartilharLaudo(
 ) {
     val snapshot =
         montarSnapshotLaudo(
-            relatorio = snapshotDiagnostico.relatorio,
+            // NDS-02e (#1754, ADR-017) — converte pelo seam antes de montar o snapshot; nenhuma
+            // função abaixo deste ponto depende de DiagnosticReport/core.diagnostico direto.
+            decisaoLocal = snapshotDiagnostico.relatorio?.paraDecisaoDiagnosticoLocal(),
             ultimaMedicao = ultimaMedicao,
             operadora = operadora,
             ssid = ssid,

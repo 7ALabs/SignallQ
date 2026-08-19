@@ -4,6 +4,7 @@ import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.core.diagnostico.DiagnosticResult
 import io.signallq.app.core.diagnostico.DiagnosticStatus
+import io.signallq.app.ui.component.paraDecisaoDiagnosticoLocal
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -17,6 +18,12 @@ import org.junit.Test
  * speedtest com o veredito/recomendação de um diagnóstico posterior e não relacionado
  * (`executionId` hardcoded para `""`). Cobre [diagnosticoCorrespondeAMedicao] (regra pura de
  * correspondência) e [montarSnapshotLaudo] (montagem do snapshot exportável).
+ *
+ * NDS-02e (#1754, ADR-017) — `montarSnapshotLaudo` passou a receber `DecisaoDiagnosticoLocal?`
+ * em vez de `DiagnosticReport?` (seam `ui/component/DecisaoDiagnosticoLocal.kt`). As fixtures
+ * seguem construindo `DiagnosticReport` (shape real do motor local) e convertem via
+ * `.paraDecisaoDiagnosticoLocal()` no ponto de chamada, igual ao que `LaudoScreen.kt` faz — os
+ * cenários de regressão do P0-3 continuam idênticos, só a fonte da conversão muda de lugar.
  */
 class LaudoScreenExecutionVersioningTest {
     private fun decisaoFixture(titulo: String = "Conexão saudável") =
@@ -40,6 +47,8 @@ class LaudoScreenExecutionVersioningTest {
             geradoEmMs = 1_700_000_000_000L,
             executionId = executionId,
         )
+
+    private fun decisaoLocalFixture(executionId: String) = relatorioFixture(executionId).paraDecisaoDiagnosticoLocal()
 
     private fun medicaoFixture(executionId: String) =
         MedicaoEntity(
@@ -105,7 +114,7 @@ class LaudoScreenExecutionVersioningTest {
     fun `laudo usa decisao e metricas da MESMA execucao quando os executionId correspondem`() {
         val snapshot =
             montarSnapshotLaudo(
-                relatorio = relatorioFixture(executionId = "exec-123"),
+                decisaoLocal = decisaoLocalFixture(executionId = "exec-123"),
                 ultimaMedicao = medicaoFixture(executionId = "exec-123"),
                 operadora = "Operadora Teste",
                 ssid = null,
@@ -128,7 +137,7 @@ class LaudoScreenExecutionVersioningTest {
         // -- exatamente o cenario "Frankenstein" documentado na auditoria da #1228.
         val snapshot =
             montarSnapshotLaudo(
-                relatorio = relatorioFixture(executionId = "exec-B-diagnostico-novo"),
+                decisaoLocal = decisaoLocalFixture(executionId = "exec-B-diagnostico-novo"),
                 ultimaMedicao = medicaoFixture(executionId = "exec-A-speedtest-antigo"),
                 operadora = "Operadora Teste",
                 ssid = null,
@@ -151,7 +160,7 @@ class LaudoScreenExecutionVersioningTest {
     fun `laudo sem diagnostico em memoria nao mostra veredito, mas mantem as metricas`() {
         val snapshot =
             montarSnapshotLaudo(
-                relatorio = null,
+                decisaoLocal = null,
                 ultimaMedicao = medicaoFixture(executionId = "exec-A"),
                 operadora = "",
                 ssid = null,
@@ -171,7 +180,7 @@ class LaudoScreenExecutionVersioningTest {
     fun `laudo sem nenhuma medicao persistida ainda mostra a decisao (nada para conflitar)`() {
         val snapshot =
             montarSnapshotLaudo(
-                relatorio = relatorioFixture(executionId = "exec-unico"),
+                decisaoLocal = decisaoLocalFixture(executionId = "exec-unico"),
                 ultimaMedicao = null,
                 operadora = "",
                 ssid = null,
@@ -191,7 +200,7 @@ class LaudoScreenExecutionVersioningTest {
     fun `snapshot exportado usa o executionId da medicao, nunca vazio quando ela existe`() {
         val snapshot =
             montarSnapshotLaudo(
-                relatorio = relatorioFixture(executionId = "exec-diagnostico"),
+                decisaoLocal = decisaoLocalFixture(executionId = "exec-diagnostico"),
                 ultimaMedicao = medicaoFixture(executionId = "exec-medicao-real"),
                 operadora = "",
                 ssid = null,
@@ -215,11 +224,11 @@ class LaudoScreenExecutionVersioningTest {
     @Test
     fun `execucoes concorrentes com identidades diferentes nao se misturam no laudo`() {
         val medicaoDaExecucaoX = medicaoFixture(executionId = "exec-X")
-        val diagnosticoDaExecucaoY = relatorioFixture(executionId = "exec-Y")
+        val diagnosticoDaExecucaoY = decisaoLocalFixture(executionId = "exec-Y")
 
         val snapshot =
             montarSnapshotLaudo(
-                relatorio = diagnosticoDaExecucaoY,
+                decisaoLocal = diagnosticoDaExecucaoY,
                 ultimaMedicao = medicaoDaExecucaoX,
                 operadora = "",
                 ssid = null,
@@ -242,13 +251,13 @@ class LaudoScreenExecutionVersioningTest {
      */
     @Test
     fun `chamadas repetidas com os mesmos dados nunca trocam o executionId`() {
-        val relatorio = relatorioFixture(executionId = "exec-estavel")
+        val decisaoLocal = decisaoLocalFixture(executionId = "exec-estavel")
         val medicao = medicaoFixture(executionId = "exec-estavel")
 
         val primeiraChamada =
-            montarSnapshotLaudo(relatorio, medicao, "", null, null, null, null, true, "1.0.0")
+            montarSnapshotLaudo(decisaoLocal, medicao, "", null, null, null, null, true, "1.0.0")
         val segundaChamada =
-            montarSnapshotLaudo(relatorio, medicao, "", null, null, null, null, true, "1.0.0")
+            montarSnapshotLaudo(decisaoLocal, medicao, "", null, null, null, null, true, "1.0.0")
 
         assertEquals(primeiraChamada.executionId, segundaChamada.executionId)
     }
