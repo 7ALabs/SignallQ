@@ -4,7 +4,7 @@ description: "Visão de sistema, módulos Gradle e dependências, do código rea
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-16"
+last_updated: "2026-08-19"
 ---
 
 # Arquitetura — SignallQ consumer
@@ -135,7 +135,7 @@ Renomear os legados para `:core:network` é migração dedicada — afeta CI, sc
 | `:featureFibra` | leitura de ONT GPON | Um único driver real: Nokia G-1425G-B |
 | `:featureDns` | comparação de resolvedores | Sem ViewModel próprio — estado vai direto ao `MainViewModel` |
 | `:featureHistory` | histórico e exportação | **Dois motores de PDF ativos em paralelo** |
-| `:featureWifi` | vocabulário de Wi-Fi | 93 linhas; a classificação real está em `SinalScreen.kt` |
+| `:featureWifi` | vocabulário de Wi-Fi | 93 linhas; a classificação real está em `SinalWifiSection.kt` |
 | `:featureHome` | resolução de medição da Home | 67 linhas; exemplo canônico da regra de dependência |
 | `:featureSettings` | regras de ajustes | 203 linhas, zero dependências, zero UI — **não é feature**, é biblioteca de regras puras; destino natural é um `core` |
 
@@ -149,14 +149,18 @@ Consequência direta: as features viraram bibliotecas de motor e vocabulário, e
 
 | Arquivo | Linhas |
 |---|---:|
-| `SinalScreen.kt` | 3383 |
 | `HomeScreen.kt` | 2967 |
 | `MainViewModel.kt` | 2438 |
+| `SinalCanalSection.kt` | 1215 |
 | `DispositivosScreen.kt` | 1380 |
+| `SinalWifiSection.kt` | 1110 |
 | `DnsScreen.kt` | 815 |
 
-Isso puxa efeitos concretos: `:featureWifi` tem 93 linhas porque a classificação de redes é montada
-dentro de `SinalScreen.kt` (que chega a construir `RedeClassificada(...)` inline na linha 1078); e
+A issue #1660 (épico #1647) extraiu o antigo `SinalScreen.kt` (era 3383 linhas) num scaffold de
+476 linhas + `SinalWifiSection.kt`/`SinalCanalSection.kt`/`SinalMovelSection.kt`
+(539)/`SinalSharedComponents.kt` (79) — puramente estrutural, sem mover regra pra `:featureWifi`.
+Isso puxa efeitos concretos: `:featureWifi` tem 93 linhas porque a classificação de redes ainda é
+montada dentro de `SinalWifiSection.kt` (que chega a construir `RedeClassificada(...)` inline); e
 `:featureDns` não tem ViewModel porque o `MainViewModel` monolítico assume o estado.
 
 O destino arquitetural é mover cada tela para o módulo da sua feature. É migração dedicada, por
@@ -189,7 +193,7 @@ Contratos em `../CONTRATOS/openapi/`.
 
 | Risco | Evidência | Efeito |
 |---|---|---|
-| UI monolítica em `:app` | 5 arquivos acima de 800 linhas, `SinalScreen.kt` com 3383 | Features anêmicas; mudança visual exige tocar arquivo gigante |
+| UI monolítica em `:app` | 6 arquivos acima de 800 linhas, `HomeScreen.kt` com 2967 | Features anêmicas; mudança visual exige tocar arquivo gigante |
 | Feature→feature | 0 violações conhecidas (§2) — única confirmada (`:featureDiagnostico`→`:featureSpeedtest`) resolvida em GH#1682 | Sem efeito hoje; reavaliar se `grep -rn 'project(":feature'` em `feature/*/build.gradle.kts` encontrar dependência entre `:feature*` |
 | Três mecanismos de feature flag | `:core:featureflags` + `FeatureFlagProvider` legado em `:coreNetwork` + Firebase Remote Config | Colisão de nome e ambiguidade sobre qual vence |
 | Dois motores de PDF | `:featureHistory` usa `PdfDocument` e HTML→WebView via `:core:relatorio` | Manutenção dupla |

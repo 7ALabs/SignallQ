@@ -4,7 +4,7 @@ description: "Stack, build, persistência, integrações Cloudflare, analytics e
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-16"
+last_updated: "2026-08-19"
 ---
 
 # Documentação técnica — SignallQ consumer
@@ -264,14 +264,14 @@ estado estático entre classes (ver GH#1684). Não roda no CI por padrão:
 
 | Risco | Detalhe |
 |---|---|
-| UI monolítica em `:app` | 150 arquivos, 40.017 linhas, dez acima de 800. `SinalScreen.kt` 3383, `HomeScreen.kt` 2967, `MainViewModel.kt` 2438 |
+| UI monolítica em `:app` | ~150 arquivos em `src/main`, dez acima de 800. `HomeScreen.kt` 2967, `MainViewModel.kt` 2438, `SinalCanalSection.kt` 1215, `SinalWifiSection.kt` 1110 (issue #1660 extraiu o antigo `SinalScreen.kt` monolítico, 3383 linhas, em scaffold + `SinalWifiSection.kt`/`SinalCanalSection.kt`/`SinalMovelSection.kt`/`SinalSharedComponents.kt`) |
 | Dependência feature→feature | 2 violações — ver `ARQUITETURA/README.md` §2 |
 | Três mecanismos de feature flag | `:core:featureflags` (11 flags), `FeatureFlagProvider` legado em `:coreNetwork`, e Firebase Remote Config — com colisão de nome entre os dois primeiros |
 | Ausência de teste em pontos sensíveis | `:core:relatorio` (0 testes, compartilhado com o Pro), `:corePermissions` (0), `ExecutorSpeedtestCloudflare.kt` (1495 linhas, sem teste direto), `ExecutorFibra` e `NokiaModemCrypto` |
 | `:app` sem `androidTest` | Dependências de teste instrumentado declaradas, diretório inexistente |
 | `:core:diagnostico` não é Kotlin puro | Declara "zero `android.*`" mas `topology/` faz HTTP e `Runtime.exec("/system/bin/ping")` |
 | Fibra com um único driver | Só Nokia G-1425G-B em produção. TP-Link e Intelbras têm apenas mapa de reconhecimento documental em `technical/*_FIELD_MAP.md`, sem código |
-| `MetricClassifier` não usado em `SinalScreen.kt` | Limiares duplicados em três lugares — issue **#1586** |
+| `MetricClassifier` não usado em `SinalMovelSection.kt`/`SinalMovelClassificacao.kt` | Limiares duplicados em três lugares — issue **#1586** |
 
 ## 10. Referências
 
