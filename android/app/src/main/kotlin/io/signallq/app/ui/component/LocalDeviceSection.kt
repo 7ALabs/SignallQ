@@ -53,8 +53,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.signallq.app.core.diagnostico.DiagnosticStatus
-import io.signallq.app.core.diagnostico.FibraDiagnosticInput
-import io.signallq.app.core.diagnostico.FibraSignalQualityEngine
 import io.signallq.app.core.network.contracts.gateway.EquipmentClassification
 import io.signallq.app.core.network.contracts.localdevice.ClientSnapshot
 import io.signallq.app.core.network.contracts.localdevice.DataFreshness
@@ -258,19 +256,11 @@ internal fun dadosParciais(snapshot: LocalNetworkDeviceSnapshot): Boolean {
     return false
 }
 
-private fun DiagnosticStatus.severidade(): Int =
-    when (this) {
-        DiagnosticStatus.critical -> 3
-        DiagnosticStatus.attention -> 2
-        DiagnosticStatus.inconclusive -> 1
-        DiagnosticStatus.info -> 1
-        DiagnosticStatus.ok -> 0
-    }
-
-/** Traduz o snapshot em veredito humano — fibra usa o mesmo motor de limiares
- *  de [FibraSignalQualityEngine] que a tela de fibra Nokia ja usa (nao
- *  duplica regra de negocio). Equipamentos sem fibra (ex.: roteador) usam
- *  WAN/Wi-Fi como base do resumo, nunca fibra/PON/OLT. */
+/** Traduz o snapshot em veredito humano — fibra delega pro seam local
+ *  [classificarFibraLocal] (NDS-02f/#1756, ADR-017), que por sua vez usa o
+ *  mesmo motor de limiares que a tela de fibra Nokia ja usa (nao duplica
+ *  regra de negocio). Equipamentos sem fibra (ex.: roteador) usam WAN/Wi-Fi
+ *  como base do resumo, nunca fibra/PON/OLT. */
 private fun resumoInterpretado(snapshot: LocalNetworkDeviceSnapshot): Triple<String, String, DiagnosticStatus> {
     val cap = snapshot.capabilities
 
@@ -282,24 +272,14 @@ private fun resumoInterpretado(snapshot: LocalNetworkDeviceSnapshot): Triple<Str
                     "O equipamento é compatível, mas não consegui ler os dados da fibra agora.",
                     DiagnosticStatus.inconclusive,
                 )
-        if (fiber.linkAtivo == false) {
-            return Triple("A fibra está sem sinal", "A fibra está sem sinal da operadora.", DiagnosticStatus.critical)
-        }
-        val avaliacoes =
-            FibraSignalQualityEngine.avaliar(
-                FibraDiagnosticInput(
-                    rxPowerDbm = fiber.rxPowerDbm,
-                    txPowerDbm = fiber.txPowerDbm,
-                    temperatureCelsius = fiber.temperaturaCelsius,
-                    isUp = fiber.linkAtivo ?: true,
-                ),
+        val resumo =
+            classificarFibraLocal(
+                linkAtivo = fiber.linkAtivo,
+                rxPowerDbm = fiber.rxPowerDbm,
+                txPowerDbm = fiber.txPowerDbm,
+                temperatureCelsius = fiber.temperaturaCelsius,
             )
-        val pior = avaliacoes.maxByOrNull { it.status.severidade() }
-        return if (pior != null) {
-            Triple(pior.titulo, pior.mensagemUsuario, pior.status)
-        } else {
-            Triple("A fibra está conectada", "A fibra está conectada, mas não consegui ler outros dados agora.", DiagnosticStatus.ok)
-        }
+        return Triple(resumo.titulo, resumo.mensagem, resumo.status)
     }
 
     if (cap.suportaWan) {
