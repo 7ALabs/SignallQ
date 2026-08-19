@@ -1,7 +1,7 @@
 # Regra permanente — Higiene e padronização do repositório
 
 - **Status:** ativo
-- **Última validação:** 2026-08-15 (§4.1 marcada RESOLVIDA após migração de 525 arquivos io/veloo → io/signallq; §4.2–§4.8 com paths atualizados)
+- **Última validação:** 2026-08-19 (§4.8b marcada RESOLVIDA após extração de `SinalScreen.kt` por aba, PR #1766/issue #1660)
 - **Fonte de verdade:** este arquivo (`.claude/rules/higiene-e-padronizacao-repositorio.md`) — não duplicar em `docs_ai/`, `AGENTS.md`, mirrors ou docs de módulo
 - **Escopo:** repositório `buildea-labs/signallq` (monorepo SignallQ) inteiro — Android, Admin, Cloudflare, docs
 - **Responsável:** Claudete (dono do processo). Esta regra se aplica a todos os agentes autorizados e aplicáveis ao repositório, conforme a governança canônica em ../ai-governance, e a qualquer sessão humana no repo.
@@ -206,30 +206,34 @@ A issue #1487 fundiu esse fluxo com o Modo gamer (Feature #550, `ModoGamerScreen
 `Overlay.Jogos`. A dívida está resolvida — não recriar um segundo fluxo "Jogos" paralelo ao
 Modo gamer; qualquer refinamento de teste de jogo entra em `ModoGamerEngine`/`ModoGamerScreen`.
 
-### 4.8b `SinalScreen.kt`
+### 4.8b `SinalScreen.kt` — RESOLVIDO (atualizado 2026-08-19)
 
-**3503 linhas** (acima do limiar de "dívida crítica" da seção 7; era 3672 antes da primeira
-extração incremental, PR #1237). Encontrado em 2026-07-20 durante a implementação das issues
-#1207/#1209 (auditoria de Sinal Canal/Wi-Fi), não documentado antes. Concentra as três abas da
-tela Sinal (Móvel, Canal, Wi-Fi), cada uma com Composables, sheets de detalhe e, até #1237,
-também toda a lógica de classificação/topologia/banda misturada com composição visual.
+Caminho real: `android/app/src/main/kotlin/io/signallq/app/ui/screen/SinalScreen.kt` — **476
+linhas** (abaixo do limiar de extração obrigatória da seção 7). A entrada anterior citava 3503
+linhas — desatualizada; a Task 2.0.12 (issue #1660, épico #1647, PR #1766, 2026-08-19) fez a
+extração por aba que a seção já sugeria como próximo passo: `SinalMovelSection.kt` (539 linhas),
+`SinalCanalSection.kt` (1215 linhas) e `SinalWifiSection.kt` (1110 linhas) ganharam arquivo
+próprio no mesmo pacote, mais `SinalSharedComponents.kt` (79 linhas) pros componentes
+compartilhados entre Wi-Fi e Canal. `SinalScreen.kt` hoje é scaffold (`Scaffold`, `TopBar`,
+`TabRow`, delegação de abas, sheets de permissão de localização/telefonia), como a seção pedia.
+Extração foi puramente estrutural — comportamento idêntico, comprovado por teste de
+caracterização dedicado (`SinalScreenExtracaoAbaCaracterizacaoTest.kt`).
 
-A PR #1237 (#1207/#1209) deu o primeiro passo de separação: funções puras de classificação de
-topologia, ícone, banda e segurança (sem nenhum `@Composable`) foram extraídas para
-`SinalTopologiaHelpers.kt` (mesmo pacote, ~190 linhas). As três seções Composable (Móvel/Canal/
-Wi-Fi) continuam no arquivo principal — extraí-las é o próximo passo, de risco maior por mexer
-em estado e composição visual.
+**Nova dívida gerada por essa extração, ainda não resolvida:** `SinalWifiSection.kt` (1110) e
+`SinalCanalSection.kt` (1215) já nascem acima do limiar de extração obrigatória da seção 7 (800
+linhas). Candidatas a nova extração incremental por componente — mas só depois que as fatias de
+produto 2.0.13/2.0.14/2.0.20 (issues #1661/#1662/#1668, que migram essas abas pro Design System
+2.0 de verdade) definirem a forma final, pra não extrair duas vezes.
 
-Ao tocar nele:
-1. identifique qual aba (Móvel/Canal/Wi-Fi) ou sheet está sendo modificada;
-2. motor/classificador real (regra de negócio de diagnóstico, ex. limiares RSRP/canal/topologia)
-   pertence a `core/diagnostico` ou `core/network`, não à Screen; função pura só de apoio visual
+Ao tocar em qualquer uma das seções (`SinalMovelSection.kt`/`SinalCanalSection.kt`/
+`SinalWifiSection.kt`):
+1. motor/classificador real (regra de negócio de diagnóstico, ex. limiares RSRP/canal/topologia)
+   pertence a `core/diagnostico` ou `core/network`, não à Section; função pura só de apoio visual
    da própria tela (ícone, rótulo, cor, agrupamento) vai em `SinalTopologiaHelpers.kt` — não
    adicione nenhuma das duas direto no Composable;
-3. prefira separar por aba quando extrair Composables: `SinalMovelSection.kt`,
-   `SinalCanalSection.kt`, `SinalWifiSection.kt` são os nomes-alvo sugeridos;
-4. mantenha em `SinalScreen.kt` apenas a composição do Scaffold, TabRow e delegação das abas;
-5. crie testes de caracterização antes de extrações com risco de comportamento visual ou estado.
+2. mantenha em `SinalScreen.kt` apenas a composição do Scaffold, TabRow e delegação das abas —
+   não volte a inchar esse arquivo;
+3. crie testes de caracterização antes de extrações com risco de comportamento visual ou estado.
 
 ### 4.9 Identificação de topologia e dispositivos
 
