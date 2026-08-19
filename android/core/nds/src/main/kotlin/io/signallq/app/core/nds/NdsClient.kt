@@ -26,11 +26,26 @@ private const val EVALUATE_PATH = "/v1/diagnostics/evaluate"
 class NdsClient(
     private val baseUrl: String,
     private val apiToken: String,
+    /**
+     * Timeout reduzido de 20s (fatia NDS-01) para 12s de leitura — decisao da
+     * NDS-02k (issue #1759, item 8). Os dois gatilhos de producao que passaram a
+     * chamar [evaluate] (`DiagnosticOrchestrator.executarProtegido`, atras da
+     * flag `consumer.diagnostico.nds_live_enabled`) disparam em BACKGROUND, sem
+     * "aguarde" explicito do usuario — bem diferente do padrao de UI que
+     * justificava um teto mais largo em outros pontos do app (ex.: o teto de
+     * 42s de `RemoteDiagnosticRepository`, atras de uma tela que ja mostra
+     * estado de carregamento). 12s fica ACIMA do `EVALUATE_TIMEOUT_MS` default
+     * do proprio NDS (10000ms, ADR-017) — da margem para o servidor responder
+     * com o envelope de erro estruturado (`504 NDS_TIMEOUT`) antes do cliente
+     * abortar por conta propria, e ainda assim bem abaixo dos 20s antigos. O
+     * fallback total para `DiagnosticRunner` local (NdsDiagnosticRepository,
+     * `:featureDiagnostico`) cobre qualquer estouro deste teto sem travar a UI.
+     */
     private val client: OkHttpClient =
         OkHttpClient.Builder()
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(20, TimeUnit.SECONDS)
-            .writeTimeout(10, TimeUnit.SECONDS)
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(12, TimeUnit.SECONDS)
+            .writeTimeout(5, TimeUnit.SECONDS)
             .build(),
 ) {
     /**
@@ -76,25 +91,52 @@ class NdsClient(
         }
 
     /**
-     * 401 e 429 tem shape confirmado no ADR-017: `{"error","message"}`.
-     * Formato de erro generico (5xx, timeout de rede) NAO tem shape
-     * confirmado — nunca assumimos JSON parseavel; corpo que nao bate com o
-     * shape conhecido vira [NdsDiagnosticsOutcome.UnknownError] em vez de
-     * lancar excecao de parse.
+     * Corpo de erro defensivo para os DOIS formatos possiveis (NDS-02k, issue
+     * #1759, item 9) — tenta o envelope canonico do PR #12 do NDS primeiro
+     * (`{"error":{"code","message","retryable"},"request_id"}`, ADR-017, ainda
+     * em DRAFT/nao confirmado em producao), cai para o shape antigo flat
+     * confirmado (`{"error","message"}`, 401/429) se o corpo nao bater com o
+     * novo. Nenhum dos dois formatos lanca excecao — corpo que nao bate com
+     * shape nenhum vira [NdsDiagnosticsOutcome.UnknownError], o fallback final.
      */
     private fun parseErrorOutcome(statusCode: Int, bodyText: String?): NdsDiagnosticsOutcome {
         if (bodyText.isNullOrBlank()) return NdsDiagnosticsOutcome.UnknownError(statusCode, bodyText)
         return try {
             val parsed = JSONObject(bodyText)
-            val error = parsed.optStringOrNull("error")
-            val message = parsed.optStringOrNull("message")
-            if (error != null && message != null) {
-                NdsDiagnosticsOutcome.KnownError(statusCode, error, message)
-            } else {
-                NdsDiagnosticsOutcome.UnknownError(statusCode, bodyText)
-            }
+            parseCanonicalEnvelope(statusCode, parsed)
+                ?: parseLegacyFlatError(statusCode, parsed)
+                ?: NdsDiagnosticsOutcome.UnknownError(statusCode, bodyText)
         } catch (t: Throwable) {
             NdsDiagnosticsOutcome.UnknownError(statusCode, bodyText, t)
         }
+    }
+
+    /** `null` quando `error` nao e um objeto JSON ou falta `code`/`message` —
+     *  nesse caso [parseErrorOutcome] tenta o shape antigo em seguida. */
+    private fun parseCanonicalEnvelope(statusCode: Int, parsed: JSONObject): NdsDiagnosticsOutcome.KnownError? {
+        val errorObj = parsed.optJSONObject("error") ?: return null
+        val code = errorObj.optStringOrNull("code") ?: return null
+        val message = errorObj.optStringOrNull("message") ?: return null
+        val retryable = if (errorObj.has("retryable") && !errorObj.isNull("retryable")) {
+            errorObj.optBoolean("retryable")
+        } else {
+            null
+        }
+        return NdsDiagnosticsOutcome.KnownError(
+            statusCode = statusCode,
+            error = code,
+            message = message,
+            code = code,
+            retryable = retryable,
+            requestId = parsed.optStringOrNull("request_id"),
+        )
+    }
+
+    /** `null` quando `error`/`message` (ambos String, shape antigo) nao estao
+     *  presentes — nesse caso [parseErrorOutcome] cai para [NdsDiagnosticsOutcome.UnknownError]. */
+    private fun parseLegacyFlatError(statusCode: Int, parsed: JSONObject): NdsDiagnosticsOutcome.KnownError? {
+        val error = parsed.optStringOrNull("error") ?: return null
+        val message = parsed.optStringOrNull("message") ?: return null
+        return NdsDiagnosticsOutcome.KnownError(statusCode, error, message)
     }
 }

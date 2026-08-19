@@ -4,14 +4,14 @@ description: "Mecanismo técnico do módulo :core:featureflags: catálogo tipado
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-15"
-version: "1.0.0"
+last_updated: "2026-08-19"
+version: "1.1.0"
 ---
 
 # Fundação de Feature Flags do Consumer — Firebase Remote Config (`:core:featureflags`)
 
 - **Status:** ativo
-- **Última validação:** 2026-08-01 (issue #1497 — migração do último consumidor legado)
+- **Última validação:** 2026-08-19 (NDS-02k, issue #1759 — 12ª entrada do catálogo)
 - **Fonte de verdade:** este arquivo para o mecanismo técnico do módulo `:core:featureflags`; o
   catálogo em si (schema completo, valores reais) tem fonte de verdade única no arquivo JSON —
   `android/core/featureflags/src/main/resources/featureflags/consumer-catalog.json` — não copiado
@@ -47,8 +47,11 @@ smoke-test. F4 (#1480, ver seção 10) instrumentou as 9 flags principais de mó
 `AppShell.kt` — o catálogo tem 10 entradas desde então (as 2 de #1477 + as 8 novas; a 9ª chave
 principal, `consumer.speedtest.enabled`, já existia como smoke-test e passou a `androidImplemented:
 true`). #1497 (ver seção 9) acrescentou a 11ª entrada, `consumer.diagnostico.shadow_mode_enabled`,
-migrando o último consumidor real do sistema legado SIG-13. Backend/UI do Admin (F2/#1478,
-F3/#1479) continuam fora do escopo deste documento.
+migrando o último consumidor real do sistema legado SIG-13. NDS-02k (issue #1759) acrescentou a
+12ª entrada, `consumer.diagnostico.nds_live_enabled` — kill switch da chamada viva ao NDS
+(`NdsClient.evaluate`) dentro de `DiagnosticOrchestrator`, `defaultValue: false`, mutuamente
+exclusiva com a flag do shadow mode acima (ligada, desliga o shadow mode para o mesmo install).
+Backend/UI do Admin (F2/#1478, F3/#1479) continuam fora do escopo deste documento.
 
 ---
 

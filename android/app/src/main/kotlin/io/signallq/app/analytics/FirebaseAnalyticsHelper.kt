@@ -176,4 +176,22 @@ class FirebaseAnalyticsHelper
                 },
             )
         }
+
+        override fun registrarDiagNdsOutcome(
+            outcome: String,
+            fallbackLocalUsado: Boolean,
+            latenciaMs: Long,
+            errorCode: String?,
+        ) {
+            firebaseAnalytics.logEvent(
+                "diag_nds_outcome",
+                Bundle().apply {
+                    putString("outcome", outcome)
+                    putBoolean("fallback_local_usado", fallbackLocalUsado)
+                    putLong("latencia_ms", latenciaMs)
+                    errorCode?.let { putString("error_code", it) }
+                    putString("versao_app", appVersion)
+                },
+            )
+        }
     }

@@ -86,6 +86,27 @@ interface AnalyticsHelper {
         totalTokens: Long? = null,
         latenciaMs: Long? = null,
     )
+
+    /**
+     * NDS-02k (issue #1759, item 10) — disparado uma vez por chamada a
+     * `NdsClient.evaluate()` feita por `NdsDiagnosticRepository`, quando a flag
+     * `consumer.diagnostico.nds_live_enabled` esta ligada. Mede se o NDS
+     * respondeu ou se a rede de seguranca (`DiagnosticRunner` local) precisou
+     * assumir — evento operacional de rollout, distinto do funil
+     * `diag_iniciado`/`diag_concluido` (SIG-155), que continua disparando
+     * normalmente com qualquer fonte (`AnalyticsHelper.registrarDiagConcluido`).
+     * Nunca inclui SSID/IP/MAC nem qualquer dado pessoal.
+     */
+    fun registrarDiagNdsOutcome(
+        /** `"success"` | `"known_error"` | `"unknown_error"`. */
+        outcome: String,
+        fallbackLocalUsado: Boolean,
+        latenciaMs: Long,
+        /** Codigo do envelope de erro do NDS quando aplicavel (ex.: `"NDS_TIMEOUT"`,
+         *  `"RATE_LIMITED"`) — `null` em sucesso ou quando o shape do erro nao
+         *  informa codigo. */
+        errorCode: String? = null,
+    )
 }
 
 /**
@@ -153,5 +174,12 @@ object NoOpAnalyticsHelper : AnalyticsHelper {
         completionTokens: Long?,
         totalTokens: Long?,
         latenciaMs: Long?,
+    ) = Unit
+
+    override fun registrarDiagNdsOutcome(
+        outcome: String,
+        fallbackLocalUsado: Boolean,
+        latenciaMs: Long,
+        errorCode: String?,
     ) = Unit
 }
