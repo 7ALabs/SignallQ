@@ -63,6 +63,17 @@ kotlin {
 }
 
 dependencies {
+    // NDS-02a (#1747): ChannelScore (mapper de wifiScan) vem de :coreNetwork -- infra
+    // de conectividade on-device, dependencia estavel, sem plano de remocao.
+    implementation(project(":coreNetwork"))
+    // NDS-02a (#1747): MetricStatus (vocabulario de severidade, MetricClassifier.kt)
+    // vem de :core:diagnostico -- dependencia INTENCIONALMENTE TEMPORARIA. O ADR-017
+    // marca core/diagnostico para remocao apos todos os consumidores migrarem (NDS-03),
+    // mas MetricStatus e explicitamente promovido a vocabulario canonico de UI (decisao
+    // registrada em #1746 secao 5) e deve sobreviver a remocao do motor -- so nao tem
+    // ainda um lar definitivo fora de MetricClassifier.kt. Revisitar esta dependencia
+    // quando NDS-03 decidir onde o enum fica (provavel candidato: este proprio modulo).
+    implementation(project(":core:diagnostico"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.okhttp)
