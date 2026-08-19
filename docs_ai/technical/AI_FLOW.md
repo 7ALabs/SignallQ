@@ -4,13 +4,13 @@ description: "Fluxo de diagnóstico assistido por IA no app Android e o worker q
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-16"
+last_updated: "2026-08-19"
 ---
 
 # AI Flow — Android SignallQ
 
 **Status:** ativo
-**Última validação:** 2026-08-16
+**Última validação:** 2026-08-19
 **Fonte de verdade:** código real (`featureDiagnostico`, `integrations/cloudflare/ai-diagnosis-worker`) — este documento é derivado, não normativo
 **Escopo:** fluxo de diagnóstico assistido por IA no app Android e o worker que o atende
 **Responsável:** Camilo (Backend Android + Workers)
@@ -123,6 +123,30 @@ O fluxo real de IA hoje é a "Análise avançada" (seção 1–5 acima): `MainVi
 chama `coletarContextoAdicionalIa()` + `DiagnosisAiContextFactory.fromRaw()` e
 `AiDiagnosisRepository.explainDiagnosis()` diretamente — sem orquestrador intermediário — e
 apresenta o resultado em `LaudoScreen`.
+
+**NDS-02k PR2 (issue #1746, ADR-017):** atrás da flag `consumer.diagnostico.nds_live_enabled`
+(`FeatureFlagKeys.CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED`, default `false` em todo ambiente),
+`analisarProblema()` desvia desse caminho — ver `resolverResultadoAnaliseViaNds` (função de nível
+de arquivo em `MainViewModel.kt`, extraída para ser testável sem instanciar o ViewModel inteiro).
+Com a flag ligada, o `relatorio` que alimenta a função já veio do NDS (ver
+`DiagnosticOrchestrator.executarProtegido`), com a narrativa do módulo `ai` do NDS
+(`tituloAmigavel`/`resumoTecnicoTraduzido`) já embutida em `relatorio.decisao.titulo`/
+`mensagemUsuario` (`NdsDiagnosticsResponseMapper.toDiagnosticReport`, `:core:nds`). Nesse caso,
+`analisarProblema()` **não chama** `AiDiagnosisRepository.explainDiagnosis()` nem `NdsClient` de
+novo — deriva o resultado direto do mesmo `relatorio` via `AiFallbackFactory.fromLocal`, sem
+round-trip de rede adicional. `origem="local"` no `AnalisadorState.Resultado` resultante segue
+tecnicamente correto (nenhuma chamada ao `ai-diagnosis-worker` aconteceu), mas o texto exibido já
+carrega a narrativa que o próprio NDS gerou quando o `relatorio` é `REMOTE`.
+
+**Achado registrado (não é gap desta fatia):** `NdsClient` só expõe `POST /v1/diagnostics/evaluate`
+— não existe endpoint NDS equivalente a `AiDiagnosisRepository.explainDiagnosis` (schema v2/v3
+completo: `perguntasContextuais`, `hipotesesDescartadas`, `classificacaoTecnica` por dimensão,
+metadados detalhados de `modeloIa`). O módulo `ai` do NDS devolve só `tituloAmigavel`/
+`resumoTecnicoTraduzido` (`NdsAiResult`/`NdsAiExplanation`, `:core:nds`). Enquanto a flag estiver
+desligada (hoje, todo ambiente) o comportamento documentado nesta seção permanece 100% inalterado.
+Texto autorrelatado pelo usuário (`problema`, parâmetro de `analisarProblema`) nunca é enviado ao
+NDS em nenhum dos dois caminhos — decisão já registrada em #1746 (Diagnóstico Guiado/Assist
+continuam árvore de decisão local).
 
 **Achado não corrigido nesta remoção (ver dívida na issue de acompanhamento):** as tabelas Room
 `chat_sessions`/`chat_messages` (`ChatSessionEntity`/`ChatMessageEntity`/`ChatSessionDao` em
