@@ -40,6 +40,19 @@ import timber.log.Timber
  * ponto de risco adicional aqui é o mapeamento da resposta de sucesso
  * ([io.signallq.app.core.nds.toDiagnosticReport]) — também protegido com `try/catch`, caindo para
  * o motor local em qualquer falha de mapeamento (corpo válido mas inesperado).
+ *
+ * ## `profile="gamer"` (issue #1762)
+ * O campo `profile` do payload NDS existe desde NDS-02a/#1747 e a regra `profile`/
+ * `capabilities` foi decidida em #1746 secao 3b — NAO e um gap de contrato (ver
+ * [io.signallq.app.core.nds.NdsDiagnosticsRequestMapper.toNdsDiagnosticsRequest], param
+ * `perfilGamer`, ja mapeado para `profile="gamer"` por
+ * [io.signallq.app.core.nds.ndsProfile]). O gap era so aqui: [evaluate] ate a correcao da
+ * issue #1762 nunca repassava esse sinal para o mapper (sempre `false`). Agora [evaluate]
+ * aceita `perfilGamer` e repassa — mas nenhum chamador de producao ainda sabe detectar "esta
+ * dentro do Modo Gamer" (o Modo Gamer roda por [io.signallq.app.core.diagnostico.ModoGamerEngine],
+ * fluxo hoje desacoplado de [DiagnosticOrchestrator][io.signallq.app.feature.diagnostico.DiagnosticOrchestrator]).
+ * Fio de wiring ponta-a-ponta (Modo Gamer -> orquestrador -> aqui) fica para uma tarefa
+ * separada quando o rollout real da flag `nds_live_enabled` estiver planejado.
  */
 class NdsDiagnosticRepository(
     private val ndsClient: NdsClient,
@@ -48,9 +61,15 @@ class NdsDiagnosticRepository(
     suspend fun evaluate(
         input: DiagnosticInput,
         enabledAreas: Set<DiagnosticArea> = DiagnosticArea.entries.toSet(),
+        // issue #1762 (achado do Caio na PR #1760) — o campo `profile="gamer"` existe no
+        // contrato do NDS desde NDS-02a/#1747 (regra decidida em #1746 secao 3b), mas nao
+        // havia wiring nenhum ate aqui: nenhum chamador desta funcao ainda sabe dizer se o
+        // diagnostico atual roda dentro do Modo Gamer. Default `false` preserva o
+        // comportamento atual; quem chamar de dentro do Modo Gamer deve passar `true`.
+        perfilGamer: Boolean = false,
     ): DiagnosticReport {
         val startedAtMs = System.currentTimeMillis()
-        val request = input.toNdsDiagnosticsRequest(appVersion = BuildConfig.APP_VERSION)
+        val request = input.toNdsDiagnosticsRequest(appVersion = BuildConfig.APP_VERSION, perfilGamer = perfilGamer)
         val outcome = ndsClient.evaluate(request)
         val latenciaMs = System.currentTimeMillis() - startedAtMs
 
