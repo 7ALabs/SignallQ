@@ -529,8 +529,9 @@ internal fun continuidadeExecucao(snapshot: SnapshotExecucaoSpeedtest): Continui
 /**
  * Conteúdo mostrado na janela breve entre a medição concluir sem status COMPLETE e o AppShell
  * empilhar a tela de resultado (GH#1704/#1738) — título, ícone e cor vêm do mapeamento canônico
- * de [io.signallq.app.core.diagnostico.DiagnosticStatus] (`DiagnosticStatusUi.kt`), igual ao
- * `ContinuidadeMedicaoSection` do fluxo guiado. Sem botão de ação aqui: a ação real
+ * de [io.signallq.app.core.diagnostico.MetricStatus] (`MetricStatusUi.kt` — trocado de
+ * `DiagnosticStatus` na issue #1749, NDS-02b), igual ao `ContinuidadeMedicaoSection` do fluxo
+ * guiado. Sem botão de ação aqui: a ação real
  * ("Completar a medição"/"Refazer na mesma rede"/"Medir de novo") pertence à tela de resultado
  * que vem em seguida — [onReiniciar] existe só para o caso raro de o overlay ficar visível tempo
  * suficiente para ser tocado (dispositivo com animações reduzidas).

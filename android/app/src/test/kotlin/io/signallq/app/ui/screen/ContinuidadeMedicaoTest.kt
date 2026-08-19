@@ -1,6 +1,6 @@
 package io.signallq.app.ui.screen
 
-import io.signallq.app.core.diagnostico.DiagnosticStatus
+import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.feature.speedtest.MeasurementStatus
 import io.signallq.app.ui.component.corContainer
 import io.signallq.app.ui.component.corConteudo
@@ -20,8 +20,14 @@ import org.junit.Test
  * status — exatamente o defeito que a fatia dizia ter removido — passava verde. Remover um defeito
  * sem deixar nada impedindo alguém de recolocá-lo não é remover.
  *
- * A ponte é decisão desta fatia, não herança de `DiagnosticStatusUi` (ver o cabeçalho de
+ * A ponte é decisão desta fatia, não herança de `MetricStatusUi` (ver o cabeçalho de
  * `ContinuidadeMedicao.kt`, ressalva RS1), e por isso é testada campo a campo.
+ *
+ * Issue #1749 (NDS-02b, ADR-017): `statusVisual` trocou de `DiagnosticStatus` para [MetricStatus]
+ * (troca de vocabulário-alvo trivial, sem motor nenhum por trás — ver KDoc de
+ * `ContinuidadeMedicao.kt`). As asserções abaixo foram atualizadas pro novo vocabulário
+ * preservando a MESMA cor/ícone que renderizavam antes (`attention`→`regular`,
+ * `inconclusive`/`info`→`inconclusivo`, já que os dois produziam a mesma cor).
  */
 class ContinuidadeMedicaoTest {
     private val naoCompletos =
@@ -42,8 +48,8 @@ class ContinuidadeMedicaoTest {
         val inconclusivo = continuidadeDaMedicao(MeasurementStatus.INCONCLUSIVE, medidasConfiaveis = true)!!
         val contaminado = continuidadeDaMedicao(MeasurementStatus.CONTAMINATED, medidasConfiaveis = true)!!
 
-        assertEquals(DiagnosticStatus.inconclusive, inconclusivo.statusVisual)
-        assertEquals(DiagnosticStatus.attention, contaminado.statusVisual)
+        assertEquals(MetricStatus.inconclusivo, inconclusivo.statusVisual)
+        assertEquals(MetricStatus.regular, contaminado.statusVisual)
         assertTrue(
             "ausência de dado e problema detectado não podem compartilhar o mesmo status visual",
             inconclusivo.statusVisual != contaminado.statusVisual,
@@ -54,7 +60,9 @@ class ContinuidadeMedicaoTest {
     fun `cancelado se apresenta como informacao, nao como alarme`() {
         val cancelado = continuidadeDaMedicao(MeasurementStatus.CANCELLED, medidasConfiaveis = true)!!
 
-        assertEquals(DiagnosticStatus.info, cancelado.statusVisual)
+        // MetricStatus nao tem um valor "info" separado -- inconclusivo preserva a MESMA cor
+        // (primaryContainer) que DiagnosticStatus.info tinha antes da #1749.
+        assertEquals(MetricStatus.inconclusivo, cancelado.statusVisual)
     }
 
     /**
@@ -169,9 +177,9 @@ class ContinuidadeMedicaoTest {
         val cancelado = coresDaContinuidade(continuidadeDaMedicao(MeasurementStatus.CANCELLED, medidasConfiaveis = true)!!, c)
 
         // Iguais ao mapeamento canônico — não a uma cor escolhida aqui.
-        assertEquals(DiagnosticStatus.attention.corContainer(c), contaminado.container)
-        assertEquals(DiagnosticStatus.attention.corConteudo(c), contaminado.conteudo)
-        assertEquals(DiagnosticStatus.inconclusive.corContainer(c), inconclusivo.container)
+        assertEquals(MetricStatus.regular.corContainer(c), contaminado.container)
+        assertEquals(MetricStatus.regular.corConteudo(c), contaminado.conteudo)
+        assertEquals(MetricStatus.inconclusivo.corContainer(c), inconclusivo.container)
 
         // E de fato distintos entre si: uma cor fixa para todos passaria em tudo acima se o
         // mapeamento canônico colapsasse, então a distinção é asserida explicitamente.

@@ -153,10 +153,6 @@
     <string name="home_gamer_gargalo_perda">Principal limitação: Perda de pacotes. Pode causar desconexões e lag repentino.</string>
     <string name="home_gamer_gargalo_bufferbloat">Principal limitação: Bufferbloat. A latência sobe durante transferências paralelas.</string>
     <string name="home_gamer_gargalo_upload">Principal limitação: Upload baixo. Pode afetar jogos que exigem mais envio de dados.</string>
-    <string name="home_wifi_fatores_titulo">Fatores de velocidade do Wi-Fi</string>
-    <string name="home_wifi_fator_espectro">Espectro</string>
-    <string name="home_wifi_fator_radio">Potencial de rádio</string>
-    <string name="home_wifi_fator_canal">Integridade do canal</string>
     <string name="home_sheet_roaming_label">Roaming</string>
     <string name="home_sheet_roaming_ativo">Ativo</string>
     <string name="home_sheet_movel_indisponivel">Informações da rede móvel indisponíveis no momento.</string>

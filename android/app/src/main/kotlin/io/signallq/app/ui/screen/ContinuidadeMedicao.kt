@@ -1,7 +1,7 @@
 package io.signallq.app.ui.screen
 
 import androidx.compose.runtime.Stable
-import io.signallq.app.core.diagnostico.DiagnosticStatus
+import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.feature.speedtest.MeasurementStatus
 
 // Continuidade por status de medição — issue #1705 (2.0.09c), épico #1647.
@@ -24,13 +24,21 @@ import io.signallq.app.feature.speedtest.MeasurementStatus
 // havia reuso. Não é bem isso, e a distinção importa:
 //
 // - **Reuso, de fato:** [MeasurementStatus] continua sendo a fonte — nenhum enum nasce aqui. E
-//   `DiagnosticStatusUi.kt` (GH#1228 P0-8) continua sendo o único tradutor de [DiagnosticStatus]
-//   para cor e ícone; nenhuma cor local é inventada.
-// - **Decisão nova, assumida:** a **ponte** `MeasurementStatus → DiagnosticStatus` não existia.
-//   `DiagnosticStatusUi` mapeia o vocabulário de *resultado de diagnóstico* dos motores de
-//   `core/diagnostico`, não o de *integridade de medição*. Dizer que `CONTAMINATED` se apresenta
-//   como `attention` e `INCONCLUSIVE` como `inconclusive` é escolha desta fatia, não herança.
+//   `MetricStatusUi.kt` continua sendo o único tradutor de [MetricStatus] para cor e ícone; nenhuma
+//   cor local é inventada.
+// - **Decisão nova, assumida:** a **ponte** `MeasurementStatus → MetricStatus` não existia.
+//   `MetricStatusUi` mapeia o vocabulário canônico de severidade (o mesmo que o veredicto do NDS
+//   fala — ADR-017), não o de *integridade de medição*. Dizer que `CONTAMINATED` se apresenta
+//   como `regular` e `INCONCLUSIVE` como `inconclusivo` é escolha desta fatia, não herança.
 //   Por isso ela é testada campo a campo em `ContinuidadeMedicaoTest`, e não apenas escrita.
+//
+// Issue #1749 (NDS-02b, ADR-017): o campo [ContinuidadeMedicao.statusVisual] trocou de
+// `DiagnosticStatus` (aposentado como fonte de dado — decisão em #1746 seção 5) para
+// [MetricStatus]. Troca de vocabulário-alvo trivial: esta ponte nunca dependeu de nenhum motor de
+// diagnóstico — sempre foi só uma tradução de [MeasurementStatus] (integridade da MEDIÇÃO), então
+// não há chamada de classificação para mover nem dado bruto para reclassificar. O mapeamento por
+// status foi escolhido para preservar a MESMA cor/ícone renderizados antes (ver
+// `ContinuidadeMedicaoTest`, que caracteriza a equivalência campo a campo).
 //
 // [ContinuidadeMedicao] em si é conteúdo, não taxonomia: é chaveado por [MeasurementStatus] e não
 // introduz nenhum valor enumerado. O rótulo textual do status continua vindo de
@@ -45,7 +53,7 @@ import io.signallq.app.feature.speedtest.MeasurementStatus
  */
 @Stable
 internal data class ContinuidadeMedicao(
-    val statusVisual: DiagnosticStatus,
+    val statusVisual: MetricStatus,
     val titulo: String,
     val explicacao: String,
     /** Rótulo do CTA. Nunca vazio — é o que impede o beco sem saída que a #1705 descreve. */
@@ -110,7 +118,9 @@ internal fun continuidadeDaMedicao(
 
         MeasurementStatus.PARTIAL ->
             ContinuidadeMedicao(
-                statusVisual = DiagnosticStatus.attention,
+                // `regular`, não `ruim`/`critico`: mesmo peso visual (warningContainer) que
+                // `DiagnosticStatus.attention` tinha antes da #1749 — ver MetricStatusUi.corContainer.
+                statusVisual = MetricStatus.regular,
                 titulo = "Consegui medir parte da sua conexão",
                 // Bloqueio B9 de Caio na PR #1723: a frase era fixa e prometia "o que aparece
                 // abaixo", mas com medida não confiável a tela mostra SÓ esta seção — não aparece
@@ -136,7 +146,7 @@ internal fun continuidadeDaMedicao(
 
         MeasurementStatus.CONTAMINATED ->
             ContinuidadeMedicao(
-                statusVisual = DiagnosticStatus.attention,
+                statusVisual = MetricStatus.regular,
                 titulo = "Sua rede mudou durante a medição",
                 explicacao =
                     "Os números vieram de conexões diferentes, então não dá para comparar. " +
@@ -147,10 +157,9 @@ internal fun continuidadeDaMedicao(
 
         MeasurementStatus.INCONCLUSIVE ->
             ContinuidadeMedicao(
-                // `inconclusive` e não `attention`: ausência de dado não tem o mesmo peso visual de
-                // um problema detectado. É o mesmo princípio que `DiagnosticStatusUi` e
-                // `MetricStatusUi` já documentam para os respectivos valores inconclusivos.
-                statusVisual = DiagnosticStatus.inconclusive,
+                // `inconclusivo` e não `regular`: ausência de dado não tem o mesmo peso visual de
+                // um problema detectado. É o mesmo princípio que `MetricStatusUi` já documenta.
+                statusVisual = MetricStatus.inconclusivo,
                 titulo = "Não consegui medir o suficiente",
                 // "amostras" é vocabulário nosso, não de quem usa; e "prefiro dizer isso a chutar
                 // um diagnóstico" é o app se elogiando pela própria honestidade. Ressalva RS3.
@@ -163,7 +172,11 @@ internal fun continuidadeDaMedicao(
 
         MeasurementStatus.CANCELLED ->
             ContinuidadeMedicao(
-                statusVisual = DiagnosticStatus.info,
+                // `inconclusivo`, não `regular`: `DiagnosticStatus.info` e `.inconclusive` já
+                // renderizavam a MESMA cor/ícone (primaryContainer + Info) antes da #1749 — ver
+                // DiagnosticStatusUi.kt (arquivo não tocado, continua servindo outros consumidores).
+                // `MetricStatus` não tem um valor "info" separado; `inconclusivo` preserva a cor.
+                statusVisual = MetricStatus.inconclusivo,
                 titulo = "Você interrompeu a medição",
                 // Não prometer que guardamos: `MeasurementStatus` documenta que CANCELLED "não
                 // chega a gerar `ResultadoSpeedtest`" e `SpeedtestPersistenceCoordinator` o mapeia

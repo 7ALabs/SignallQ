@@ -8,7 +8,6 @@ import androidx.compose.material.icons.outlined.Router
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import io.signallq.app.core.diagnostico.BandaWifi
-import io.signallq.app.core.diagnostico.MetricClassifier
 import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.core.diagnostico.NivelCongestionamento
 import io.signallq.app.core.network.contracts.topologia.NivelConfianca
@@ -23,6 +22,7 @@ import io.signallq.app.feature.wifi.RedeClassificada
 import io.signallq.app.feature.wifi.TipoTopologia
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkTokens
+import io.signallq.app.ui.component.classificarRssiWifiLocal
 
 /**
  * GH#1207/#1209 (higiene §4.8b) — classificação de topologia/sinal/canal extraída de
@@ -153,15 +153,17 @@ internal fun List<RedeVizinha>.bandaCombinadaLabel(): String {
 }
 
 /**
- * GH#1228 Fatia 5 (P0-2): delega a [MetricClassifier.classificarRssiWifi] em vez da regua
- * propria (`>=` inclusivo, divergente do canonico usado por `WifiSignalQualityEngine`) --
- * mesmo padrao ja aplicado em `SinalMovelClassificacao.kt` para RSRP/RSRQ/SINR.
+ * GH#1228 Fatia 5 (P0-2): delega a [classificarRssiWifiLocal] em vez da regua propria (`>=`
+ * inclusivo, divergente do canonico usado por `WifiSignalQualityEngine`) -- mesmo padrao ja
+ * aplicado em `SinalMovelClassificacao.kt` para RSRP/RSRQ/SINR. Issue #1749 (NDS-02b, ADR-017):
+ * chamada movida pra [classificarRssiWifiLocal] (`ClassificacaoMetricaLocal.kt`) — ver o KDoc
+ * daquele arquivo para o racional completo.
  */
 internal fun signalQuality(
     rssiDbm: Int,
     banda: BandaWifi = BandaWifi.desconhecida,
 ): String =
-    when (MetricClassifier.classificarRssiWifi(rssiDbm, banda)) {
+    when (classificarRssiWifiLocal(rssiDbm, banda)) {
         MetricStatus.excelente -> "Excelente"
         MetricStatus.bom -> "Bom"
         MetricStatus.regular -> "Regular"
