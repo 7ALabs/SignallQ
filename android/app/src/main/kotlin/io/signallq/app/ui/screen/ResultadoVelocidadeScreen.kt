@@ -80,7 +80,9 @@ import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.ResultadoPdfGenerator
-import io.signallq.app.ui.ads.rememberNativeAd
+import io.signallq.app.ui.ads.NativeAdEligibility
+import io.signallq.app.ui.ads.NativeAdLoadState
+import io.signallq.app.ui.ads.rememberNativeAdState
 import io.signallq.app.ui.component.LkInfoCallout
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkSurfaceCard
@@ -121,6 +123,30 @@ internal fun MetricStatus.comSeveridadeConciliada(
         listOf(MetricStatus.excelente, MetricStatus.bom, MetricStatus.regular, MetricStatus.ruim, MetricStatus.critico)
     return if (ordemSeveridade.indexOf(pisoSeveridade) > ordemSeveridade.indexOf(this)) pisoSeveridade else this
 }
+
+/**
+ * GH#1659a — mapeia o único sinal que esta tela recebe de fora ([adsEnabled]) pro contrato
+ * tipado [NativeAdEligibility]. `canRequestAds`/`online` continuam derivados só desse flag: a
+ * tela não recebe sinal de consentimento UMP nem de conectividade separados do Remote Config
+ * (mesma limitação que `rememberNativeAd()`, o wrapper antigo, já tinha — não é regressão desta
+ * migração). Diferenciar os dois sinais de verdade exigiria plumbing novo em AppShell.kt/
+ * MainViewModel, fora do escopo desta fatia puramente técnica (decisão de arquitetura de ads,
+ * issues #1330/#1694 — ver o mesmo limite documentado em `AppShellRootRegistryTest`).
+ */
+internal fun eligibilidadeAnuncioResultado(adsEnabled: Boolean): NativeAdEligibility =
+    NativeAdEligibility(
+        slot = AdSlot.RESULTADO,
+        flagEnabled = adsEnabled,
+        canRequestAds = adsEnabled,
+        online = true,
+    )
+
+/**
+ * GH#1659a — mensagem exibida quando `ResultadoPdfGenerator.gerarECompartilhar` lança durante o
+ * compartilhamento do resultado (mesmo padrão de `LaudoScreen.compartilharLaudo`).
+ */
+internal fun mensagemErroCompartilhamentoResultado(erro: Throwable): String =
+    "Não foi possível compartilhar o resultado: ${erro.message}"
 
 /**
  * Tela "Resultado do teste" — GH#536.
@@ -173,6 +199,10 @@ fun ResultadoVelocidadeScreen(
     val decisaoTitulo = decisao?.titulo
     val decisaoMensagem = decisao?.mensagemUsuario
     var compartilhando by remember { mutableStateOf(false) }
+    // GH#1659a — visível pra quem tocou compartilhar; nunca deixa o spinner travado sem
+    // explicação quando ResultadoPdfGenerator.gerarECompartilhar lança (mesmo padrão de erro
+    // de LaudoScreen.compartilharLaudo).
+    var erroCompartilhamento by remember { mutableStateOf<String?>(null) }
     var metricasDetalhadasAbertas by remember { mutableStateOf(false) }
     // Issue #555 -- dispensar o anuncio e estado de sessao (some ate o proximo resultado
     // recompor a tela do zero); nunca persistido, nunca conta como feedback de recomendacao.
@@ -256,18 +286,24 @@ fun ResultadoVelocidadeScreen(
                     } else {
                         IconButton(onClick = {
                             compartilhando = true
+                            erroCompartilhamento = null
                             scope.launch {
-                                ResultadoPdfGenerator.gerarECompartilhar(
-                                    context = context,
-                                    resultado = resultado,
-                                    snapshotDiagnostico = snapshotDiagnostico,
-                                    analisadorState = analisadorState,
-                                    ispInfo = ispInfo,
-                                    operadoraMovel = operadoraMovel,
-                                    localizacaoServidor = localizacaoServidor,
-                                )
-                                onCompartilhar()
-                                compartilhando = false
+                                try {
+                                    ResultadoPdfGenerator.gerarECompartilhar(
+                                        context = context,
+                                        resultado = resultado,
+                                        snapshotDiagnostico = snapshotDiagnostico,
+                                        analisadorState = analisadorState,
+                                        ispInfo = ispInfo,
+                                        operadoraMovel = operadoraMovel,
+                                        localizacaoServidor = localizacaoServidor,
+                                    )
+                                    onCompartilhar()
+                                } catch (e: Exception) {
+                                    erroCompartilhamento = mensagemErroCompartilhamentoResultado(e)
+                                } finally {
+                                    compartilhando = false
+                                }
                             }
                         }) {
                             Icon(
@@ -297,6 +333,27 @@ fun ResultadoVelocidadeScreen(
                         .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.xxl),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                // GH#1659a — visível assim que o compartilhamento (botão na TopAppBar) falha;
+                // some sozinho no próximo toque em compartilhar (erroCompartilhamento = null).
+                if (erroCompartilhamento != null) {
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(LkRadius.card))
+                                .background(c.error.copy(alpha = 0.12f))
+                                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        LkInfoCallout(
+                            icon = Icons.Outlined.Warning,
+                            text = erroCompartilhamento!!,
+                            iconTint = c.error,
+                        )
+                    }
+                    Spacer(Modifier.height(LkSpacing.md))
+                }
+
                 // Título + mensagem diagnóstico
                 Text(
                     text = decisaoTitulo ?: "Resultado do teste",
@@ -467,12 +524,16 @@ fun ResultadoVelocidadeScreen(
                 if (!metricasDetalhadasAbertas) {
                     Spacer(Modifier.height(LkSpacing.sm))
                     if (!nativeAdDismissedResultado) {
-                        val nativeAd by rememberNativeAd(
+                        // GH#1659a — contrato tipado (Ineligible/Loading/Fill/NoFill/
+                        // RecoverableError/Offline) no lugar do rememberNativeAd() antigo, que
+                        // colapsava tudo isso num único NativeAd? nulo. NativeAdCard continua
+                        // só aceitando NativeAd?, então só o Fill vira anúncio de fato.
+                        val nativeAdState by rememberNativeAdState(
                             adUnitId = AdUnitIds.para(AdSlot.RESULTADO),
-                            contentSignal =
-                                NativeAdContentSignal.forSlot(AdSlot.RESULTADO),
-                            eligible = adsEnabled,
+                            contentSignal = NativeAdContentSignal.forSlot(AdSlot.RESULTADO),
+                            eligibility = eligibilidadeAnuncioResultado(adsEnabled),
                         )
+                        val nativeAd = (nativeAdState as? NativeAdLoadState.Fill)?.ad
                         NativeAdCard(
                             nativeAd = nativeAd,
                             source = NativeAdSource.ADMOB,
