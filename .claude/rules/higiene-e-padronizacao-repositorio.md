@@ -148,10 +148,12 @@ agrupe por responsabilidade do usuário, não crie arquivos genéricos como `Aju
 
 ### 4.5 `HomeScreen.kt`
 
-Caminho real: `android/app/src/main/kotlin/io/signallq/app/ui/screen/HomeScreen.kt` — **3938
-linhas** (acima do limiar de "dívida crítica" da seção 7). Concentra a tela Início e múltiplas sheets
-(Meu dispositivo, Internet/Provedor, Rede móvel, Medir agora, mais SignalQualitySheet,
-QualidadePlaceholderSheet, MedicaoTipoSheet).
+Caminho real: `android/app/src/main/kotlin/io/signallq/app/ui/screen/HomeScreen.kt` — **2360
+linhas** (a entrada citava 3938, desatualizada; #1659/#1743 já haviam reduzido para 2497 antes
+desta correção, e a issue #1749 removeu ~140 linhas de código morto — `WifiFactorsSection`/
+`WifiQualityBadge`/`FactorRow`, sem call site algum). Ainda acima do limiar de "dívida crítica" da
+seção 7. Concentra a tela Início e múltiplas sheets (Meu dispositivo, Internet/Provedor, Rede
+móvel, Medir agora, mais SignalQualitySheet, QualidadePlaceholderSheet, MedicaoTipoSheet).
 
 Ao tocar nele:
 1. identifique qual sheet ou seção está sendo modificada;

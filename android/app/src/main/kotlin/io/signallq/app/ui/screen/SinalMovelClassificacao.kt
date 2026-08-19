@@ -6,6 +6,9 @@ import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
 import io.signallq.app.ui.LkTokens
+import io.signallq.app.ui.component.classificarRsrpLocal
+import io.signallq.app.ui.component.classificarRsrqLocal
+import io.signallq.app.ui.component.classificarSinrLocal
 
 /**
  * GH#1206 — classificacao canonica de sinal movel (qualidade/tipo de conexao/experiencia),
@@ -17,6 +20,16 @@ import io.signallq.app.ui.LkTokens
  * Fonte unica: nao criar um terceiro classificador. Qualquer tela que precise de veredito de
  * sinal movel usa [classificarQualidadeSinalMovel] (ou as irmas de tipo de conexao/experiencia)
  * a partir de um [DadosSinalMovel] normalizado.
+ *
+ * Issue #1749 (NDS-02b, ADR-017): [piorMetricStatusSinalMovel] parou de chamar
+ * `MetricClassifier.classificarRsrp/Rsrq/Sinr` direto — passa por `ClassificacaoMetricaLocal.kt`
+ * (ver o KDoc de lá para o racional). `MetricClassifier.RadioTech` continua importado aqui como
+ * TIPO compartilhado (4G/5G) em [radioTechDeTecnologia] — exceção documentada, não descuido.
+ *
+ * Confirmado durante a fatia (PR #12 de `buildea-labs/network-diagnostics-service`): o NDS ainda
+ * não tem módulo de rede móvel — cobertura "Parcial" pra RSRP/RSRQ/SINR, P1 aberto em
+ * `network-diagnostics-service#13`. Nenhuma chamada viva ao NDS foi cogitada aqui por esse motivo
+ * concreto, além da ausência geral de orquestração (ver `ClassificacaoMetricaLocal.kt`).
  */
 
 internal data class MobileInsight(
@@ -86,17 +99,26 @@ internal fun radioTechDeTecnologia(tecnologia: String?): MetricClassifier.RadioT
         MetricClassifier.RadioTech.LTE_4G
     }
 
-/** Pior status entre RSRP (obrigatorio) e RSRQ/SINR (quando disponiveis) — mesmo
- *  criterio de "assume a pior metrica" do `MobileSignalDiagnosticEngine` (GH#1206 item 6).
- *  `null` quando RSRP nao esta disponivel (nunca vira classificacao positiva por padrao). */
+/**
+ * Pior status entre RSRP (obrigatorio) e RSRQ/SINR (quando disponiveis) — mesmo criterio de
+ * "assume a pior metrica" do `MobileSignalDiagnosticEngine` (GH#1206 item 6). `null` quando RSRP
+ * nao esta disponivel (nunca vira classificacao positiva por padrao).
+ *
+ * Issue #1749 (NDS-02b, ADR-017): as 3 chamadas de classificacao passaram a ir por
+ * [classificarRsrpLocal]/[classificarRsrqLocal]/[classificarSinrLocal] (`ClassificacaoMetricaLocal.kt`)
+ * em vez de `MetricClassifier` diretamente — ver o KDoc daquele arquivo para o racional completo
+ * (nenhuma orquestracao viva do NDS existe ainda; esta funcao classifica no maximo 1-2 chips SIM
+ * simultaneos, entao a limitacao nao e "lista grande", e sim a ausencia de qualquer chamador que
+ * ja dispare uma avaliacao NDS hoje).
+ */
 internal fun piorMetricStatusSinalMovel(dados: DadosSinalMovel): MetricStatus? {
     val rsrp = dados.rsrpDbm ?: return null
     val tech = radioTechDeTecnologia(dados.tecnologia)
     val statuses =
         buildList {
-            add(MetricClassifier.classificarRsrp(rsrp, tech))
-            dados.rsrqDb?.let { add(MetricClassifier.classificarRsrq(it, tech)) }
-            dados.sinrDb?.let { add(MetricClassifier.classificarSinr(it, tech)) }
+            add(classificarRsrpLocal(rsrp, tech))
+            dados.rsrqDb?.let { add(classificarRsrqLocal(it, tech)) }
+            dados.sinrDb?.let { add(classificarSinrLocal(it, tech)) }
         }
     return statuses.maxBy { it.ordinal }
 }

@@ -14,7 +14,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import io.signallq.app.core.diagnostico.BandaWifi
-import io.signallq.app.core.diagnostico.MetricClassifier
 import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
@@ -58,16 +57,20 @@ fun SignalBars(
  * porque é a única consumidora fora de `SinalScreen.kt`; os 3 usos que restaram em
  * `SinalScreen.kt` (cores de item de lista de rede) importam esta função pública.
  *
- * GH#1228 Fatia 5 (P0-2): delega a [MetricClassifier.classificarRssiWifi] em vez de reguas
- * proprias (`>=` inclusivo, divergentes do canonico) — mesmo padrao ja aplicado em
- * `SinalMovelClassificacao.kt` para RSRP/RSRQ/SINR.
+ * GH#1228 Fatia 5 (P0-2): delega a [classificarRssiWifiLocal] em vez de reguas proprias (`>=`
+ * inclusivo, divergentes do canonico) — mesmo padrao ja aplicado em `SinalMovelClassificacao.kt`
+ * para RSRP/RSRQ/SINR. Issue #1749 (NDS-02b, ADR-017): a chamada de classificacao passou a ir por
+ * [classificarRssiWifiLocal] (`ClassificacaoMetricaLocal.kt`) em vez de `MetricClassifier`
+ * diretamente — ver o KDoc daquele arquivo para o racional completo (por que este ponto nao chama
+ * o NDS ao vivo: `SinalScreen.kt` reusa esta mesma funcao pra colorir uma LISTA de redes vizinhas
+ * distintas, fora do escopo desta fatia).
  */
 fun signalColor(
     rssiDbm: Int,
     banda: BandaWifi = BandaWifi.desconhecida,
     c: LkTokens,
 ): Color =
-    when (MetricClassifier.classificarRssiWifi(rssiDbm, banda)) {
+    when (classificarRssiWifiLocal(rssiDbm, banda)) {
         MetricStatus.excelente, MetricStatus.bom -> c.success
         MetricStatus.regular -> c.warning
         MetricStatus.ruim, MetricStatus.critico, MetricStatus.inconclusivo -> c.error

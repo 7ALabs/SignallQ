@@ -70,7 +70,6 @@ import io.signallq.app.ads.AdUnitIds
 import io.signallq.app.ads.NativeAdContentSignal
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.diagnostico.BandaWifi
-import io.signallq.app.core.diagnostico.MetricClassifier
 import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.feature.history.ResumoHistorico
@@ -88,6 +87,7 @@ import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.Overline
 import io.signallq.app.ui.component.ads.NativeAdCard
 import io.signallq.app.ui.component.ads.NativeAdSource
+import io.signallq.app.ui.component.classificarBufferbloatLocal
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -193,12 +193,21 @@ private fun vereditoLabel(v: String?): String? =
         else -> v
     }
 
-/** Veredito humano do bufferbloat -- mesma regua canonica de [MetricClassifier.classificarBufferbloat]. */
-private fun bufferbloatVeredito(
+/**
+ * Veredito humano do bufferbloat -- mesma regua canonica que `MetricClassifier.classificarBufferbloat`
+ * sempre usou.
+ *
+ * Issue #1749 (NDS-02b, ADR-017): a chamada passou a ir por [classificarBufferbloatLocal]
+ * (`ClassificacaoMetricaLocal.kt`) em vez de `MetricClassifier` direto. Ressalva de dado histórico
+ * confirmada por decisão do Luiz em #1746: uma medição já persistida NUNCA é reclassificada
+ * retroativamente via NDS — o `MetricStatus` fica congelado no valor calculado a partir do
+ * `deltaMs` já salvo, com a MESMA régua de sempre. Não há chamada de rede aqui, de propósito.
+ */
+internal fun bufferbloatVeredito(
     deltaMs: Double,
     c: LkTokens,
 ): Pair<String, Color> =
-    when (MetricClassifier.classificarBufferbloat(deltaMs)) {
+    when (classificarBufferbloatLocal(deltaMs)) {
         MetricStatus.excelente, MetricStatus.bom -> "Baixo" to c.success
         MetricStatus.regular -> "Moderado" to c.warning
         MetricStatus.ruim, MetricStatus.critico -> "Alto" to c.error
