@@ -25,6 +25,8 @@ import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 import io.signallq.app.core.diagnostico.WifiScanDiagnosticInput
 import io.signallq.app.core.diagnostico.banda
 import io.signallq.app.core.diagnostico.topology.model.NatStatus
+import io.signallq.app.core.featureflags.FeatureFlagKeys
+import io.signallq.app.core.featureflags.FeatureFlagProvider
 import io.signallq.app.core.network.DispatcherProvider
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.MonitorRede
@@ -178,6 +180,12 @@ class MainViewModel
          *  duplica logica; so intervem no cenario exato do bug (ver
          *  [interromperSpeedtestPorWifiSemInternet]). */
         private val connectivityDiagnosisRepository: ConnectivityDiagnosisRepository,
+        /** NDS-02k PR2 (issue #1746) — le `consumer.diagnostico.nds_live_enabled` dentro de
+         *  [analisarProblema] para decidir a fonte da narrativa. MESMA instancia @Singleton
+         *  (`AppModule.provideConsumerFeatureFlagProvider`) que [DiagnosticOrchestrator] ja usa
+         *  para decidir a fonte do proprio relatorio -- nunca pode divergir dentro da mesma
+         *  sessao (as duas decisoes leem a mesma flag, do mesmo provider). */
+        private val featureFlagProvider: FeatureFlagProvider,
     ) : AndroidViewModel(application) {
         private companion object {
             const val LOG_TAG = "SignallQSpeedtestSuite"
@@ -1986,6 +1994,22 @@ class MainViewModel
             analisarProblemaJob =
                 viewModelScope.launch {
                     try {
+                        // NDS-02k PR2 (issue #1746) -- com a flag ligada, `relatorio` ja veio do
+                        // NDS (DiagnosticOrchestrator.executarProtegido troca a fonte na MESMA
+                        // execucao que produziu este relatorio) e ja carrega a narrativa do
+                        // modulo `ai` do NDS embutida em decisao.titulo/mensagemUsuario -- ver
+                        // kdoc de `resolverResultadoAnaliseViaNds` para o achado completo sobre
+                        // por que NdsClient nao substitui AiDiagnosisRepository.explainDiagnosis
+                        // ponto a ponto. Com a flag desligada (default, todo ambiente hoje) esta
+                        // funcao devolve null e o fluxo abaixo segue IDENTICO ao anterior.
+                        val ndsLiveEnabled =
+                            featureFlagProvider.isEnabled(FeatureFlagKeys.CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED)
+                        val resultadoViaNds = resolverResultadoAnaliseViaNds(ndsLiveEnabled, relatorio, problema)
+                        if (resultadoViaNds != null) {
+                            _analisadorState.value = resultadoViaNds
+                            speedtestPersistenceCoordinator.atualizarDiagnosticoIa(resultadoViaNds.texto, problema)
+                            return@launch
+                        }
                         val connectionType =
                             snap.input?.connectionType
                                 ?: io.signallq.app.core.diagnostico.ConnectionType.desconhecido
@@ -2422,3 +2446,54 @@ private fun EstadoConexao.paraConnectionType(): ConnectionType =
         EstadoConexao.desconectado -> ConnectionType.desconectado
         EstadoConexao.desconhecido -> ConnectionType.desconhecido
     }
+
+// -------------------------------------------------------------------------
+// NDS-02k PR2 (issue #1746, ADR-017) -- parte pura de [MainViewModel.analisarProblema],
+// extraida como funcao de nivel de arquivo para ser testavel sem instanciar o ViewModel
+// inteiro (25+ dependencias Hilt/Android incompativeis com JVM test puro -- mesmo motivo
+// documentado em MainViewModelHistoricoTest/MainViewModelLocalDeviceTest).
+//
+// Quando `nds_live_enabled` esta ligada, [relatorio] ja veio do NDS --
+// `DiagnosticOrchestrator.executarProtegido` troca `RemoteDiagnosticRepository.evaluateShadow`
+// por `NdsDiagnosticRepository.evaluate` na MESMA execucao que produziu este relatorio, ANTES
+// de `analisarProblema` ser chamado (snap.relatorio ja e o resultado). A narrativa do modulo
+// `ai` do proprio NDS (`tituloAmigavel`/`resumoTecnicoTraduzido`) ja fica embutida em
+// `relatorio.decisao.titulo`/`mensagemUsuario` por
+// `io.signallq.app.core.nds.NdsDiagnosticsResponseMapper.toDiagnosticReport`.
+//
+// ACHADO explicito (item 3 do escopo da PR) -- `io.signallq.app.core.nds.NdsClient` so expoe
+// `POST /v1/diagnostics/evaluate`. Nao existe endpoint equivalente a
+// `AiDiagnosisRepository.explainDiagnosis`: o worker `ai-diagnosis-worker` devolve um schema
+// v2/v3 completo (perguntasContextuais, hipotesesDescartadas, classificacaoTecnica por
+// dimensao, metadados detalhados de modeloIa) que o NDS nao produz -- o modulo `ai` do NDS
+// devolve so `tituloAmigavel`/`resumoTecnicoTraduzido` (ver `NdsAiResult`/`NdsAiExplanation`
+// em `core/nds/NdsModuleResults.kt`). Por isso, com a flag ligada, esta funcao NAO chama o
+// `NdsClient` de novo (seria um round-trip redundante -- o relatorio ja foi avaliado pelo NDS
+// na chamada que originou [relatorio]) e NAO chama o worker legado `ai-diagnosis-worker` --
+// deriva o resultado direto de [relatorio] via `AiFallbackFactory.fromLocal`, o mesmo mapeador
+// que ja existe para o fallback local do caminho antigo. `origem="local"` no
+// `AnalisadorState.Resultado` resultante segue tecnicamente correto (nenhuma chamada ao
+// `ai-diagnosis-worker` aconteceu), mas quando [relatorio] e REMOTE (NDS) o texto exibido ja
+// carrega a narrativa que o proprio NDS gerou -- nao e um fallback generico "sem IA". Essa
+// divergencia de granularidade entre os dois motores (explicacao rica vs explicacao enxuta)
+// fica registrada aqui; unificar os dois contratos (se um dia fizer sentido) nao e desta fatia.
+//
+// @return `null` quando a flag esta desligada -- o chamador segue o caminho antigo
+//   (`AiDiagnosisRepository.explainDiagnosis`), comportamento IDENTICO ao anterior a esta PR.
+// -------------------------------------------------------------------------
+internal fun resolverResultadoAnaliseViaNds(
+    ndsLiveEnabled: Boolean,
+    relatorio: DiagnosticReport,
+    problema: String?,
+): AnalisadorState.Resultado? {
+    if (!ndsLiveEnabled) return null
+    val local = AiFallbackFactory.fromLocal(relatorio)
+    return AnalisadorState.Resultado(
+        texto = local.textoLaudo.ifBlank { local.resumo },
+        origem = "local",
+        acoes = local.acoesRecomendadas,
+        titulo = local.titulo,
+        resumo = local.resumo,
+        problemaRelatado = problema,
+    )
+}
