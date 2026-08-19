@@ -1,16 +1,11 @@
 package io.signallq.app.ui.screen
 
 import io.signallq.app.ads.AdSlot
-import io.signallq.app.core.diagnostico.DiagnosticResult
-import io.signallq.app.core.diagnostico.DiagnosticStatus
-import io.signallq.app.core.diagnostico.MetricClassifier
-import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.core.recommendation.RecommendationType
 import io.signallq.app.ui.ads.NativeAdIneligibleReason
 import io.signallq.app.ui.ads.NativeAdLoadState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -79,92 +74,13 @@ class ResultadoVelocidadeScreenTest {
         assertEquals(rotulos.distinct().size, rotulos.size)
     }
 
-    // GH#1521 (P0-1 da auditoria #1228) — card de metrica e banner desta tela nao podem
-    // mais divergir pra latencia/upload. Cenarios 3 e 4 da tabela de caracterizacao
-    // (docs_ai/ARQUITETURA/AUDITORIA_1228_FASE0_INVENTARIO_COMPLETO.md).
-
-    private fun achadoAtivo(
-        id: String,
-        status: DiagnosticStatus,
-    ) = DiagnosticResult(
-        id = id,
-        titulo = "titulo",
-        status = status,
-        evidencia = null,
-        mensagemUsuario = "mensagem",
-        recomendacao = null,
-        categoria = "internet",
-    )
-
-    @Test
-    fun `latencia 120ms nao mostra veredito melhor que o achado IN-NORMAL-05`() {
-        // MetricClassifier isolado classificaria 120ms como "bom" (ate 150ms) — era
-        // exatamente esse o bug: card "Bom" enquanto o banner (achado abaixo) diz
-        // "demorando para responder".
-        val statusIsolado = MetricClassifier.classificarLatencia(120.0)
-        assertEquals(MetricStatus.bom, statusIsolado)
-
-        val achados = listOf(achadoAtivo("IN-NORMAL-05", DiagnosticStatus.attention))
-        val statusConciliado = statusIsolado.comSeveridadeConciliada(achados, idPrefix = "IN-NORMAL-05")
-
-        assertNotEquals(MetricStatus.bom, statusConciliado)
-        assertNotEquals(MetricStatus.excelente, statusConciliado)
-        assertEquals(MetricStatus.regular, statusConciliado)
-    }
-
-    @Test
-    fun `latencia sem achado ativo mantem veredito do MetricClassifier`() {
-        val statusIsolado = MetricClassifier.classificarLatencia(50.0)
-        val statusConciliado = statusIsolado.comSeveridadeConciliada(emptyList(), idPrefix = "IN-NORMAL-05")
-        assertEquals(statusIsolado, statusConciliado)
-    }
-
-    @Test
-    fun `upload entre 3 e 10 Mbps nao mostra veredito melhor que o achado IN-NORMAL-04`() {
-        // Faixa citada na auditoria como divergente (issue #1466): dentro dela,
-        // MetricClassifier ja da "regular" (nao "bom"/"excelente"), entao o piso do
-        // achado (attention -> regular) nao rebaixa nada — o teste trava que a
-        // conciliacao nunca deixa o card "melhor" que o achado do motor.
-        listOf(3.0, 4.0, 4.9).forEach { uploadMbps ->
-            val statusIsolado = MetricClassifier.classificarUpload(uploadMbps)
-            val achados = listOf(achadoAtivo("IN-NORMAL-04", DiagnosticStatus.attention))
-            val statusConciliado = statusIsolado.comSeveridadeConciliada(achados, idPrefix = "IN-NORMAL-04")
-
-            assertNotEquals("uploadMbps=$uploadMbps", MetricStatus.bom, statusConciliado)
-            assertNotEquals("uploadMbps=$uploadMbps", MetricStatus.excelente, statusConciliado)
-        }
-    }
-
-    @Test
-    fun `upload zerado com achado critico IN-NORMAL-04Z conserva severidade critica`() {
-        val statusIsolado = MetricClassifier.classificarUpload(0.0)
-        assertEquals(MetricStatus.critico, statusIsolado)
-
-        val achados = listOf(achadoAtivo("IN-NORMAL-04Z", DiagnosticStatus.critical))
-        val statusConciliado = statusIsolado.comSeveridadeConciliada(achados, idPrefix = "IN-NORMAL-04")
-
-        assertEquals(MetricStatus.critico, statusConciliado)
-    }
-
-    @Test
-    fun `conciliacao nunca abranda um MetricClassifier ja mais severo que o achado`() {
-        // lat=250ms: MetricClassifier ja da "ruim" (mais severo que o piso "regular" do
-        // achado attention) — a conciliacao nao pode suavizar isso.
-        val statusIsolado = MetricClassifier.classificarLatencia(250.0)
-        assertEquals(MetricStatus.ruim, statusIsolado)
-
-        val achados = listOf(achadoAtivo("IN-NORMAL-05", DiagnosticStatus.attention))
-        val statusConciliado = statusIsolado.comSeveridadeConciliada(achados, idPrefix = "IN-NORMAL-05")
-
-        assertEquals(MetricStatus.ruim, statusConciliado)
-    }
-
-    @Test
-    fun `veredito inconclusivo nunca e sobrescrito pela conciliacao`() {
-        val achados = listOf(achadoAtivo("IN-NORMAL-04", DiagnosticStatus.critical))
-        val statusConciliado = MetricStatus.inconclusivo.comSeveridadeConciliada(achados, idPrefix = "IN-NORMAL-04")
-        assertEquals(MetricStatus.inconclusivo, statusConciliado)
-    }
+    // GH#1521 (P0-1 da auditoria #1228) tinha introduzido comSeveridadeConciliada() pra
+    // reconciliar o card de latencia/upload com o achado do InternetDiagnosticEngine — a
+    // NDS-02d (#1752, ADR-017) removeu essa mecanica por completo (dependia de duas reguas
+    // numericas paralelas e de uma taxonomia de ID que o NDS nao reproduz, decisao
+    // registrada no inventario de #1746). Os testes que caracterizavam a conciliacao
+    // saíram junto — a classificacao dos 6 cards agora é só a convergência com
+    // MetricClassifier, coberta em ClassificacaoMetricaLocalTest (ui/component).
 
     // =========================================================================
     // GH#1659a — migração AdMob: rememberNativeAd() (colapsa tudo em NativeAd? nulo) para o

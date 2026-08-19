@@ -67,9 +67,6 @@ import androidx.compose.ui.unit.dp
 import io.signallq.app.ads.AdSlot
 import io.signallq.app.ads.AdUnitIds
 import io.signallq.app.ads.NativeAdContentSignal
-import io.signallq.app.core.diagnostico.DiagnosticResult
-import io.signallq.app.core.diagnostico.DiagnosticStatus
-import io.signallq.app.core.diagnostico.MetricClassifier
 import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.feature.speedtest.ResultadoSpeedtest
@@ -88,41 +85,15 @@ import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.ads.NativeAdCard
 import io.signallq.app.ui.component.ads.NativeAdSource
+import io.signallq.app.ui.component.classificarBufferbloatLocal
+import io.signallq.app.ui.component.classificarDownloadLocal
+import io.signallq.app.ui.component.classificarJitterLocal
+import io.signallq.app.ui.component.classificarLatenciaLocal
+import io.signallq.app.ui.component.classificarPerdaPacotesLocal
+import io.signallq.app.ui.component.classificarUploadLocal
 import io.signallq.app.ui.component.corSemantica
 import io.signallq.app.ui.component.labelPt
 import kotlinx.coroutines.launch
-
-/**
- * GH#1521 (P0-1 da auditoria #1228) — reconcilia o veredito do card de metrica desta
- * tela com o achado que [InternetDiagnosticEngine] ja levantou pra essa mesma metrica
- * (exposto em [DiagnosticReport.internetResultados]). As duas reguas numericas
- * (MetricClassifier vs. InternetDiagnosticEngine) continuam divergentes por decisao —
- * unifica-las e escopo separado da issue #1466, ainda sem decisao de produto sobre qual
- * regua prevalece globalmente. Esta funcao nao altera nenhuma das duas reguas: so
- * impede que o card mostre um veredito MAIS otimista do que o achado ativo (nunca
- * abranda — se o [MetricClassifier] ja for mais severo que o achado, ele prevalece).
- *
- * @param achados lista de achados do dominio (ex.: `internetResultados`) onde procurar
- *   um achado ativo para esta metrica.
- * @param idPrefix prefixo do id do achado desta metrica (ex.: `"IN-NORMAL-05"` para
- *   latencia, `"IN-NORMAL-04"` para upload — cobre tambem a variante `-04Z`).
- */
-internal fun MetricStatus.comSeveridadeConciliada(
-    achados: List<DiagnosticResult>,
-    idPrefix: String,
-): MetricStatus {
-    if (this == MetricStatus.inconclusivo) return this
-    val achado = achados.firstOrNull { it.id.startsWith(idPrefix) } ?: return this
-    val pisoSeveridade =
-        when (achado.status) {
-            DiagnosticStatus.critical -> MetricStatus.critico
-            DiagnosticStatus.attention -> MetricStatus.regular
-            else -> return this
-        }
-    val ordemSeveridade =
-        listOf(MetricStatus.excelente, MetricStatus.bom, MetricStatus.regular, MetricStatus.ruim, MetricStatus.critico)
-    return if (ordemSeveridade.indexOf(pisoSeveridade) > ordemSeveridade.indexOf(this)) pisoSeveridade else this
-}
 
 /**
  * GH#1659a — mapeia o único sinal que esta tela recebe de fora ([adsEnabled]) pro contrato
@@ -217,47 +188,51 @@ fun ResultadoVelocidadeScreen(
     // ESTIMADA — GH#1221 RF-04, o metodo e por timeout de probes HTTP, nao medicao direta
     // de perda de pacotes IP.
     //
-    // GH#1521 (P0-1 da auditoria #1228) — latencia e upload tinham divergencia confirmada
-    // entre este card (MetricClassifier) e o banner desta MESMA tela (que reflete os
-    // achados de InternetDiagnosticEngine via snapshotDiagnostico.relatorio). Unificar as
-    // duas reguas globalmente e escopo da issue #1466 (decisao de produto pendente) — aqui
-    // so garantimos, na composicao desta tela, que o card nunca mostre veredito melhor do
-    // que o achado ativo do motor pra essa metrica. Ver comSeveridadeConciliada().
-    val internetResultados = snapshotDiagnostico.relatorio?.internetResultados.orEmpty()
+    // NDS-02d (#1752, ADR-017) — os 6 cards abaixo pararam de chamar MetricClassifier
+    // direto e passaram a delegar pro seam ClassificacaoMetricaLocal.kt (mesmo padrao da
+    // NDS-02b), hoje com a MESMA matematica local (comportamento identico, provado por
+    // teste de caracterizacao em ClassificacaoMetricaLocalTest). Sem chamada viva ao NDS
+    // ainda — a orquestracao real (quando disparar uma avaliacao, tratar loading/erro) e
+    // trabalho da fatia final NDS-02k/MainViewModel.
+    //
+    // GH#1521 (P0-1 da auditoria #1228) tinha introduzido comSeveridadeConciliada() pra
+    // impedir que o card de latencia/upload mostrasse veredito melhor do que o achado
+    // ativo do InternetDiagnosticEngine (banner desta MESMA tela). A NDS-02d REMOVEU essa
+    // mecanica por completo (decisao registrada no inventario de #1746): ela dependia de
+    // duas reguas numericas paralelas (MetricClassifier vs. InternetDiagnosticEngine) e de
+    // uma taxonomia de ID de achado (prefixo "IN-NORMAL-04"/"IN-NORMAL-05") que o NDS nao
+    // reproduz — vira codigo morto assim que a fonte de veredito migra pro NDS, entao sai
+    // agora em vez de ser carregada pro seam. Os cards voltam a mostrar so a classificacao
+    // isolada; unificar as duas reguas globalmente segue sendo escopo da issue #1466.
 
-    val statusDownload = remember(resultado.downloadMbps) { MetricClassifier.classificarDownload(resultado.downloadMbps) }
+    val statusDownload = remember(resultado.downloadMbps) { classificarDownloadLocal(resultado.downloadMbps) }
     val corDownload = statusDownload.corSemantica(c)
     val veredictoDownload = statusDownload.labelPt()
 
     val statusUpload =
-        remember(resultado.uploadMbps, resultado.uploadNaoDetectado, internetResultados) {
+        remember(resultado.uploadMbps, resultado.uploadNaoDetectado) {
             if (resultado.uploadNaoDetectado) {
                 MetricStatus.inconclusivo
             } else {
-                val statusIsolado = MetricClassifier.classificarUpload(resultado.uploadMbps)
-                statusIsolado.comSeveridadeConciliada(internetResultados, idPrefix = "IN-NORMAL-04")
+                classificarUploadLocal(resultado.uploadMbps)
             }
         }
     val corUpload = statusUpload.corSemantica(c)
     val veredictoUpload = statusUpload.labelPt()
 
-    val statusPerda = remember(resultado.perdaPercentual) { MetricClassifier.classificarPerdaPacotes(resultado.perdaPercentual) }
+    val statusPerda = remember(resultado.perdaPercentual) { classificarPerdaPacotesLocal(resultado.perdaPercentual) }
     val corPerda = statusPerda.corSemantica(c)
     val veredictoPerda = statusPerda.labelPt()
 
-    val statusLatencia =
-        remember(resultado.latenciaMs, internetResultados) {
-            val statusIsolado = MetricClassifier.classificarLatencia(resultado.latenciaMs)
-            statusIsolado.comSeveridadeConciliada(internetResultados, idPrefix = "IN-NORMAL-05")
-        }
+    val statusLatencia = remember(resultado.latenciaMs) { classificarLatenciaLocal(resultado.latenciaMs) }
     val corLatencia = statusLatencia.corSemantica(c)
     val veredictoLatencia = statusLatencia.labelPt()
 
-    val statusJitter = remember(resultado.jitterMs) { MetricClassifier.classificarJitter(resultado.jitterMs) }
+    val statusJitter = remember(resultado.jitterMs) { classificarJitterLocal(resultado.jitterMs) }
     val corJitter = statusJitter.corSemantica(c)
     val veredictoJitter = statusJitter.labelPt()
 
-    val statusBufferbloat = remember(resultado.bufferbloatMs) { MetricClassifier.classificarBufferbloat(resultado.bufferbloatMs) }
+    val statusBufferbloat = remember(resultado.bufferbloatMs) { classificarBufferbloatLocal(resultado.bufferbloatMs) }
     val corBufferbloat = statusBufferbloat.corSemantica(c)
     val veredictoBufferbloat = statusBufferbloat.labelPt()
 
