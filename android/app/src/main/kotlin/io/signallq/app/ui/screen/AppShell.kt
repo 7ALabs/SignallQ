@@ -87,8 +87,6 @@ import io.signallq.app.feature.devices.ehClienteFinal
 import io.signallq.app.feature.dns.SnapshotBenchmarkDns
 import io.signallq.app.feature.fibra.SnapshotFibra
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
-import io.signallq.app.feature.speedtest.connectivity.ConnectivityAction
-import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisMensagem
 import io.signallq.app.feature.speedtest.modoAutomaticoPara
 import io.signallq.app.modogamer.resolverPadraoModoGamer
 import io.signallq.app.ui.GatewayInfo
@@ -1640,42 +1638,7 @@ private fun ForaDoWifiDialog(
 }
 
 // ─── Dialog: diagnostico local de conectividade (GH#1512) ────────────────────
-
-/** Texto curto de ação sugerida — mesmo vocabulário de
- *  [io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisPresenter], sem
- *  duplicar a decisão de quais ações mostrar (só a tradução pra rótulo de UI). */
-private fun ConnectivityAction.rotulo(): String =
-    when (this) {
-        ConnectivityAction.ABRIR_PORTAL_LOGIN -> "Abrir portal de login da rede"
-        ConnectivityAction.RECONECTAR_WIFI -> "Reconectar ao Wi-Fi"
-        ConnectivityAction.TESTAR_OUTRO_APARELHO -> "Testar outro aparelho na mesma rede"
-        ConnectivityAction.VERIFICAR_LUZES_EQUIPAMENTO -> "Verificar as luzes do roteador/ONT"
-        ConnectivityAction.REINICIAR_EQUIPAMENTO -> "Reiniciar o roteador (última opção)"
-        ConnectivityAction.TESTAR_DNS_ALTERNATIVO -> "Testar um DNS alternativo"
-        ConnectivityAction.CONTATAR_OPERADORA -> "Contatar a operadora"
-    }
-
-@Composable
-private fun DiagnosticoConectividadeDialog(
-    diagnostico: ConnectivityDiagnosisMensagem,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(diagnostico.titulo, fontWeight = FontWeight.W600) },
-        text = {
-            Column {
-                Text(diagnostico.mensagem, fontSize = 14.sp)
-                if (diagnostico.acoes.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    diagnostico.acoes.forEach { acao ->
-                        Text("• ${acao.rotulo()}", fontSize = 13.sp)
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Entendi") }
-        },
-    )
-}
+//
+// GH#1738 — `DiagnosticoConectividadeDialog` migrou para `VelocidadeScreen.kt` (visual 2.0,
+// tokens em vez de `fontSize` cru). Este call site continua igual: mesma função, mesmo nome,
+// mesma assinatura, só de arquivo novo — fora da região `medicaoGuiada` compartilhada com #1704.
