@@ -45,6 +45,14 @@ include(
     // .claude/rules/higiene-e-padronizacao-repositorio.md §5. Consumido apenas por :app
     // e modulos core/feature do Consumer.
     ":core:featureflags",
+    // Camada de rede e contrato do NDS (Network Diagnostics Service), fatia NDS-01
+    // (issue #1744, ADR-017). Modulo dedicado -- nao core:network (que e infra de
+    // conectividade on-device: probes, gateway, wifi scan, topologia) nem
+    // core-utils generico -- porque o NDS vira a espinha dorsal de diagnostico e
+    // IA do app (substitui core:diagnostico, ai-diagnosis-worker e
+    // signallq-diagnostic-worker), com contrato proprio versionado e multiplos
+    // consumidores futuros (NDS-02+). Decisao registrada na PR da fatia NDS-01.
+    ":core:nds",
 )
 
 project(":coreNetwork").projectDir    = File("core/network")
