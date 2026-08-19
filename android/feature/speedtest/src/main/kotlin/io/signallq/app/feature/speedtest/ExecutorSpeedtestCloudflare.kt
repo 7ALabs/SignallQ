@@ -151,10 +151,6 @@ class ExecutorSpeedtestCloudflare(
     @Volatile private var velocidadeAtualInterna: Double = 0.0
     private val uploadPayloadCache = ConcurrentHashMap<Int, ByteArray>()
     private val pontosAoVivoInternos = Collections.synchronizedList(mutableListOf<PontoAoVivo>())
-    // Estado do Teste Triplo
-    @Volatile private var rodadaAtualInterna: Int = 0
-    @Volatile private var aguardandoProximaRodadaInterna: Boolean = false
-    private val rodadasTriploInternos = Collections.synchronizedList(mutableListOf<ResultadoRodadaTriplo>())
     private val mutableSnapshotFlow =
         MutableStateFlow(
             SnapshotExecucaoSpeedtest(
@@ -203,19 +199,6 @@ class ExecutorSpeedtestCloudflare(
                 bytesConsumidosTotal.set(0L)
                 faseAtualInterna = FaseSpeedtest.idle
                 velocidadeAtualInterna = 0.0
-                rodadaAtualInterna = 0
-                aguardandoProximaRodadaInterna = false
-                rodadasTriploInternos.clear()
-
-                if (modo == ModoSpeedtest.triplo) {
-                    executarModoTriplo(
-                        connectionType = connectionType,
-                        connectionTypeProvider = connectionTypeProvider,
-                        tecnologiaProvider = tecnologiaProvider,
-                        executionId = executionId,
-                    )
-                    return@withContext
-                }
 
                 val redeInicial = connectionType
                 var faseInterrompida = "none"
@@ -439,238 +422,6 @@ class ExecutorSpeedtestCloudflare(
                 emExecucao.set(false)
             }
         }
-    }
-
-    private suspend fun executarModoTriplo(
-        connectionType: String?,
-        connectionTypeProvider: (() -> String?)?,
-        tecnologiaProvider: (() -> String?)? = null,
-        executionId: String = "",
-    ) {
-        val redeInicial = connectionType
-        val config = SpeedtestConfig.fromModo(ModoSpeedtest.triplo)
-        val totalRodadas = 3
-
-        for (rodada in 1..totalRodadas) {
-            if (cancelFlag.get()) {
-                faseAtualInterna = FaseSpeedtest.idle
-                velocidadeAtualInterna = 0.0
-                aguardandoProximaRodadaInterna = false
-                publicar(EstadoExecucaoSpeedtest.idle, 0, null, null)
-                return
-            }
-
-            rodadaAtualInterna = rodada
-            aguardandoProximaRodadaInterna = false
-
-            // Progresso global: cada rodada ocupa ~27% (ping 5 + dl 14 + ul 8 = ~27pp)
-            // Rodada 1: 0..27, Rodada 2: 27..54, Rodada 3: 54..81; restam 19pp para conclusão
-            val offsetProgresso = (rodada - 1) * 27
-
-            faseAtualInterna = FaseSpeedtest.ping
-            pontosAoVivoInternos.clear()
-            publicar(EstadoExecucaoSpeedtest.executando, offsetProgresso + 2, null, null)
-
-            val latencyPhase = executarFaseLatencia(
-                config = config,
-                redeInicial = redeInicial,
-                connectionTypeProvider = connectionTypeProvider,
-                onPingProgress = { idx, total ->
-                    publicar(EstadoExecucaoSpeedtest.executando, offsetProgresso + (idx.toDouble() / total * 5).toInt(), null, null)
-                },
-            )
-            if (cancelFlag.get()) {
-                faseAtualInterna = FaseSpeedtest.idle
-                velocidadeAtualInterna = 0.0
-                aguardandoProximaRodadaInterna = false
-                publicar(EstadoExecucaoSpeedtest.idle, 0, null, null)
-                return
-            }
-
-            faseAtualInterna = FaseSpeedtest.download
-            pontosAoVivoInternos.clear()
-            velocidadeAtualInterna = 0.0
-            publicar(EstadoExecucaoSpeedtest.executando, offsetProgresso + 5, null, null)
-
-            val pingDownload = Collections.synchronizedList(mutableListOf<Double>())
-            val downloadPhase = try {
-                executarFaseTransferencia(
-                    isDownload = true,
-                    config = config,
-                    onFaseProgress = { local ->
-                        publicar(EstadoExecucaoSpeedtest.executando, offsetProgresso + 5 + (local * 14).toInt(), null, null)
-                    },
-                    pingsSobCarga = pingDownload,
-                    redeInicial = redeInicial,
-                    connectionTypeProvider = connectionTypeProvider,
-                )
-            } catch (t: Throwable) {
-                val mensagem = t.message.orEmpty()
-                val ehRateLimit = mensagem.startsWith("download_failed:IllegalStateException:HttpStatus:429") ||
-                    mensagem.startsWith("download_failed:IllegalStateException:HttpStatus:403")
-                if (!ehRateLimit) throw t
-                val configFallback = config.copy(downloadPayloadBytes = 10_000_000, downloadInitialStreams = 1, downloadMaxStreams = 2)
-                try {
-                    executarFaseTransferencia(
-                        isDownload = true,
-                        config = configFallback,
-                        onFaseProgress = { local ->
-                            publicar(EstadoExecucaoSpeedtest.executando, offsetProgresso + 5 + (local * 14).toInt(), null, null)
-                        },
-                        pingsSobCarga = pingDownload,
-                        redeInicial = redeInicial,
-                        connectionTypeProvider = connectionTypeProvider,
-                    )
-                } catch (_: Throwable) {
-                    throughputVazio("download_bloqueado_429")
-                }
-            }
-            if (cancelFlag.get()) {
-                faseAtualInterna = FaseSpeedtest.idle
-                velocidadeAtualInterna = 0.0
-                aguardandoProximaRodadaInterna = false
-                publicar(EstadoExecucaoSpeedtest.idle, 0, null, null)
-                return
-            }
-
-            faseAtualInterna = FaseSpeedtest.upload
-            pontosAoVivoInternos.clear()
-            velocidadeAtualInterna = 0.0
-            publicar(EstadoExecucaoSpeedtest.executando, offsetProgresso + 19, null, null)
-
-            val pingUpload = Collections.synchronizedList(mutableListOf<Double>())
-            val uploadPhase = if (connectionType == "movel") {
-                executarFaseUploadAdaptativa(
-                    config = config,
-                    onFaseProgress = { local ->
-                        publicar(EstadoExecucaoSpeedtest.executando, offsetProgresso + 19 + (local * 8).toInt(), null, null)
-                    },
-                    pingsSobCarga = pingUpload,
-                    redeInicial = redeInicial,
-                    connectionTypeProvider = connectionTypeProvider,
-                )
-            } else {
-                executarFaseTransferencia(
-                    isDownload = false,
-                    config = config,
-                    onFaseProgress = { local ->
-                        publicar(EstadoExecucaoSpeedtest.executando, offsetProgresso + 19 + (local * 8).toInt(), null, null)
-                    },
-                    pingsSobCarga = pingUpload,
-                    redeInicial = redeInicial,
-                    connectionTypeProvider = connectionTypeProvider,
-                )
-            }
-
-            // Acumula rodada
-            rodadasTriploInternos.add(
-                ResultadoRodadaTriplo(
-                    downloadMbps = downloadPhase.throughputMbps,
-                    uploadMbps = uploadPhase.throughputMbps,
-                    latenciaMs = latencyPhase.latenciaMs,
-                )
-            )
-
-            // Intervalo de 10s entre rodadas (exceto após a última)
-            if (rodada < totalRodadas && !cancelFlag.get()) {
-                aguardandoProximaRodadaInterna = true
-                faseAtualInterna = FaseSpeedtest.idle
-                velocidadeAtualInterna = 0.0
-                publicar(EstadoExecucaoSpeedtest.executando, offsetProgresso + 27, null, null)
-                delay(10_000L)
-                aguardandoProximaRodadaInterna = false
-            }
-        }
-
-        if (cancelFlag.get()) {
-            faseAtualInterna = FaseSpeedtest.idle
-            velocidadeAtualInterna = 0.0
-            aguardandoProximaRodadaInterna = false
-            publicar(EstadoExecucaoSpeedtest.idle, 0, null, null)
-            return
-        }
-
-        // Calcula medianas e constrói resultado final
-        fun List<Double>.mediana(): Double {
-            val sorted = this.sorted()
-            return if (sorted.size % 2 == 0) (sorted[sorted.size / 2 - 1] + sorted[sorted.size / 2]) / 2.0 else sorted[sorted.size / 2]
-        }
-        val rodadas = rodadasTriploInternos.toList()
-        val downloadMediana = rodadas.map { it.downloadMbps }.mediana()
-        val uploadMediana = rodadas.map { it.uploadMbps }.mediana()
-        val latenciaMediana = rodadas.map { it.latenciaMs }.mediana()
-
-        // Resultado sintético com médias — usa valores neutros para campos não medidos em triplo
-        // (bufferbloat, jitter, DNS não são calculados por rodada no triplo)
-        val resultadoTriplo = ResultadoSpeedtest(
-            timestampEpochMs = System.currentTimeMillis(),
-            specVersion = "1.0.0",
-            modo = ModoSpeedtest.triplo,
-            connectionTypeStart = connectionType,
-            connectionTypeEnd = connectionTypeProvider?.invoke() ?: connectionType,
-            contaminado = false,
-            // #862: mesma correcao do modo simples — badge/PDF usam a rede final.
-            connectionType = connectionTypeProvider?.invoke() ?: connectionType,
-            tecnologia = tecnologiaProvider?.invoke(),
-            latenciaMs = latenciaMediana,
-            jitterMs = 0.0,
-            perdaPercentual = 0.0,
-            bufferbloatMs = 0.0,
-            severidadeBufferbloat = SeveridadeBufferbloat.none,
-            downloadMbps = downloadMediana,
-            uploadMbps = uploadMediana,
-            latencyDownloadMs = 0.0,
-            latencyUploadMs = 0.0,
-            stabilityScore = 0.0,
-            peakDownloadMbps = rodadas.maxOf { it.downloadMbps },
-            peakUploadMbps = rodadas.maxOf { it.uploadMbps },
-            packetLossSource = "naoMedido",
-            dnsLatencyMs = null,
-            dnsResolverIp = null,
-            dnsProvider = null,
-            diagnosticoQualidade = SpeedtestQualityClassifier.classificarQualidade(
-                dl = downloadMediana,
-                ul = uploadMediana,
-                latency = latenciaMediana,
-                jitter = 0.0,
-                packetLoss = 0.0,
-                bufferbloatDeltaMs = 0.0,
-                bufferbloat = SeveridadeBufferbloat.none,
-            ),
-            diagnosticoFases = DiagnosticoFasesSpeedtest(
-                faseInterrompida = "none",
-                latenciaAmostrasTotais = 0,
-                latenciaAmostrasValidas = 0,
-                latenciaTimeouts = 0,
-                downloadBytesTotal = 0L,
-                downloadAmostrasValidas = 0,
-                downloadRequisicoesSucesso = 0,
-                downloadRequisicoesErro = 0,
-                downloadEncerradaPor = "triplo",
-                downloadThroughputOrigem = "media3rodadas",
-                downloadUltimoErro = null,
-                uploadBytesTotal = 0L,
-                uploadAmostrasValidas = 0,
-                uploadRequisicoesSucesso = 0,
-                uploadRequisicoesErro = 0,
-                uploadEncerradaPor = "triplo",
-                uploadThroughputOrigem = "media3rodadas",
-                uploadUltimoErro = null,
-                dnsErroMensagem = null,
-            ),
-            executionId = executionId,
-            // GH#1221/#1225 — modo triplo so chega aqui apos as 3 rodadas completarem sem
-            // cancelamento (early-return acima cobre cancelamento); nao usa
-            // calcularMeasurementStatus porque latenciaAmostrasValidas=0 e um valor
-            // hardcoded de "nao calculado por rodada" aqui, nao uma amostragem real que o
-            // limiar de INCONCLUSIVE deveria avaliar.
-            status = MeasurementStatus.COMPLETE,
-        )
-
-        Timber.i("triplo concluido dl=${downloadMediana} ul=${uploadMediana} lat=${latenciaMediana} rodadas=${rodadas.size}")
-        faseAtualInterna = FaseSpeedtest.concluido
-        aguardandoProximaRodadaInterna = false
-        publicar(EstadoExecucaoSpeedtest.concluido, 100, resultadoTriplo, null)
     }
 
     private suspend fun executarFaseUploadAdaptativa(
@@ -1375,9 +1126,6 @@ class ExecutorSpeedtestCloudflare(
                 bytesConsumidos = bytesConsumidosTotal.get(),
                 progressoGlobal = progresso / 100f,
                 pontosAoVivo = pontosAoVivoInternos.toList(),
-                rodadaAtual = rodadaAtualInterna,
-                aguardandoProximaRodada = aguardandoProximaRodadaInterna,
-                rodadasTriplo = rodadasTriploInternos.toList(),
             )
     }
 
@@ -1465,22 +1213,6 @@ class ExecutorSpeedtestCloudflare(
                             uploadMaxStreams = 8,
                             downloadWarmupMs = 2_000,
                             uploadWarmupMs = 2_000,
-                        )
-                    // Triplo usa config idêntica ao fast — cada rodada é curta;
-                    // consistência vem da média das 3.
-                    ModoSpeedtest.triplo ->
-                        SpeedtestConfig(
-                            pingCount = 15,
-                            downloadDurationMs = 7_000L,
-                            uploadDurationMs = 7_000L,
-                            downloadPayloadBytes = 10_000_000,
-                            uploadPayloadBytes = 5_000_000,
-                            downloadInitialStreams = 2,
-                            downloadMaxStreams = 4,
-                            uploadInitialStreams = 4,
-                            uploadMaxStreams = 4,
-                            downloadWarmupMs = 1_000,
-                            uploadWarmupMs = 1_000,
                         )
                 }
         }

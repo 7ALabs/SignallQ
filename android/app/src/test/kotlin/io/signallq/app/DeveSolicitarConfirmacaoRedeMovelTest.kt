@@ -28,17 +28,6 @@ class DeveSolicitarConfirmacaoRedeMovelTest {
     }
 
     @Test
-    fun `pede confirmacao em rede movel medida com modo triplo`() {
-        assertTrue(
-            deveSolicitarConfirmacaoRedeMovel(
-                metered = true,
-                modo = ModoSpeedtest.triplo,
-                jaConfirmadoRedeMovel = false,
-            ),
-        )
-    }
-
-    @Test
     fun `nao pede confirmacao quando rede nao e medida`() {
         assertFalse(
             deveSolicitarConfirmacaoRedeMovel(
@@ -65,7 +54,7 @@ class DeveSolicitarConfirmacaoRedeMovelTest {
         assertFalse(
             deveSolicitarConfirmacaoRedeMovel(
                 metered = true,
-                modo = ModoSpeedtest.triplo,
+                modo = ModoSpeedtest.complete,
                 jaConfirmadoRedeMovel = true,
             ),
         )

@@ -21,18 +21,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -48,14 +45,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -70,11 +63,9 @@ import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.core.telephony.MovelSnapshot
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
 import io.signallq.app.feature.speedtest.ModoSpeedtest
-import io.signallq.app.feature.speedtest.ResultadoRodadaTriplo
 import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
 import io.signallq.app.ui.IspInfo
 import io.signallq.app.ui.LkColors
-import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
@@ -91,8 +82,6 @@ fun SpeedTestScreen(
     snapshotRede: SnapshotRede,
     ispInfo: IspInfo?,
     localizacaoServidor: String?,
-    modoSelecionado: ModoSpeedtest,
-    onModoSelecionado: (ModoSpeedtest) -> Unit,
     onIniciarTeste: () -> Unit,
     onCancelarTeste: () -> Unit,
     onAbrirDnsBenchmark: () -> Unit,
@@ -144,24 +133,16 @@ fun SpeedTestScreen(
         )
     }
 
-    // Dialog de confirmação de uso de dados móveis — fonte de verdade no ViewModel (Task 4)
+    // Dialog de confirmação de uso de dados móveis — fonte de verdade no ViewModel (Task 4).
+    // GH#1737 — o modo triplo foi removido e o modo agora é automático por tipo de rede
+    // (móvel → fast). deveSolicitarConfirmacaoRedeMovel já isenta o modo fast desse gate
+    // (ver MainViewModel), então na prática só o modo complete chega a exibir este dialog —
+    // ex.: Wi-Fi tarifado (hotspot) marcado como rede medida.
     if (speedtestPendenteModoMovel != null) {
-        val titulo =
-            when (speedtestPendenteModoMovel) {
-                ModoSpeedtest.triplo -> "Usar dados móveis para teste triplo?"
-                ModoSpeedtest.complete -> "Usar dados móveis para teste?"
-                else -> "Usar dados móveis para teste?"
-            }
-        val mensagem =
-            when (speedtestPendenteModoMovel) {
-                ModoSpeedtest.triplo -> "Este teste vai usar aproximadamente 30 MB em 3 medições. Você poderá repetir em Wi-Fi depois."
-                ModoSpeedtest.complete -> "Este teste vai usar aproximadamente 25 MB. Você poderá repetir em Wi-Fi depois."
-                else -> "Este teste vai usar aproximadamente 25 MB. Você poderá repetir em Wi-Fi depois."
-            }
         androidx.compose.material3.AlertDialog(
             onDismissRequest = onCancelarSpeedtestMovel,
-            title = { Text(titulo) },
-            text = { Text(mensagem) },
+            title = { Text("Usar dados móveis para teste?") },
+            text = { Text("Este teste vai usar aproximadamente 25 MB. Você poderá repetir em Wi-Fi depois.") },
             confirmButton = {
                 androidx.compose.material3.Button(onClick = onConfirmarSpeedtestMovel) {
                     Text("Testar")
@@ -213,8 +194,6 @@ fun SpeedTestScreen(
             snapshotRede = snapshotRede,
             movelSnapshot = movelSnapshot,
             localizacaoServidor = localizacaoServidor,
-            modoSelecionado = modoSelecionado,
-            onModoSelecionado = onModoSelecionado,
             onIniciarTeste = onIniciarTeste,
             onVerResultado = onVerResultado,
             onAbrirHistorico = onAbrirHistorico,
@@ -234,8 +213,6 @@ private fun ConteudoSpeedTest(
     snapshotRede: SnapshotRede,
     movelSnapshot: MovelSnapshot?,
     localizacaoServidor: String?,
-    modoSelecionado: ModoSpeedtest,
-    onModoSelecionado: (ModoSpeedtest) -> Unit,
     onIniciarTeste: () -> Unit,
     onVerResultado: () -> Unit,
     onAbrirHistorico: () -> Unit,
@@ -261,8 +238,6 @@ private fun ConteudoSpeedTest(
             snapshotRede = snapshotRede,
             movelSnapshot = movelSnapshot,
             localizacaoServidor = localizacaoServidor,
-            modoSelecionado = modoSelecionado,
-            onModoSelecionado = onModoSelecionado,
             onIniciarTeste = onIniciarTeste,
             onVerResultado = onVerResultado,
             mostrarDialogCancelar = mostrarDialogCancelar,
@@ -289,13 +264,8 @@ private fun ConteudoSpeedTest(
                 uploadMbps = resultado.uploadMbps,
                 latencyMs = resultado.latenciaMs,
                 relativeTimestamp = timestampRelativo,
-                label = if (modoSelecionado == ModoSpeedtest.triplo) "Média das 3 medições" else "Último resultado",
                 onClick = onAbrirHistorico,
             )
-            if (modoSelecionado == ModoSpeedtest.triplo && snapshotSpeedtest.rodadasTriplo.isNotEmpty()) {
-                Spacer(Modifier.height(LkSpacing.sm))
-                CardRodadasTriplo(c = c, rodadas = snapshotSpeedtest.rodadasTriplo)
-            }
         }
 
         if (estadoIdle) {
@@ -322,22 +292,12 @@ private fun BlocoCirculoSpeedTest(
     snapshotRede: SnapshotRede,
     movelSnapshot: MovelSnapshot?,
     localizacaoServidor: String?,
-    modoSelecionado: ModoSpeedtest,
-    onModoSelecionado: (ModoSpeedtest) -> Unit,
     onIniciarTeste: () -> Unit,
     onVerResultado: () -> Unit,
     mostrarDialogCancelar: () -> Unit,
     estadoIdle: Boolean,
     c: LkTokens,
 ) {
-    if (modoSelecionado == ModoSpeedtest.triplo && snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.executando) {
-        IndicadorRodadaTriplo(
-            rodadaAtual = snapshotSpeedtest.rodadaAtual,
-            aguardando = snapshotSpeedtest.aguardandoProximaRodada,
-        )
-        Spacer(Modifier.height(LkSpacing.md))
-    }
-
     SpeedTestCircle(
         estado = snapshotSpeedtest.estado,
         conectado = snapshotRede.conectado,
@@ -369,7 +329,7 @@ private fun BlocoCirculoSpeedTest(
         Spacer(Modifier.height(LkSpacing.sm))
         TextButton(onClick = mostrarDialogCancelar) {
             Text(
-                text = if (modoSelecionado == ModoSpeedtest.triplo) "Cancelar teste" else "Cancelar",
+                text = "Cancelar",
                 color = c.textTertiary,
                 style = MaterialTheme.typography.titleSmall,
             )
@@ -394,9 +354,6 @@ private fun BlocoCirculoSpeedTest(
     } else {
         Spacer(Modifier.height(LkSpacing.md))
     }
-
-    Spacer(Modifier.height(LkSpacing.sm))
-    ModeSelector(modoSelecionado = modoSelecionado, onSelect = onModoSelecionado)
 
     if (estadoIdle) {
         Spacer(Modifier.height(LkSpacing.md))
@@ -619,177 +576,6 @@ private fun ErrorCircle(onTentarNovamente: () -> Unit) {
                 color = c.error,
                 fontWeight = FontWeight.W600,
             )
-        }
-    }
-}
-
-private val modoOpcoes =
-    listOf(
-        "Rápido" to ModoSpeedtest.fast,
-        "Completo" to ModoSpeedtest.complete,
-        "3 testes" to ModoSpeedtest.triplo,
-    )
-
-@Composable
-private fun ModeSelector(
-    modoSelecionado: ModoSpeedtest,
-    onSelect: (ModoSpeedtest) -> Unit,
-) {
-    val c = LocalLkTokens.current
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.pill))
-                .border(1.dp, c.outline, RoundedCornerShape(LkRadius.pill))
-                .padding(2.dp)
-                .semantics { contentDescription = "Modo do teste" },
-    ) {
-        modoOpcoes.forEach { (label, modo) ->
-            val selected = modoSelecionado == modo
-            Box(
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(LkRadius.pill))
-                        .background(if (selected) c.secondaryContainer else Color.Transparent)
-                        .clickable { onSelect(modo) }
-                        .padding(vertical = LkSpacing.sm, horizontal = LkSpacing.xs)
-                        .semantics {
-                            role = Role.Tab
-                            this.selected = selected
-                            contentDescription = "$label${if (selected) ", selecionado" else ""}"
-                        },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = if (selected) c.onSecondaryContainer else c.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun IndicadorRodadaTriplo(
-    rodadaAtual: Int,
-    aguardando: Boolean,
-) {
-    val c = LocalLkTokens.current
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
-            repeat(3) { index ->
-                val ativo = index < rodadaAtual
-                Box(
-                    modifier =
-                        Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (ativo) {
-                                    c.primary
-                                } else {
-                                    c.primary.copy(alpha = 0.2f)
-                                },
-                            ),
-                )
-            }
-        }
-        Spacer(Modifier.height(LkSpacing.xs))
-        Text(
-            text = if (aguardando) "Aguardando próxima medição…" else "Medição $rodadaAtual de 3",
-            style = MaterialTheme.typography.labelSmall,
-            color = LocalLkTokens.current.textSecondary,
-        )
-    }
-}
-
-@Composable
-private fun CardRodadasTriplo(
-    c: LkTokens,
-    rodadas: List<ResultadoRodadaTriplo>,
-) {
-    var expandido by remember { mutableStateOf(false) }
-    val cdMedicoes = if (expandido) stringResource(R.string.cd_recolher_detalhes_medicoes) else stringResource(R.string.cd_expandir_detalhes_medicoes)
-    LkSurfaceCard(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .semantics { contentDescription = cdMedicoes }
-                .clickable { expandido = !expandido },
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = if (expandido) "Ocultar detalhes" else "Ver detalhes das 3 medições",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.W600,
-                color = c.textPrimary,
-                modifier = Modifier.weight(1f),
-            )
-            Icon(
-                imageVector = Icons.Outlined.ExpandMore,
-                contentDescription = null,
-                tint = c.textSecondary,
-                modifier = Modifier.rotate(if (expandido) 180f else 0f),
-            )
-        }
-        if (expandido) {
-            Spacer(Modifier.height(LkSpacing.sm))
-            rodadas.forEachIndexed { index, rodada ->
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = LkSpacing.xs),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        text = "Medição ${index + 1}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = c.textSecondary,
-                    )
-                    Text(
-                        text = "↓ ${"%.0f".format(
-                            rodada.downloadMbps,
-                        )} · ↑ ${"%.0f".format(rodada.uploadMbps)} Mbps · ${rodada.latenciaMs.toInt()} ms",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.W600,
-                        color = c.primary,
-                    )
-                }
-            }
-            if (rodadas.size == 3) {
-                Spacer(Modifier.height(LkSpacing.xs))
-                HorizontalDivider(color = c.outlineVariant)
-                Spacer(Modifier.height(LkSpacing.xs))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text("Min/Max ↓", style = MaterialTheme.typography.labelSmall, color = c.textTertiary)
-                    Text(
-                        "${"%.0f".format(rodadas.minOf { it.downloadMbps })} / ${"%.0f".format(rodadas.maxOf { it.downloadMbps })} Mbps",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.W600,
-                        color = c.textSecondary,
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text("Min/Max ↑", style = MaterialTheme.typography.labelSmall, color = c.textTertiary)
-                    Text(
-                        "${"%.0f".format(rodadas.minOf { it.uploadMbps })} / ${"%.0f".format(rodadas.maxOf { it.uploadMbps })} Mbps",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.W600,
-                        color = c.textSecondary,
-                    )
-                }
-            }
         }
     }
 }

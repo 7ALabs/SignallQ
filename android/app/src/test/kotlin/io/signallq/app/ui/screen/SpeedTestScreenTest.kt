@@ -1,7 +1,6 @@
 package io.signallq.app.ui.screen
 
 import androidx.compose.ui.test.SemanticsNodeInteraction
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -9,7 +8,6 @@ import androidx.compose.ui.test.performClick
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
-import io.signallq.app.feature.speedtest.ModoSpeedtest
 import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
 import io.signallq.app.ui.SignallQTheme
 import org.junit.Assert.assertEquals
@@ -21,8 +19,15 @@ import org.robolectric.annotation.Config
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * #1071 (SPD-002) e #1074 (SPD-019) — caracteriza o seletor de modo (Rápido/Completo/3 testes)
+ * #1071 (SPD-002) e #1074 (SPD-019) — caracterizava o seletor de modo (Rápido/Completo/3 testes)
  * e a guarda contra duplo clique no CTA "Iniciar teste" da tela Velocidade (estado idle).
+ *
+ * GH#1737 (Task 2.0.10a, épico #1647) — o seletor manual de modo (`ModeSelector`, com as opções
+ * "Rápido"/"Completo"/"3 testes") foi removido: o modo agora é decidido automaticamente por tipo
+ * de rede em AppShell, antes de chamar `onIniciarTeste`. `SpeedTestScreen` não recebe mais
+ * `modoSelecionado`/`onModoSelecionado`. O primeiro teste abaixo caracteriza a ausência do
+ * seletor (trava contra reintrodução acidental); a guarda de duplo clique continua válida e
+ * intacta.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -42,7 +47,7 @@ class SpeedTestScreenTest {
         )
 
     @Test
-    fun `seletor de modo mostra Rapido Completo e 3 testes`() {
+    fun `GH1737 nao existe mais seletor manual de modo Rapido Completo ou 3 testes`() {
         composeRule.setContent {
             SignallQTheme {
                 SpeedTestScreen(
@@ -50,8 +55,6 @@ class SpeedTestScreenTest {
                     snapshotRede = snapshotConectado,
                     ispInfo = null,
                     localizacaoServidor = null,
-                    modoSelecionado = ModoSpeedtest.fast,
-                    onModoSelecionado = {},
                     onIniciarTeste = {},
                     onCancelarTeste = {},
                     onAbrirDnsBenchmark = {},
@@ -59,9 +62,8 @@ class SpeedTestScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Rápido").assertIsDisplayed()
-        composeRule.onNodeWithText("Completo").assertIsDisplayed()
-        composeRule.onNodeWithText("3 testes").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Modo do teste").assertDoesNotExist()
+        composeRule.onNodeWithText("3 testes").assertDoesNotExist()
     }
 
     @Test
@@ -75,8 +77,6 @@ class SpeedTestScreenTest {
                     snapshotRede = snapshotConectado,
                     ispInfo = null,
                     localizacaoServidor = null,
-                    modoSelecionado = ModoSpeedtest.fast,
-                    onModoSelecionado = {},
                     onIniciarTeste = { contador.incrementAndGet() },
                     onCancelarTeste = {},
                     onAbrirDnsBenchmark = {},

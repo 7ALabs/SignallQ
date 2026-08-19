@@ -4,7 +4,7 @@ description: "Motor de medição de velocidade (Cloudflare), amostragem de ping,
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-16"
+last_updated: "2026-08-18"
 ---
 
 # `:featureSpeedtest`
@@ -52,8 +52,8 @@ Extraídas de `android/feature/speedtest/build.gradle.kts`.
 
 | Arquivo / classe | Linhas | Responsabilidade |
 |---|---|---|
-| `.../feature/speedtest/ExecutorSpeedtestCloudflare.kt` | 1495 | Implementação real do motor: pool HTTP adaptativo (móvel × Wi-Fi), fases ping/download/upload, latência sob carga, cálculo de bufferbloat/estabilidade/picos, `construirResultado` (onde `MeasurementStatus` é computado uma única vez). |
-| `.../feature/speedtest/SpeedtestViewModel.kt` | 312 | `@HiltViewModel`. Orquestra execução (fast/complete/triplo), guarda de rede medida, acúmulo de MB, analytics (Firebase + admin-worker), interrupção por Wi-Fi sem internet, callback `onSpeedtestConcluido` para o orquestrador. |
+| `.../feature/speedtest/ExecutorSpeedtestCloudflare.kt` | 1227 | Implementação real do motor: pool HTTP adaptativo (móvel × Wi-Fi), fases ping/download/upload, latência sob carga, cálculo de bufferbloat/estabilidade/picos, `construirResultado` (onde `MeasurementStatus` é computado uma única vez). |
+| `.../feature/speedtest/SpeedtestViewModel.kt` | 311 | `@HiltViewModel`. Orquestra execução (fast/complete — GH#1737 removeu o modo triplo e a escolha manual; `modoAutomaticoPara` decide o modo por tipo de rede), guarda de rede medida, acúmulo de MB, analytics (Firebase + admin-worker), interrupção por Wi-Fi sem internet, callback `onSpeedtestConcluido` para o orquestrador. |
 | `.../feature/speedtest/PingExecutor.kt` | 174 | Ping via HTTP (Android não permite ICMP bruto sem `CAP_NET_RAW`); classifica motivo de falha por amostra. |
 | `.../feature/speedtest/connectivity/ConnectivityDiagnosisPresenter.kt` | 142 | Converte `ConnectivityDiagnosis` em título/mensagem + `ConnectivityAction` ordenadas. |
 | `.../feature/speedtest/connectivity/ConnectivityDiagnosisRepository.kt` | 109 | Interface + implementação: executa o motor de `:coreNetwork`, persiste sanitizado em `:coreDatabase`, expõe `ultimoDiagnostico` e `existeRedeWifiAtiva`. |
@@ -79,7 +79,8 @@ Total: 2740 linhas em `src/main` e 962 em `src/test` (8 arquivos de teste).
   build.gradle.kts` não existe mais — o módulo `:pro:*` inteiro foi removido nas Fases 4a-b do
   épico #1623 (SignallQ Pro descontinuado permanentemente, ADR-016). Reavaliar esta seção se
   `grep -rn 'project(":feature' feature/*/build.gradle.kts` voltar a encontrar algo.
-- **`ExecutorSpeedtestCloudflare.kt` com 1495 linhas** — muito acima do limite de 800. É o maior arquivo dos cinco módulos, concentra rede, concorrência, estatística e construção do resultado, e **não tem teste direto**: os testes cobrem as peças puras extraídas dele (`AnalisadorAmostragemPing`, `ValidadorBaselineLatencia`, `SpeedtestQualityClassifier`, `PingExecutor`) e o pacote `connectivity`.
+- **`ExecutorSpeedtestCloudflare.kt` com 1227 linhas** (GH#1737 removeu `executarModoTriplo` e o modo
+  `triplo`, encolhendo de 1495) — muito acima do limite de 800. É o maior arquivo dos cinco módulos, concentra rede, concorrência, estatística e construção do resultado, e **não tem teste direto**: os testes cobrem as peças puras extraídas dele (`AnalisadorAmostragemPing`, `ValidadorBaselineLatencia`, `SpeedtestQualityClassifier`, `PingExecutor`) e o pacote `connectivity`.
 - **Path físico alinhado ao package `io.signallq.app.*`** — migração de `io/signallq/app/kotlin/` concluída em 2026-08-15 (#1645).
 - **Pacote de teste divergente:** `src/test/kotlin/io/signallq/app/kotlin/feature/speedtest/SpeedtestMbEstimativaTest.kt` declara pacote `io.signallq.app.kotlin.feature.speedtest` (com `.kotlin.`), diferente dos demais — visível no nome do relatório JUnit gerado.
 - **Telas fora do módulo:** `ResultadoVelocidadeScreen.kt` (770 linhas) e o fluxo de execução em `HomeScreen.kt` (2967 linhas) estão em `android/app/src/main/kotlin/io/signallq/app/kotlin/ui/screen/`. O módulo não contém nenhum Composable — a separação UI/motor é real aqui, mas assimétrica: a UI inteira ficou no `:app`.
