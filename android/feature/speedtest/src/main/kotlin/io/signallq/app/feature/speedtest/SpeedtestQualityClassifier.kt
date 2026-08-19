@@ -1,6 +1,5 @@
 ﻿package io.signallq.app.feature.speedtest
 
-import io.signallq.app.core.diagnostico.MetricClassifier
 import io.signallq.app.core.diagnostico.MetricStatus
 
 /**
@@ -11,15 +10,22 @@ object SpeedtestQualityClassifier {
 
     /**
      * GH#1228 Fatia 6 (P1-4): fonte unica dos 3 cortes de bufferbloat (5/30/100ms) e
-     * [MetricClassifier.classificarBufferbloat] (`core/diagnostico`) — aqui so traduz o
-     * vocabulario canonico [MetricStatus] para [SeveridadeBufferbloat], vocabulario proprio
-     * deste modulo. Ate esta fatia, os thresholds eram reimplementados aqui porque
-     * `core/diagnostico` nao podia depender de `feature/speedtest`; a duplicacao foi resolvida
-     * na direcao permitida pela regra `:feature* -> :core*` (`feature/speedtest` passou a
-     * depender de `core/diagnostico`, nunca o contrario).
+     * [MetricClassifier.classificarBufferbloat][io.signallq.app.core.diagnostico.MetricClassifier.classificarBufferbloat]
+     * (`core/diagnostico`) — aqui so traduz o vocabulario canonico [MetricStatus] para
+     * [SeveridadeBufferbloat], vocabulario proprio deste modulo. Ate a fatia GH#1228, os
+     * thresholds eram reimplementados aqui porque `core/diagnostico` nao podia depender de
+     * `feature/speedtest`; a duplicacao foi resolvida na direcao permitida pela regra
+     * `:feature* -> :core*` (`feature/speedtest` passou a depender de `core/diagnostico`, nunca
+     * o contrario).
+     *
+     * NDS-02k (issue #1746/#1759): a chamada ao motor deixou de ser direta a `MetricClassifier`
+     * e passou a ser via [classificarBufferbloatLocal] (`ClassificacaoMetricaLocal.kt`, mesmo
+     * modulo) — seam que documenta por que este ponto continua 100% local (classificacao de
+     * bufferbloat medido on-device, sem veredicto de avaliacao do NDS equivalente). Ver KDoc de
+     * `ClassificacaoMetricaLocal.kt` para o racional completo.
      */
     fun classificarBufferbloat(deltaMs: Double): SeveridadeBufferbloat =
-        when (MetricClassifier.classificarBufferbloat(deltaMs)) {
+        when (classificarBufferbloatLocal(deltaMs)) {
             MetricStatus.excelente -> SeveridadeBufferbloat.none
             MetricStatus.bom -> SeveridadeBufferbloat.mild
             MetricStatus.regular -> SeveridadeBufferbloat.moderate

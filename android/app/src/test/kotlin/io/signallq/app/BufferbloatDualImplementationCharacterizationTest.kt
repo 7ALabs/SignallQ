@@ -19,7 +19,10 @@ import org.junit.Test
  *
  * Este teste continua valendo como guard-rail: se a delegacao for revertida por engano
  * (ex.: alguem reintroduzir um `when` literal em `SpeedtestQualityClassifier` em vez de
- * chamar `MetricClassifier`), ele volta a ser o alarme de dessincronizacao. O valor
+ * chamar `MetricClassifier`), ele volta a ser o alarme de dessincronizacao. NDS-02k (#1746/#1759)
+ * trocou a chamada direta por `classificarBufferbloatLocal` (`ClassificacaoMetricaLocal.kt`,
+ * `feature/speedtest`), que ainda delega para a mesma `MetricClassifier` — a concordancia
+ * continua valendo, so a indirecao mudou. O valor
  * persistido em `MedicaoEntity.gargaloPrimario` vem de [SpeedtestQualityClassifier]; o
  * badge de bufferbloat mostrado ao usuario (tela de Resultado, Historico) vem de
  * [MetricClassifier] -- ambos agora leem o mesmo corte numerico (ver

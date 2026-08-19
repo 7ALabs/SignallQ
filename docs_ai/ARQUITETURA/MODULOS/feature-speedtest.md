@@ -4,7 +4,7 @@ description: "Motor de medição de velocidade (Cloudflare), amostragem de ping,
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-18"
+last_updated: "2026-08-19"
 ---
 
 # `:featureSpeedtest`
@@ -16,7 +16,7 @@ last_updated: "2026-08-18"
 
 É o motor de medição do produto: executa o speedtest contra endpoints Cloudflare (fases de latência-base, download, upload e latência sob carga), calcula jitter, perda de pacote, bufferbloat, estabilidade e picos, e produz um `ResultadoSpeedtest` já classificado (`MeasurementStatus`, `DiagnosticoQualidadeSpeedtest`, `DiagnosticoFasesSpeedtest`). Expõe também o `SpeedtestViewModel` (Hilt) com a guarda de rede medida, a acumulação mensal de MB em rede móvel e a interrupção por "Wi-Fi sem internet" (`connectivity/`).
 
-Não é dele: renderizar as telas de execução e resultado (`ResultadoVelocidadeScreen.kt`, 770 linhas, e o card de velocidade em `HomeScreen.kt`, ambos no `:app`), persistir histórico de medições (`:coreDatabase`), gerar recomendação/laudo, nem decidir navegação. Também não define os thresholds de bufferbloat — delega a `:core:diagnostico` (`MetricClassifier`).
+Não é dele: renderizar as telas de execução e resultado (`ResultadoVelocidadeScreen.kt`, 770 linhas, e o card de velocidade em `HomeScreen.kt`, ambos no `:app`), persistir histórico de medições (`:coreDatabase`), gerar recomendação/laudo, nem decidir navegação. Também não define os thresholds de bufferbloat — delega a `:core:diagnostico` (`MetricClassifier`), hoje por trás do seam local `ClassificacaoMetricaLocal.kt` (NDS-02k, #1746/#1759) documentado como o único ponto que muda se a classificação de bufferbloat pós-medição algum dia ganhar uma fonte viva do NDS.
 
 ## Dependências
 
@@ -60,6 +60,7 @@ Extraídas de `android/feature/speedtest/build.gradle.kts`.
 | `.../feature/speedtest/AnalisadorAmostragemPing.kt` | 97 | Algoritmo puro: mediana, jitter, perda, filtro de outlier (`> 3x` mediana), `maxMs`/`p95Ms`/`picos`. |
 | `.../feature/speedtest/MeasurementStatus.kt` | 77 | Fonte única de integridade da execução: `COMPLETE`/`PARTIAL`/`INCONCLUSIVE`/`CONTAMINATED`/`CANCELLED`, com as regras de consumo documentadas. |
 | `.../feature/speedtest/SpeedtestQualityClassifier.kt` | 72 | Traduz `MetricStatus` de `:core:diagnostico` para `SeveridadeBufferbloat`. |
+| `.../feature/speedtest/ClassificacaoMetricaLocal.kt` | 48 | Seam NDS-02k (#1746/#1759): isola a chamada a `MetricClassifier.classificarBufferbloat`; espelha `io.signallq.app.ui.component.ClassificacaoMetricaLocal` do `:app` (não reusável direto por causa da direção `:feature* -> :core*`). |
 | `.../feature/speedtest/connectivity/ConnectivityBlockingPolicy.kt` | 51 | Decide se um diagnóstico é evidência forte o bastante para interromper o teste (extraída da duplicação entre `MainViewModel` e `SpeedtestViewModel`). |
 | `.../feature/speedtest/ResultadoSpeedtest.kt` | 41 | Contrato de saída (28+ campos, incluindo métricas DNS e diagnósticos). |
 | `.../feature/speedtest/ValidadorBaselineLatencia.kt` | 28 | Guardas puras: probe indisponível e baseline fisicamente implausível. |
