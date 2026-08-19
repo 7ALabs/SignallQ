@@ -23,7 +23,12 @@ private const val NDS_APP_ID = "io.signallq.app"
  *
  * ## Campos de `DiagnosticInput` sem correspondente no schema do NDS (fora por design)
  * `natStatus`, `velocidadeContratadaMbps`, `historico`, `localDevice`,
- * `deviceGamingSelecionado` — o NDS nao pede nenhum destes ainda.
+ * `deviceGamingSelecionado` — o NDS nao pede nenhum destes ainda. NAO confundir
+ * `deviceGamingSelecionado` (device/console especifico, ex.: "playstation") com o sinal
+ * "diagnostico roda dentro do Modo Gamer": este ultimo TEM campo correspondente no NDS
+ * (`profile="gamer"`, decidido em #1746 secao 3b) e ja e aceito por este mapper via
+ * [perfilGamer] — o gap historico (issue #1762) era o chamador em
+ * `NdsDiagnosticRepository.evaluate` nunca repassar esse parametro, nao a ausencia do campo.
  *
  * ## Gap documentado: `wifiScan`
  * O bloco opcional `wifiScan` do NDS pede congestionamento/melhor-canal calculados

@@ -13,8 +13,10 @@ import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.SocketPolicy
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -175,5 +177,27 @@ class NdsDiagnosticRepositoryTest {
         val report = repository().evaluate(snapshotSaudavelInput())
 
         assertEquals(DiagnosticEvaluationSource.BUNDLED_LOCAL, report.evaluationSource)
+    }
+
+    // issue #1762 (achado do Caio na PR #1760) — evaluate() nunca repassava perfilGamer pro
+    // mapper; o request que saia sempre tinha profile omitido, mesmo dentro do Modo Gamer.
+    @Test
+    fun `perfilGamer true - request enviado ao NDS carrega profile gamer`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(successBody()))
+
+        repository().evaluate(snapshotSaudavelInput(), perfilGamer = true)
+
+        val corpoEnviado = JSONObject(server.takeRequest().body.readUtf8())
+        assertEquals("gamer", corpoEnviado.getString("profile"))
+    }
+
+    @Test
+    fun `perfilGamer default false - request enviado ao NDS nao carrega profile`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(successBody()))
+
+        repository().evaluate(snapshotSaudavelInput())
+
+        val corpoEnviado = JSONObject(server.takeRequest().body.readUtf8())
+        assertFalse("profile nao deveria estar presente no JSON quando perfilGamer=false", corpoEnviado.has("profile"))
     }
 }
