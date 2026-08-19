@@ -36,7 +36,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.outlined.Adjust
 import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeviceHub
@@ -46,12 +45,10 @@ import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
-import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.SettingsInputAntenna
 import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.Smartphone
-import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.AssistChip
@@ -72,7 +69,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -112,7 +108,6 @@ import io.signallq.app.core.network.contracts.topologia.NivelConfianca
 import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
 import io.signallq.app.feature.home.OrigemMedicaoHome
-import io.signallq.app.feature.speedtest.ModoSpeedtest
 import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
 import io.signallq.app.feature.wifi.RedeVizinha
 import io.signallq.app.feature.wifi.SegurancaWifi
@@ -199,7 +194,10 @@ fun HomeScreen(
         { _, _, _, _, _ -> },
     anatelBannerDismissed: Boolean,
     onDismissAnatelBanner: () -> Unit,
-    onIniciarTeste: (ModoSpeedtest) -> Unit,
+    // GH#1737 (épico #1647) — sem parâmetro de modo: a escolha manual (MedicaoTipoSheet) foi
+    // removida, o modo agora é decidido automaticamente por tipo de rede no ponto de disparo
+    // (AppShell), não mais aqui.
+    onIniciarTeste: () -> Unit,
     onAbrirHistorico: () -> Unit,
     onAbrirMenu: () -> Unit,
     onAbrirRedes: () -> Unit,
@@ -250,7 +248,6 @@ fun HomeScreen(
     var showGatewaySheet by remember { mutableStateOf<GatewayInfo?>(null) }
     var showInternetSheet by remember { mutableStateOf(false) }
     var showCellularSheet by remember { mutableStateOf(false) }
-    var showMedicaoTipoSheet by remember { mutableStateOf(false) }
     // GH#530 — GatewayConnectionSheet (roteador/GPON) do nó do gateway na trilha. IP separado
     // de "visível" porque um gateway detectado pode legitimamente ter ip == null.
     var showGatewayConnectionSheet by remember { mutableStateOf(false) }
@@ -321,17 +318,6 @@ fun HomeScreen(
                 c = c,
             )
         }
-    }
-    if (showMedicaoTipoSheet) {
-        MedicaoTipoSheet(
-            isOnWifi = isOnWifi,
-            onDismiss = { showMedicaoTipoSheet = false },
-            onIniciarTeste = { modo ->
-                showMedicaoTipoSheet = false
-                onIniciarTeste(modo)
-            },
-            c = c,
-        )
     }
 
     val listState = rememberLazyListState()
@@ -475,7 +461,9 @@ fun HomeScreen(
                     hasEffectiveResult = hasEffectiveResult,
                     resultadoEhAnterior = resultadoEhAnterior,
                     onAbrirHistorico = onAbrirHistorico,
-                    onIniciarTeste = { showMedicaoTipoSheet = true },
+                    // GH#1737 — sem sheet de escolha de modo: repassa direto, o modo é
+                    // decidido automaticamente por tipo de rede em AppShell.
+                    onIniciarTeste = onIniciarTeste,
                     c = c,
                 )
             }
@@ -2129,166 +2117,6 @@ private fun CellularInfoSheet(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
             )
-        }
-    }
-}
-
-// ─── MedicaoTipoSheet ─────────────────────────────────────────────────────────
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun MedicaoTipoSheet(
-    isOnWifi: Boolean,
-    onDismiss: () -> Unit,
-    onIniciarTeste: (ModoSpeedtest) -> Unit,
-    c: LkTokens,
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = c.bgSecondary,
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = LkSpacing.sm)
-                    .padding(horizontal = LkSpacing.lg)
-                    .padding(bottom = 32.dp)
-                    .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-        ) {
-            SheetDragHandle()
-            Text(
-                "Tipo de medição",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.W700,
-                color = c.textPrimary,
-            )
-            Text(
-                "Escolha como quer medir sua conexão",
-                style = MaterialTheme.typography.bodySmall,
-                color = c.textSecondary,
-            )
-            Spacer(modifier = Modifier.height(LkSpacing.sm))
-
-            MedicaoOpcaoItem(
-                icon = Icons.Outlined.Speed,
-                titulo = "Rápido",
-                descricao = "Somente download · ~30 seg",
-                badge = null,
-                disponivel = true,
-                c = c,
-                onClick = { onIniciarTeste(ModoSpeedtest.fast) },
-            )
-
-            MedicaoOpcaoItem(
-                icon = Icons.Outlined.Adjust,
-                titulo = "Completo",
-                descricao = "Download e upload · ~90 seg",
-                badge = "Recomendado",
-                badgeColor = c.primary,
-                disponivel = true,
-                c = c,
-                onClick = { onIniciarTeste(ModoSpeedtest.complete) },
-            )
-
-            MedicaoOpcaoItem(
-                icon = Icons.Outlined.Refresh,
-                titulo = "Triplo",
-                descricao = "Média de 3 testes consecutivos · ~3 min",
-                badge = "Só Wi-Fi",
-                badgeColor = c.textTertiary,
-                disponivel = isOnWifi,
-                c = c,
-                onClick = { onIniciarTeste(ModoSpeedtest.triplo) },
-            )
-
-            Spacer(modifier = Modifier.height(LkSpacing.xs))
-            TextButton(
-                onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Cancelar", color = c.textSecondary)
-            }
-        }
-    }
-}
-
-@Composable
-private fun MedicaoOpcaoItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    titulo: String,
-    descricao: String,
-    badge: String?,
-    badgeColor: Color = c.primary,
-    disponivel: Boolean,
-    c: LkTokens,
-    onClick: () -> Unit,
-) {
-    val textColor = if (disponivel) c.textPrimary else c.textTertiary
-    val subTextColor = if (disponivel) c.textSecondary else c.textTertiary
-    val iconColor = if (disponivel) c.primary else c.textTertiary
-
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.card))
-                .background(c.bgCard)
-                .then(
-                    if (disponivel) {
-                        Modifier.clickable { onClick() }
-                    } else {
-                        Modifier
-                    },
-                ).padding(LkSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(iconColor.copy(alpha = 0.1f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconColor,
-                modifier = Modifier.size(22.dp),
-            )
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                titulo,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.W600,
-                color = textColor,
-            )
-            Text(
-                descricao,
-                style = MaterialTheme.typography.bodySmall,
-                color = subTextColor,
-            )
-        }
-        if (badge != null) {
-            Box(
-                modifier =
-                    Modifier
-                        .clip(RoundedCornerShape(LkRadius.pill))
-                        .background(badgeColor.copy(alpha = 0.12f))
-                        .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
-            ) {
-                Text(
-                    badge,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.W600,
-                    color = badgeColor,
-                )
-            }
         }
     }
 }

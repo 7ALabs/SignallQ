@@ -4,7 +4,7 @@ description: "Funil principal SIG-155 (7 eventos definidos, 5 disparando — os 
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-16"
+last_updated: "2026-08-18"
 ---
 
 # Contrato de Eventos — Firebase Analytics
@@ -130,7 +130,7 @@ Disparado quando o usuário toca "Iniciar teste" ou o teste silencioso começa.
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `modo` | String | Sim | `"fast"` \| `"complete"` \| `"triplo"` — de `ModoSpeedtest.name` |
+| `modo` | String | Sim | `"fast"` \| `"complete"` — de `ModoSpeedtest.name` |
 | `tipo_conexao` | String | Sim | `"wifi"` \| `"mobile"` \| `"ethernet"` \| `"desconectado"` \| `"desconhecido"` |
 | `versao_app` | String | Sim | |
 
@@ -138,9 +138,12 @@ Disparado quando o usuário toca "Iniciar teste" ou o teste silencioso começa.
 `confirmarSpeedtestEmMovel`)
 **Plataforma:** Android
 
-**Nota de implementação:** o valor de `modo` foi corrigido em relação à versão
-anterior deste contrato — `ModoSpeedtest` no código é `fast`/`complete`/`triplo`,
-não `"completo"`/`"silencioso"`. Testes silenciosos/automáticos (ex.: monitoramento
+**Nota de implementação:** GH#1737 (épico #1647) removeu o modo `triplo` de
+`ModoSpeedtest` e a escolha manual de modo — `modo` agora só assume `"fast"`/
+`"complete"`, decidido automaticamente por tipo de rede (`modoAutomaticoPara`).
+Eventos históricos emitidos antes da mudança podem conter `"triplo"`; nenhum
+consumidor deste evento faz parsing de `modo` de volta para o enum, então não há
+quebra de compatibilidade a tratar. Testes silenciosos/automáticos (ex.: monitoramento
 passivo — ver `docs_ai/technical/MONITORAMENTO_PASSIVO.md`) **não passam por este
 ponto de instrumentação** — só o speedtest explícito iniciado pelo usuário via
 `SpeedtestViewModel` é contado no funil, para manter o par
@@ -158,7 +161,7 @@ Disparado quando o `ResultadoSpeedtest` da execução atual (via
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `modo` | String | Sim | `"fast"` \| `"complete"` \| `"triplo"` |
+| `modo` | String | Sim | `"fast"` \| `"complete"` |
 | `tipo_conexao_inicio` | String | Sim | Tipo de conexão no início do teste |
 | `tipo_conexao_fim` | String | Não | Tipo de conexão ao final (pode ter mudado) |
 | `download_mbps` | Double | Sim | Velocidade de download |

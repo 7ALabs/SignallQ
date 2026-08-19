@@ -87,7 +87,7 @@ import io.signallq.app.feature.devices.ehClienteFinal
 import io.signallq.app.feature.dns.SnapshotBenchmarkDns
 import io.signallq.app.feature.fibra.SnapshotFibra
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
-import io.signallq.app.feature.speedtest.ModoSpeedtest
+import io.signallq.app.feature.speedtest.modoAutomaticoPara
 import io.signallq.app.modogamer.resolverPadraoModoGamer
 import io.signallq.app.ui.GatewayInfo
 import io.signallq.app.ui.HistoryPoint
@@ -318,7 +318,11 @@ fun AppShell(
     // A Jornada 2.0 inicia em Início e restaura raiz/pilhas por processo. O modo legado
     // continua opt-in para rollback controlado durante a migração incremental.
     val navigator = rememberAppShellNavigator(shellMode)
-    var modoSelecionado by remember { mutableStateOf(ModoSpeedtest.complete) }
+    // GH#1737 (épico #1647) — o modo não é mais escolhido pela pessoa (MedicaoTipoSheet/
+    // ModeSelector removidos): é decidido automaticamente pelo tipo de rede a cada disparo,
+    // recomputado a cada recomposição (sem `remember` — não há mais valor "selecionado" para
+    // persistir entre disparos).
+    val modoAutomatico = modoAutomaticoPara(snapshotRede.estadoConexao)
     val overlayStack = navigator.overlayStack
 
     // GH#1704 parte 4/4 — medição pedida pelo fluxo guiado. Estado e regras em
@@ -799,15 +803,14 @@ fun AppShell(
                                             modemPermanecerConectado = modemPermanecerConectado,
                                             onAbrirGatewayDetalhe = onAbrirGatewayDetalhe,
                                             onGatewayConectado = onGatewayConectado,
-                                            onIniciarTeste = { modo ->
+                                            // GH#1737 — sem escolha manual: o modo já vem decidido
+                                            // (modoAutomatico). Em rede móvel, AppShell ainda mostra o
+                                            // ForaDoWifiDialog de consumo de dados antes de disparar.
+                                            onIniciarTeste = {
                                                 if (snapshotRede.estadoConexao == EstadoConexao.movel) {
-                                                    // AppShell decide: em rede móvel mostra ForaDoWifiDialog
-                                                    // O modo fica registrado no modoSelecionado para uso posterior
-                                                    modoSelecionado = modo
                                                     showForaDoWifiDialog = true
                                                 } else {
-                                                    modoSelecionado = modo
-                                                    onNovoTeste(modo)
+                                                    onNovoTeste(modoAutomatico)
                                                 }
                                             },
                                             onAbrirHistorico = { navigator.select(AppShellRoot.History) },
@@ -827,9 +830,7 @@ fun AppShell(
                                         snapshotRede = snapshotRede,
                                         ispInfo = ispInfoData,
                                         localizacaoServidor = localizacaoServidorStr,
-                                        modoSelecionado = modoSelecionado,
-                                        onModoSelecionado = { modoSelecionado = it },
-                                        onIniciarTeste = { onNovoTeste(modoSelecionado) },
+                                        onIniciarTeste = { onNovoTeste(modoAutomatico) },
                                         onCancelarTeste = onCancelarTeste,
                                         onAbrirDnsBenchmark = onAbrirDnsOverlay,
                                         onAbrirPing = onAbrirPingOverlay,
@@ -910,7 +911,7 @@ fun AppShell(
                     localizacaoServidor = localizacaoServidorStr,
                     ispInfo = ispInfoData,
                     onCancelar = onCancelarTeste,
-                    onReiniciar = { onNovoTeste(modoSelecionado) },
+                    onReiniciar = { onNovoTeste(modoAutomatico) },
                     onVoltar = onCancelarTeste,
                 )
             }
@@ -1388,7 +1389,7 @@ fun AppShell(
                         showForaDoWifiDialog = false
                         // Usuario ja confirmou o aviso de dados moveis aqui — pula o segundo
                         // gate de confirmacao em rede medida (#516).
-                        onNovoTesteJaConfirmadoMovel(modoSelecionado)
+                        onNovoTesteJaConfirmadoMovel(modoAutomatico)
                     },
                     onCancelar = { showForaDoWifiDialog = false },
                 )

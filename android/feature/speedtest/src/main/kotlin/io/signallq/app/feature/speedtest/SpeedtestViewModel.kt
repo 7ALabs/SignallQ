@@ -30,7 +30,7 @@ import javax.inject.Inject
  * Extraido do MainViewModel (1602L) — etapa B do refactor de ViewModels por feature.
  *
  * Responsabilidades:
- * - Execucao de speedtest (fast/complete/triplo)
+ * - Execucao de speedtest (fast/complete — GH#1737 removeu o modo triplo)
  * - Guard de rede medida (dialogo de confirmacao em rede movel)
  * - Acumulacao mensal de MB consumidos em rede movel
  * - Cancelamento de teste em andamento
@@ -91,7 +91,7 @@ class SpeedtestViewModel
         /**
          * Inicia ou enfileira um speedtest.
          *
-         * Em rede medida com modo pesado (complete/triplo) e sem permissao previa,
+         * Em rede medida com modo pesado (complete) e sem permissao previa,
          * suspende e armazena o modo para exibir dialogo de confirmacao.
          * Caso contrario, executa imediatamente.
          */
@@ -281,14 +281,13 @@ class SpeedtestViewModel
         /**
          * Acumula MB estimados consumidos no mes corrente.
          * Reset automatico quando o mes muda em relacao ao valor salvo.
-         * Estimativas: fast=10 MB, complete=25 MB, triplo=30 MB.
+         * Estimativas: fast=10 MB, complete=25 MB.
          */
         private fun acumularMbConsumidos(modo: ModoSpeedtest) {
             val mbEstimado =
                 when (modo) {
                     ModoSpeedtest.fast -> 10L
                     ModoSpeedtest.complete -> 25L
-                    ModoSpeedtest.triplo -> 30L
                 }
             val cal = java.util.Calendar.getInstance()
             val mesAtual = "%04d-%02d".format(

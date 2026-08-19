@@ -162,4 +162,19 @@ class MedicaoEntityTest {
 
         assertNotEquals(a, b)
     }
+
+    // =========================================================================
+    // GH#1737 (épico #1647) — remocao do modo `triplo` de ModoSpeedtest. `speedtestMode` e
+    // uma String opaca persistida via `resultado.modo.name` (SpeedtestPersistenceCoordinator),
+    // nunca reconstruida de volta pro enum (sem `ModoSpeedtest.valueOf`/`enumValueOf` em nenhum
+    // consumidor de historico). Uma medicao antiga persistida com "triplo" continua uma entidade
+    // valida e legivel — a remocao do valor do enum nao quebra leitura/exportacao de historico.
+    // =========================================================================
+
+    @Test
+    fun `entidade historica com speedtestMode triplo continua valida apos a remocao do modo do enum`() {
+        val e = entidadeMinima("historico-triplo").copy(speedtestMode = "triplo")
+
+        assertEquals("triplo", e.speedtestMode)
+    }
 }
