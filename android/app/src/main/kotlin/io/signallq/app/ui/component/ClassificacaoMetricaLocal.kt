@@ -5,17 +5,21 @@ import io.signallq.app.core.diagnostico.MetricClassifier
 import io.signallq.app.core.diagnostico.MetricStatus
 
 /**
- * Ponte entre os consumidores isolados de RSSI/RSRP/RSRQ/SINR/bufferbloat que a NDS-02b (#1749,
- * ADR-017) migrou e o motor local de classificação ([MetricClassifier], `core/diagnostico`).
+ * Ponte entre os consumidores isolados de RSSI/RSRP/RSRQ/SINR/bufferbloat/download/upload/perda/
+ * latência/jitter e o motor local de classificação ([MetricClassifier], `core/diagnostico`).
+ * Nasceu na NDS-02b (#1749, ADR-017) com os 5 primeiros; a NDS-02d (#1752) somou os 5 pontos de
+ * `ResultadoVelocidadeScreen.kt` (download/upload/perda/latência/jitter — bufferbloat já existia
+ * como [classificarBufferbloatLocal] e é reaproveitado, sem duplicar).
  *
  * ## Por que este arquivo existe em vez de cada consumidor continuar chamando MetricClassifier
  *
  * A issue #1749 pede pra decidir, por consumidor, se cabe uma chamada de rede ao NDS ali ou se o
  * dado deve chegar já classificado de um nível acima. Pra `SignalBars.kt`,
- * `SinalMovelClassificacao.kt`, `SinalTopologiaHelpers.kt` e `HistoricoScreen.kt` (os 4 arquivos
- * de UI que consomem funções daqui — `ContinuidadeMedicao.kt`, o 6º ponto do escopo, é uma ponte
- * de vocabulário separada, sem motor nenhum por trás, resolvida em `MetricStatusUi.kt`), nenhuma
- * das duas opções da issue se aplica hoje, por três motivos estruturais e não por preferência:
+ * `SinalMovelClassificacao.kt`, `SinalTopologiaHelpers.kt`, `HistoricoScreen.kt` e agora
+ * `ResultadoVelocidadeScreen.kt` (os 5 arquivos de UI que consomem funções daqui —
+ * `ContinuidadeMedicao.kt`, o 6º ponto do escopo original da NDS-02b, é uma ponte de vocabulário
+ * separada, sem motor nenhum por trás, resolvida em `MetricStatusUi.kt`), nenhuma das duas opções
+ * da issue se aplica hoje, por três motivos estruturais e não por preferência:
  *
  * 1. **Não existe orquestração viva do NDS ainda em lugar nenhum do app.** NDS-01 (#1744) isolou o
  *    cliente HTTP; NDS-02a (#1747) só adicionou mappers puros, "zero UI tocada". Decidir quando
@@ -56,6 +60,25 @@ import io.signallq.app.core.diagnostico.MetricStatus
  * real, já que `SinalMovelClassificacao.kt` segue dependendo de `core/diagnostico` de qualquer
  * forma (o módulo não sai até NDS-03, e `RadioTech` é vocabulário estável usado por outras engines
  * que permanecem locais). Exceção documentada, não descuido.
+ *
+ * ## NDS-02d (#1752) — download/upload/perda/latência/jitter de `ResultadoVelocidadeScreen.kt`
+ *
+ * Mesmos três primeiros motivos estruturais acima (sem orquestração viva do NDS ainda; o
+ * `veredicto` do NDS é único por avaliação, não um status por métrica de speedtest isolada; a
+ * orquestração real de quando disparar uma avaliação fica pra NDS-02k/`MainViewModel`) — nenhum
+ * motivo específico a mais, os 5 pontos são classificação pura de resultado de speedtest já
+ * medido on-device, sem cobertura parcial do NDS pra essas métricas confirmada até aqui.
+ *
+ * `comSeveridadeConciliada()` — mecânica que existia só em `ResultadoVelocidadeScreen.kt` e
+ * reconciliava o veredito isolado do card com a severidade de um achado do `FindingEngine` local
+ * (`internetResultados`) por convenção de prefixo de ID (`"IN-NORMAL-04"`/`"IN-NORMAL-05"`) — foi
+ * **removida por completo na NDS-02d**, não adaptada pro seam. Decisão registrada no inventário de
+ * #1746: a mecânica dependia de duas réguas numéricas paralelas (`MetricClassifier` vs.
+ * `InternetDiagnosticEngine`) e de uma taxonomia de ID de achado que o NDS não reproduz — vira
+ * código morto assim que a fonte de veredito migra pro NDS, então sai agora em vez de ser
+ * carregada pra dentro do seam. Os cards desta tela voltam a mostrar só a classificação isolada
+ * (mesma matemática de `MetricClassifier`, sem piso de severidade externo) até a orquestração real
+ * do NDS chegar.
  */
 internal fun classificarRssiWifiLocal(
     rssiDbm: Int,
@@ -79,3 +102,18 @@ internal fun classificarSinrLocal(
 
 internal fun classificarBufferbloatLocal(deltaMs: Double): MetricStatus =
     MetricClassifier.classificarBufferbloat(deltaMs)
+
+internal fun classificarDownloadLocal(mbps: Double): MetricStatus =
+    MetricClassifier.classificarDownload(mbps)
+
+internal fun classificarUploadLocal(mbps: Double): MetricStatus =
+    MetricClassifier.classificarUpload(mbps)
+
+internal fun classificarPerdaPacotesLocal(perdaPercentual: Double): MetricStatus =
+    MetricClassifier.classificarPerdaPacotes(perdaPercentual)
+
+internal fun classificarLatenciaLocal(latenciaMs: Double): MetricStatus =
+    MetricClassifier.classificarLatencia(latenciaMs)
+
+internal fun classificarJitterLocal(jitterMs: Double): MetricStatus =
+    MetricClassifier.classificarJitter(jitterMs)
