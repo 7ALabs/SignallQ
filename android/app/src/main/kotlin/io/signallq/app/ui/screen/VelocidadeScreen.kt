@@ -57,9 +57,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.signallq.app.R
+import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
 import io.signallq.app.feature.speedtest.FaseSpeedtest
+import io.signallq.app.feature.speedtest.MeasurementStatus
 import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
+import io.signallq.app.feature.speedtest.connectivity.ConnectivityAction
+import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisMensagem
 import io.signallq.app.ui.IspInfo
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
@@ -67,6 +71,8 @@ import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.component.GaugeCircular
+import io.signallq.app.ui.component.corConteudo
+import io.signallq.app.ui.component.icone
 import kotlinx.coroutines.isActive
 import androidx.compose.animation.core.tween as tweenSpec
 
@@ -86,6 +92,12 @@ fun VelocidadeScreen(
 
     val fase = snapshot.faseAtual
     val corFase = corDaFase(fase, c)
+
+    // GH#1738 — os 5 valores de `MeasurementStatus`, não um booleano achatado (mesma classe de
+    // problema que a #1705 resolveu no fluxo guiado, reusando aqui `continuidadeDaMedicao` e
+    // `medidasConfiaveis` em vez de recriar vocabulário). `null` cobre COMPLETE e "ainda sem
+    // resultado" — os dois casos em que este overlay mantém o comportamento de sempre.
+    val continuidade = continuidadeExecucao(snapshot)
 
     // Haptics nas transições de fase
     LaunchedEffect(fase) {
@@ -109,7 +121,12 @@ fun VelocidadeScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = if (snapshot.estado == EstadoExecucaoSpeedtest.erro) "Erro" else "Medindo…",
+                        text =
+                            when {
+                                snapshot.estado == EstadoExecucaoSpeedtest.erro -> "Erro"
+                                continuidade != null -> continuidade.titulo
+                                else -> "Medindo…"
+                            },
                         style = MaterialTheme.typography.titleLarge,
                         color = c.textPrimary,
                     )
@@ -134,6 +151,23 @@ fun VelocidadeScreen(
                 mensagem = snapshot.erroMensagem,
                 onReiniciar = onReiniciar,
                 onCancelar = onCancelar,
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(LkSpacing.xl),
+            )
+            return@Scaffold
+        }
+
+        // A medição concluiu, mas não com status COMPLETE (parcial/contaminada/inconclusiva) —
+        // janela breve antes de o AppShell trocar este overlay pela tela de resultado (GH#1704),
+        // mas o conteúdo certo importa mesmo aí: TalkBack lê o que está composto, não o que dá
+        // tempo de ver na tela, e a issue pede os 5 valores reais, não um booleano.
+        if (continuidade != null) {
+            ConclusaoNaoCompletaContent(
+                continuidade = continuidade,
+                onReiniciar = onReiniciar,
                 modifier =
                     Modifier
                         .fillMaxSize()
@@ -476,6 +510,72 @@ private fun ErroContent(
     }
 }
 
+/**
+ * A medição concluiu sem status COMPLETE — traduz para [ContinuidadeMedicao], reusando a mesma
+ * fonte que a #1705 plugou no fluxo guiado (GH#1738). `null` cobre COMPLETE e "ainda sem
+ * resultado" (estado diferente de `concluido`, ou `resultado` ainda não publicado) — os dois
+ * casos em que este overlay mantém a Column de progresso normal.
+ *
+ * Função pura e testável isoladamente, sem depender de Compose — mesmo padrão de
+ * [deveMostrarOverlayVelocidade] em `AppShellMedicaoGuiada.kt`.
+ */
+internal fun continuidadeExecucao(snapshot: SnapshotExecucaoSpeedtest): ContinuidadeMedicao? {
+    if (snapshot.estado != EstadoExecucaoSpeedtest.concluido) return null
+    val resultado = snapshot.resultado ?: return null
+    if (resultado.status == MeasurementStatus.COMPLETE) return null
+    return continuidadeDaMedicao(resultado.status, medidasConfiaveis(resultado))
+}
+
+/**
+ * Conteúdo mostrado na janela breve entre a medição concluir sem status COMPLETE e o AppShell
+ * empilhar a tela de resultado (GH#1704/#1738) — título, ícone e cor vêm do mapeamento canônico
+ * de [io.signallq.app.core.diagnostico.DiagnosticStatus] (`DiagnosticStatusUi.kt`), igual ao
+ * `ContinuidadeMedicaoSection` do fluxo guiado. Sem botão de ação aqui: a ação real
+ * ("Completar a medição"/"Refazer na mesma rede"/"Medir de novo") pertence à tela de resultado
+ * que vem em seguida — [onReiniciar] existe só para o caso raro de o overlay ficar visível tempo
+ * suficiente para ser tocado (dispositivo com animações reduzidas).
+ */
+@Composable
+private fun ConclusaoNaoCompletaContent(
+    continuidade: ContinuidadeMedicao,
+    onReiniciar: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val c = LocalLkTokens.current
+    val cor = continuidade.statusVisual.corConteudo(c)
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            imageVector = continuidade.statusVisual.icone(),
+            contentDescription = null,
+            tint = cor,
+            modifier = Modifier.size(48.dp),
+        )
+        Spacer(Modifier.height(LkSpacing.lg))
+        Text(
+            text = continuidade.titulo,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.W600,
+            color = c.textPrimary,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(LkSpacing.sm))
+        Text(
+            text = continuidade.explicacao,
+            style = MaterialTheme.typography.bodyMedium,
+            color = c.textSecondary,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(LkSpacing.xl))
+        TextButton(onClick = onReiniciar) {
+            Text(continuidade.rotuloAcao, color = c.primary)
+        }
+    }
+}
+
 fun corDaFase(
     fase: FaseSpeedtest,
     c: LkTokens,
@@ -504,3 +604,82 @@ private fun fraseFase(fase: FaseSpeedtest): String =
         FaseSpeedtest.concluido -> "Quase pronto…"
         else -> "Preparando o teste…"
     }
+
+// ─── Bloqueio de offline (GH#1512/#1738) ──────────────────────────────────────
+//
+// Movido de `AppShell.kt` nesta fatia (GH#1738): a engine (`ConnectivityBlockingPolicy`,
+// `ConnectivityDiagnosisPresenter`, `ConnectivityDiagnosisRepository`, todos em
+// `feature/speedtest/connectivity/`) já decidia quando um teste é bloqueado por falta de
+// internet — só faltava a superfície visual 2.0. `MainViewModel`/`SpeedtestViewModel` seguem
+// resolvendo QUANDO bloquear (antes de `executando` começar, então este overlay nem chega a
+// montar nesse momento — o diálogo aparece sobre a tela Velocidade em repouso); aqui só o
+// CONTEÚDO migra de `AlertDialog` com `fontSize` cru para tokens do design system 2.0
+// (LkSpacing/MaterialTheme.typography) e o mapeamento canônico de
+// [io.signallq.app.core.diagnostico.DiagnosticStatus] — mesmo princípio de não inventar cor
+// local que [ContinuidadeMedicaoSection] já segue. O call site em `AppShell.kt` (linha ~1402,
+// fora da região `medicaoGuiada` compartilhada com #1704) não muda: mesma função, mesmo nome,
+// mesma assinatura, só de arquivo novo.
+
+/** Texto curto de ação sugerida — mesmo vocabulário de
+ *  [io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisPresenter], sem
+ *  duplicar a decisão de quais ações mostrar (só a tradução pra rótulo de UI). */
+private fun ConnectivityAction.rotulo(): String =
+    when (this) {
+        ConnectivityAction.ABRIR_PORTAL_LOGIN -> "Abrir portal de login da rede"
+        ConnectivityAction.RECONECTAR_WIFI -> "Reconectar ao Wi-Fi"
+        ConnectivityAction.TESTAR_OUTRO_APARELHO -> "Testar outro aparelho na mesma rede"
+        ConnectivityAction.VERIFICAR_LUZES_EQUIPAMENTO -> "Verificar as luzes do roteador/ONT"
+        ConnectivityAction.REINICIAR_EQUIPAMENTO -> "Reiniciar o roteador (última opção)"
+        ConnectivityAction.TESTAR_DNS_ALTERNATIVO -> "Testar um DNS alternativo"
+        ConnectivityAction.CONTATAR_OPERADORA -> "Contatar a operadora"
+    }
+
+@Composable
+internal fun DiagnosticoConectividadeDialog(
+    diagnostico: ConnectivityDiagnosisMensagem,
+    onDismiss: () -> Unit,
+) {
+    val c = LocalLkTokens.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = DiagnosticStatus.attention.icone(),
+                contentDescription = null,
+                tint = DiagnosticStatus.attention.corConteudo(c),
+            )
+        },
+        title = {
+            Text(
+                text = diagnostico.titulo,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.W600,
+                color = c.textPrimary,
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = diagnostico.mensagem,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = c.textSecondary,
+                )
+                if (diagnostico.acoes.isNotEmpty()) {
+                    Spacer(Modifier.height(LkSpacing.md))
+                    diagnostico.acoes.forEach { acao ->
+                        Text(
+                            text = "• ${acao.rotulo()}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = c.textSecondary,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Entendi", color = c.primary)
+            }
+        },
+    )
+}

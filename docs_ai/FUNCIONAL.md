@@ -4,7 +4,7 @@ description: "O que o app Android SignallQ (io.signallq.app) entrega ao usuário
 type: "funcional"
 status: "ativo"
 owner: "Claudete"
-last_updated: "2026-08-17"
+last_updated: "2026-08-18"
 ---
 
 - **Fonte de verdade:** o código do app consumer em `android/app/src/main/kotlin/io/signallq/app/`
@@ -288,7 +288,12 @@ modo em tempo estimado: Rápido "somente download · ~30 seg", Completo "downloa
 **O que o usuário vê durante.** A `VelocidadeScreen` cobre a tela inteira com um gauge circular
 animado, as quatro fases em pills (LATÊNCIA → DOWNLOAD → UPLOAD → CONCLUÍDO), uma frase narrativa
 por fase e haptics nas transições. Durante o upload, o download já concluído continua visível.
-Cancelar durante a execução exige confirmação. No modo triplo, um indicador mostra "Medição N de 3".
+Cancelar durante a execução exige confirmação e encerra o teste sem produzir resultado — a mesma
+confirmação usada pelo `BackHandler` do sistema. No modo triplo, um indicador mostra "Medição N de
+3". Se a medição conclui sem status `COMPLETE` (parcial, contaminada ou inconclusiva —
+`MeasurementStatus`, GH#1738), a `VelocidadeScreen` mostra título, ícone e explicação próprios do
+status antes de a tela de resultado assumir, reusando `continuidadeDaMedicao` (a mesma ponte que o
+fluxo guiado já usava desde a #1705) em vez de tratar toda conclusão não-`erro` como sucesso.
 
 **O que o usuário vê depois.** O resultado abre sozinho ao concluir. Título e mensagem vêm da decisão
 do motor de diagnóstico, não de texto fixo (`ResultadoVelocidadeScreen.kt:306-321`). Dois cards
@@ -305,9 +310,12 @@ conexão caiu ou mudou durante a medição.") versus interferência genérica de
 (`ResultadoVelocidadeScreen.kt:445-470`).
 
 **Guardas.** Iniciar teste em rede móvel abre o `ForaDoWifiDialog` com aviso de consumo; confirmar
-ali pula o segundo gate de rede medida (`AppShell.kt:1301-1305`). Se o Wi-Fi estiver conectado mas
+ali pula o segundo gate de rede medida (`AppShell.kt:1385-1394`). Se o Wi-Fi estiver conectado mas
 sem internet, o speedtest é interrompido e o app mostra a conclusão do diagnóstico local em vez de
-travar em "executando" (`AppShell.kt:1311-1319`).
+travar em "executando" (`AppShell.kt:1397-1405`) — o conteúdo desse diálogo
+(`DiagnosticoConectividadeDialog`) migrou para tokens do design system 2.0 em `VelocidadeScreen.kt`
+(GH#1738); o gatilho (quando bloquear, antes de `executando` publicar) continua em
+`MainViewModel`/`SpeedtestViewModel`, sem mudança.
 
 **Saídas.** Compartilhar o resultado gera um PDF. Todo resultado é persistido no histórico.
 
