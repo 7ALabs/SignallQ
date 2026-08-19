@@ -235,6 +235,95 @@ class NdsClientTest {
         assertEquals(429, error.statusCode)
         assertEquals("Rate limit exceeded", error.error)
         assertEquals("Too many requests. Try again shortly.", error.message)
+        assertNull(error.code)
+        assertNull(error.retryable)
+        assertNull(error.requestId)
+    }
+
+    // -------------------------------------------------------------------
+    // Envelope canonico do PR#12 do NDS (ADR-017, ainda em draft) —
+    // NDS-02k, issue #1759, item 9: tentado primeiro, cai para o shape
+    // antigo se nao bater.
+    // -------------------------------------------------------------------
+
+    @Test
+    fun `evaluate mapeia envelope canonico 504 NDS_TIMEOUT para KnownError com code e retryable`() = runBlocking {
+        server.enqueue(
+            MockResponse().setResponseCode(504)
+                .setBody(
+                    """{"error":{"code":"NDS_TIMEOUT","message":"Evaluation timed out.","retryable":true},"request_id":"req-99"}""",
+                ),
+        )
+
+        val outcome = client.evaluate(sampleRequest)
+
+        assertTrue(outcome is NdsDiagnosticsOutcome.KnownError)
+        val error = outcome as NdsDiagnosticsOutcome.KnownError
+        assertEquals(504, error.statusCode)
+        assertEquals("NDS_TIMEOUT", error.error)
+        assertEquals("NDS_TIMEOUT", error.code)
+        assertEquals("Evaluation timed out.", error.message)
+        assertEquals(true, error.retryable)
+        assertEquals("req-99", error.requestId)
+    }
+
+    @Test
+    fun `evaluate mapeia envelope canonico com retryable false`() = runBlocking {
+        server.enqueue(
+            MockResponse().setResponseCode(400)
+                .setBody(
+                    """{"error":{"code":"INVALID_INPUT","message":"profile invalido.","retryable":false},"request_id":"req-1"}""",
+                ),
+        )
+
+        val outcome = client.evaluate(sampleRequest) as NdsDiagnosticsOutcome.KnownError
+
+        assertEquals("INVALID_INPUT", outcome.code)
+        assertEquals(false, outcome.retryable)
+    }
+
+    @Test
+    fun `evaluate mapeia envelope canonico sem retryable presente para retryable nulo`() = runBlocking {
+        server.enqueue(
+            MockResponse().setResponseCode(500)
+                .setBody("""{"error":{"code":"INTERNAL_ERROR","message":"boom"},"request_id":"req-2"}"""),
+        )
+
+        val outcome = client.evaluate(sampleRequest) as NdsDiagnosticsOutcome.KnownError
+
+        assertEquals("INTERNAL_ERROR", outcome.code)
+        assertNull(outcome.retryable)
+    }
+
+    @Test
+    fun `evaluate ainda parseia shape antigo flat quando error e string, nao objeto`() = runBlocking {
+        // Mesmo corpo do teste de 401 acima, repetido aqui de proposito para deixar
+        // explicito que a tentativa do envelope canonico (que exige "error" como
+        // objeto JSON) falha e cai para o parser antigo sem lancar excecao.
+        server.enqueue(
+            MockResponse().setResponseCode(401)
+                .setBody("""{"error":"Unauthorized","message":"Missing or invalid Bearer token."}"""),
+        )
+
+        val outcome = client.evaluate(sampleRequest) as NdsDiagnosticsOutcome.KnownError
+
+        assertEquals("Unauthorized", outcome.error)
+        assertNull(outcome.code)
+    }
+
+    @Test
+    fun `evaluate mapeia erro com error objeto malformado (sem code) para UnknownError`() = runBlocking {
+        server.enqueue(
+            MockResponse().setResponseCode(500)
+                .setBody("""{"error":{"message":"sem code"},"request_id":"req-3"}"""),
+        )
+
+        val outcome = client.evaluate(sampleRequest)
+
+        // "error" e objeto (nao bate no shape antigo, que espera String) e falta
+        // "code" (nao bate no envelope canonico) -- nenhum dos dois formatos bate,
+        // cai para UnknownError sem lancar excecao.
+        assertTrue(outcome is NdsDiagnosticsOutcome.UnknownError)
     }
 
     // -------------------------------------------------------------------

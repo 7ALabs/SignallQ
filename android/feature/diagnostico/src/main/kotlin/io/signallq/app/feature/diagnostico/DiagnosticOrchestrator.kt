@@ -8,8 +8,13 @@ import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.FibraDiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
+import io.signallq.app.core.featureflags.DisabledFeatureFlagProvider
+import io.signallq.app.core.featureflags.FeatureFlagKeys
+import io.signallq.app.core.featureflags.FeatureFlagProvider
 import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.NoOpAnalyticsHelper
+import io.signallq.app.core.nds.NdsClientFactory
+import io.signallq.app.feature.diagnostico.nds.NdsDiagnosticRepository
 import io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,11 +31,25 @@ import timber.log.Timber
  * telemetria), NAO mais [RemoteDiagnosticRepository.evaluate] (remoto-primeiro).
  * Ver kdoc de [RemoteDiagnosticRepository] para a distincao completa entre os
  * dois metodos e por que a troca aconteceu.
+ *
+ * [ndsDiagnosticRepository]/[featureFlagProvider] — NDS-02k (issue #1759). Quando
+ * `FeatureFlagKeys.CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED` esta ligada,
+ * [executarProtegido] chama [NdsDiagnosticRepository.evaluate] (chamada viva ao
+ * NDS, com `DiagnosticRunner` local como rede de seguranca) EM VEZ de
+ * [RemoteDiagnosticRepository.evaluateShadow] — as duas chamadas sao mutuamente
+ * exclusivas por construcao: a flag ligada desliga o shadow mode do
+ * `signallq-diagnostic-worker` para o mesmo install automaticamente, sem
+ * precisar de um segundo kill switch (decisao do Luiz registrada no inventario
+ * da issue #1759). Default `false` em todo ambiente preserva o comportamento
+ * atual (shadow mode local-autoritativo) sem nenhuma mudanca visivel.
  */
 class DiagnosticOrchestrator(
     private val analyticsHelper: AnalyticsHelper = NoOpAnalyticsHelper,
     private val remoteDiagnosticRepository: RemoteDiagnosticRepository =
         RemoteDiagnosticRepository(baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL),
+    private val ndsDiagnosticRepository: NdsDiagnosticRepository =
+        NdsDiagnosticRepository(ndsClient = NdsClientFactory.create()),
+    private val featureFlagProvider: FeatureFlagProvider = DisabledFeatureFlagProvider,
 ) {
 
     private val mutableSnapshotFlow = MutableStateFlow(
@@ -197,7 +216,12 @@ class DiagnosticOrchestrator(
             "iniciando diagnostico tipo=${input.connectionType} dl=${input.internet?.downloadMbps} ul=${input.internet?.uploadMbps} lat=${input.internet?.latencyMs} rssi=${input.wifi?.rssiDbm} fibra=${input.fibra?.isUp} dnsMs=${input.dns?.currentDnsLatencyMs}",
         )
 
-        val relatorio = remoteDiagnosticRepository.evaluateShadow(input, enabledAreas)
+        val ndsLiveEnabled = featureFlagProvider.isEnabled(FeatureFlagKeys.CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED)
+        val relatorio = if (ndsLiveEnabled) {
+            ndsDiagnosticRepository.evaluate(input, enabledAreas)
+        } else {
+            remoteDiagnosticRepository.evaluateShadow(input, enabledAreas)
+        }
 
         Timber.i(
             "diagnostico concluido decisao=${relatorio.decisao.id}(${relatorio.decisao.status}) " +

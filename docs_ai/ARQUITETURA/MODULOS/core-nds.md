@@ -1,6 +1,6 @@
 ---
 title: "Módulo :core:nds"
-description: "Cliente HTTP e contrato tipado do Network Diagnostics Service (NDS) — fatia NDS-01, isolado, sem consumidor real ainda."
+description: "Cliente HTTP e contrato tipado do Network Diagnostics Service (NDS) — atrás da flag consumer.diagnostico.nds_live_enabled (default desligada), primeiro consumidor real desde NDS-02k."
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
@@ -22,8 +22,12 @@ aninhados), modelos de resposta (`NdsDiagnosticsResponse`, `NdsModuleResult`, `N
 decoders tipados para os 3 módulos confirmados no ADR (`asScoring`, `asAi`, `asWifiDiagnostics`) e
 tratamento de erro (`NdsDiagnosticsOutcome`).
 
-**Não é dele** (ainda): religar nenhuma tela ou ViewModel real ao NDS — isso é fatia NDS-02+.
-Este módulo é infraestrutura isolada; nenhum consumidor de produção existe nesta fatia.
+**Não é dele**: decidir QUANDO religar um consumidor à chamada viva — isso é orquestração de quem
+consome (`:featureDiagnostico`, ver seção Consumidores). NDS-01 (#1744) isolou o cliente; NDS-02a-j
+(#1747–#1758) adicionaram mappers puros consumidos por seams locais sem tocar rede; NDS-02k
+(#1759) plugou o primeiro consumidor de produção real (`NdsDiagnosticRepository`, atrás da flag
+`consumer.diagnostico.nds_live_enabled`, default desligada — zero mudança de comportamento até a
+flag ligar).
 
 Módulo dedicado (não `:core:network` nem gaveta genérica) porque o NDS vai substituir
 `:core:diagnostico`, `ai-diagnosis-worker` e `signallq-diagnostic-worker` (ADR-017) — precisa de um
@@ -37,10 +41,13 @@ externo específico ali confundiria a responsabilidade do módulo. Verificado vi
 
 ### Módulos do projeto
 
-Nenhuma. Módulo folha — não depende de `:core:network`, `:core:diagnostico` nem de nenhum outro
-módulo do monorepo. Deliberado: o contrato do NDS é autocontido (schema JSON documentado no
-ADR-017), não reaproveita tipos de domínio do motor local para não criar acoplamento entre o motor
-que está sendo substituído e o que vai substituí-lo.
+`:coreNetwork` (NDS-02a/#1747 — `ChannelScore` para `NdsWifiScanMapper`) e `:core:diagnostico`
+(NDS-02a — `MetricStatus`/`DiagnosticStatus`, vocabulário canônico de severidade e os tipos
+`DiagnosticInput`/`DiagnosticReport`/`DiagnosticResult` que os mappers de NDS-02k traduzem).
+A dependência de `:core:diagnostico` é **intencionalmente temporária** — marcada para remoção
+quando `core/diagnostico` sair do repositório (NDS-03), documentada em `core/nds/build.gradle.kts`.
+Esta entrada estava desatualizada (dizia "módulo folha, sem dependências") desde a NDS-02a; corrigida
+agora porque a NDS-02k depende diretamente dela para os dois mappers novos.
 
 ### Bibliotecas externas
 
@@ -55,8 +62,15 @@ que está sendo substituído e o que vai substituí-lo.
 
 ## Consumidores
 
-Nenhum. Fatia NDS-01 é infraestrutura isolada por decisão explícita da issue #1744 — religar Home,
-Wifi, Devices ou Diagnostico ao NDS é fatia NDS-02+.
+- **`:featureDiagnostico` (NDS-02k, issue #1759)** — `NdsDiagnosticRepository` (novo,
+  `feature/diagnostico/nds/`) chama `NdsClient.evaluate()` a partir de
+  `DiagnosticOrchestrator.executarProtegido()`, atrás da flag
+  `consumer.diagnostico.nds_live_enabled` (default `false`). Qualquer falha (`KnownError`/
+  `UnknownError`/timeout) cai para `DiagnosticRunner` local — fallback total, sem exceção
+  propagada. Com a flag desligada (todo mundo, hoje), este módulo continua sem tráfego real.
+- Vários arquivos de UI do Consumer (`SignalBars.kt`, `SinalMovelClassificacao.kt`, etc., NDS-02b-f)
+  consomem só os mappers puros (`parseNdsVeredicto`, `classificar*Local` em
+  `ClassificacaoMetricaLocal.kt`) — sem chamada de rede, sem depender do `NdsClient` em si.
 
 ## Componentes principais
 
@@ -67,8 +81,13 @@ Wifi, Devices ou Diagnostico ao NDS é fatia NDS-02+.
 | `NdsDiagnosticsRequest.kt` | Request tipado (`NdsAppInfo`, `NdsConnectionInfo`, `NdsWifiInfo`, `NdsWifiScanInfo`, `NdsSpeedInfo`, `NdsDnsInfo`, `NdsFiberInfo`) + `toJson()` interno — cada bloco opcional é omitido do payload quando `null` |
 | `NdsDiagnosticsResponse.kt` | Resposta tipada (`NdsDiagnosticsResponse`, `NdsModuleResult`, `NdsTrace`) + `NdsResponseParser` tolerante. `NdsModuleResult.result`/`cards` ficam como `Map`/`List` genéricos (não `org.json.JSONObject`) para manter `equals` estrutural e permanecer extensível a módulos futuros sem mudança de contrato |
 | `NdsModuleResults.kt` | Decoders tipados para os 3 módulos confirmados no ADR-017: `asScoring()`, `asAi()`, `asWifiDiagnostics()` — cada um devolve `null` se o `module` não bater ou faltar campo obrigatório |
-| `NdsDiagnosticsOutcome.kt` | `sealed class` do resultado: `Success`, `KnownError` (401/429, shape `{error,message}` confirmado) e `UnknownError` (5xx/timeout/corpo não-JSON — shape não confirmado, tratado defensivamente) |
+| `NdsDiagnosticsOutcome.kt` | `sealed class` do resultado: `Success`, `KnownError` (dois shapes — flat `{error,message}` confirmado no ADR-017, e o envelope canônico `{error:{code,message,retryable},request_id}` do PR#12/NDS, ainda em draft) e `UnknownError` (5xx/timeout/corpo não-JSON — nenhum dos dois shapes bateu, tratado defensivamente) |
 | `NdsJson.kt` | Helpers internos de conversão `JSONObject`/`JSONArray` → `Map`/`List` Kotlin puros |
+| `NdsProfileCapabilitiesMapper.kt` (NDS-02a/#1747) | `ndsCapabilities()`/`ndsProfile()` — regra `profile`/`capabilities` do payload |
+| `NdsWifiScanMapper.kt` (NDS-02a/#1747) | `mapWifiScanToNds()` — traduz `ChannelScore` (`:coreNetwork`) para o bloco `wifiScan` |
+| `NdsSeverityParser.kt` (NDS-02a/#1747, NDS-02k/#1759) | `parseNdsVeredicto()` (`veredicto` → `MetricStatus`) e `MetricStatus.toDiagnosticStatus()` (segundo salto, `MetricStatus` → `DiagnosticStatus` do `core/diagnostico`) |
+| `NdsDiagnosticsRequestMapper.kt` (NDS-02k/#1759) | `DiagnosticInput.toNdsDiagnosticsRequest()` — ponte pura para o payload real de `evaluate()`; documenta os gaps conhecidos (`wifiScan`, `dns.hijacked`) |
+| `NdsDiagnosticsResponseMapper.kt` (NDS-02k/#1759) | `NdsDiagnosticsResponse.toDiagnosticReport()` — ponte pura de volta para o `DiagnosticReport` que a UI já lê via `SnapshotDiagnostico` |
 
 ## Autenticação (ver ADR-017)
 
@@ -81,13 +100,22 @@ escopo da fatia NDS-01.
 
 ## Riscos e dívidas
 
-- **Formato de erro genérico (5xx/timeout) não confirmado.** O ADR-017 documenta apenas o shape de
-  401/429. `NdsDiagnosticsOutcome.UnknownError` cobre esse caso defensivamente (sem assumir JSON
-  parseável), mas não há teste contra um 5xx real do NDS — lacuna herdada do ADR, não fechada nesta
-  fatia (decisão explícita da issue #1744, "fora de escopo").
-- **Nenhum consumidor real ainda.** Todo o módulo é código morto do ponto de vista do app até
-  NDS-02+ religar uma tela. Esperado nesta fatia — não é dívida, é sequenciamento deliberado.
-- **`profile`/`capabilities` sem regra de mapeamento do app.** O ADR-017 lista como pendência em
-  aberto "regra de mapeamento `profile`/`capabilities` do app para os valores aceitos pelo NDS" —
-  este módulo aceita qualquer `String`/`List<String>` livre, a validação de vocabulário fica para
-  quem construir o payload real em NDS-02+.
+- **Envelope canônico de erro (PR#12/NDS) ainda em draft, não confirmado em produção.**
+  `NdsClient.parseErrorOutcome` tenta o envelope novo primeiro (`{error:{code,message,retryable},
+  request_id}`) e cai para o shape antigo flat (`{error,message}`, confirmado no ADR-017) se não
+  bater — nenhum dos dois lança exceção, `UnknownError` continua o fallback final. Ligar tráfego
+  real contra produção sem alguém confirmar qual formato o servidor de fato devolve continua sendo
+  risco (ver ADR-017, seção de pendências) — não resolvido por este módulo, só tratado
+  defensivamente nos dois sentidos.
+- **Timeout do cliente reduzido de 20s para 12s (NDS-02k/#1759).** Escolhido para os dois gatilhos
+  de produção que disparam em background sem "aguarde" explícito do usuário — ver kdoc do
+  construtor de `NdsClient`. Continua acima do `EVALUATE_TIMEOUT_MS` default do servidor (10s), de
+  propósito.
+- **Cobertura de rede móvel "Parcial" no NDS** (RSRP/RSRQ/SINR, `network-diagnostics-service#13`) —
+  `NdsDiagnosticsRequestMapper` não tem bloco dedicado para essas métricas; o `DiagnosticInput.mobile`
+  simplesmente não é enviado. `NdsDiagnosticRepository` roda para qualquer `connectionType` mesmo
+  assim (decisão registrada no inventário da issue #1759 — aceitar a granularidade reduzida em vez
+  de complicar a flag com sensibilidade a tipo de conexão).
+- **`profile`/`capabilities` sem regra de mapeamento formal do app.** O ADR-017 lista como pendência
+  em aberto a migração para o modelo `capabilities`/`requested_outputs` do PR#12 — este módulo ainda
+  usa o modelo antigo (`ndsCapabilities()`/`ndsProfile()`, NDS-02a), aceito via alias legado.

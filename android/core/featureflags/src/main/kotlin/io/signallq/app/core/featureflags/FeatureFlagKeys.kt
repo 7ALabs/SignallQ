@@ -21,6 +21,15 @@ package io.signallq.app.core.featureflags
  * #952) do sistema legado SIG-13 (`io.signallq.app.core.network.FeatureFlagProvider`,
  * chave `feature_diagnostic_shadow_mode`) para este catalogo -- unico consumidor real
  * do sistema legado, agora migrado.
+ *
+ * [CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED] (NDS-02k, issue #1759) liga a chamada
+ * viva ao NDS (`NdsClient.evaluate`, via `NdsDiagnosticRepository`) como fonte do
+ * `DiagnosticOrchestrator`, no lugar do shadow mode acima -- mutuamente exclusivos
+ * (flag ligada desliga o shadow mode automaticamente, ver kdoc de
+ * `DiagnosticOrchestrator.executarProtegido`). Default `false` preserva o motor
+ * local (`DiagnosticRunner`) como autoritativo; `androidImplemented=true` mas
+ * NINGUEM ligado ainda -- ligar em producao exige aprovacao explicita do Luiz
+ * (regra do repo), fora do escopo desta fatia.
  */
 object FeatureFlagKeys {
     val CONSUMER_SPEEDTEST_ENABLED = FeatureFlagKey("consumer.speedtest.enabled")
@@ -32,6 +41,7 @@ object FeatureFlagKeys {
     val CONSUMER_FIBRA_ENABLED = FeatureFlagKey("consumer.fibra.enabled")
     val CONSUMER_DIAGNOSTICO_ENABLED = FeatureFlagKey("consumer.diagnostico.enabled")
     val CONSUMER_DIAGNOSTICO_SHADOW_MODE_ENABLED = FeatureFlagKey("consumer.diagnostico.shadow_mode_enabled")
+    val CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED = FeatureFlagKey("consumer.diagnostico.nds_live_enabled")
     val CONSUMER_HISTORY_ENABLED = FeatureFlagKey("consumer.history.enabled")
     val CONSUMER_SETTINGS_ENABLED = FeatureFlagKey("consumer.settings.enabled")
     val CONSUMER_APP_SHELL_GUIDED_2_ENABLED = FeatureFlagKey("consumer.app_shell.guided_2_enabled")
@@ -48,6 +58,7 @@ object FeatureFlagKeys {
             CONSUMER_FIBRA_ENABLED,
             CONSUMER_DIAGNOSTICO_ENABLED,
             CONSUMER_DIAGNOSTICO_SHADOW_MODE_ENABLED,
+            CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED,
             CONSUMER_HISTORY_ENABLED,
             CONSUMER_SETTINGS_ENABLED,
             CONSUMER_APP_SHELL_GUIDED_2_ENABLED,

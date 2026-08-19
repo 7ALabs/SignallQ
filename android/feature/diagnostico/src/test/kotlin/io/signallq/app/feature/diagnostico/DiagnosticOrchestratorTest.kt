@@ -5,12 +5,22 @@ import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
+import io.signallq.app.core.featureflags.FeatureFlagKey
+import io.signallq.app.core.featureflags.FeatureFlagProvider
+import io.signallq.app.core.featureflags.FeatureFlagRawValue
+import io.signallq.app.core.featureflags.FeatureFlagRefreshResult
+import io.signallq.app.core.featureflags.FeatureFlagSource
+import io.signallq.app.core.featureflags.FeatureFlagValue
 import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.NoOpAnalyticsHelper
+import io.signallq.app.core.nds.NdsClient
+import io.signallq.app.feature.diagnostico.nds.NdsDiagnosticRepository
 import io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
 import okhttp3.OkHttpClient
@@ -26,6 +36,17 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.util.concurrent.TimeUnit
+
+/** Fake mínimo para os testes de NDS-02k — sempre devolve [enabled], nunca toca rede. */
+private class FakeFeatureFlagProvider(private val enabled: Boolean) : FeatureFlagProvider {
+    override fun observe(key: FeatureFlagKey): Flow<FeatureFlagValue> =
+        flowOf(FeatureFlagValue(key = key, raw = FeatureFlagRawValue.BooleanValue(enabled), source = FeatureFlagSource.DEFAULT))
+
+    override fun isEnabled(key: FeatureFlagKey): Boolean = enabled
+
+    override suspend fun refresh(force: Boolean): FeatureFlagRefreshResult =
+        FeatureFlagRefreshResult.Success(activated = false, fetchTimeMillis = null)
+}
 
 /**
  * Cobre a ligacao do GH#1444 (shadow mode, parte de #952): desde essa issue,
@@ -254,6 +275,78 @@ class DiagnosticOrchestratorTest {
 
         assertEquals(Unit, retornoInput)
         assertEquals(Unit, retornoLegado)
+    }
+
+    // -------------------------------------------------------------------
+    // NDS-02k (issue #1759) — flag `consumer.diagnostico.nds_live_enabled`.
+    // -------------------------------------------------------------------
+
+    private fun ndsSuccessBody(): String = """
+        {
+          "recommendation": null,
+          "results": [
+            { "module": "scoring", "module_version": "1.1.0", "request_id": "req-1", "warnings": [], "missing_inputs": [], "result": { "score": 95, "veredicto": "excelente", "tipo_conexao": "WIFI", "observed_dimensions": 1, "dimensoes": [] } },
+            { "module": "ai", "module_version": "1.5.0", "request_id": "req-1", "warnings": [], "missing_inputs": [], "result": { "tokens_used": 0, "ai_model_used": "copy-catalog", "fallback_used": false, "explanation_source": "copy_catalog", "explanation_status": "catalog_hit", "explanation": { "titulo_amigavel": "Tudo certo", "resumo_tecnico_traduzido": "Conexao excelente." }, "source_finding_ids": [] } }
+          ],
+          "traces": []
+        }
+    """.trimIndent()
+
+    @Test
+    fun `flag nds_live desligada (default) - NdsDiagnosticRepository nunca recebe trafego, comportamento identico ao atual`() = runTest {
+        // Nenhuma resposta enfileirada de propósito: se o orquestrador chamasse o NDS
+        // com a flag desligada, este teste travaria/falharia. server.requestCount
+        // prova que nenhuma requisição saiu.
+        val ndsClient = NdsClient(baseUrl = server.url("/").toString(), apiToken = "t", client = OkHttpClient())
+        val ndsRepo = NdsDiagnosticRepository(ndsClient = ndsClient)
+        val orchestrator = DiagnosticOrchestrator(ndsDiagnosticRepository = ndsRepo)
+
+        orchestrator.executar(snapshotSaudavelInput())
+
+        assertEquals(0, server.requestCount)
+        val snapshot = orchestrator.snapshotFlow.value
+        assertEquals(EstadoDiagnostico.concluido, snapshot.estado)
+        assertEquals(DiagnosticEvaluationSource.BUNDLED_LOCAL, snapshot.relatorio?.evaluationSource)
+    }
+
+    @Test
+    fun `flag nds_live ligada - usa NdsDiagnosticRepository em vez do shadow mode do worker antigo`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(ndsSuccessBody()))
+        val ndsClient = NdsClient(baseUrl = server.url("/").toString(), apiToken = "t", client = OkHttpClient())
+        val ndsRepo = NdsDiagnosticRepository(ndsClient = ndsClient)
+        val orchestrator = DiagnosticOrchestrator(
+            ndsDiagnosticRepository = ndsRepo,
+            featureFlagProvider = FakeFeatureFlagProvider(enabled = true),
+        )
+
+        orchestrator.executar(snapshotSaudavelInput())
+
+        val snapshot = orchestrator.snapshotFlow.value
+        assertEquals(EstadoDiagnostico.concluido, snapshot.estado)
+        assertEquals(DiagnosticEvaluationSource.REMOTE, snapshot.relatorio?.evaluationSource)
+        assertEquals("nds:excelente", snapshot.relatorio?.decisao?.id)
+        // Prova que o path do worker antigo (signallq-diagnostic, shadow mode) nao
+        // rodou: unica requisicao recebida pelo server mock foi a do NDS.
+        assertEquals(1, server.requestCount)
+        assertEquals("/v1/diagnostics/evaluate", server.takeRequest().path)
+    }
+
+    @Test
+    fun `flag nds_live ligada e NDS fora do ar - cai pro motor local, sem excecao, mesmo com a flag ligada`() = runTest {
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+        val quickClient = quickTimeoutClient()
+        val ndsClient = NdsClient(baseUrl = server.url("/").toString(), apiToken = "t", client = quickClient)
+        val ndsRepo = NdsDiagnosticRepository(ndsClient = ndsClient)
+        val orchestrator = DiagnosticOrchestrator(
+            ndsDiagnosticRepository = ndsRepo,
+            featureFlagProvider = FakeFeatureFlagProvider(enabled = true),
+        )
+
+        orchestrator.executar(snapshotSaudavelInput())
+
+        val snapshot = orchestrator.snapshotFlow.value
+        assertEquals(EstadoDiagnostico.concluido, snapshot.estado)
+        assertEquals(DiagnosticEvaluationSource.BUNDLED_LOCAL, snapshot.relatorio?.evaluationSource)
     }
 
     @Test

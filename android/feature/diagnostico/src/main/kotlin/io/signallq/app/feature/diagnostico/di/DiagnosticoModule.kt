@@ -22,10 +22,13 @@ import io.signallq.app.core.database.recommendation.RecommendationHistoryDao
 import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.core.featureflags.FeatureFlagProvider
 import io.signallq.app.core.network.AnalyticsHelper
+import io.signallq.app.core.nds.NdsClient
+import io.signallq.app.core.nds.NdsClientFactory
 import io.signallq.app.core.recommendation.RecommendationEngine
 import io.signallq.app.core.recommendation.catalog.LocalRecommendationCatalog
 import io.signallq.app.core.recommendation.catalog.RecommendationCatalog
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
+import io.signallq.app.feature.diagnostico.nds.NdsDiagnosticRepository
 import io.signallq.app.feature.diagnostico.topology.TopologyDiagnostic
 import okhttp3.OkHttpClient
 import java.io.File
@@ -44,13 +47,42 @@ object DiagnosticoModule {
      *
      * GH#969: reusa a mesma instancia de [RemoteDiagnosticRepository] ja provida abaixo
      * (nao cria um OkHttpClient/cache novo so pra este orquestrador).
+     *
+     * NDS-02k (issue #1759): tambem injeta [NdsDiagnosticRepository] e o mesmo
+     * [FeatureFlagProvider] do grafo (`RemoteConfigFeatureFlagProvider`, ver `AppModule`) —
+     * `DiagnosticOrchestrator.executarProtegido` decide entre os dois motores remotos
+     * conforme `FeatureFlagKeys.CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED`.
      */
     @Provides
     @Singleton
     fun provideDiagnosticOrchestrator(
         analyticsHelper: AnalyticsHelper,
         remoteDiagnosticRepository: RemoteDiagnosticRepository,
-    ): DiagnosticOrchestrator = DiagnosticOrchestrator(analyticsHelper, remoteDiagnosticRepository)
+        ndsDiagnosticRepository: NdsDiagnosticRepository,
+        featureFlagProvider: FeatureFlagProvider,
+    ): DiagnosticOrchestrator =
+        DiagnosticOrchestrator(analyticsHelper, remoteDiagnosticRepository, ndsDiagnosticRepository, featureFlagProvider)
+
+    /**
+     * Provê NdsClient no grafo Hilt (NDS-02k, issue #1759) — via [NdsClientFactory],
+     * mesma convencao ja documentada la (`BuildConfig.NDS_BASE_URL`/`NDS_API_TOKEN` de
+     * `:core:nds`, timeout de 12s — ver kdoc do construtor de [NdsClient]).
+     */
+    @Provides
+    @Singleton
+    fun provideNdsClient(): NdsClient = NdsClientFactory.create()
+
+    /**
+     * Provê NdsDiagnosticRepository no grafo Hilt (NDS-02k, issue #1759) — chamada viva
+     * remoto-primeiro/fallback-total ao NDS, atras da flag
+     * `consumer.diagnostico.nds_live_enabled` (decidida em [DiagnosticOrchestrator], nao aqui).
+     */
+    @Provides
+    @Singleton
+    fun provideNdsDiagnosticRepository(
+        ndsClient: NdsClient,
+        analyticsHelper: AnalyticsHelper,
+    ): NdsDiagnosticRepository = NdsDiagnosticRepository(ndsClient = ndsClient, analyticsHelper = analyticsHelper)
 
     /**
      * Provê a instância única de AiDiagnosisRepository no grafo Hilt.

@@ -4,7 +4,7 @@ description: "Orquestração do diagnóstico de conexão, integração com o wor
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-16"
+last_updated: "2026-08-19"
 ---
 
 # `:featureDiagnostico`
@@ -28,8 +28,9 @@ Extraídas de `android/feature/diagnostico/build.gradle.kts`.
 | `:coreDatastore` | `implementation` | `PreferenciasAppRepository` (consentimento LGPD, `anon_device_id`) |
 | `:coreNetwork` | `implementation` | `AnalyticsHelper`, `MonitorRede`, `GatewayLatencyMeasurer`, contratos de topologia |
 | `:coreRecommendation` | `implementation` | `RecommendationEngine` (monetização, issue #790) |
-| `:core:featureflags` | `implementation` | Kill switch do shadow mode (issue #1497) |
+| `:core:featureflags` | `implementation` | Kill switch do shadow mode (issue #1497) + flag `consumer.diagnostico.nds_live_enabled` (NDS-02k/#1759) |
 | `:core:diagnostico` | `implementation` | `DiagnosticRunner`, `FindingEngine`, `DiagnosticInput/Report/Result` |
+| `:core:nds` (NDS-02k/#1759) | `implementation` | `NdsClient`/`NdsClientFactory` + os mappers `DiagnosticInput<->NDS`. Primeiro consumidor real deste módulo (antes só continha código sem call site de produção) |
 | `libs.hilt.android` + `kapt(libs.hilt.compiler)` | `implementation`/`kapt` | Único dos quatro feature modules aqui documentados com Hilt |
 | `libs.androidx.core.ktx` | `implementation` | |
 | `libs.androidx.lifecycle.runtime.ktx` | `implementation` | |
@@ -96,8 +97,9 @@ Confirmação e ordenação (GH#1332): o retorno `Boolean` só é `true` quando 
 |---|---|
 | `.../ai/AiModels.kt` (840 linhas) | Modelos do contrato de IA (`DiagnosisAiContext`, `AiDiagnosisResult`, `ModeloIa`, `PerguntaContextual`…), `DiagnosisAiContextFactory` e `AiFallbackFactory` |
 | `.../RecomendacaoPraticaEngine.kt` (638 linhas) | Motor de recomendações práticas locais (REC-01..REC-14). Renomeado de `RecommendationEngine` na auditoria #1228 para não colidir com o motor de monetização de `:coreRecommendation` |
-| `.../DiagnosticOrchestrator.kt` (125 linhas) | Fachada `StateFlow` do diagnóstico; delega para `RemoteDiagnosticRepository.evaluateShadow` |
-| `.../remote/RemoteDiagnosticRepository.kt` (295 linhas) | Cliente do worker `signallq-diagnostic` (`POST /api/diagnostic/evaluate`). Timeouts OkHttp 3 s/4 s/3 s com teto de 42 s. Fallback de 3 níveis: `REMOTE` → `CACHED_LOCAL` → `BUNDLED_LOCAL`. Produção usa `evaluateShadow` (local autoritativo), não `evaluate` |
+| `.../DiagnosticOrchestrator.kt` | Fachada `StateFlow` do diagnóstico; delega para `NdsDiagnosticRepository.evaluate` quando `consumer.diagnostico.nds_live_enabled` está ligada (NDS-02k/#1759), senão para `RemoteDiagnosticRepository.evaluateShadow` (default hoje — flag desligada em todo ambiente) |
+| `.../remote/RemoteDiagnosticRepository.kt` (295 linhas) | Cliente do worker `signallq-diagnostic` (`POST /api/diagnostic/evaluate`). Timeouts OkHttp 3 s/4 s/3 s com teto de 42 s. Fallback de 3 níveis: `REMOTE` → `CACHED_LOCAL` → `BUNDLED_LOCAL`. Só roda quando a flag do NDS live está desligada (ver linha acima) |
+| `.../nds/NdsDiagnosticRepository.kt` (NDS-02k/#1759) | Chama `NdsClient.evaluate()` (`:core:nds`, timeout 12 s), mapeia sucesso via `NdsDiagnosticsResponse.toDiagnosticReport()`. Qualquer falha (`KnownError`/`UnknownError`/timeout) cai para `DiagnosticRunner` local — mesmo espírito de `RemoteDiagnosticRepository.evaluate()` (remoto-primeiro, fallback total), não de `evaluateShadow()`. Dispara `AnalyticsHelper.registrarDiagNdsOutcome` (sucesso/erro conhecido/erro desconhecido + fallback usado) |
 | `.../remote/DiagnosticDivergenceReporter.kt` (165 linhas) | Shadow mode: envia só o resumo já comparado para `POST /ingest/diagnostic-divergence`. Kill switch via `:core:featureflags` + rollout percentual, fail closed |
 | `.../remote/DiagnosticRolloutStatusRepository.kt` (105 linhas) | `GET /diagnostic/rollout-status` com cache em memória e TTL curto |
 | `.../remote/ProviderDirectoryRepository.kt` (204 linhas) | Diretório remoto de provedores (`GET /providers/...`) com cache Room (`RoomProviderDirectoryCache`) |

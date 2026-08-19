@@ -74,6 +74,11 @@ dependencies {
     // Dominio de causa-raiz extraido (issue #1157 Fase 1a) — FindingEngine, ScoreEngine,
     // DiagnosticInput/Report/Result, engines por dominio, topology/model+correlation+internet.
     implementation(project(":core:diagnostico"))
+    // NDS-02k (#1759) — NdsClient/NdsDiagnosticsRequest/Response e os mappers
+    // DiagnosticInput<->NDS (core/nds ja depende de core/diagnostico). Primeiro
+    // consumidor real de :core:nds em :featureDiagnostico -- nenhum outro modulo
+    // dependia dele ate esta fatia (confirmado no inventario da issue #1759).
+    implementation(project(":core:nds"))
     implementation(libs.timber)
     implementation(libs.okhttp)
     implementation(libs.androidx.datastore.preferences)

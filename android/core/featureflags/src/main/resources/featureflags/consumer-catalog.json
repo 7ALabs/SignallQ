@@ -152,6 +152,21 @@
       "analyticsEvent": null
     },
     {
+      "key": "consumer.diagnostico.nds_live_enabled",
+      "module": ":featureDiagnostico",
+      "type": "BOOLEAN",
+      "defaultValue": false,
+      "criticality": "HIGH",
+      "owner": "product-signallq",
+      "description": "Liga a chamada viva ao NDS (NdsClient.evaluate) como fonte do diagnostico. Default false preserva o motor local (DiagnosticRunner) como autoritativo. Ligada, desliga automaticamente o shadow mode do signallq-diagnostic-worker (consumer.diagnostico.shadow_mode_enabled) para o mesmo install -- sem chamadas triplicadas.",
+      "disabledBehavior": "SILENT_NO_OP",
+      "disabledMessage": null,
+      "dependencies": ["consumer.diagnostico.enabled"],
+      "androidImplemented": true,
+      "adminManaged": true,
+      "analyticsEvent": null
+    },
+    {
       "key": "consumer.history.enabled",
       "module": ":featureHistory",
       "type": "BOOLEAN",
