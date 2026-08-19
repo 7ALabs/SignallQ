@@ -994,12 +994,15 @@ fun AppShell(
                                 operadoraMovel = operadoraMovel,
                                 recommendationDecision = recommendationDecision,
                                 recommendationFeedback = recommendationFeedback,
-                                // GH#1706 — o shell já tinha os dois sinais; faltava repassá-los.
+                                // GH#1706 — o shell já tinha os sinais; faltava repassá-los.
+                                // `estadoConexao` entrou no bloqueio B10 (PR #1732, Rodada 5):
+                                // `conectadoPorWifi` sozinho não distingue "estou no móvel" de
+                                // "não tenho snapshot de Wi-Fi" (ethernet, desconectado, VPN).
                                 contextoDoPlano =
                                     ContextoDoPlano(
                                         temPermissaoLocalizacao = temPermissaoLocalizacao,
                                         conectadoPorWifi = snapshotRede.wifiLinkSnapshot != null,
-                                        localizacaoBloqueadaPermanentemente = localizacaoBloqueadaPermanentemente,
+                                        estadoConexao = snapshotRede.estadoConexao,
                                     ),
                             ),
                         operadora = operadoraResolvers,

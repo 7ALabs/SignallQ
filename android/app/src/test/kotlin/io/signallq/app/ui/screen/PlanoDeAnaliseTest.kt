@@ -1,6 +1,7 @@
 package io.signallq.app.ui.screen
 
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
+import io.signallq.app.core.network.EstadoConexao
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -161,6 +162,13 @@ class PlanoDeAnaliseTest {
     // que cada `avaliar*` produz — inclusive as CONDICOES, que a primeira correcao ignorou
     // (bloqueios B6 e B7 de Caio: `JOGOS_COM_LAG` descarta Wi-Fi no cabo, e `WIFI_VS_OPERADORA` e
     // um `when` exclusivo por tipo de conexao).
+    //
+    // RESSALVA R11 de Caio na PR #1732: este teste chama `montarPlano` sem `respostas`, entao a
+    // linha de `JOGOS_COM_LAG` so cobre o ramo "nao e cabo" (`respostas.getOrNull(0) != RESPOSTA_
+    // JOGA_POR_CABO` com lista vazia da `null`, que satisfaz o `!=`). O ramo "e cabo" (sem
+    // `SINAL_WIFI`) esta coberto pelo teste dedicado `jogos por cabo nao promete sinal wifi`
+    // abaixo — esta tabela nao e mais um espelho incondicional do motor, e sim o espelho do caso
+    // sem respostas.
     @Test
     fun `a tabela de capacidades espelha o que o motor avalia`() {
         val esperado =
@@ -223,13 +231,51 @@ class PlanoDeAnaliseTest {
         val noMovel =
             montarPlano(
                 ObjetivoDiagnostico.WIFI_VS_OPERADORA,
-                comTudo.copy(conectadoPorWifi = false),
+                comTudo.copy(conectadoPorWifi = false, estadoConexao = EstadoConexao.movel),
             )
 
         assertTrue(Capacidade.SINAL_WIFI in noWifi.capacidades)
         assertFalse("no Wi-Fi o motor nao mede a operadora", Capacidade.REDE_MOVEL in noWifi.capacidades)
         assertTrue(Capacidade.REDE_MOVEL in noMovel.capacidades)
         assertFalse("no movel ele nao mede o Wi-Fi", Capacidade.SINAL_WIFI in noMovel.capacidades)
+    }
+
+    // BLOQUEIO B10 de Caio na PR #1732 (Rodada 4): o `else` que sobrou do B7 nao era "estou no
+    // movel", era "nao tenho snapshot de Wi-Fi" — cobria tambem ethernet, desconectado e estado
+    // desconhecido. Nesses tres o motor cai no `else -> Unit` de `avaliarWifiVsOperadora` e nao
+    // produz dimensao nenhuma, mas o plano prometia `REDE_MOVEL` do mesmo jeito.
+    @Test
+    fun `wifi vs operadora fora do movel e do wifi nao promete rede movel`() {
+        listOf(EstadoConexao.ethernet, EstadoConexao.desconectado, EstadoConexao.desconhecido)
+            .forEach { estado ->
+                val contexto = comTudo.copy(conectadoPorWifi = false, estadoConexao = estado)
+
+                val plano = montarPlano(ObjetivoDiagnostico.WIFI_VS_OPERADORA, contexto)
+
+                assertFalse(
+                    "em $estado o motor nao mede rede movel — o plano nao pode prometer",
+                    Capacidade.REDE_MOVEL in plano.capacidades,
+                )
+                assertFalse("nem Wi-Fi, ja que nao ha snapshot", Capacidade.SINAL_WIFI in plano.capacidades)
+            }
+    }
+
+    // Segundo teste do B10: Wi-Fi atras de VPN tem `estadoConexao == wifi` mas
+    // `wifiLinkSnapshot == null` (a API nao expoe `WifiInfo` quando o transporte e VPN) —
+    // `conectadoPorWifi` fica falso mesmo estando no Wi-Fi de fato. Nesse caso nada foi
+    // "removido por rede": a capacidade nunca chegou a ser prometida, entao nao ha limite
+    // culpando a rede por algo que continua sendo Wi-Fi.
+    @Test
+    fun `wifi sem snapshot nao gera limite que culpe a rede`() {
+        val wifiComVpn =
+            comTudo.copy(conectadoPorWifi = false, estadoConexao = EstadoConexao.wifi)
+
+        val plano = montarPlano(ObjetivoDiagnostico.WIFI_VS_OPERADORA, wifiComVpn)
+
+        assertFalse(Capacidade.REDE_MOVEL in plano.capacidades)
+        assertFalse(Capacidade.SINAL_WIFI in plano.capacidades)
+        assertTrue("nada foi removido por rede aqui", plano.removidasPorRede.isEmpty())
+        assertNull("nao ha causa de rede a declarar", plano.limite)
     }
 
     // As tres capacidades que a spec §7 preve e o motor ainda nao implementa nao podem ser

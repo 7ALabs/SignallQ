@@ -2,6 +2,7 @@ package io.signallq.app.ui.screen
 
 import androidx.compose.runtime.Stable
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
+import io.signallq.app.core.network.EstadoConexao
 
 // Plano de análise — issue #1706 (2.0.09d), épico #1647.
 //
@@ -57,13 +58,20 @@ enum class Capacidade(
 @Stable
 data class ContextoDoPlano(
     val temPermissaoLocalizacao: Boolean,
+    /** Previsão do que o motor mede: espelha `snapshotRede.wifiLinkSnapshot != null`, que é a
+     *  mesma condição sob a qual `DiagnosticoGuiadoEngine` produz a dimensão de RSSI Wi-Fi. */
     val conectadoPorWifi: Boolean,
     /**
-     * O sistema não vai mais mostrar o diálogo de permissão. Distingue `NEGADO` de
-     * `NEGADO_PERMANENTE` na telemetria, e decide se ainda faz sentido oferecer o botão de
-     * permitir — pedir o que o sistema não vai perguntar é um toque que não faz nada.
+     * Estado real da conexão (`snapshotRede.estadoConexao`). Existe porque `conectadoPorWifi`
+     * responde "o motor vai medir o RSSI do Wi-Fi?" — uma pergunta boa para `SINAL_WIFI`, errada
+     * para `REDE_MOVEL`. `REDE_MOVEL` só sai do motor quando `connectionType == mobile`
+     * (`DiagnosticoGuiadoEngine.avaliarWifiVsOperadora`), e `!conectadoPorWifi` é bem mais largo
+     * que isso — cobre também ethernet, desconectado, desconhecido e Wi-Fi com VPN ativa (onde
+     * `wifiLinkSnapshot` vem `null` mas `estadoConexao` continua `wifi`). Bloqueio B10 de Caio na
+     * PR #1732: o `else` de `WIFI_VS_OPERADORA` prometia rede móvel para quem estava em qualquer
+     * um desses estados, atribuindo causa errada ao limite.
      */
-    val localizacaoBloqueadaPermanentemente: Boolean = false,
+    val estadoConexao: EstadoConexao = EstadoConexao.desconhecido,
 )
 
 /**
@@ -144,10 +152,22 @@ private fun capacidadesDoObjetivo(
         // RSSI do Wi-Fi **ou** sinal da operadora — `avaliarWifiVsOperadora` é um `when` exclusivo
         // por `connectionType`, nunca produz as duas. O plano prometia as duas incondicionalmente
         // (bloqueio B7 de Caio na PR #1732).
+        //
+        // O B7 trocou "promete as duas" por "promete uma das duas, sempre" — e o `else` que sobrou
+        // não era "estou no móvel", era "não tenho snapshot de Wi-Fi": cobria também ethernet,
+        // desconectado, desconhecido e Wi-Fi atrás de VPN, prometendo `REDE_MOVEL` em estados onde
+        // o motor cai no `else -> Unit` e não mede nada (bloqueio B10 de Caio na PR #1732).
+        // `REDE_MOVEL` agora exige `estadoConexao == movel`, que é exatamente a condição do motor;
+        // nos demais estados o objetivo fica só com `ESTADO_CONEXAO` — sem prometer o que não vai
+        // medir, e sem precisar de um `limite` para declarar algo que nunca foi prometido.
         ObjetivoDiagnostico.WIFI_VS_OPERADORA ->
-            listOf(
+            listOfNotNull(
                 Capacidade.ESTADO_CONEXAO,
-                if (contexto.conectadoPorWifi) Capacidade.SINAL_WIFI else Capacidade.REDE_MOVEL,
+                when {
+                    contexto.conectadoPorWifi -> Capacidade.SINAL_WIFI
+                    contexto.estadoConexao == EstadoConexao.movel -> Capacidade.REDE_MOVEL
+                    else -> null
+                },
             )
     }
 
@@ -201,7 +221,15 @@ private val DEPENDEM_DE_WIFI =
 fun montarPlano(
     objetivo: ObjetivoDiagnostico,
     contexto: ContextoDoPlano,
-    /** Respostas já dadas no roteiro. Mudam o que o motor avalia — ver `JOGOS_COM_LAG`. */
+    /**
+     * Respostas já dadas no roteiro, **indexadas por passo, sem buraco**. Mudam o que o motor
+     * avalia — ver `JOGOS_COM_LAG`. RESSALVA R9 de Caio na PR #1732: o motor recebe
+     * `respostas.filterNotNull()` (`DiagnosticoGuiadoScreen.kt`), que **compacta** os índices; esta
+     * função indexa a lista crua por posição (`respostas.getOrNull(0)`). Hoje os dois contratos
+     * não divergem porque o botão de avançar exige seleção antes de liberar o próximo passo — não
+     * há buraco antes da resposta mais recente. Se uma pergunta virar opcional, os dois lados vão
+     * ler índices diferentes em silêncio.
+     */
     respostas: List<Int?> = emptyList(),
 ): PlanoDeAnalise {
     val completo = capacidadesDoObjetivo(objetivo, contexto, respostas)

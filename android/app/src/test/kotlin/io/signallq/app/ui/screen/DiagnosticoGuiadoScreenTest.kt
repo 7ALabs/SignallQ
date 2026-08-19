@@ -532,9 +532,10 @@ class DiagnosticoGuiadoScreenTest {
     // Plano de analise - GH#1706 (2.0.09d), spec 2.0 §7 e §8.4.
     // ---------------------------------------------------------------------------------------
     //
-    // Os tres usam o roteiro de JOGOS_COM_LAG porque o plano dele inclui `SINAL_WIFI`, que e uma
-    // das duas capacidades que dependem de permissao de localizacao - entao o mesmo roteiro
-    // deterministico exercita o caso completo e o adaptado.
+    // Os tres usam o roteiro de JOGOS_COM_LAG porque o plano dele inclui `SINAL_WIFI`, que depende
+    // de estar conectado por Wi-Fi (nao de permissao de localizacao - bloqueio B5 de Caio na PR
+    // #1732 derrubou essa premissa) - entao o mesmo roteiro deterministico exercita o caso
+    // completo (no Wi-Fi) e o adaptado (fora dele).
 
     // Spec §7: o plano aparece como frase curta, dizendo o que sera verificado. A rota `Analise`
     // mostrava um texto generico ("estou medindo sua conexao") que nao diz isso.
@@ -589,7 +590,12 @@ class DiagnosticoGuiadoScreenTest {
     }
 
     // ---------------------------------------------------------------------------------------
-    // Funil e preparacao contextual - GH#1706 (spec §12 passos 3 e 4, §8.4).
+    // Funil do plano - GH#1706 (spec §12 passo 3, §8.4).
+    //
+    // O passo 4 (preparacao contextual / `diagnostico_bloqueio_encontrado`) saiu desta fatia no
+    // bloqueio B5 (PR #1732, Rodada 3): a premissa de que `SINAL_WIFI` dependia de permissao de
+    // localizacao era falsa, e sem ela nao ha capacidade recuperavel por permissao hoje. Volta
+    // quando o motor avaliar `CANAIS_WIFI` - ver issue #1733.
     // ---------------------------------------------------------------------------------------
 
     @Test
@@ -638,30 +644,28 @@ class DiagnosticoGuiadoScreenTest {
         assertTrue("plano reduzido tem que ir marcado", planosIniciados.first().planoAdaptado)
     }
 
-    /** Monta a tela com contexto e estado da analise dirigidos, para exercitar transicao. */
-    private fun cenarioDirigido(
-        contextoInicial: ContextoDoPlano,
-        estadoInicial: EstadoAnaliseGuiada = EstadoAnaliseGuiada.NaoIniciada,
-    ): Pair<() -> ContextoDoPlano, (ContextoDoPlano) -> Unit> {
+    /**
+     * Monta a tela com contexto dirigido, para exercitar transicao de contexto no meio da
+     * jornada. `estadoAnalise` fica fixo em `NaoIniciada` porque o unico chamador so precisa
+     * variar o contexto — versao anterior tambem dirigia `estadoAnalise` via um segundo
+     * `mutableStateOf` e um callback que nunca chegou a ser usado (achado no B12 da PR #1732).
+     */
+    private fun cenarioDirigido(contextoInicial: ContextoDoPlano): (ContextoDoPlano) -> Unit {
         var contexto by mutableStateOf(contextoInicial)
-        var estado by mutableStateOf(estadoInicial)
-        estadoDirigido = { estado = it }
         composeRule.setContent {
             SignallQTheme {
                 TelaDeTeste(
                     objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
                     respostaPreSelecionadaPasso0 = 0,
                     input = null,
-                    estadoAnalise = estado,
+                    estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
                     statusMedicao = null,
                     contextoDoPlano = contexto,
                 )
             }
         }
-        return Pair({ contexto }, { contexto = it })
+        return { contexto = it }
     }
-
-    private var estadoDirigido: (EstadoAnaliseGuiada) -> Unit = {}
 
     // RESSALVA R2: a chave do efeito do funil nao era travada — trocar `LaunchedEffect(emAnalise,
     // plano)` por `LaunchedEffect(emAnalise)` passava verde. A afirmacao do corpo da PR ("mudanca de
@@ -669,7 +673,7 @@ class DiagnosticoGuiadoScreenTest {
     @Test
     fun `entrar no wifi no meio da jornada dispara o funil de novo, com plano maior`() {
         val foraDoWifi = ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = false)
-        val (_, mudarContexto) = cenarioDirigido(foraDoWifi)
+        val mudarContexto = cenarioDirigido(foraDoWifi)
         completarSegundaPerguntaJogos()
         composeRule.waitForIdle()
         val primeiro = planosIniciados.single()

@@ -4,8 +4,8 @@ package io.signallq.app.core.network
  * Funil do diagnostico guiado 2.0 — issue #1706 (2.0.09d), spec §12, epico #1647.
  *
  * Complementa os eventos do Assist (`AssistAnalytics.kt`), que cobrem a escolha do sintoma e o
- * abandono. Aqui entram os dois passos que faltavam do funil minimo: o plano de analise sendo
- * apresentado e o bloqueio sendo encontrado.
+ * abandono. Aqui entra o passo 3 do funil minimo: o plano de analise sendo apresentado. O passo 4
+ * (bloqueio encontrado) nao entra nesta fatia — ver o comentario no fim deste arquivo.
  *
  * Nenhuma propriedade carrega SSID, IP, MAC, descricao livre ou resposta que identifique a pessoa
  * — restricao da spec §12, e o mesmo criterio que `AssistAnalytics` ja aplica.
