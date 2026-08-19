@@ -208,7 +208,7 @@ Modo gamer; qualquer refinamento de teste de jogo entra em `ModoGamerEngine`/`Mo
 
 ### 4.8b `SinalScreen.kt` — RESOLVIDO (atualizado 2026-08-19)
 
-Caminho real: `android/app/src/main/kotlin/io/signallq/app/ui/screen/SinalScreen.kt` — **477
+Caminho real: `android/app/src/main/kotlin/io/signallq/app/ui/screen/SinalScreen.kt` — **476
 linhas** (abaixo do limiar de extração obrigatória da seção 7). A entrada anterior citava 3503
 linhas — desatualizada; a Task 2.0.12 (issue #1660, épico #1647, PR #1766, 2026-08-19) fez a
 extração por aba que a seção já sugeria como próximo passo: `SinalMovelSection.kt` (539 linhas),
