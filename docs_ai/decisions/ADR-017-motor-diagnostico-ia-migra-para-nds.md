@@ -5,7 +5,7 @@ type: "adr"
 status: "ativo"
 owner: "Luiz"
 last_updated: "2026-08-19"
-version: "1.0.0"
+version: "1.1.0"
 ---
 
 # ADR-017 — Motor de diagnóstico e IA migram para o NDS
@@ -125,12 +125,42 @@ lista `capabilities` pedida — no teste real, `capabilities: ["scoring", "ai"]`
 resultado do módulo `diagnostics.wifi`. O cliente deve buscar por `module` na lista `results[]`,
 nunca assumir posição fixa ou presença garantida só porque foi pedida em `capabilities`.
 
-**Erros conhecidos:**
+### Contrato canônico (PR [buildea-labs/network-diagnostics-service#12](https://github.com/buildea-labs/network-diagnostics-service/pull/12))
 
-- `429 Too Many Requests`: `{ "error": "Rate limit exceeded", "message": "Too many requests. Try again shortly." }`
-- `401 Unauthorized`: `{ "error": "Unauthorized", "message": "Missing or invalid Bearer token." }`
-- Formato de erro genérico (5xx, timeout de rede) **ainda não confirmado** — lacuna a fechar na
-  fatia NDS-01.
+Fecha as lacunas que este ADR listava como pendentes. **Status: PR aberto, CI verde
+(`npm run typecheck && npm test`), ainda em draft no repositório do NDS — não confirmado como
+implantado em produção.** Tratar como o desenho canônico a seguir; reconfirmar contra o endpoint
+real antes de depender dele em produção.
+
+- **Envelope de erro único**, para toda falha pública (`400`, `401`, `429`, `500`, `503`, `504`):
+  ```json
+  { "error": { "code": "NDS_TIMEOUT", "message": "...", "retryable": true }, "request_id": "..." }
+  ```
+  Códigos estáveis: `INVALID_INPUT`, `UNAUTHORIZED`, `RATE_LIMITED`, `NDS_TIMEOUT`,
+  `AI_UNAVAILABLE`, `SERVICE_UNAVAILABLE`, `NOT_FOUND`, `INTERNAL_ERROR`. `request_id` é gerado
+  antes de autenticação/validação, presente mesmo em 4xx/5xx. Substitui o formato flat
+  `{error, message}` dos exemplos de `401`/`429` acima — esses exemplos ficam como registro
+  histórico do que foi observado antes do contrato formal existir.
+- **Timeout de avaliação** configurável via `EVALUATE_TIMEOUT_MS` (padrão 10000ms, mínimo 1000,
+  máximo 30000) — estouro devolve `504 NDS_TIMEOUT`, `retryable: true`.
+- **`profile` fechado em 5 valores**: `general`, `gamer`, `streaming`, `wfh`, `smarthome`. Valor
+  fora do conjunto é rejeitado com `400 INVALID_INPUT`.
+- **`capabilities` redefinido como evidência**, não mistura mais com output desejado: `wifi`,
+  `wifi_scan`, `fiber`, `mobile`, `dns`, `historical`, `gateway`, `local_equipment`. O que o
+  cliente quer de volta (`scoring`, `ai`) agora é `requested_outputs`, campo novo — separado de
+  `capabilities`. `capabilities: ["ai", "scoring"]` (o formato usado nos exemplos deste ADR e já
+  implementado na fatia NDS-01/02a) continua aceito como **alias legado durante a transição**, não
+  quebra o cliente atual, mas integrações novas devem usar `requested_outputs`.
+- **Matriz de cobertura por domínio** publicada em
+  [`docs/signallq-2-coverage.md`](https://github.com/buildea-labs/network-diagnostics-service/blob/e15a4ad64c86ee18119e3e711a112538fc6d90a3/docs/signallq-2-coverage.md)
+  do repositório do NDS — usar como fonte para decidir se uma fatia NDS-02x pode migrar (domínio
+  "Coberto") ou deve esperar (domínio "Parcial"/"Lacuna", rastreado nas issues P1
+  [buildea-labs/network-diagnostics-service#13](https://github.com/buildea-labs/network-diagnostics-service/issues/13)
+  ou P2 [#14](https://github.com/buildea-labs/network-diagnostics-service/issues/14) do repo do
+  NDS). Regra do NDS, idêntica em espírito à deste ADR: "o cliente coleta/mede evidências; o NDS
+  interpreta, cruza dados, gera findings, score e Next Best Action" — execução local de speedtest,
+  scan Wi-Fi, leitura de rede móvel e descoberta de dispositivos são responsabilidade do cliente,
+  nunca lacuna do NDS.
 
 ## Consequências
 
@@ -153,10 +183,24 @@ nunca assumir posição fixa ou presença garantida só porque foi pedida em `ca
 - **Manter `signallq-diagnostic-worker` em paralelo ao NDS** — rejeitada. Dois motores remotos
   mirando o mesmo objetivo é duplicação sem propósito claro.
 
-## Pendências (não resolvidas por este ADR, ficam para a execução)
+## Pendências
 
-- Formato de resposta em erro genérico/timeout (bloqueia tratamento de erro robusto na NDS-01).
-- Regra de mapeamento `profile`/`capabilities` do app para os valores aceitos pelo NDS.
-- Se vale priorizar a coleta de `dns.hijacked` (gap de coleta confirmado — não existe hoje).
+### Resolvidas pelo contrato canônico (PR #12 do NDS, ver seção acima)
+
+- ~~Formato de resposta em erro genérico/timeout~~ — envelope único definido, `NDS_TIMEOUT` com
+  timeout configurável.
+- ~~Regra de mapeamento `profile`/`capabilities`~~ — vocabulário fechado do lado do NDS.
+  Follow-up de implementação registrado (não bloqueante, nada em produção depende disso ainda):
+  o mapper que a NDS-02a (#1747, já mergeada) construiu usa o modelo antigo (`capabilities`
+  misturando evidência com output, `profile` omitido para "general" em vez de enviado
+  explicitamente) — funciona via alias legado, mas precisa de uma fatia de ajuste para o modelo
+  `capabilities`/`requested_outputs` quando o PR #12 do NDS sair de draft e for confirmado em
+  produção.
+
+### Seguem em aberto
+
+- Se vale priorizar a coleta de `dns.hijacked` (gap de coleta confirmado — não existe hoje;
+  domínio DNS está listado como "Parcial" na matriz de cobertura do NDS, P1).
 - Quebra completa em fatias de migração (NDS-01 em diante) — proposta inicial no inventário de
-  #1742, refinada conforme a implementação avança.
+  #1742, refinada em #1746 (NDS-02, 11 sub-fatias + remoção final), cruzada com a matriz de
+  cobertura do NDS para confirmar que cada fatia migra só domínio já "Coberto" do lado do NDS.
