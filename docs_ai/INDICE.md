@@ -48,15 +48,16 @@ Linka em preparação (`foundation-linka/`, ver seção própria abaixo). Perím
 
 ## Arquitetura por módulo — `ARQUITETURA/MODULOS/`
 
-**19 documentos — um por módulo consumer, todos reescritos do código em 2026-08-06.** Mesmo
-template: responsabilidade, dependências, consumidores, componentes principais, riscos e dívidas.
+**20 documentos — um por módulo consumer.** Mesmo template: responsabilidade, dependências,
+consumidores, componentes principais, riscos e dívidas.
 
 `app` · `core-database` · `core-datastore` · `core-diagnostico` · `core-featureflags` ·
-`core-network` · `core-permissions` · `core-recommendation` · `core-relatorio` · `core-telephony` ·
-`feature-devices` · `feature-diagnostico` · `feature-dns` · `feature-fibra` · `feature-history` ·
-`feature-home` · `feature-settings` · `feature-speedtest` · `feature-wifi`.
+`core-nds` · `core-network` · `core-permissions` · `core-recommendation` · `core-relatorio` ·
+`core-telephony` · `feature-devices` · `feature-diagnostico` · `feature-dns` · `feature-fibra` ·
+`feature-history` · `feature-home` · `feature-settings` · `feature-speedtest` · `feature-wifi`.
 
-Os três que faltavam (`core-relatorio`, `core-diagnostico`, `core-featureflags`) foram criados.
+`core-nds` (fatia NDS-01, issue #1744, ADR-017) é o mais novo — cliente HTTP e contrato tipado do
+Network Diagnostics Service, isolado, sem consumidor real ainda.
 
 Também em `ARQUITETURA/`: `AUDITORIA_1228_FASE0_INVENTARIO_COMPLETO.md`.
 
