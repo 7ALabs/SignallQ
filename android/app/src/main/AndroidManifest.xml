@@ -13,8 +13,8 @@
 
     <!-- READ_PHONE_STATE: usada pelo coreTelephony quando connectionType=mobile,
          para coletar RSRP/SINR/banda/cellId. Solicitada em runtime de forma
-         lazy (so quando o usuario faz diagnostico em rede movel pela primeira
-         vez) — ver MainActivity.solicitarPermissaoTelefoniaSeNecessario. -->
+         contextual (so quando o usuario entra na aba de sinal movel) — ver
+         MainActivity.solicitarPermissaoTelefoniaContextual (issue #1671). -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 

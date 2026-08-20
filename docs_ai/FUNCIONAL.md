@@ -248,16 +248,23 @@ dois diálogos — `ForaDoWifiDialog` (aviso de consumo em rede móvel, `AppShel
 
 ### 4.6 Antes do shell: onboarding e consentimento
 
-`MainActivity.kt:308-355` decide, nesta ordem: enquanto o DataStore não responde, tela vazia (evita
-o onboarding "piscar" a cada cold start); se o onboarding não foi concluído, `OnboardingScreen`; se
-foi concluído mas não há resposta de LGPD, `LgpdConsentDialog`; só então o `AppShell`.
+`RotaInicialApp.kt` (função pura `rotaInicialApp`, consumida em `MainActivity.kt`) decide, nesta
+ordem: enquanto o DataStore não responde, tela vazia (evita o onboarding "piscar" a cada cold
+start); se o onboarding não foi concluído, `OnboardingScreen`; se foi concluído mas não há resposta
+de LGPD, `LgpdConsentDialog`; só então o `AppShell`. Usuário existente (ambos os flags já
+persistidos) nunca vê Onboarding de novo.
 
-O onboarding tem **2 telas** (`OnboardingScreen.kt:79`). Tela 1: boas-vindas com checkbox de aceite
-dos Termos de Uso e Política de Privacidade — o botão "Começar" fica desabilitado até o aceite
-(`OnboardingScreen.kt:384`), único bloqueio do fluxo; os dois documentos abrem como overlay interno.
-Tela 2: quatro permissões, todas opcionais, cada uma com toggle próprio mais um "Permitir tudo"; o
-diálogo nativo do Android dispara no momento em que o toggle é ligado. Sair sem conceder nada é
-permitido, com um diálogo não bloqueante de confirmação.
+Desde a issue #1671 (Task 2.0.23, épico #1647), o onboarding tem **1 tela só**
+(`OnboardingScreen.kt`): boas-vindas com checkbox de aceite dos Termos de Uso e Política de
+Privacidade — o botão "Começar" fica desabilitado até o aceite, único bloqueio do fluxo; os dois
+documentos abrem como overlay interno. A tela comunica diagnóstico de internet, não speed test, e
+não lista catálogo de ferramentas. Nenhuma permissão é pedida em lote aqui — as antigas quatro
+permissões da tela 2 (Wi-Fi por perto/localização, dispositivos na rede, sinal do chip/telefonia,
+notificações) viraram **contextuais**: cada uma é solicitada só quando o usuário entra na
+funcionalidade que precisa dela (aba Wi-Fi/Canal pede localização, aba Móvel pede telefonia, ativar
+o monitoramento pede notificação — ver `MainActivity.kt` `solicitarPermissao*Contextual()` e
+`onAtivarMonitoramento`, e a decisão pura `DecisaoPermissaoContextual.kt`). Nenhuma delas bloqueia o
+uso básico do app.
 
 ### 4.7 Bloqueio remoto de rotas
 
@@ -754,11 +761,11 @@ uso do app** — a ausência oculta ou degrada o dado dependente, nunca produz t
 | `INTERNET` | Todo o produto: speedtest, DNS, IP público, IA remota, analytics | Normal (concedida na instalação, não é runtime) |
 | `ACCESS_NETWORK_STATE` | Detectar tipo de conexão (Wi-Fi/móvel/Ethernet), validação de internet, capabilities | Normal (não é runtime) |
 | `ACCESS_WIFI_STATE` | Ler a rede conectada (SSID, RSSI, link speed, banda) e listar redes vizinhas | Normal (não é runtime) |
-| `ACCESS_FINE_LOCATION` | Exigência do Android para ler `ScanResult`/`WifiInfo`: listar redes vizinhas e analisar canais | Abas Wi-Fi e Canal mostram sheet contextual e banner; sem ela não há varredura de redes nem análise de canal. Bloqueio permanente troca o CTA por "Abrir ajustes do Android" |
-| `ACCESS_COARSE_LOCATION` | Pedida junto com a anterior no mesmo grupo, no onboarding | Mesmo efeito acima |
-| `NEARBY_WIFI_DEVICES` (`neverForLocation`, API 33+) | Identificar aparelhos na rede local sem usar localização | Descoberta de dispositivos fica degradada; a tela Dispositivos continua abrindo |
-| `READ_PHONE_STATE` | Coletar operadora, tecnologia (4G/5G), RSRP/SINR/banda/cellId do chip. Pedida de forma lazy, no primeiro diagnóstico em rede móvel (`AndroidManifest.xml:14-17`) | Aba Móvel mostra estado vazio explicativo e sheet contextual ("Não acessamos chamadas, mensagens ou dados pessoais") |
-| `POST_NOTIFICATIONS` (API 33+) | Alertas do monitoramento passivo e de dispositivo novo na rede | O monitoramento continua medindo e gravando no histórico, mas nenhum alerta chega ao usuário |
+| `ACCESS_FINE_LOCATION` | Exigência do Android para ler `ScanResult`/`WifiInfo`: listar redes vizinhas e analisar canais. Pedida de forma contextual, na primeira entrada na aba Wi-Fi/Canal (issue #1671) | Abas Wi-Fi e Canal mostram sheet contextual e banner; sem ela não há varredura de redes nem análise de canal. Bloqueio permanente troca o CTA por "Abrir ajustes do Android" |
+| `ACCESS_COARSE_LOCATION` | Pedida junto com a anterior no mesmo grupo, no mesmo ponto de uso contextual | Mesmo efeito acima |
+| `NEARBY_WIFI_DEVICES` (`neverForLocation`, API 33+) | Pedida junto com localização (mesmo ponto de uso — issue #1671): identificar aparelhos na rede local sem usar localização | Descoberta de dispositivos fica degradada; a tela Dispositivos continua abrindo |
+| `READ_PHONE_STATE` | Coletar operadora, tecnologia (4G/5G), RSRP/SINR/banda/cellId do chip. Pedida de forma contextual, na primeira entrada na aba Móvel (`AndroidManifest.xml`, issue #1671) | Aba Móvel mostra estado vazio explicativo e sheet contextual ("Não acessamos chamadas, mensagens ou dados pessoais") |
+| `POST_NOTIFICATIONS` (API 33+) | Alertas do monitoramento passivo e de dispositivo novo na rede. Pedida de forma contextual, no momento em que o usuário liga o monitoramento (issue #1671) | O monitoramento continua medindo e gravando no histórico, mas nenhum alerta chega ao usuário |
 | `CHANGE_WIFI_MULTICAST_STATE` | Descoberta de dispositivos por mDNS na varredura da rede local | Não determinado nesta revisão qual é o comportamento degradado exato |
 
 Fora do manifesto, existe um consentimento de **LGPD** exibido depois do onboarding
