@@ -4,13 +4,14 @@ description: "Background monitoring de qualidade de rede (latência, DNS, Wi-Fi)
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-16"
+last_updated: "2026-08-20"
 ---
 
 # Monitoramento Passivo — MonitoramentoWorker
 
 **Status:** ativo
-**Última validação:** 2026-07-23 (contra `android/app/src/main/kotlin/io/signallq/app/monitoramento/`)
+**Última validação:** 2026-08-20 (issue #1666, épico #1647, Task 2.0.18 — contra
+`android/app/src/main/kotlin/io/signallq/app/monitoramento/` e `MonitoramentoSheet.kt`)
 **Fonte de verdade:** código real — `MonitoramentoWorker.kt`, `MonitoramentoScheduler.kt`, `HisteresiHelper.kt`
 **Escopo:** background monitoring de qualidade de rede (latência, DNS, Wi-Fi) e notificações de alerta
 **Responsável:** Camilo (Backend Android)
@@ -51,7 +52,10 @@ monitoramento passivo — ver `docs_ai/technical/AI_FLOW.md`.
 
 **Framework:** WorkManager (`MonitoramentoScheduler.kt`)
 
-- **Período:** 30 minutos (`PeriodicWorkRequestBuilder<MonitoramentoWorker>(30, TimeUnit.MINUTES)`)
+- **Período:** 30 minutos (`MonitoramentoScheduler.INTERVALO_MINUTOS`, usada tanto pelo
+  `PeriodicWorkRequestBuilder<MonitoramentoWorker>` quanto pela comunicação de frequência real na
+  UI — `MonitoramentoSheet.kt`, issue #1666. Não é um valor nominal só para o Worker: mudar aqui
+  sem atualizar a UI quebra a honestidade da comunicação, e vice-versa)
 - **Tag:** `linka_monitoramento_passivo`
 - **Policy:** `ExistingPeriodicWorkPolicy.KEEP` (evita duplicar o work já agendado)
 - **Toggle do usuário:** `PreferenciasAppRepository.monitoramentoAtivoFlow`
@@ -123,6 +127,11 @@ GH#936 — ver `docs_ai/technical/SCREEN_MAP.md`), não em uma tela dedicada `Li
 `MonitoramentoWorkerHistereseTest.kt` (transições de estado/thresholds) e
 `MonitoramentoWorkerMedicaoTest.kt` (persistência da medição sintética). Não confirmado o
 número exato de casos em cada um — `[a confirmar]` se precisar do total exato.
+
+Issue #1666 (2026-08-20) adicionou `ui/screen/MonitoramentoSheetFrequenciaRealTest.kt` (copy
+honesta de frequência real, com guarda de regressão contra `MonitoramentoScheduler.INTERVALO_MINUTOS`)
+e `ui/screen/HistoricoUptimeWiringCaracterizacaoTest.kt` (religa e caracteriza a renderização real
+de `UptimeGridChart` em `HistoricoScreen.kt` — ver `docs_ai/FUNCIONAL.md` §5.9).
 
 ## 10. Riscos técnicos
 

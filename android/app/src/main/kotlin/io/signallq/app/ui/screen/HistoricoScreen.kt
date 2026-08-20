@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -72,7 +73,10 @@ import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.diagnostico.BandaWifi
 import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.core.network.EstadoConexao
+import io.signallq.app.feature.history.BlocoUptime
 import io.signallq.app.feature.history.ResumoHistorico
+import io.signallq.app.feature.history.StatusUptime
+import io.signallq.app.feature.history.UptimeNarrativaEngine
 import io.signallq.app.ui.FiltroConexaoHistorico
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
@@ -312,12 +316,17 @@ fun HistoricoScreen(
     filtroOperadora: String? = null,
     onFiltroOperadoraChange: (String?) -> Unit = {},
     operadorasDisponiveis: List<String> = emptyList(),
+    /** Grid de uptime dos últimos 7 dias (issues #1666/#1520) -- vazio ate o ViewModel calcular,
+     *  nesse caso a secao nao e renderizada (ver [blocosUptime]). */
+    blocosUptime: List<BlocoUptime> = emptyList(),
     /** Toggle remoto (Firebase Remote Config) + gate de consentimento UMP -- issue #555.
      *  Default `false`: nunca mostra anuncio sem sinal explicito de que pode. */
     adsEnabled: Boolean = false,
 ) {
     val c = LocalLkTokens.current
     val scope = rememberCoroutineScope()
+    val narrativaUptime = remember(blocosUptime) { UptimeNarrativaEngine.gerarNarrativa(blocosUptime) }
+    val temDadoUptime = remember(blocosUptime) { blocosUptime.any { it.status != StatusUptime.SEM_DADO } }
 
     var selectedMedicao by remember { mutableStateOf<MedicaoEntity?>(null) }
     var mostrarExport by remember { mutableStateOf(false) }
@@ -407,7 +416,10 @@ fun HistoricoScreen(
         val listaParaExibir = historicoFiltrado
         val filtroAtivo = filtroConexaoAtivo != FiltroTipo.TODOS
 
-        if (listaParaExibir.isEmpty() && !filtroAtivo) {
+        // #1666/#1520: uma tela sem nenhum teste manual mas com dado de monitoramento
+        // (fonte="monitor") ainda tem algo relevante para mostrar -- nao cair no estado
+        // totalmente vazio so porque a lista de testes manuais esta vazia.
+        if (listaParaExibir.isEmpty() && !filtroAtivo && !temDadoUptime) {
             EmptyHistorico(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 onIniciarTeste = onIniciarTeste,
@@ -416,10 +428,27 @@ fun HistoricoScreen(
         } else {
             LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxSize().padding(padding),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .testTag("historico_lista"),
                 contentPadding = PaddingValues(horizontal = LkSpacing.lg, vertical = LkSpacing.lg),
                 verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
             ) {
+                if (blocosUptime.isNotEmpty()) {
+                    item(key = "uptime_grid") {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            LkSectionOverline("Estabilidade da conexão · últimos 7 dias")
+                            Spacer(Modifier.height(LkSpacing.sm))
+                            UptimeGridChart(
+                                blocos = blocosUptime,
+                                narrativa = narrativaUptime,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    }
+                }
                 if (!nativeAdDismissedHistorico) {
                     item(key = "native_ad_historico") {
                         val nativeAd by rememberNativeAd(
@@ -460,7 +489,7 @@ fun HistoricoScreen(
                         EmptyHistorico(
                             modifier = Modifier.fillMaxWidth().padding(vertical = LkSpacing.xxl),
                             onIniciarTeste = onIniciarTeste,
-                            filtroAtivo = true,
+                            filtroAtivo = filtroAtivo,
                         )
                     }
                 } else {

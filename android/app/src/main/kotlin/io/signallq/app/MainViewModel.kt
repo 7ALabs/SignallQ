@@ -74,8 +74,10 @@ import io.signallq.app.feature.dns.OrientadorConfiguracaoDns
 import io.signallq.app.feature.fibra.EstadoFibra
 import io.signallq.app.feature.fibra.ExecutorFibra
 import io.signallq.app.feature.fibra.NokiaLocalDeviceMapper
+import io.signallq.app.feature.history.BlocoUptime
 import io.signallq.app.feature.history.ObservadorHistoricoRoom
 import io.signallq.app.feature.history.ResumoHistorico
+import io.signallq.app.feature.history.UptimeChartUseCase
 import io.signallq.app.feature.speedtest.ExecutorSpeedtest
 import io.signallq.app.feature.speedtest.ModoSpeedtest
 import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisMensagem
@@ -705,6 +707,18 @@ class MainViewModel
         val resumoHistorico: StateFlow<ResumoHistorico?> =
             observadorHistorico.resumoFlow
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+        // Issues #1666/#1520 (épico #1647, Task 2.0.18) — religa o wiring do grid de uptime de
+        // 7 dias, orfao desde uma refatoracao anterior de HistoricoScreen (GH#495 original).
+        // `historico` (observarUltimas(100)) so serve de gatilho de recomputo aqui -- a janela
+        // real de 7 dias vem direto do banco via UptimeChartUseCase.gerar7dias(), que nao
+        // depende do limite de 100 itens usado pela lista visivel do Historico.
+        private val uptimeChartUseCase by lazy { UptimeChartUseCase(bancoDados.medicaoDao(), dispatchers.io) }
+
+        val uptimeBlocos: StateFlow<List<BlocoUptime>> =
+            historico
+                .map { uptimeChartUseCase.gerar7dias() }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
         private var scannerDispositivosDisparado = false
         private var scanWifiDisparado = false

@@ -3,6 +3,7 @@ package io.signallq.app.ui.screen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.feature.history.BlocoUptime
 import io.signallq.app.feature.history.ResumoHistorico
 import io.signallq.app.ui.FiltroConexaoHistorico
 
@@ -36,6 +37,8 @@ data class AppShellHistoricoState(
     val filtroOperadora: String? = null,
     val onFiltroOperadoraChange: (String?) -> Unit = {},
     val operadorasDisponiveis: List<String> = emptyList(),
+    /** Grid de uptime dos últimos 7 dias (issues #1666/#1520) — vazio até o ViewModel calcular. */
+    val blocosUptime: List<BlocoUptime> = emptyList(),
 )
 
 /**
@@ -60,6 +63,7 @@ internal fun AppShellHistoricoRoot(
         filtroOperadora = state.filtroOperadora,
         onFiltroOperadoraChange = state.onFiltroOperadoraChange,
         operadorasDisponiveis = state.operadorasDisponiveis,
+        blocosUptime = state.blocosUptime,
         adsEnabled = adsEnabled,
     )
 }
