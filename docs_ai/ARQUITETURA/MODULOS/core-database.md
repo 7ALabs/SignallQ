@@ -79,7 +79,8 @@ Nenhuma dependência de outro módulo do monorepo. `ResolvedorNetworkId` (`src/m
 
 ## Riscos e dívidas
 
-- **Schema `15.json` ausente:** `schemas/io.signallq.app.core.database.SignallQDatabase/` contém `10..14`, `16`, `17`, `18` — falta o `15.json`, apesar de `exportSchema = true`. Rompe a cadeia de validação automática de migrations nessa faixa.
+- **Schemas `9.json`/`15.json` ausentes:** `schemas/io.signallq.app.core.database.SignallQDatabase/` não tem `9.json` nem `15.json`, apesar de `exportSchema = true`. Rompe a cadeia de validação automática de migrations nessas versões — ver GH#1787.
+- **`connectedDebugAndroidTest` nunca rodava de verdade até GH#1707 (PR #1786):** o sourceSet `androidTest` não apontava `assets.srcDirs` pra `schemas/`, então `MigrationTestHelper` nunca encontrava o schema exportado — corrigido na PR #1786. Isso expôs falhas reais e pré-existentes em `Migration13Para14Test`, `Migration14Para15Test`, `Migration15Para16Test`, `Migration17Para18Test`, `Migration9Para10Test` e `AnalyticsOutboxDaoTest` (mismatch schema/INSERT e um assert de contagem) — nunca corrigidas porque nunca tinham executado contra um dispositivo real. Ver GH#1787.
 - **Schemas de nomes antigos ainda versionados:** `schemas/io.linka.app.kotlin.core.database.LinkaDatabase/` (`1..10`) e `schemas/io.signallq.app.core.database.VelooDatabase/` (`10.json`) permanecem no repositório — três nomes de banco na história do produto (Linka → Veloo → SignallQ).
 - **Nomes legados em produção:** o arquivo do banco continua `linkaKotlin.db`. Trocar exige migração de dados, não é rename cosmético.
 - **Path físico alinhado ao package `io.signallq.app.*`** — migração de `io/signallq/app/kotlin/` concluída em 2026-08-15 (#1645).
