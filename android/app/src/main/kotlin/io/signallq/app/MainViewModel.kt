@@ -24,9 +24,12 @@ import io.signallq.app.core.diagnostico.RedeWifiVizinha
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 import io.signallq.app.core.diagnostico.WifiScanDiagnosticInput
 import io.signallq.app.core.diagnostico.banda
+import io.signallq.app.core.diagnostico.rotuloConfianca
 import io.signallq.app.core.diagnostico.topology.model.NatStatus
 import io.signallq.app.core.featureflags.FeatureFlagKeys
 import io.signallq.app.core.featureflags.FeatureFlagProvider
+import io.signallq.app.core.network.DiagnosticoComparacaoConcluida
+import io.signallq.app.core.network.DiagnosticoRetesteIniciado
 import io.signallq.app.core.network.DispatcherProvider
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.MonitorRede
@@ -78,6 +81,9 @@ import io.signallq.app.feature.history.BlocoUptime
 import io.signallq.app.feature.history.ObservadorHistoricoRoom
 import io.signallq.app.feature.history.ResumoHistorico
 import io.signallq.app.feature.history.UptimeChartUseCase
+import io.signallq.app.feature.history.calcularVereditoReteste
+import io.signallq.app.feature.history.paraTelemetriaReteste
+import io.signallq.app.feature.history.rotuloComparacaoReteste
 import io.signallq.app.feature.speedtest.ExecutorSpeedtest
 import io.signallq.app.feature.speedtest.ModoSpeedtest
 import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisMensagem
@@ -99,6 +105,7 @@ import io.signallq.app.ui.IspInfo
 import io.signallq.app.ui.screen.AcaoDadosLocaisEstado
 import io.signallq.app.ui.screen.AnalisadorState
 import io.signallq.app.ui.screen.AppShellFeatureFlagsState
+import io.signallq.app.ui.screen.ComparacaoRetesteUiState
 import io.signallq.app.ui.screen.TipoAcaoDadosLocais
 import io.signallq.app.ui.screen.resolverNetworkIdAtual
 import io.signallq.app.ui.state.UiState
@@ -126,6 +133,7 @@ import org.json.JSONObject
 import timber.log.Timber
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import io.signallq.app.ui.ConnectionType as UiConnectionType
@@ -2108,6 +2116,7 @@ class MainViewModel
                                         titulo = resultado.result.titulo,
                                         resumo = resultado.result.resumo,
                                         problemaRelatado = problema,
+                                        confianca = relatorio.rotuloConfianca,
                                     )
                                 speedtestPersistenceCoordinator.atualizarDiagnosticoIa(texto, problema)
                             }
@@ -2121,6 +2130,7 @@ class MainViewModel
                                         titulo = resultado.result.titulo,
                                         resumo = resultado.result.resumo,
                                         problemaRelatado = problema,
+                                        confianca = relatorio.rotuloConfianca,
                                     )
                                 speedtestPersistenceCoordinator.atualizarDiagnosticoIa(texto, problema)
                             }
@@ -2138,6 +2148,7 @@ class MainViewModel
                                         titulo = local.titulo,
                                         resumo = local.resumo,
                                         problemaRelatado = problema,
+                                        confianca = relatorio.rotuloConfianca,
                                     )
                                 speedtestPersistenceCoordinator.atualizarDiagnosticoIa(texto, problema)
                             }
@@ -2153,6 +2164,128 @@ class MainViewModel
         fun resetarAnalisador() {
             analisarProblemaJob?.cancel()
             _analisadorState.value = AnalisadorState.Inativo
+        }
+
+        // ── Reteste vinculado (GH#1707, Task 2.0.09e, parte 2/2, épico #1647) ────────
+
+        private val _comparacaoRetesteState = MutableStateFlow<ComparacaoRetesteUiState>(ComparacaoRetesteUiState.Ausente)
+        val comparacaoRetesteState: StateFlow<ComparacaoRetesteUiState> = _comparacaoRetesteState.asStateFlow()
+
+        /**
+         * Telemetria do funil (spec #1657, passos 8/9) — emitida aqui e não injetada como
+         * `AnalyticsTracker` neste ViewModel de propósito: o funil principal e o `feature_used`
+         * já são "instrumentados em MainActivity/DiagnosticOrchestrator, não neste ViewModel"
+         * (ver comentário de [recommendationAnalyticsTracker] acima). O cálculo do payload
+         * (rede/DB/orchestrator) só pode acontecer aqui; o disparo pro Firebase continua na
+         * Activity, que já tem o `AnalyticsTracker` de verdade.
+         */
+        private val _retesteIniciadoEvent = MutableSharedFlow<DiagnosticoRetesteIniciado>(extraBufferCapacity = 1)
+        val retesteIniciadoEvent: SharedFlow<DiagnosticoRetesteIniciado> = _retesteIniciadoEvent.asSharedFlow()
+
+        private val _comparacaoConcluidaEvent = MutableSharedFlow<DiagnosticoComparacaoConcluida>(extraBufferCapacity = 1)
+        val comparacaoConcluidaEvent: SharedFlow<DiagnosticoComparacaoConcluida> = _comparacaoConcluidaEvent.asSharedFlow()
+
+        private var retesteVinculadoJob: kotlinx.coroutines.Job? = null
+
+        /**
+         * CTA "Testar novamente" **vinculado** à análise original (spec §8.8) — nunca "recomeçar
+         * do zero" (isso é [solicitarDiagnostico] chamado direto de `ResultadoVelocidadeScreen`,
+         * outro fluxo). Dispara uma medição nova de verdade pelo MESMO pipeline
+         * ([solicitarDiagnostico]), aguarda a conclusão e calcula o veredito de comparação
+         * (§14.6) contra a medição anterior NA MESMA REDE (`MedicaoDao.buscarUltimaComparavelNaRede`,
+         * GH#1707 parte 1/2) — nunca compara redes diferentes com aviso, declara o limite
+         * ("inconclusiva").
+         *
+         * [acaoAnteriorId] vazio quando o usuário retestou sem executar nenhuma ação antes.
+         */
+        fun testarNovamenteVinculado(
+            analiseIdOriginal: String,
+            acaoAnteriorId: String = "",
+        ) {
+            if (retesteVinculadoJob?.isActive == true) return
+            retesteVinculadoJob =
+                viewModelScope.launch {
+                    val medicaoOriginal =
+                        bancoDados
+                            .medicaoDao()
+                            .observarUltimas(1)
+                            .first()
+                            .firstOrNull()
+                    val medicaoOriginalId = medicaoOriginal?.id
+                    val retesteId = UUID.randomUUID().toString()
+                    val intervaloMs = medicaoOriginal?.let { System.currentTimeMillis() - it.timestampEpochMs } ?: 0L
+                    val mesmoContextoRede =
+                        medicaoOriginal?.networkId != null && medicaoOriginal.networkId == networkIdAtual.value
+                    val relatorioAnterior = diagnosticOrchestrator.snapshotFlow.value.relatorio
+                    val statusAnterior = relatorioAnterior?.decisao?.status?.name ?: "inconclusive"
+
+                    _retesteIniciadoEvent.emit(
+                        DiagnosticoRetesteIniciado(
+                            analiseId = analiseIdOriginal,
+                            retesteId = retesteId,
+                            acaoAnteriorId = acaoAnteriorId,
+                            intervaloMs = intervaloMs,
+                            mesmoContextoRede = mesmoContextoRede,
+                        ),
+                    )
+                    _comparacaoRetesteState.value = ComparacaoRetesteUiState.EmAndamento
+
+                    val novaGeracao = solicitarDiagnostico()
+                    if (novaGeracao == null) {
+                        _comparacaoRetesteState.value = ComparacaoRetesteUiState.Ausente
+                        return@launch
+                    }
+
+                    // Observa a MESMA fonte que persiste a medição (Room), não um contador em
+                    // memória — sobrevive a qualquer diferença de timing entre
+                    // `SpeedtestPersistenceCoordinator` (persiste) e `DiagnosticOrchestrator`
+                    // (avalia), que rodam em coletores independentes.
+                    val medicaoNova =
+                        withTimeoutOrNull(60_000L) {
+                            bancoDados
+                                .medicaoDao()
+                                .observarUltimas(1)
+                                .first { lista -> lista.firstOrNull()?.id?.let { it != medicaoOriginalId } == true }
+                        }?.firstOrNull()
+
+                    val relatorioNovo =
+                        withTimeoutOrNull(15_000L) {
+                            diagnosticOrchestrator.snapshotFlow.first { it.geracao == novaGeracao && it.relatorio != null }
+                        }?.relatorio
+
+                    if (medicaoNova == null) {
+                        _comparacaoRetesteState.value = ComparacaoRetesteUiState.Ausente
+                        return@launch
+                    }
+
+                    val comparavelEntity =
+                        medicaoNova.networkId?.let { networkId ->
+                            bancoDados.medicaoDao().buscarUltimaComparavelNaRede(
+                                networkId = networkId,
+                                excluirId = medicaoNova.id,
+                                antesDoTimestamp = medicaoNova.timestampEpochMs,
+                            )
+                        }
+                    val comparavel = comparavelEntity != null
+                    val veredito = calcularVereditoReteste(comparavelEntity, medicaoNova)
+
+                    _comparacaoConcluidaEvent.emit(
+                        DiagnosticoComparacaoConcluida(
+                            analiseId = analiseIdOriginal,
+                            retesteId = retesteId,
+                            veredito = veredito.paraTelemetriaReteste(),
+                            comparavel = comparavel,
+                            statusAnterior = statusAnterior,
+                            statusNovo = relatorioNovo?.decisao?.status?.name ?: "inconclusive",
+                        ),
+                    )
+
+                    _comparacaoRetesteState.value =
+                        ComparacaoRetesteUiState.Concluido(
+                            veredito = veredito.rotuloComparacaoReteste(),
+                            comparavel = comparavel,
+                        )
+                }
         }
 
         // ── Recomendacao do Recommendation Engine (#813) ─────────────────────────────
@@ -2545,5 +2678,6 @@ internal fun resolverResultadoAnaliseViaNds(
         titulo = local.titulo,
         resumo = local.resumo,
         problemaRelatado = problema,
+        confianca = relatorio.rotuloConfianca,
     )
 }

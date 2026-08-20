@@ -287,6 +287,8 @@ class MainActivity : ComponentActivity() {
             val onboardingConcluido = viewModel.onboardingConcluido.collectAsStateWithLifecycle().value
             val consentimentoLgpd = viewModel.consentimentoLgpd.collectAsStateWithLifecycle().value
             val analisadorState by viewModel.analisadorState.collectAsStateWithLifecycle()
+            // GH#1707 (Task 2.0.09e, parte 2/2) — estado do reteste vinculado (spec §8.8/§14.6).
+            val comparacaoRetesteState by viewModel.comparacaoRetesteState.collectAsStateWithLifecycle()
             val recommendationDecision by viewModel.recommendationDecision.collectAsStateWithLifecycle()
             val recommendationFeedback by viewModel.recommendationFeedback.collectAsStateWithLifecycle()
             // #82 — Banner Anatel dismissível
@@ -325,6 +327,20 @@ class MainActivity : ComponentActivity() {
                 viewModel.solicitarAvaliacaoPlayEvent.collect {
                     analyticsTracker.registrarFeatureUsada("review_prompt_google_play")
                     inAppReviewManager.solicitarFluxoAvaliacao(this@MainActivity)
+                }
+            }
+
+            // GH#1707 (Task 2.0.09e, parte 2/2) — funil do reteste vinculado (spec #1657, passos
+            // 8/9). O cálculo do payload é do ViewModel (rede/DB/orchestrator); o disparo pro
+            // Firebase fica aqui, mesmo padrão do funil do diagnóstico guiado (#1706) logo abaixo.
+            LaunchedEffect(Unit) {
+                viewModel.retesteIniciadoEvent.collect { evento ->
+                    analyticsTracker.registrarDiagnosticoRetesteIniciado(evento)
+                }
+            }
+            LaunchedEffect(Unit) {
+                viewModel.comparacaoConcluidaEvent.collect { evento ->
+                    analyticsTracker.registrarDiagnosticoComparacaoConcluida(evento)
                 }
             }
 
@@ -438,6 +454,10 @@ class MainActivity : ComponentActivity() {
                                     onRecommendationShown = { viewModel.registrarRecomendacaoMostrada() },
                                     onRecommendationClicked = { viewModel.registrarRecomendacaoClicada() },
                                     onRecommendationFeedback = { feedback -> viewModel.registrarFeedbackRecomendacao(feedback) },
+                                    onTestarNovamenteVinculado = { analiseId, acaoAnteriorId ->
+                                        viewModel.testarNovamenteVinculado(analiseId, acaoAnteriorId)
+                                    },
+                                    comparacaoRetesteState = comparacaoRetesteState,
                                 ),
                             signallQ =
                                 io.signallq.app.ui.screen.AppShellSignallQState(

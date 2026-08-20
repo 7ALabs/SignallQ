@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -14,12 +15,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material.icons.outlined.Verified
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -34,6 +38,7 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.screen.AnalisadorState
+import io.signallq.app.ui.screen.ComparacaoRetesteUiState
 
 /**
  * Componentes de resultado compartilhados entre [io.signallq.app.ui.screen.DiagnosticoGuiadoScreen]
@@ -163,6 +168,11 @@ fun AiVsMotorExplainer(
                 is AnalisadorState.Resultado -> {
                     val texto = analisadorState.resumo.ifBlank { analisadorState.texto }
                     Text(text = texto, style = MaterialTheme.typography.bodySmall, color = c.textPrimary, lineHeight = 18.sp)
+                    val rotuloConfianca = rotuloConfiancaExibicao(analisadorState.confianca)
+                    if (rotuloConfianca.isNotBlank()) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(text = rotuloConfianca, style = MaterialTheme.typography.labelSmall, color = c.textSecondary)
+                    }
                 }
                 is AnalisadorState.Erro ->
                     Text(
@@ -184,6 +194,74 @@ fun AiVsMotorExplainer(
                 lineHeight = 15.sp,
             )
         }
+    }
+}
+
+/**
+ * GH#1657 (spec §14.4) / GH#1707 — texto de exibição do rótulo de confiança (`baixa`/`media`/
+ * `alta`, ver `RotuloConfianca`). Decisão de Luiz (2026-08-20): só texto, sem número, sem
+ * ícone/pill decorativo — por isso este mapeamento devolve string pronta pro `Text`, não um par
+ * (ícone, cor) como o resto deste arquivo faz para status.
+ */
+private fun rotuloConfiancaExibicao(valor: String): String =
+    when (valor) {
+        "alta" -> "Confiança alta"
+        "media" -> "Confiança média"
+        "baixa" -> "Confiança baixa"
+        else -> ""
+    }
+
+/**
+ * CTA "Testar novamente" **vinculado** à análise original (spec §8.8, GH#1707 Task 2.0.09e) —
+ * nunca "recomeçar do zero" (isso é `ResultadoVelocidadeScreen.onTestarNovamente`, outro fluxo).
+ *
+ * Só aparece quando a IA recomendou explicitamente um reteste executável no app
+ * (`AiAcaoRecomendada.tipo == "reteste" && executavelNoApp`) — o mesmo gancho que já existia sem
+ * nenhuma tela consumindo. Enquanto o reteste roda, o botão vira um indicador; ao concluir, vira o
+ * veredito em texto (§14.6: "Melhorou"/"Não mudou"/"Piorou"/"Comparação inconclusiva" — nunca
+ * números lado a lado, nunca gráfico).
+ */
+@Composable
+fun RetesteVinculadoSection(
+    analisadorState: AnalisadorState,
+    comparacaoRetesteState: ComparacaoRetesteUiState,
+    onTestarNovamente: () -> Unit,
+    c: LkTokens,
+) {
+    val elegivel =
+        analisadorState is AnalisadorState.Resultado &&
+            analisadorState.acoes.any { acao -> acao.tipo == "reteste" && acao.executavelNoApp }
+    if (!elegivel) return
+
+    Spacer(Modifier.height(LkSpacing.sm))
+    when (comparacaoRetesteState) {
+        is ComparacaoRetesteUiState.Ausente ->
+            OutlinedButton(
+                onClick = onTestarNovamente,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                shape = RoundedCornerShape(LkRadius.button),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = c.primary),
+            ) {
+                Icon(imageVector = Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(LkSpacing.sm))
+                Text(text = "Testar novamente", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            }
+        is ComparacaoRetesteUiState.EmAndamento ->
+            Row(
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = c.primary)
+                Text(text = "Testando novamente…", style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
+            }
+        is ComparacaoRetesteUiState.Concluido ->
+            Text(
+                text = comparacaoRetesteState.veredito,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.W600,
+                color = c.textPrimary,
+            )
     }
 }
 

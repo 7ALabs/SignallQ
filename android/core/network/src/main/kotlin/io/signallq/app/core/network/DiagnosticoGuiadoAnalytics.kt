@@ -33,3 +33,39 @@ data class DiagnosticoPlanoIniciado(
 //
 // Sem gatilho vivo, o evento nao teria produtor e o vocabulario de tipo/resolucao seria enum morto.
 // Decisao de Luiz em 2026-08-18: entregar o plano sem a preparacao. Volta com ela.
+
+/**
+ * Passo 8 do funil (GH#1707, Task 2.0.09e, épico #1647, spec §12): o usuário acionou "Testar
+ * novamente" **vinculado** a uma análise anterior — nunca "recomeçar do zero" (isso é o evento 1
+ * com `origem` própria, ver `AssistAnalytics`/`DiagnosticoGuiadoAnalytics`).
+ *
+ * [acaoAnteriorId] vazio quando a pessoa retestou sem executar nenhuma ação antes.
+ * [mesmoContextoRede] só é `true` quando o `networkId` atual bate com o da medição original —
+ * calculado no mesmo resolvedor que decide comparabilidade (`ResolvedorNetworkId`,
+ * `core/database`), nunca inferido de outra forma.
+ */
+data class DiagnosticoRetesteIniciado(
+    val analiseId: String,
+    val retesteId: String,
+    val acaoAnteriorId: String,
+    val intervaloMs: Long,
+    val mesmoContextoRede: Boolean,
+)
+
+/**
+ * Passo 9 do funil (GH#1707, Task 2.0.09e) — a comparação entre a análise original e o reteste foi
+ * calculada e exibida. [veredito] reusa o vocabulário de `TendenciaEstado`
+ * (`melhorou`/`nao_mudou`/`piorou`) mais `inconclusiva` quando [comparavel] é `false` — spec §8.8 /
+ * decisão de Luiz em 2026-08-20 (§14.6): só o veredito simples, nunca números lado a lado.
+ *
+ * [statusAnterior]/[statusNovo] usam o vocabulário de `DiagnosticStatus`
+ * (`ok`/`info`/`attention`/`critical`/`inconclusive`).
+ */
+data class DiagnosticoComparacaoConcluida(
+    val analiseId: String,
+    val retesteId: String,
+    val veredito: String,
+    val comparavel: Boolean,
+    val statusAnterior: String,
+    val statusNovo: String,
+)

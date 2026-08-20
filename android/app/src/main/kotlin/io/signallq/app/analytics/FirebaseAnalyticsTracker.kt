@@ -9,7 +9,9 @@ import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.AssistAbandonado
 import io.signallq.app.core.network.AssistObjetivoSelecionado
 import io.signallq.app.core.network.AssistPerguntaRespondida
+import io.signallq.app.core.network.DiagnosticoComparacaoConcluida
 import io.signallq.app.core.network.DiagnosticoPlanoIniciado
+import io.signallq.app.core.network.DiagnosticoRetesteIniciado
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -186,6 +188,33 @@ class FirebaseAnalyticsTracker
                     putString("capacidades", evento.capacidades)
                     putLong("qtd_capacidades", evento.qtdCapacidades)
                     putBoolean("plano_adaptado", evento.planoAdaptado)
+                },
+            )
+        }
+
+        override fun registrarDiagnosticoRetesteIniciado(evento: DiagnosticoRetesteIniciado) {
+            firebaseAnalytics.logEvent(
+                "diagnostico_reteste_iniciado",
+                Bundle().apply {
+                    putString("analise_id", evento.analiseId)
+                    putString("reteste_id", evento.retesteId)
+                    putString("acao_anterior_id", evento.acaoAnteriorId)
+                    putLong("intervalo_ms", evento.intervaloMs)
+                    putBoolean("mesmo_contexto_rede", evento.mesmoContextoRede)
+                },
+            )
+        }
+
+        override fun registrarDiagnosticoComparacaoConcluida(evento: DiagnosticoComparacaoConcluida) {
+            firebaseAnalytics.logEvent(
+                "diagnostico_comparacao_concluida",
+                Bundle().apply {
+                    putString("analise_id", evento.analiseId)
+                    putString("reteste_id", evento.retesteId)
+                    putString("veredito", evento.veredito)
+                    putBoolean("comparavel", evento.comparavel)
+                    putString("status_anterior", evento.statusAnterior)
+                    putString("status_novo", evento.statusNovo)
                 },
             )
         }

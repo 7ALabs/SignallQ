@@ -62,6 +62,8 @@ internal data class AppShellDiagnosticoGuiadoDados(
     /** GH#1706 — contexto que adapta o plano de análise (spec §7 e §8.4). O registry já tinha estes
      *  sinais em mãos para o Sinal Wi-Fi e simplesmente não os repassava ao fluxo guiado. */
     val contextoDoPlano: ContextoDoPlano,
+    /** GH#1707 (Task 2.0.09e, parte 2/2) — estado do reteste vinculado em curso (spec §14.6). */
+    val comparacaoRetesteState: ComparacaoRetesteUiState = ComparacaoRetesteUiState.Ausente,
 )
 
 /** Navegação e efeitos colaterais que só o shell sabe executar. */
@@ -75,6 +77,9 @@ internal data class AppShellDiagnosticoGuiadoAcoes(
     val onAbrirFerramentaSugerida: (TipoFerramenta) -> Unit,
     /** GH#1706 — funil: o plano foi montado e exibido (spec §12, passo 3). */
     val onPlanoIniciado: (DiagnosticoPlanoIniciado) -> Unit,
+    /** GH#1707 (Task 2.0.09e, parte 2/2) — CTA "Testar novamente" vinculado à análise original
+     *  (spec §8.8). Ver KDoc do parâmetro homônimo em [DiagnosticoGuiadoScreen]. */
+    val onTestarNovamenteVinculado: (analiseId: String, acaoAnteriorId: String) -> Unit = { _, _ -> },
     val onRecommendationShown: () -> Unit,
     val onRecommendationClicked: () -> Unit,
     val onRecommendationFeedback: (RecommendationFeedbackType) -> Unit,
@@ -139,6 +144,8 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
             resolveOperadoraContatoRemoto = entry.operadora.contatoRemoto,
             onIniciarModoGamer = entry.acoes.onIniciarModoGamer,
             onAbrirFerramentaSugerida = entry.acoes.onAbrirFerramentaSugerida,
+            onTestarNovamenteVinculado = entry.acoes.onTestarNovamenteVinculado,
+            comparacaoRetesteState = dados.comparacaoRetesteState,
         )
     }
 }
