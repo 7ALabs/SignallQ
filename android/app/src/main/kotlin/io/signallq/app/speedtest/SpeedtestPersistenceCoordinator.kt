@@ -2,6 +2,7 @@
 
 import io.signallq.app.core.database.MedicaoDao
 import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.core.database.rede.ResolvedorNetworkId
 import io.signallq.app.core.diagnostico.BandaWifi
 import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.core.diagnostico.DiagnosticRulesVersion
@@ -59,6 +60,26 @@ internal fun resolverBandaWifiPersistencia(
         else -> BandaWifi.ghz5.name
     }
 }
+
+/**
+ * Resolve o valor a persistir no campo `networkId` da [MedicaoEntity] (GH#1707, Task 2.0.09e).
+ *
+ * Wi-Fi usa SSID/BSSID ([ResolvedorNetworkId.paraWifi]); rede móvel usa a operadora do SIM ativo
+ * ([ResolvedorNetworkId.paraRedeMovel]). Ethernet e conexão desconhecida não têm sinal estável
+ * disponível — retornam `null`, mesmo contrato já documentado em [ResolvedorNetworkId] (a
+ * comparação de reteste trata `null` como "sem par comparável", nunca inventa rede).
+ */
+internal fun resolverNetworkIdPersistencia(
+    estadoConexao: EstadoConexao,
+    ssidWifi: String?,
+    bssidWifi: String?,
+    operadoraMovelDetectada: String?,
+): String? =
+    when (estadoConexao) {
+        EstadoConexao.wifi -> ResolvedorNetworkId.paraWifi(ssid = ssidWifi, bssid = bssidWifi)
+        EstadoConexao.movel -> ResolvedorNetworkId.paraRedeMovel(operadoraMovelDetectada)
+        else -> null
+    }
 
 /**
  * Resolve o valor a persistir no campo `status` da [MedicaoEntity] a partir do
@@ -163,6 +184,17 @@ class SpeedtestPersistenceCoordinator
                                                 ?.frequenciaMhz,
                                     ),
                                 status = statusPersistenciaParaMeasurementStatus(resultado.status),
+                                networkId =
+                                    resolverNetworkIdPersistencia(
+                                        estadoConexao = monitorRede.snapshotFlow.value.estadoConexao,
+                                        ssidWifi =
+                                            monitorRede.snapshotFlow.value.wifiLinkSnapshot
+                                                ?.ssid,
+                                        bssidWifi =
+                                            monitorRede.snapshotFlow.value.wifiLinkSnapshot
+                                                ?.bssid,
+                                        operadoraMovelDetectada = monitorTelephony.snapshotFlow.value?.operadora,
+                                    ),
                                 // GH#1228 (Fase 3) — mesmo executionId gerado uma unica vez no
                                 // inicio do speedtest (GH#1221/#1225, nunca regenerado aqui) e a
                                 // versao canonica das regras vigentes no momento da persistencia.

@@ -78,4 +78,27 @@ interface MedicaoDao {
 
     @Query("UPDATE medicao SET score = :score WHERE id = :id")
     suspend fun atualizarScore(id: String, score: Double)
+
+    /**
+     * GH#1707 (Task 2.0.09e) — última medição concluída na MESMA rede ([networkId]), anterior a
+     * [antesDoTimestamp] e diferente de [excluirId] (a própria medição de origem da comparação).
+     * Usada pra decidir se um reteste tem par comparável (spec §8.8): condições equivalentes só
+     * quando o [networkId] bate — nunca compara redes diferentes com aviso, declara o limite.
+     *
+     * `networkId IS NOT NULL` exclui tanto medições sem sinal de rede estável (Ethernet) quanto
+     * linhas persistidas antes da migração 18→19 — as duas hoje têm `networkId = NULL`, e nenhuma
+     * das duas é comparável por definição.
+     */
+    @Query(
+        "SELECT * FROM medicao " +
+            "WHERE networkId IS NOT NULL AND networkId = :networkId " +
+            "AND id != :excluirId AND timestampEpochMs < :antesDoTimestamp " +
+            "AND status = 'completed' " +
+            "ORDER BY timestampEpochMs DESC LIMIT 1",
+    )
+    suspend fun buscarUltimaComparavelNaRede(
+        networkId: String,
+        excluirId: String,
+        antesDoTimestamp: Long,
+    ): MedicaoEntity?
 }

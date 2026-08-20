@@ -287,6 +287,23 @@ object CoreDatabaseModulo {
             }
         }
 
+    /** GH#1707 (Task 2.0.09e, épico #1647) — `networkId` em `medicao`, requisito de schema pra
+     *  comparar um reteste com a análise original só quando as condições de rede são equivalentes
+     *  (spec §8.8: "reteste compara condições equivalentes ou declara limite"). Aditiva, coluna
+     *  nullable — nenhuma coluna existente é alterada/removida, nenhuma linha é perdida.
+     *
+     *  Linhas já existentes (gravadas antes desta migração) recebem `networkId = NULL` — nunca
+     *  inventamos qual rede gerou uma medição antiga. `NULL` já é o resultado documentado de
+     *  [io.signallq.app.core.database.rede.ResolvedorNetworkId] quando não há sinal estável (ex.:
+     *  Ethernet), então a comparação de reteste trata "nunca resolvido" e "resolvido sem sinal"
+     *  da mesma forma: `comparavel = false`, nunca comparação com aviso. */
+    internal val MIGRATION_18_19 =
+        object : Migration(18, 19) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE medicao ADD COLUMN networkId TEXT")
+            }
+        }
+
     fun criarBanco(context: Context): SignallQDatabase {
         return Room.databaseBuilder(
             context.applicationContext,
@@ -309,6 +326,7 @@ object CoreDatabaseModulo {
             .addMigrations(migracao15para16)
             .addMigrations(migracao16para17)
             .addMigrations(MIGRATION_17_18)
+            .addMigrations(MIGRATION_18_19)
             .build()
     }
 

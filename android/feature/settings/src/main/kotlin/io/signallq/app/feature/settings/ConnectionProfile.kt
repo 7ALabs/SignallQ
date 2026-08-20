@@ -8,7 +8,8 @@ package io.signallq.app.feature.settings
  * a uma rede específica, nunca global.
  *
  * @param networkId identificador estável da rede a que este perfil pertence (ver
- * [ResolvedorNetworkId]). Nunca reaproveitado entre redes diferentes.
+ * [io.signallq.app.core.database.rede.ResolvedorNetworkId], promovido de `feature/settings` pra
+ * `core/database` na issue #1707). Nunca reaproveitado entre redes diferentes.
  * @param userConfirmed true quando o usuário confirmou explicitamente este provedor pra esta
  * rede (item 2 — divergência entre valor salvo e detectado só deve sobrescrever silenciosamente
  * quando isto for false).

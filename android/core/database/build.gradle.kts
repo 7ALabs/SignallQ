@@ -17,6 +17,18 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    // GH#1707 (Task 2.0.09e) — sem isso, MigrationTestHelper nunca encontra os schemas
+    // exportados (`$projectDir/schemas`, ver bloco `kapt` abaixo) na APK de teste instrumentado,
+    // e TODO Migration*Test deste módulo falha com FileNotFoundException ao rodar de verdade
+    // (`connectedDebugAndroidTest`) — achado ao validar esta fatia, pré-existente, nenhum dos
+    // Migration*Test anteriores tinha rodado com sucesso contra um dispositivo/emulador real
+    // (não há job de CI que execute `connectedAndroidTest`).
+    sourceSets {
+        getByName("androidTest") {
+            assets.srcDirs("$projectDir/schemas")
+        }
+    }
 }
 
 kotlin {

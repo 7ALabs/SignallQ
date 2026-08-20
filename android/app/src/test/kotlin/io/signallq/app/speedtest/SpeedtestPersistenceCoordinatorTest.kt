@@ -453,4 +453,58 @@ class SpeedtestPersistenceCoordinatorTest {
             novaExecucaoCompleta,
         )
     }
+
+    // =========================================================================
+    // Caso 12: resolverNetworkIdPersistencia — GH#1707 (Task 2.0.09e, networkId em MedicaoEntity)
+    // =========================================================================
+
+    @Test
+    fun `resolverNetworkIdPersistencia usa bssid quando conexao e wifi`() {
+        val resultado =
+            resolverNetworkIdPersistencia(
+                estadoConexao = EstadoConexao.wifi,
+                ssidWifi = "MinhaRede",
+                bssidWifi = "AA:BB:CC:DD:EE:FF",
+                operadoraMovelDetectada = "OPERADORA QUE NAO DEVERIA SER USADA",
+            )
+
+        assertEquals("wifi-bssid:aa:bb:cc:dd:ee:ff", resultado)
+    }
+
+    @Test
+    fun `resolverNetworkIdPersistencia usa operadora quando conexao e movel`() {
+        val resultado =
+            resolverNetworkIdPersistencia(
+                estadoConexao = EstadoConexao.movel,
+                ssidWifi = "SSID QUE NAO DEVERIA SER USADO",
+                bssidWifi = "AA:BB:CC:DD:EE:FF",
+                operadoraMovelDetectada = "Claro",
+            )
+
+        assertEquals("movel:Claro", resultado)
+    }
+
+    @Test
+    fun `resolverNetworkIdPersistencia retorna null para ethernet e desconhecido`() {
+        assertNull(
+            resolverNetworkIdPersistencia(EstadoConexao.ethernet, "Rede", "AA:BB:CC:DD:EE:FF", "Claro"),
+        )
+        assertNull(
+            resolverNetworkIdPersistencia(EstadoConexao.desconhecido, "Rede", "AA:BB:CC:DD:EE:FF", "Claro"),
+        )
+    }
+
+    @Test
+    fun `resolverNetworkIdPersistencia retorna null quando wifi sem ssid nem bssid`() {
+        assertNull(
+            resolverNetworkIdPersistencia(EstadoConexao.wifi, ssidWifi = null, bssidWifi = null, operadoraMovelDetectada = null),
+        )
+    }
+
+    @Test
+    fun `resolverNetworkIdPersistencia retorna null quando movel sem operadora detectada`() {
+        assertNull(
+            resolverNetworkIdPersistencia(EstadoConexao.movel, ssidWifi = null, bssidWifi = null, operadoraMovelDetectada = null),
+        )
+    }
 }

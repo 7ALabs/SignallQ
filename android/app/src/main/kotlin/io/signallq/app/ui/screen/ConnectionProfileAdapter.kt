@@ -1,8 +1,8 @@
 package io.signallq.app.ui.screen
 
+import io.signallq.app.core.database.rede.ResolvedorNetworkId
 import io.signallq.app.core.datastore.ConnectionProfilePersistido
 import io.signallq.app.feature.settings.ConnectionProfile
-import io.signallq.app.feature.settings.ResolvedorNetworkId
 import io.signallq.app.ui.ConnectionType
 
 /**
