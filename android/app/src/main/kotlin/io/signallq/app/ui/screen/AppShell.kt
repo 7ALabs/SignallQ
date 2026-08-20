@@ -966,6 +966,7 @@ fun AppShell(
             //    e estado hoisted são os outros ~85% — ver GH#1698.
             AppShellOverlayRegistry(
                 overlayStack = overlayStack,
+                navigator = navigator,
                 onAssistObjetivo = onAssistObjetivo,
                 onAssistResposta = onAssistResposta,
                 onAssistAbandono = onAssistAbandono,

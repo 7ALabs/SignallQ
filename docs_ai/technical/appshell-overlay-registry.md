@@ -4,16 +4,21 @@ description: "Como plugar overlay novo no AppShell.kt quase sempre sem editar o 
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-17"
-version: "1.3.0"
+last_updated: "2026-08-20"
+version: "1.4.0"
 ---
 
 # Ponto de extensão de overlays do AppShell
 
 - **Status:** ativo
-- **Última validação:** 2026-08-16 (issue #1695, épico #1647 — correções pós-revisão de Caio na
-  PR #1697: números reais de onde vieram as linhas, remoção da promessa indevida sobre rota,
-  migração do `Dns`)
+- **Última validação:** 2026-08-20 (issue #1720, épico #1647 — a delegação de back descrita na
+  seção "Delegação de back ao overlay do topo" estava especificada e testada com `onBack` fake,
+  mas sem NENHUM consumidor de produção: `DiagnosticoGuiadoScreen.kt` continuava com
+  `BackHandler(onBack = ::voltarUmPasso)` local, que sequestrava o back antes de
+  `AppShellBackHandlers` rodar. #1720 ligou os dois — ver subseção "Ligação de produção".)
+- **Última validação anterior:** 2026-08-16 (issue #1695, épico #1647 — correções pós-revisão de
+  Caio na PR #1697: números reais de onde vieram as linhas, remoção da promessa indevida sobre
+  rota, migração do `Dns`)
 - **Fonte de verdade:** este documento para o padrão; o código
   (`android/app/src/main/kotlin/io/signallq/app/ui/screen/AppShellOverlayRegistry.kt`) é a fonte
   de verdade do comportamento real — se divergirem, o código vence (regra de higiene §3).
@@ -205,6 +210,46 @@ overlay pode sair).
 **Não é um segundo motor de navegação:** segue havendo um dispatcher, uma pilha de overlays e um
 dono do back. O overlay não empilha nada — só responde "consumi" ou "não consumi". Sem interceptador
 registrado, ou com `false`, o back é idêntico ao anterior à issue.
+
+### Ligação de produção (issue #1720)
+
+A especificação acima descreve o mecanismo genérico — e ele já tinha teste (`onBack` fake, em
+`AppShellNavigationComposeTest`/`AppShellBackDelegacaoTest`) desde a #1704. O que faltava, achado
+pela revisão de Caio na PR #1719 (issue #1720): **nenhum overlay real chamava
+`RegistrarBackDoOverlay`**. `DiagnosticoGuiadoScreen.kt` continuava com
+`BackHandler(onBack = ::voltarUmPasso)` registrado dentro da própria tela — e como o
+`OnBackPressedDispatcher` do Android é LIFO, esse `BackHandler` local (composto por último, porque
+é filho) sequestrava o back **antes** de `AppShellBackHandlers` sequer rodar. O mecanismo inteiro
+era código morto (regra de higiene §11).
+
+A dificuldade de ligar de verdade: `RegistrarBackDoOverlay` precisa ficar **fora** do
+`AnimatedVisibility` (ver "A guarda `estaNoTopo` não é redundância" abaixo), mas o `estado` do
+fluxo guiado (`DiagnosticoGuiadoEstado` — objetivo/passo/respostas/pilha de rotas internas num
+único `data class` com `Saver` próprio, `android/app/src/main/kotlin/io/signallq/app/ui/screen/DiagnosticoGuiadoEstado.kt`)
+mora **dentro** da tela, que só
+existe dentro do conteúdo do `AnimatedVisibility`. Hoistar o estado inteiro para o overlay
+quebraria a tela como unidade testável sozinha (886 linhas de teste em
+`DiagnosticoGuiadoScreenTest.kt` dependem dela gerenciar o próprio estado).
+
+A ponte escolhida: um novo parâmetro `onBackHandlerReady: (onBack: () -> Boolean) -> Unit` em
+`DiagnosticoGuiadoScreen`, chamado por um `SideEffect` a cada composição bem-sucedida com a
+função de recuo **atual** da tela (`tentarRecuar`, que devolve `true`/`false` no mesmo contrato de
+`onBack`). `AppShellDiagnosticoGuiadoOverlay` guarda essa função numa `var backHandler by
+remember { ... }` FORA do `AnimatedVisibility`, e chama
+`RegistrarBackDoOverlay(navigator, AppShellOverlay.DiagnosticoGuiado) { backHandler() }` ao lado
+dele — a leitura indireta via `remember` é o que resolve o problema de posição na árvore de
+composição sem mover o estado.
+
+Consequência de assinatura: `AppShellDiagnosticoGuiadoOverlay` passou a receber `navigator:
+AppShellNavigator` em vez de `overlayStack: MutableList<AppShellOverlay>` (usa
+`navigator.overlayStack` internamente para a visibilidade, igual antes) — é o único overlay do
+registro com essa exceção ao padrão do passo 2 acima, porque é o único que registra
+interceptador de back hoje. `AppShellOverlayRegistry` ganhou o parâmetro `navigator` só para
+repassar a este overlay; os outros continuam recebendo `overlayStack`.
+
+**Não generalizar essa mudança de assinatura para os demais overlays "por consistência".** Nenhum
+outro tem fluxo interno de vários passos hoje — mudar a assinatura deles sem um consumidor real
+seria repetir o mesmo defeito que esta issue corrigiu (código pronto sem uso, regra §11).
 
 ### Por que não 7 valores novos em `AppShellOverlay`
 

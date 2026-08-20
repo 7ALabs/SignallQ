@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -66,6 +67,104 @@ class DiagnosticoGuiadoScreenTest {
 
         composeRule.onNodeWithText("Vamos descobrir o que está acontecendo").assertIsDisplayed()
         composeRule.onNodeWithText(ObjetivoDiagnostico.JOGOS_COM_LAG.titulo).assertIsDisplayed()
+    }
+
+    // ─── issue #1720 — DiagnosticoGuiadoEstado/RegistrarBackDoOverlay finalmente ligados ────────
+
+    // O DEFEITO ORIGINAL da #1720: os quatro `remember` (objetivo/passo/respostas/mostrarResultado)
+    // perdiam a jornada inteira se o processo morresse no meio, mesmo com `DiagnosticoGuiadoEstado`
+    // e seu `Saver` já prontos e testados isoladamente (`DiagnosticoGuiadoEstadoTest`) -- só não
+    // tinham consumidor de produção. `StateRestorationTester` é o mesmo mecanismo já usado em
+    // `AppShellNavigationComposeTest` para provar sobrevivência de estado do `AppShellNavigator`.
+    @Test
+    fun `estado do fluxo sobrevive a recriacao simulando morte de processo`() {
+        val restorationTester = StateRestorationTester(composeRule)
+        restorationTester.setContent {
+            SignallQTheme {
+                TelaDeTeste(
+                    objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+                    respostaPreSelecionadaPasso0 = 0,
+                    input = null,
+                    estadoAnalise = EstadoAnaliseGuiada.Concluida,
+                    statusMedicao = MeasurementStatus.COMPLETE,
+                )
+            }
+        }
+
+        // Avança da pergunta 0 (pré-preenchida pelo Assist) para a pergunta 1 do roteiro.
+        composeRule.onNodeWithText("Em qual conexão você joga?").assertIsDisplayed()
+        composeRule.onNodeWithText("Continuar").performClick()
+        composeRule.onNodeWithText("Com que frequência isso acontece?").assertIsDisplayed()
+
+        restorationTester.emulateSavedInstanceStateRestore()
+
+        // Sem o `Saver` ligado (o `remember` puro de antes desta issue), a tela recriada voltaria
+        // para `objetivo = null` -- a lista de objetivos do início. É exatamente essa perda que a
+        // #1720 corrigiu.
+        composeRule.onNodeWithText("Com que frequência isso acontece?").assertIsDisplayed()
+        composeRule.onNodeWithText("Vamos descobrir o que está acontecendo").assertDoesNotExist()
+    }
+
+    // Mutante que este teste mata: repassar `voltarUmPasso` (a versão Unit, que chama `onVoltar()`
+    // sozinha quando não há mais o que recuar) em vez de `tentarRecuar` para `onBackHandlerReady`.
+    // Sobreviveria a todos os testes de UI acima, porque nenhum deles aciona o hardware back --
+    // e produziria `onVoltar()` disparando por baixo dos panos toda vez que o back do Android
+    // chegasse ao início do roteiro, quando quem deveria decidir "fechar o overlay" é o
+    // `AppShellNavigator` (via `RegistrarBackDoOverlay`/`consumirBackDoOverlayTopo`), não a tela.
+    @Test
+    fun `onBackHandlerReady recebe tentarRecuar, nunca aciona onVoltar por conta propria`() {
+        lateinit var backHandler: () -> Boolean
+        var onVoltarChamado = 0
+        composeRule.setContent {
+            SignallQTheme {
+                DiagnosticoGuiadoScreen(
+                    input = null,
+                    contextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = true),
+                    onPlanoIniciado = {},
+                    statusMedicao = MeasurementStatus.COMPLETE,
+                    medidasConfiaveis = true,
+                    analise = AnaliseGuiadaContrato(estado = EstadoAnaliseGuiada.Concluida, onIniciar = {}, onCancelar = {}),
+                    onBackHandlerReady = { backHandler = it },
+                    objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+                    respostaPreSelecionadaPasso0 = 0,
+                    analisadorState = AnalisadorState.Inativo,
+                    onAnalisarProblema = {},
+                    onResetarAnalisador = {},
+                    onVoltar = { onVoltarChamado += 1 },
+                    onIrParaHome = {},
+                    categoria = null,
+                    ispNome = null,
+                    connectionType = null,
+                    operadoraMovel = null,
+                    recommendationDecision = null,
+                    recommendationFeedback = null,
+                    onRecommendationShown = {},
+                    onRecommendationClicked = {},
+                    onRecommendationFeedback = {},
+                    resolveOperadoraIdentidadeLocal = { _, _ -> null },
+                    resolveOperadoraContatoLocal = { _, _ -> null },
+                    resolveOperadoraIdentidadeRemota = { _, _ -> error("categoria=null nunca chama resolucao de operadora") },
+                    resolveOperadoraContatoRemoto = { _, _ -> error("categoria=null nunca chama resolucao de operadora") },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Continuar").performClick()
+        composeRule.onNodeWithText("Com que frequência isso acontece?").assertIsDisplayed()
+
+        // Passo 1 -> passo 0: há o que recuar, consome o evento.
+        composeRule.runOnIdle { assertTrue("deveria consumir o back e recuar um passo", backHandler()) }
+        composeRule.onNodeWithText("Em qual conexão você joga?").assertIsDisplayed()
+
+        // Passo 0 com objetivo escolhido -> reset para a lista de objetivos: ainda consome.
+        composeRule.runOnIdle { assertTrue(backHandler()) }
+        composeRule.onNodeWithText("Vamos descobrir o que está acontecendo").assertIsDisplayed()
+
+        // Sem objetivo e sem pilha: nada mais para recuar DENTRO do fluxo -- devolve `false` e
+        // quem decide fechar o overlay é quem registrou o interceptador, não esta função.
+        composeRule.runOnIdle { assertFalse("nada mais para recuar internamente", backHandler()) }
+
+        assertEquals("tentarRecuar nunca aciona onVoltar por conta própria", 0, onVoltarChamado)
     }
 
     @Test
