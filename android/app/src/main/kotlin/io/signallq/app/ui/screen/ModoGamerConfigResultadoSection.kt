@@ -64,6 +64,7 @@ import io.signallq.app.ui.component.DiagnosticoStatusBanner
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.ads.NativeAdCard
 import io.signallq.app.ui.component.ads.NativeAdSource
+import io.signallq.app.ui.component.corSemantica
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -325,6 +326,16 @@ internal fun ModoGamerResultadoConteudo(
         }
 
         Spacer(Modifier.height(LkSpacing.lg))
+        // Issue #1667 — headline direta e simples (decisão do Luiz, 2026-08-19: "bom pra
+        // jogar" / "não recomendado" em vez de fraseado de probabilidade), acima do banner
+        // detalhado que já existia. Nunca substitui as evidências reais abaixo.
+        Text(
+            text = resultado.veredito,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.W700,
+            color = resultado.status.corSemantica(c),
+        )
+        Spacer(Modifier.height(LkSpacing.sm))
         DiagnosticoStatusBanner(status = resultado.status, mensagem = resultado.mensagemMotor, c = c)
 
         Spacer(Modifier.height(LkSpacing.lg))

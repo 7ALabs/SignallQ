@@ -129,16 +129,12 @@ object DiagnosticoGuiadoEngine {
     ): ResultadoDiagnosticoGuiado {
         val internet = input?.internet
         val jogaPorCabo = respostas.getOrNull(0) == 1
-        val dims = mutableListOf<Dimensao>()
-        internet?.latencyMs?.let {
-            dims += Dimensao("Tempo de resposta com a rede ocupada", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it))
-        }
-        internet?.jitterMs?.let {
-            dims += Dimensao("Variação do tempo de resposta", "%.0f ms".format(it), MetricClassifier.classificarJitter(it))
-        }
-        internet?.perdaPercentual?.let {
-            dims += Dimensao("Falhas estimadas na conexão", "%.1f%%".format(it), MetricClassifier.classificarPerdaPacotes(it))
-        }
+        // Issue #1667 (convergência entrada guiada + Modo gamer) — mesma construção de
+        // latência+jitter+perda de [ModoGamerEngine.avaliarFpsCompetitivo]/`avaliarOutro`
+        // (mesmo perfil de jogo competitivo/genérico). Não recalcula, não duplica: as duas
+        // entradas do único fluxo "problema com jogos" priorizam as mesmas 3 métricas a
+        // partir daqui.
+        val dims = dimsLatenciaJitterPerda(internet)
         // Wi-Fi fraco só entra como evidência quando o usuário não disse que joga por cabo —
         // mesmo princípio de GameReadinessClassifier.aplicarPenalidadeWifi.
         if (!jogaPorCabo) {
@@ -427,6 +423,29 @@ internal data class ResultadoBase(
     val evidencias: List<EvidenciaDiagnostico>,
     val dadosInsuficientes: Boolean,
 )
+
+/**
+ * As 3 dimensões priorizadas por "jogos com lag" — mesmas dos perfis competitivo/genérico do
+ * Modo gamer ([ModoGamerEngine.avaliarFpsCompetitivo]/`avaliarOutro`). Extraída pela issue
+ * #1667 (Task 2.0.19, épico #1647, critério "entrada guiada e ferramenta convergem no mesmo
+ * engine") — antes desta extração, [DiagnosticoGuiadoEngine.avaliarJogosComLag] e as duas
+ * funções do Modo gamer citadas reimplementavam a mesma leitura de
+ * latência/jitter/perda com os mesmos rótulos e o mesmo [MetricClassifier]. `internal` pelo
+ * mesmo motivo de [Dimensao]/[MensagensStatus] — consumida pelos dois motores deste pacote.
+ */
+internal fun dimsLatenciaJitterPerda(internet: InternetDiagnosticInput?): MutableList<Dimensao> {
+    val dims = mutableListOf<Dimensao>()
+    internet?.latencyMs?.let {
+        dims += Dimensao("Tempo de resposta com a rede ocupada", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it))
+    }
+    internet?.jitterMs?.let {
+        dims += Dimensao("Variação do tempo de resposta", "%.0f ms".format(it), MetricClassifier.classificarJitter(it))
+    }
+    internet?.perdaPercentual?.let {
+        dims += Dimensao("Falhas estimadas na conexão", "%.1f%%".format(it), MetricClassifier.classificarPerdaPacotes(it))
+    }
+    return dims
+}
 
 private fun Dimensao.severidade(): Int =
     when (status) {
