@@ -377,9 +377,21 @@ Ambas as abas fazem auto-refresh a cada 30 s enquanto visíveis e em foreground
 há Wi-Fi.
 
 **Sinal WiFi (ferramenta separada).** `SinalWifiScreen` é o indicador em tempo real, pensado para o
-usuário andar pela casa: barras de sinal ampliadas, RSSI em dBm, velocidade do link e um card com o
-padrão Wi-Fi (4/5/6/6E/7 ou "Não identificado") e badge de suporte a MU-MIMO. A amostragem só roda
-com a tela em foreground.
+usuário andar pela casa. Migrada para a ferramenta 2.0 na issue #1668 (épico #1647): categoria
+simples em destaque (Excelente/Bom/Regular/Fraco, mesmo motor de classificação de
+`signalQuality`/`ClassificacaoMetricaLocal.kt` usado nas outras telas de sinal) com o dBm como
+detalhe técnico secundário, barras de sinal ampliadas, velocidade do link e um card com o padrão
+Wi-Fi (4/5/6/6E/7 ou "Não identificado") e badge de suporte a MU-MIMO. Um selo "Ao vivo" indica
+atualização contínua; com "Remover animações" ativo nas opções de acessibilidade do Android
+(`animacoesDoSistemaDesativadas`), o pulso decorativo vira estático sem tirar nenhum dado da tela.
+
+Estados tratados via `SignallQStatefulScreen`: Wi-Fi desligado (botão "Ligar Wi-Fi", que abre o
+painel do sistema `Settings.Panel.ACTION_WIFI` sem sair do app — ou liga direto via
+`WifiManager.setWifiEnabled` em Android < 10), permissão de localização negada (botão "Conceder
+permissão"/"Abrir ajustes do Android" quando bloqueada permanentemente) e Wi-Fi ligado sem rede
+associada ("Sem conexão Wi-Fi"). A amostragem só roda com a tela em foreground
+(`repeatOnLifecycle(RESUMED)`, cancela sozinha ao sair) e zera o estado anterior sempre que o
+Wi-Fi é desligado ou a rede é perdida, para nunca mostrar uma leitura antiga como se fosse atual.
 
 ### 5.4 Dispositivos conectados
 

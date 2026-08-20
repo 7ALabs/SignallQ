@@ -1,9 +1,12 @@
 package io.signallq.app.sinalwifi
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.os.Build
+import android.provider.Settings
+import io.signallq.app.core.diagnostico.BandaWifi
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,14 +18,29 @@ import kotlinx.coroutines.isActive
 private const val INTERVALO_AMOSTRAGEM_SINAL_WIFI_MS = 1500L
 private const val RSSI_SEM_LEITURA_SENTINELA = -127
 private const val FREQUENCIA_MINIMA_6GHZ_MHZ = 5945
+private const val FREQUENCIA_MAXIMA_2GHZ_MHZ = 3000
+private const val NETWORK_ID_NAO_ASSOCIADO = -1
 
 data class SinalWifiUiState(
     val permissaoConcedida: Boolean,
+    // Issue #1668 — Wi-Fi desligado é estado distinto de "sem leitura ainda": sem ele a tela
+    // ficava presa em "Aguardando leitura de sinal…" para sempre, sem explicar o motivo real.
+    val wifiHabilitado: Boolean = true,
+    // Issue #1668 — antes, desconectar de uma rede sem desligar o Wi-Fi deixava o último RSSI
+    // bom "congelado" na tela pra sempre (amostrar() só tratava o sentinela -127/0, nunca
+    // networkId não-associado) -- atualização deixava de ser honesta.
+    val conectado: Boolean = false,
+    // Issue #1668 — diferencia "ainda não completou o 1o ciclo de amostragem" (mostra
+    // carregando) de "completou e não está conectado" (mostra o estado vazio). Sem isso, a tela
+    // mostrava por 1 ciclo inteiro (até 1,5s) o estado de "sem conexão" mesmo quando conectada,
+    // só porque a 1a leitura ainda não tinha chegado.
+    val amostrado: Boolean = false,
     val rssiAtual: Int? = null,
     val linkSpeedMbps: Int? = null,
     val ssid: String? = null,
     val padraoWifi: String? = null,
     val suportaMuMimo: Boolean? = null,
+    val banda: BandaWifi = BandaWifi.desconhecida,
 )
 
 /**
@@ -47,31 +65,82 @@ class SinalWifiViewModel(
     suspend fun iniciarAmostragem() {
         if (!permissaoConcedida()) return
         while (currentCoroutineContext().isActive) {
-            amostrar()
+            if (wifiManager.isWifiEnabled) {
+                amostrar()
+            } else {
+                marcarWifiDesligado()
+            }
             delay(intervaloAmostragemMs)
+        }
+    }
+
+    private fun marcarWifiDesligado() {
+        mutableUiState.update { atual ->
+            // Wi-Fi desligado zera tudo que dependia da conexão anterior -- ao religar, pode
+            // ser outra rede com outro padrão/MU-MIMO, não faz sentido preservar valor antigo.
+            SinalWifiUiState(permissaoConcedida = atual.permissaoConcedida, wifiHabilitado = false, amostrado = true)
         }
     }
 
     @SuppressLint("MissingPermission")
     private fun amostrar() {
-        val info = wifiManager.connectionInfo ?: return
+        val info = wifiManager.connectionInfo
+        if (info == null || info.networkId == NETWORK_ID_NAO_ASSOCIADO) {
+            // Wi-Fi ligado mas sem rede associada -- estado "sem conexão", distinto de
+            // "Wi-Fi desligado" e de "aguardando 1a leitura logo após abrir a tela".
+            mutableUiState.update { atual ->
+                SinalWifiUiState(permissaoConcedida = atual.permissaoConcedida, wifiHabilitado = true, conectado = false, amostrado = true)
+            }
+            return
+        }
         val rssi = info.rssi
-        // RSSI 0/-127 é o valor sentinela do Android para "sem leitura" -- descarta.
-        if (rssi == 0 || rssi <= RSSI_SEM_LEITURA_SENTINELA) return
+        // RSSI 0/-127 é o valor sentinela do Android para "sem leitura" -- descarta, mas
+        // mantém o restante do estado (leitura transitória ruim, não uma desconexão real).
+        if (rssi == 0 || rssi <= RSSI_SEM_LEITURA_SENTINELA) {
+            mutableUiState.update { it.copy(wifiHabilitado = true, amostrado = true) }
+            return
+        }
         mutableUiState.update { atual ->
             // padraoWifi/suportaMuMimo só são calculados na primeira leitura válida e
             // preservados depois -- o padrão do link não muda enquanto conectado à mesma rede.
             val padrao = atual.padraoWifi ?: calcularPadraoWifi(info)
             atual.copy(
+                wifiHabilitado = true,
+                conectado = true,
+                amostrado = true,
                 rssiAtual = rssi,
                 linkSpeedMbps = info.linkSpeed,
                 ssid = normalizarSsid(info.ssid),
                 padraoWifi = padrao,
                 suportaMuMimo = atual.suportaMuMimo ?: calcularSuportaMuMimo(padrao),
+                banda = bandaWifiDeFrequencia(info.frequency),
             )
         }
     }
 }
+
+/**
+ * Réplica do limiar já usado em `SpeedtestPersistenceCoordinator.resolverBandaWifiPersistencia`
+ * (`< 3000 MHz` = 2,4GHz) -- não reaproveitado direto porque aquela função vive em outro
+ * arquivo/contexto (persistência de resultado de speedtest) sem import cruzado limpo daqui.
+ * `BandaWifi` não distingue 6GHz de 5GHz (ver definição em `core/diagnostico/DiagnosticInput.kt`),
+ * então frequências >= 3000 MHz (5GHz e 6GHz) caem todas em [BandaWifi.ghz5] -- mesmo
+ * comportamento de `WifiDiagnosticInput.banda()`.
+ */
+private fun bandaWifiDeFrequencia(frequenciaMhz: Int): BandaWifi =
+    if (frequenciaMhz < FREQUENCIA_MAXIMA_2GHZ_MHZ) BandaWifi.ghz24 else BandaWifi.ghz5
+
+/**
+ * Issue #1668, decisão de produto (Luiz, 2026-08-19): Wi-Fi desligado precisa de ação direta que
+ * resolve sem sair do app. Antes do Android 10 (API 29), o app ainda pode ligar o Wi-Fi
+ * diretamente via [WifiManager.setWifiEnabled] -- a partir do 10, apps que não são
+ * device/profile-owner recebem sempre `false` dessa chamada (restrição de plataforma, não é bug
+ * nosso), então o caminho correto vira o painel do sistema (`Settings.Panel.ACTION_WIFI`), que
+ * abre como uma folha sobre a própria tela em vez de navegar para o app de Ajustes. Função pura
+ * (recebe o SDK em vez de ler `Build.VERSION.SDK_INT`) para ser testável sem Robolectric/Activity.
+ */
+internal fun intentAcaoLigarWifi(sdkInt: Int): Intent? =
+    if (sdkInt >= Build.VERSION_CODES.Q) Intent(Settings.Panel.ACTION_WIFI) else null
 
 /**
  * Réplica exata do mapeamento de `WifiInfo.wifiStandard` já implementado em
