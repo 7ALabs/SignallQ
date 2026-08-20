@@ -96,8 +96,10 @@ import io.signallq.app.ui.FiltroConexaoHistorico
 import io.signallq.app.ui.GatewayInfo
 import io.signallq.app.ui.HistoryPoint
 import io.signallq.app.ui.IspInfo
+import io.signallq.app.ui.screen.AcaoDadosLocaisEstado
 import io.signallq.app.ui.screen.AnalisadorState
 import io.signallq.app.ui.screen.AppShellFeatureFlagsState
+import io.signallq.app.ui.screen.TipoAcaoDadosLocais
 import io.signallq.app.ui.screen.resolverNetworkIdAtual
 import io.signallq.app.ui.state.UiState
 import kotlinx.coroutines.CancellationException
@@ -1493,16 +1495,50 @@ class MainViewModel
             viewModelScope.launch { preferenciasAppRepository.definirNotificacaoSemInternetAtiva(ativa) }
         }
 
+        // Issue #1670 — as 3 ações abaixo eram "fire and forget": a DadosLocaisSheet fechava no
+        // toque em "Confirmar" sem esperar a corrotina terminar, e uma falha virava sucesso
+        // silencioso pra quem usa o app. `dadosLocaisAcaoEstado` torna a execução observável
+        // (EmAndamento/Sucesso/Falha) — ver AcaoDadosLocaisEstado.kt.
+        private val _dadosLocaisAcaoEstado = MutableStateFlow<AcaoDadosLocaisEstado>(AcaoDadosLocaisEstado.Ocioso)
+        val dadosLocaisAcaoEstado: StateFlow<AcaoDadosLocaisEstado> = _dadosLocaisAcaoEstado.asStateFlow()
+
+        /** Volta o estado pra Ocioso depois que a UI já mostrou Sucesso/Falha. */
+        fun consumirDadosLocaisAcaoEstado() {
+            _dadosLocaisAcaoEstado.value = AcaoDadosLocaisEstado.Ocioso
+        }
+
+        private fun executarAcaoDadosLocais(
+            acao: TipoAcaoDadosLocais,
+            bloco: suspend () -> Unit,
+        ) {
+            viewModelScope.launch(dispatchers.io) {
+                _dadosLocaisAcaoEstado.value = AcaoDadosLocaisEstado.EmAndamento(acao)
+                try {
+                    bloco()
+                    _dadosLocaisAcaoEstado.value = AcaoDadosLocaisEstado.Sucesso(acao)
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    Timber.w("Ação de dados locais ($acao) falhou: ${e.message}")
+                    _dadosLocaisAcaoEstado.value =
+                        AcaoDadosLocaisEstado.Falha(acao, "Não foi possível concluir. Tente novamente.")
+                }
+            }
+        }
+
         fun limparHistorico() {
-            viewModelScope.launch(dispatchers.io) { bancoDados.medicaoDao().deletarTodos() }
+            executarAcaoDadosLocais(TipoAcaoDadosLocais.LIMPAR_HISTORICO) {
+                bancoDados.medicaoDao().deletarTodos()
+            }
         }
 
         fun apagarDadosLocais() {
-            viewModelScope.launch { preferenciasAppRepository.limparTodasPreferencias() }
+            executarAcaoDadosLocais(TipoAcaoDadosLocais.APAGAR_DADOS_LOCAIS) {
+                preferenciasAppRepository.limparTodasPreferencias()
+            }
         }
 
         fun resetarApp() {
-            viewModelScope.launch(dispatchers.io) {
+            executarAcaoDadosLocais(TipoAcaoDadosLocais.RESETAR_APP) {
                 bancoDados.medicaoDao().deletarTodos()
                 preferenciasAppRepository.limparTodasPreferencias()
             }

@@ -206,6 +206,11 @@ fun AppShell(
     onLimparHistorico: () -> Unit,
     onApagarDadosLocais: () -> Unit,
     onResetarApp: () -> Unit,
+    // Issue #1670 — estado observável (EmAndamento/Sucesso/Falha) da última ação disparada
+    // pela DadosLocaisSheet. Único MainViewModel.dadosLocaisAcaoEstado, repassado pros dois
+    // call sites do sheet (dentro de AjustesScreen e a partir de Privacidade).
+    dadosLocaisAcaoEstado: AcaoDadosLocaisEstado = AcaoDadosLocaisEstado.Ocioso,
+    onConsumirDadosLocaisAcaoEstado: () -> Unit = {},
     monitoramentoAtivo: Boolean,
     onAtivarMonitoramento: (Boolean) -> Unit,
     notificacaoLatenciaAtiva: Boolean,
@@ -1362,6 +1367,8 @@ fun AppShell(
                     onLimparHistorico = onLimparHistorico,
                     onApagarDadosLocais = onApagarDadosLocais,
                     onResetarApp = onResetarApp,
+                    dadosLocaisAcaoEstado = dadosLocaisAcaoEstado,
+                    onConsumirDadosLocaisAcaoEstado = onConsumirDadosLocaisAcaoEstado,
                     onAbrirHistorico = {
                         overlayStack.remove(Overlay.Ajustes)
                         overlayStack.remove(Overlay.Perfil)
@@ -1412,6 +1419,8 @@ fun AppShell(
                     onLimparHistorico = onLimparHistorico,
                     onApagarDadosLocais = onApagarDadosLocais,
                     onResetarApp = onResetarApp,
+                    estado = dadosLocaisAcaoEstado,
+                    onConsumirEstado = onConsumirDadosLocaisAcaoEstado,
                 )
             }
 
