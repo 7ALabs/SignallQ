@@ -109,31 +109,6 @@ private val FiltroConexaoHistorico.label: String
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-@Suppress("unused")
-private fun qualidadeLabel(m: MedicaoEntity): String {
-    val dl = m.downloadMbps ?: return "--"
-    return when {
-        dl >= 100 -> "Excelente"
-        dl >= 25 -> "Bom"
-        dl >= 10 -> "Regular"
-        else -> "Lento"
-    }
-}
-
-@Suppress("unused")
-private fun qualidadeColor(
-    m: MedicaoEntity,
-    c: LkTokens,
-): Color {
-    val dl = m.downloadMbps ?: return c.textTertiary
-    return when {
-        dl >= 100 -> c.success
-        dl >= 25 -> c.primary
-        dl >= 10 -> c.warning
-        else -> c.error
-    }
-}
-
 private fun networkIcon(m: MedicaoEntity): ImageVector =
     when (m.connectionType) {
         "wifi" -> Icons.Outlined.Wifi
@@ -184,9 +159,6 @@ private fun formatFullDate(epochMs: Long): String {
     val m = "%02d".format(cal.get(Calendar.MINUTE))
     return "$d/$mo/$y às $h:$m"
 }
-
-@Suppress("unused")
-private fun mbpsStr(v: Double?): String = v?.let { "%.0f".format(it) } ?: "--"
 
 private fun vereditoLabel(v: String?): String? =
     when (v) {
@@ -587,6 +559,18 @@ private fun EmptyHistorico(
 
 // ─── List item ────────────────────────────────────────────────────────────────
 
+/** Cor do [TomConclusao] resolvida contra os tokens ativos (claro/escuro). */
+private fun corDoTom(
+    tom: TomConclusao,
+    c: LkTokens,
+): Color =
+    when (tom) {
+        TomConclusao.POSITIVO -> c.success
+        TomConclusao.ATENCAO -> c.warning
+        TomConclusao.NEGATIVO -> c.error
+        TomConclusao.NEUTRO -> c.textSecondary
+    }
+
 @Composable
 private fun HistoricoCard(
     medicao: MedicaoEntity,
@@ -594,10 +578,14 @@ private fun HistoricoCard(
 ) {
     val c = LocalLkTokens.current
     val dl = medicao.downloadMbps
-    val cardDesc = "Medição de ${formatDate(medicao.timestampEpochMs)}, download ${dl?.let { "%.0f".format(it) } ?: "sem dados"} Mbps"
-    val valorPrincipal = dl ?: medicao.uploadMbps
-    val valorCor =
-        if ((valorPrincipal ?: 0.0) >= 30.0) c.success else c.warning
+    // Issue #1669 (épico #1647, Task 2.0.21): a lista prioriza conclusão/objetivo/data --
+    // a métrica em Mbps deixa de ser o valor dominante e vira detalhe secundário na linha,
+    // o número completo continua disponível na sheet de detalhe (HistoricoDetailSheet).
+    val conclusao = remember(medicao) { conclusaoDaMedicao(medicao) }
+    val corConclusao = corDoTom(conclusao.tom, c)
+    val cardDesc =
+        "${conclusao.objetivo}, ${conclusao.conclusao}, ${formatDate(medicao.timestampEpochMs)}, " +
+            (dl?.let { "download ${"%.0f".format(it)} Mbps" } ?: "sem dados de download")
 
     LkSurfaceCard(
         modifier =
@@ -615,17 +603,26 @@ private fun HistoricoCard(
             horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
         ) {
             Icon(networkIcon(medicao), null, tint = c.textSecondary, modifier = Modifier.size(18.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = conclusao.conclusao,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.W600,
+                    color = corConclusao,
+                    maxLines = 1,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "${conclusao.objetivo} · ${formatDate(medicao.timestampEpochMs)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.textTertiary,
+                    maxLines = 1,
+                )
+            }
             Text(
-                formatDate(medicao.timestampEpochMs),
-                style = MaterialTheme.typography.bodyMedium,
+                text = dl?.let { "${"%.0f".format(it)} Mbps" } ?: "--",
+                style = MaterialTheme.typography.labelMedium,
                 color = c.textSecondary,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = valorPrincipal?.let { "${"%.1f".format(it)} Mbps" } ?: "-- Mbps",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.W700,
-                color = valorCor,
             )
         }
     }
