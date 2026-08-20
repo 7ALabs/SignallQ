@@ -4,7 +4,7 @@ description: "O que o app Android SignallQ (io.signallq.app) entrega ao usuário
 type: "funcional"
 status: "ativo"
 owner: "Claudete"
-last_updated: "2026-08-19"
+last_updated: "2026-08-20"
 ---
 
 - **Fonte de verdade:** o código do app consumer em `android/app/src/main/kotlin/io/signallq/app/`
@@ -423,9 +423,44 @@ A sheet de AP mesh é explicitamente honesta sobre o limite: "Sinal, banda e cli
 estão disponíveis via varredura passiva. Para métricas detalhadas, acesse o painel do seu roteador
 mesh." (`MeshApSheet` em `DispositivoDetalheSheet.kt`).
 
+### 5.4b Ping (tempo de resposta)
+
+**Tela:** `PingScreen` (overlay via Ferramentas) — migrada para tela cheia roteada na issue #1665
+(épico #1647, Task 2.0.17), mesmo padrão de `DnsScreen` (GH#933 Fase 4): antes era
+`ModalBottomSheet`, agora usa `Scaffold`+`CenterAlignedTopAppBar` com botão Voltar. Motor
+(`PingExecutor`, `feature/speedtest`) e telemetria preservados — a mudança é de apresentação e
+navegação, não de medição.
+
+Título e descrição lideram com significado, não com o nome do protocolo: "Tempo de resposta" em
+vez de "Teste de Latência" — segue a tradução de `docs_ai/design-system/SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md`
+§4.3 (Ping → "Tempo de resposta"). A tela mede latência HTTPS contra um endpoint (nunca ICMP — ver
+seção 7) e declara isso explicitamente no resultado ("Via HTTPS · <host>").
+
+**Destino sugerido + opção avançada (decisão de produto do Luiz, 2026-08-19):** a tela sempre
+executa contra um destino sugerido por padrão (`speed.cloudflare.com`, o mesmo alvo histórico) e
+mostra esse destino de forma visível. Quem quer testar outro endereço abre "Testar outro
+endereço" (opção avançada, escondida por padrão — nunca removida) e digita um host; o campo nunca
+fica exposto por padrão para não repetir a queixa de "ferramenta de rede parece um terminal". A
+validação do host digitado reaproveita `DetectorEnderecoIpPrivado` (o mesmo detector já usado por
+`DnsScreen`/`feature/dns`) — endereços privados/locais (RFC 1918, loopback, link-local, ULA IPv6)
+são recusados antes de qualquer teste, sem criar um segundo validador. `PingScreen` aceita um
+`destinoContextual` opcional para pré-preencher o destino a partir de um diagnóstico futuro; hoje
+nenhum chamador ainda produz esse valor (fica `null`, preservando o comportamento padrão) — plumbing
+deliberadamente adiado até existir uma fonte real de contexto, para não inventar dado fictício.
+
+Cancelamento (voltar da tela) encerra a coleta de amostras via ciclo de vida estrutural do Compose
+(`LaunchedEffect`/`rememberCoroutineScope` cancelam a coroutine ao sair de composição) — o mesmo
+mecanismo que já existia na versão em sheet, agora também coberto por teste de caracterização em
+`PingScreenViewModelTest`.
+
 ### 5.5 DNS
 
-**Tela:** `DnsScreen` (overlay via Ferramentas ou Velocidade).
+**Tela:** `DnsScreen` (overlay via Ferramentas ou Velocidade). Já operava como tela cheia roteada
+desde GH#933 (Fase 4) e já liderava com significado ("DNS afeta a abertura de sites, não a
+velocidade da sua conexão") antes da issue #1665 — revisada como parte da Task 2.0.17 e já
+conforme aos critérios da Jornada 2.0, sem mudança de código necessária. DNS não tem um "destino"
+customizável análogo ao do Ping: a ferramenta compara resolvedores DNS conhecidos, não testa um
+host escolhido pelo usuário — por isso não ganhou a mesma opção avançada.
 
 **O app não troca o DNS.** A tela diz isso ao usuário na cara: "Isso não troca o DNS
 automaticamente. Para alterar, você precisa configurar no Android ou no roteador."

@@ -577,12 +577,12 @@ class AppShellOverlayRegistryTest {
         val stack = mutableStateListOf<AppShellOverlay>()
         composeRule.setContent { AppShellPingOverlay(overlayStack = stack) }
         // PingScreen dispara IO real (PingExecutor) -- so validamos aqui o estado fechado,
-        // sem instanciar a ModalBottomSheet. O caminho aberto e coberto manualmente no
+        // sem instanciar a tela cheia. O caminho aberto e coberto manualmente no
         // emulador (ver relatório da issue #1695) e pelo teste de registro abaixo, que só
-        // verifica o título estático (`R.string.ping_titulo`, "Teste de Latência" — renderizado
-        // no primeiro frame, antes do resultado do ping real chegar) -- não espera o benchmark
-        // terminar.
-        composeRule.onNodeWithText("Teste de Latência", substring = false).assertDoesNotExist()
+        // verifica o título estático (`R.string.ping_titulo`, "Tempo de resposta" desde a
+        // issue #1665 — renderizado no primeiro frame, antes do resultado do ping real
+        // chegar) -- não espera o benchmark terminar.
+        composeRule.onNodeWithText("Tempo de resposta", substring = false).assertDoesNotExist()
     }
 
     @Test
@@ -674,7 +674,7 @@ class AppShellOverlayRegistryTest {
         // Mesma cautela do teste isolado de Ping: só o título estático (primeiro frame, não
         // depende do resultado do PingExecutor real) -- suficiente para travar o mutante
         // "remover a chamada de AppShellPingOverlay de dentro do registro".
-        composeRule.onNodeWithText("Teste de Latência", substring = false).assertExists()
+        composeRule.onNodeWithText("Tempo de resposta", substring = false).assertExists()
     }
 
     @Test
