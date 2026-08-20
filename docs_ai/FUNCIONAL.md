@@ -4,7 +4,7 @@ description: "O que o app Android SignallQ (io.signallq.app) entrega ao usuário
 type: "funcional"
 status: "ativo"
 owner: "Claudete"
-last_updated: "2026-08-18"
+last_updated: "2026-08-19"
 ---
 
 - **Fonte de verdade:** o código do app consumer em `android/app/src/main/kotlin/io/signallq/app/`
@@ -322,19 +322,27 @@ travar em "executando" (`AppShell.kt:1397-1405`) — o conteúdo desse diálogo
 
 ### 5.2 Sinal móvel
 
-**Tela:** aba Móvel dentro de `SinalScreen` (índice 2 das abas internas, `SinalScreen.kt:446`). É
-auto-selecionada quando a conexão ativa não é Wi-Fi (`SinalScreen.kt:257-261`).
+**Tela:** aba Móvel dentro de `SinalScreen` (índice 2 das abas internas), renderizada por
+`MovelTab` em `SinalMovelSection.kt` (extraído de `SinalScreen.kt` na Task 2.0.12/#1660). É
+auto-selecionada quando a conexão ativa não é Wi-Fi (`SinalScreen.kt`).
 
 Um card por SIM ativo, rotulado "Chip 1", "Chip 2", com logo real da operadora e badge "EM USO" no
-SIM padrão de dados (dual SIM suportado). Abaixo, três cards fixos em linguagem natural: **Qualidade
-do sinal**, **Tipo de conexão** e **Experiência esperada**, cada um com badge colorido vindo dos
-classificadores de `SinalMovelClassificacao.kt`. No rodapé, o CTA "Falar com a {operadora}" abre o
-site de suporte — desabilitado quando o catálogo local não tem URL para aquela operadora
-(`SinalScreen.kt:684-701`).
+SIM padrão de dados (dual SIM suportado, nunca confunde SIM ativa com SIM de dados — GH#1206).
+Abaixo, três cards fixos em linguagem natural — **conclusão antes da sigla técnica** (spec design
+2.0 §4.3): **Qualidade do sinal**, **Tipo de conexão** e **Experiência esperada**, cada um com
+badge colorido vindo dos classificadores de `SinalMovelClassificacao.kt`. Um quarto card opcional
+"Detalhes técnicos" (RSRP/RSRQ/SINR em dBm/dB, tecnologia) só aparece depois da conclusão e só
+quando há alguma métrica bruta disponível. No rodapé, o CTA de contato ("Falar com a {operadora}"
+ou, quando a operadora não foi identificada, "Falar com sua operadora") sempre tem destino: usa o
+site do catálogo local (`BancoOperadoras`) quando reconhece a operadora, ou cai numa busca genérica
+quando não reconhece — nunca fica desabilitado ou escondido (Task 2.0.14/#1662).
 
-Sem a permissão de telefonia, a aba mostra estado vazio explicativo e uma sheet contextual
-dispensável. Dados de sinal móvel mais crus (ASU, SINR, roaming, MCC/MNC) ficam na `CellularInfoSheet`
-da Início (`HomeScreen.kt:2294`).
+Sem a permissão de telefonia (`READ_PHONE_STATE`), a aba **continua útil de forma reduzida** em vez
+de bloquear: `MonitorTelephonyImpl` emite um snapshot com só a operadora (via APIs do
+`TelephonyManager` que não exigem a permissão), a aba mostra um banner explicando o que falta e por
+quê, com atalho para conceder a permissão — e só cai no estado vazio de bloqueio quando não há
+literalmente nenhum dado (sem SIM, emulador). Dados de sinal móvel mais crus (ASU, roaming, MCC/MNC)
+seguem também na `CellularInfoSheet` da Início (`HomeScreen.kt`).
 
 ### 5.3 Wi-Fi (redes e canais)
 

@@ -32,6 +32,13 @@
  *                          Detectado via ServiceState.STATE_POWER_OFF. Quando true, as
  *                          demais metricas (rsrp/rsrq/sinr) nao representam uma medicao
  *                          real e nao devem ser exibidas como qualidade de sinal.
+ * @property capturaReduzida GH#1662 — true quando este snapshot foi capturado SEM
+ *                          READ_PHONE_STATE, usando apenas APIs publicas do TelephonyManager
+ *                          que nao exigem a permissao (networkOperatorName/networkOperator/
+ *                          isNetworkRoaming). Nesse modo tecnologia/rsrp/rsrq/sinr ficam
+ *                          sempre null — decisao de produto (Luiz, 2026-08-19): a tela
+ *                          continua util de forma reduzida sem a permissao, em vez de nao
+ *                          emitir nada.
  * @property timestampMs    Quando o snapshot foi capturado.
  */
 data class MovelSnapshot(
@@ -48,5 +55,6 @@ data class MovelSnapshot(
     val tac: Int?,
     val roaming: Boolean?,
     val radioDesligado: Boolean = false,
+    val capturaReduzida: Boolean = false,
     val timestampMs: Long,
 )
