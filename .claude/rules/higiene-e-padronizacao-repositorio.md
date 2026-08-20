@@ -181,17 +181,22 @@ Continua valendo ao adicionar um painel novo: cada capacidade nova ganha seu pr�
 (`Equipamento*Card.kt`), nunca inchar `ModuloTecnicoCard`/`StatusEquipamentoCard`. Reavaliar esta
 seção se o arquivo voltar a crescer.
 
-### 4.7 `DispositivosScreen.kt`
+### 4.7 `DispositivosScreen.kt` — RESOLVIDO (atualizado 2026-08-19)
 
-Caminho real: `android/app/src/main/kotlin/io/signallq/app/ui/screen/DispositivosScreen.kt` — **1386 linhas** (acima do limiar de "dívida crítica" da seção 7). Concentra a lista de dispositivos conectados com sheets de detalhe.
+Caminho real: `android/app/src/main/kotlin/io/signallq/app/ui/screen/DispositivosScreen.kt`. A
+entrada anterior citava 1386 linhas concentrando lista, sheets de detalhe e helpers — a issue
+#1663 (épico #1647, Task 2.0.15) extraiu o arquivo em três: `DispositivosScreen.kt` (168 linhas,
+scaffold puro — Scaffold/TopBar/roteamento de estado), `DispositivosLista.kt` (622 linhas — lista
+com pull-to-refresh, `GatewayItem`/`ApMeshItem`/`DispositivoItem`, estados vazio/sem-Wi-Fi) e
+`DispositivoDetalheSheet.kt` (617 linhas — `DeviceDetailSheet`, `MeshApSheet`, `LkListRow` e
+helpers de ícone/rótulo compartilhados entre lista e sheets). Testes de caracterização
+(`DispositivosScreenExtracaoCaracterizacaoTest.kt`) comprovam que a extração não mudou
+comportamento.
 
-Ao tocar nele:
-1. identifique qual sheet ou fluxo de detalhe está sendo modificado;
-2. não adicione nova sheet diretamente — extraia para arquivo dedicado antes;
-3. prefira separar: estado da lista, estado de cada sheet, adaptadores de dados de dispositivo, componentes de visualização, wiring com dados de rede;
-4. mantenha em `DispositivosScreen.kt` apenas a composição da lista principal e delegação das sheets;
-5. cada sheet independente deve ter seu próprio arquivo (ex.: `DispositivoDetalheSheet.kt`, `DispositivoConfiguracaoSheet.kt`);
-6. crie testes de caracterização antes de extrações com risco de comportamento de lista ou estado.
+Continua valendo ao adicionar uma sheet ou seção nova: cada sheet independente ganha seu próprio
+arquivo, nunca inchar `DispositivoDetalheSheet.kt` com um fluxo não relacionado a detalhe de
+dispositivo. Reavaliar esta seção se `DispositivosLista.kt` ou `DispositivoDetalheSheet.kt`
+voltarem a crescer acima de 800 linhas.
 
 ### 4.8 `JogosScreen.kt` — RESOLVIDO (removido em 2026-07-26)
 
