@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.signallq.app.monitoramento.MonitoramentoScheduler
 import io.signallq.app.monitoramento.OemKillInfo
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -114,7 +115,11 @@ internal fun MonitoramentoSheet(
                 label = "Monitoramento passivo",
                 subtitle =
                     if (monitoramentoAtivo) {
-                        "Ativo · verifica a conexão e pode enviar alertas"
+                        // Issue #1666 (Task 2.0.18) — honestidade da frequência real: o
+                        // WorkManager não garante execução contínua (bateria, Doze, OEM),
+                        // então a UI comunica o intervalo nominal em vez de prometer
+                        // "sempre" ou "em tempo real".
+                        "Ativo · verifica a cada ${MonitoramentoScheduler.INTERVALO_MINUTOS} minutos e pode enviar alertas"
                     } else {
                         "Desativado"
                     },
@@ -197,8 +202,9 @@ internal fun MonitoramentoSheet(
         ConfirmacaoDialog(
             titulo = "Ativar monitoramento em segundo plano?",
             mensagem =
-                "O SignallQ verificará sua conexão periodicamente e enviará uma notificação se detectar lentidão " +
-                    "ou instabilidade. Consome dados e bateria de forma mínima.",
+                "O SignallQ verificará sua conexão a cada ${MonitoramentoScheduler.INTERVALO_MINUTOS} minutos " +
+                    "(o sistema Android pode espaçar mais em economia de bateria) e enviará uma notificação se " +
+                    "detectar lentidão ou instabilidade. Consome dados e bateria de forma mínima.",
             textoBotaoConfirmar = "Ativar",
             textoBotaoCancelar = "Agora não",
             onConfirmar = {

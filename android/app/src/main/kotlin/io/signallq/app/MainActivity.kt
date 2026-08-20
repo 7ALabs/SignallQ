@@ -178,6 +178,8 @@ class MainActivity : ComponentActivity() {
             val filtroConexaoHistorico = viewModel.filtroConexaoHistorico.collectAsStateWithLifecycle().value
             val filtroOperadoraHistorico = viewModel.filtroOperadoraHistorico.collectAsStateWithLifecycle().value
             val operadorasDisponiveisHistorico = viewModel.operadorasDisponiveisHistorico.collectAsStateWithLifecycle().value
+            // #1666/#1520 — grid de uptime de 7 dias, religado apos ficar orfao.
+            val blocosUptimeHistorico = viewModel.uptimeBlocos.collectAsStateWithLifecycle().value
 
             // --- Preferencias combinadas (1 subscricao por grupo) ---
             val preferenciasModem = viewModel.preferenciasModem.collectAsStateWithLifecycle().value
@@ -529,6 +531,7 @@ class MainActivity : ComponentActivity() {
                                     analyticsTracker.registrarFeatureUsada("historico")
                                 },
                                 operadorasDisponiveis = operadorasDisponiveisHistorico,
+                                blocosUptime = blocosUptimeHistorico,
                             ),
                         onScreenView = { screenName -> analyticsTracker.registrarScreenView(screenName) },
                         onAssistObjetivo = analyticsTracker::registrarAssistObjetivo,

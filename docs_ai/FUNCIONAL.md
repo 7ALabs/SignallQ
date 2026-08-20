@@ -594,15 +594,30 @@ renderizado** para escolhê-lo.
 
 A sheet se chama "Diagnóstico avançado" e tem dois toggles principais, ambos pedindo confirmação
 para ligar (não para desligar): **Análise avançada** (coleta sinais extras, avisa que pode aumentar
-consumo de bateria) e **Monitoramento passivo**. Com o monitoramento ativo, revelam-se quatro
-alertas individuais: **Sem internet**, **Latência alta**, **DNS lento** e **Sinal Wi-Fi fraco**. Em
-fabricantes conhecidos por matar processos em background, a sheet mostra um aviso pedindo para
-manter o SignallQ sem restrição de bateria.
+consumo de bateria) e **Monitoramento passivo**. O subtítulo do toggle de monitoramento comunica a
+frequência real da checagem ("Ativo · verifica a cada 30 minutos e pode enviar alertas") em vez de
+prometer acompanhamento contínuo — issue #1666 (épico #1647, Task 2.0.18), decisão de produto do
+Luiz de 2026-08-19: a UI deve respeitar a limitação real de bateria/WorkManager do Android em vez
+de usar linguagem vaga. Com o monitoramento ativo, revelam-se quatro alertas individuais: **Sem
+internet**, **Latência alta**, **DNS lento** e **Sinal Wi-Fi fraco**. Em fabricantes conhecidos por
+matar processos em background, a sheet mostra um aviso pedindo para manter o SignallQ sem
+restrição de bateria.
 
-**Como funciona na prática.** Um Worker roda a cada **30 minutos** (`MonitoramentoScheduler.kt:26`),
-com as condições de rede conectada e bateria não baixa. Ele mede latência HTTP (mediana de 3
-amostras), tempo de resolução DNS e RSSI do Wi-Fi, e grava uma medição sintética no histórico
-(marcada como `fonte = "monitor"`, só com latência) que alimenta o gráfico de uptime.
+**Como funciona na prática.** Um Worker roda a cada **30 minutos**
+(`MonitoramentoScheduler.INTERVALO_MINUTOS`), com as condições de rede conectada e bateria não
+baixa. Ele mede latência HTTP (mediana de 3 amostras), tempo de resolução DNS e RSSI do Wi-Fi, e
+grava uma medição sintética no histórico (marcada como `fonte = "monitor"`, só com latência) que
+alimenta o gráfico de uptime.
+
+**Gráfico de uptime no Histórico (issues #1666/#1520).** `HistoricoScreen.kt` religa
+`UptimeChartUseCase`/`UptimeNarrativaEngine`/`UptimeGridChart` (`feature/history` + `UptimeGridChart.kt`
+em `:app`): agrupa as medições dos últimos 7 dias em blocos de 30 min, classifica cada bloco
+(OK/LENTO/LATENCIA_ALTA/OFFLINE/SEM_DADO — latência alta nunca é rotulada como offline, GH#1518) e
+mostra uma lista de eventos por dia com narrativa textual, não mais o grid de quadrados antigo. A
+seção "Estabilidade da conexão · últimos 7 dias" só aparece quando há pelo menos um bloco medido;
+se não houver nenhum teste manual nem dado real de monitoramento, a tela volta ao estado vazio
+padrão. Este wiring esteve órfão (zero consumidor em produção) desde uma refatoração anterior —
+ver #1518/#1520 para o histórico da regressão.
 
 Os alertas usam histerese e **só notificam na transição de ok para alerta**, nunca repetidamente:
 latência entra acima de 400 ms e sai abaixo de 300 ms; DNS entra acima de 2500 ms e sai abaixo de
