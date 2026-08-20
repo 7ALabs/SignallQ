@@ -16,16 +16,28 @@ class SignallQComponentsContractTest {
     }
 
     @Test
-    fun `adoption is opt-in and limited to one pilot`() {
+    fun `adoption expands to migrated screens tracked by issue 1672`() {
+        // Issue #1672 (Task 2.0.24, épico #1647) expande a adoção do banner 2.0 além
+        // do piloto único do #1663 -- cada tela que ganha SignallQOfflineBanner() deve
+        // parar de importar o OfflineBanner() legado (ver contrato "legacy component
+        // contracts remain available" abaixo -- o legado continua existindo para quem
+        // ainda não migrou, só não pode coexistir com o novo na mesma tela).
         val sourceRoot = findSourceRoot()
         val screens = File(sourceRoot, "screen")
         val allScreens = screens.walkTopDown().filter { it.extension == "kt" }.toList()
-        val pilot = File(screens, "DispositivosScreen.kt").readText()
+        val telasMigradas = listOf("DispositivosScreen.kt", "SinalScreen.kt")
 
-        assertTrue("SignallQOfflineBanner()" in pilot)
-        assertFalse(Regex("(?m)^\\s*OfflineBanner\\(\\)").containsMatchIn(pilot))
+        telasMigradas.forEach { nomeArquivo ->
+            val texto = File(screens, nomeArquivo).readText()
+            assertTrue("$nomeArquivo deveria chamar SignallQOfflineBanner()", "SignallQOfflineBanner()" in texto)
+            assertFalse(
+                "$nomeArquivo não deveria mais chamar o OfflineBanner() legado",
+                Regex("(?m)^\\s*OfflineBanner\\(\\)").containsMatchIn(texto),
+            )
+        }
+
         val pilotCalls = Regex("SignallQOfflineBanner\\(\\)")
-        assertEquals(1, allScreens.sumOf { pilotCalls.findAll(it.readText()).count() })
+        assertEquals(telasMigradas.size, allScreens.sumOf { pilotCalls.findAll(it.readText()).count() })
     }
 
     @Test
