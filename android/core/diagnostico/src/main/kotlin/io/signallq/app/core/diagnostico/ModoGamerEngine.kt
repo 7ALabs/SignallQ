@@ -92,11 +92,10 @@ object ModoGamerEngine {
     // Mesmas 3 dimensões de DiagnosticoGuiadoEngine.avaliarJogosComLag (latência + jitter +
     // perda) — jogo de precisão em tempo real, mesma prioridade de métrica.
     private fun avaliarFpsCompetitivo(input: DiagnosticInput?, device: DeviceJogo): ResultadoModoGamer {
-        val internet = input?.internet
-        val dims = mutableListOf<Dimensao>()
-        internet?.latencyMs?.let { dims += Dimensao("Tempo de resposta com a rede ocupada", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it)) }
-        internet?.jitterMs?.let { dims += Dimensao("Variação do tempo de resposta", "%.0f ms".format(it), MetricClassifier.classificarJitter(it)) }
-        internet?.perdaPercentual?.let { dims += Dimensao("Falhas estimadas na conexão", "%.1f%%".format(it), MetricClassifier.classificarPerdaPacotes(it)) }
+        // Issue #1667 — mesma leitura de latência+jitter+perda de
+        // DiagnosticoGuiadoEngine.avaliarJogosComLag, via dimsLatenciaJitterPerda (fonte
+        // única, ver kdoc da função).
+        val dims = dimsLatenciaJitterPerda(input?.internet)
         return montarResultadoModoGamer(
             categoria = CategoriaJogoModoGamer.FPS_COMPETITIVO,
             device = device,
@@ -211,11 +210,9 @@ object ModoGamerEngine {
     // Mesmas 3 dimensões de FPS_COMPETITIVO — é a régua "genérica" citada na mensagem de
     // fallback (nunca inventa um perfil mais permissivo só por não conhecer o jogo).
     private fun avaliarOutro(input: DiagnosticInput?, device: DeviceJogo): ResultadoModoGamer {
-        val internet = input?.internet
-        val dims = mutableListOf<Dimensao>()
-        internet?.latencyMs?.let { dims += Dimensao("Tempo de resposta com a rede ocupada", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it)) }
-        internet?.jitterMs?.let { dims += Dimensao("Variação do tempo de resposta", "%.0f ms".format(it), MetricClassifier.classificarJitter(it)) }
-        internet?.perdaPercentual?.let { dims += Dimensao("Falhas estimadas na conexão", "%.1f%%".format(it), MetricClassifier.classificarPerdaPacotes(it)) }
+        // Issue #1667 — mesma fonte de dimsLatenciaJitterPerda de avaliarFpsCompetitivo /
+        // DiagnosticoGuiadoEngine.avaliarJogosComLag.
+        val dims = dimsLatenciaJitterPerda(input?.internet)
         return montarResultadoModoGamer(
             categoria = CategoriaJogoModoGamer.OUTRO,
             device = device,
@@ -250,6 +247,7 @@ object ModoGamerEngine {
             device = device,
             status = base.status,
             mensagemMotor = base.mensagem,
+            veredito = base.status.paraVereditoDiretoModoGamer(),
             evidencias = base.evidencias + evidenciaDevice,
             // Sem dados suficientes nunca sugere ação — mesmo princípio de
             // DiagnosticoGuiadoEngine.montarResultado.
@@ -258,6 +256,25 @@ object ModoGamerEngine {
         )
     }
 }
+
+/**
+ * Tradução direta e simples do [DiagnosticStatus] para o resultado do Modo gamer — decisão de
+ * produto do Luiz (issue #1667, comentário de 2026-08-19): "linguagem direta e simples (ex.:
+ * 'bom pra jogar' / 'não recomendado') em vez de fraseado de probabilidade — prioriza clareza
+ * rápida sobre nuance de incerteza". Só o Modo gamer usa este texto — os outros 7 objetivos do
+ * [DiagnosticoGuiadoEngine] continuam com [MensagensStatus] em prosa (fora do escopo desta
+ * issue). Não confundir com o mapeamento GERAL `DiagnosticStatus.labelPt()`
+ * (`ui/component/DiagnosticStatusUi.kt`, "ponto único de conversão para UI genérica") — este é
+ * vocabulário de domínio (experiência de jogo), não rótulo de status neutro, mesma relação que
+ * [MensagensStatus] já tem com o rótulo genérico.
+ */
+internal fun DiagnosticStatus.paraVereditoDiretoModoGamer(): String =
+    when (this) {
+        DiagnosticStatus.ok, DiagnosticStatus.info -> "Bom pra jogar"
+        DiagnosticStatus.attention -> "Pode ter atrasos"
+        DiagnosticStatus.critical -> "Não recomendado"
+        DiagnosticStatus.inconclusive -> "Sem dados suficientes"
+    }
 
 /**
  * As 6 categorias de jogo do Modo gamer — mesmas do protótipo #1474
@@ -370,6 +387,10 @@ data class ResultadoModoGamer(
     val device: DeviceJogo,
     val status: DiagnosticStatus,
     val mensagemMotor: String,
+    /** Headline direta e simples (issue #1667, decisão do Luiz 2026-08-19) — "Bom pra jogar" /
+     *  "Pode ter atrasos" / "Não recomendado" / "Sem dados suficientes". Mostrada acima de
+     *  [mensagemMotor] no resultado; nunca substitui as evidências reais. */
+    val veredito: String,
     val evidencias: List<EvidenciaDiagnostico>,
     val acoes: List<String>,
     val dadosInsuficientes: Boolean,

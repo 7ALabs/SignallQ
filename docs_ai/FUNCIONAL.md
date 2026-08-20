@@ -679,12 +679,23 @@ Se houver padrão salvo, as próximas aberturas pulam direto para o resultado
 (`ModoGamerViewModel.kt:90-103`). Nesta etapa também fica a medição extra opcional "Medir o tempo de
 resposta agora", que não bloqueia o fluxo.
 
-**Resultado.** Reaproveita o mesmo banner de status e o mesmo bloco "Medido pelo SignallQ /
-Explicação por IA" do diagnóstico guiado, mais "O que fazer agora" com as ações do motor. Se o jogo
-veio do fallback, um aviso amarelo declara isso. Se o usuário pediu a medição extra, aparece uma
-linha informativa sobre conexão direta com outros jogadores (NAT UDP) — que é **puramente
-informativa e nunca rebaixa o veredito** (`ModoGamerConfigResultadoSection.kt:344-347`). Uma faixa
-final confirma se a escolha virou padrão ou foi usada só desta vez.
+**Resultado.** Abre com uma headline direta e simples ("Bom pra jogar" / "Pode ter atrasos" / "Não
+recomendado" / "Sem dados suficientes" — issue #1667, decisão do Luiz 2026-08-19: linguagem direta
+em vez de fraseado de probabilidade), depois o mesmo banner de status e o mesmo bloco "Medido pelo
+SignallQ / Explicação por IA" do diagnóstico guiado, mais "O que fazer agora" com as ações do
+motor. Se o jogo veio do fallback, um aviso amarelo declara isso. Se o usuário pediu a medição
+extra, aparece uma linha informativa sobre conexão direta com outros jogadores (NAT UDP) — que é
+**puramente informativa e nunca rebaixa o veredito** (`ModoGamerConfigResultadoSection.kt:344-347`).
+Uma faixa final confirma se a escolha virou padrão ou foi usada só desta vez.
+
+**Convergência com o objetivo guiado "Jogos atrasam ou travam" (issue #1667).** A pergunta guiada
+`JOGOS_COM_LAG` (`DiagnosticoGuiadoEngine.avaliarJogosComLag`) e os perfis competitivo/genérico do
+Modo gamer (`ModoGamerEngine.avaliarFpsCompetitivo`/`avaliarOutro`) priorizam as mesmas três
+métricas — tempo de resposta, variação e falhas na conexão — a partir da mesma função
+`dimsLatenciaJitterPerda` (`core/diagnostico/.../DiagnosticoGuiadoEngine.kt`), único ponto de
+leitura para esse trio em qualquer um dos dois pontos de entrada. Da tela de resultado do objetivo
+guiado, o botão "Analisar um jogo específico" leva ao mesmo `ModoGamerScreen`/`ModoGamerViewModel`
+usado pela entrada direta (hub Ferramentas) — um único fluxo, dois pontos de entrada.
 
 ### 5.12 Início (visão consolidada)
 

@@ -252,4 +252,41 @@ class ModoGamerEngineTest {
         assertEquals(DiagnosticStatus.ok, r.status)
         assertTrue(r.evidencias.none { it.label == "Tempo de resposta medido agora" })
     }
+
+    // ── Veredito direto (issue #1667, decisão do Luiz 2026-08-19) ────────────
+    // "Linguagem direta e simples em vez de fraseado de probabilidade."
+
+    @Test
+    fun `veredito e direto e simples para cada status`() {
+        assertEquals("Bom pra jogar", DiagnosticStatus.ok.paraVereditoDiretoModoGamer())
+        assertEquals("Pode ter atrasos", DiagnosticStatus.attention.paraVereditoDiretoModoGamer())
+        assertEquals("Não recomendado", DiagnosticStatus.critical.paraVereditoDiretoModoGamer())
+        assertEquals("Sem dados suficientes", DiagnosticStatus.inconclusive.paraVereditoDiretoModoGamer())
+    }
+
+    @Test
+    fun `resultado ok carrega o veredito bom pra jogar`() {
+        val r = ModoGamerEngine.avaliar(
+            CategoriaJogoModoGamer.FPS_COMPETITIVO,
+            DeviceJogo.PC,
+            DiagnosticInput(internet = internet(latencia = 40.0, jitter = 3.0, perda = 0.0)),
+        )
+        assertEquals("Bom pra jogar", r.veredito)
+    }
+
+    @Test
+    fun `resultado critico carrega o veredito nao recomendado`() {
+        val r = ModoGamerEngine.avaliar(
+            CategoriaJogoModoGamer.FPS_COMPETITIVO,
+            DeviceJogo.PC,
+            DiagnosticInput(internet = internet(latencia = 250.0)),
+        )
+        assertEquals("Não recomendado", r.veredito)
+    }
+
+    @Test
+    fun `resultado sem dados carrega o veredito sem dados suficientes`() {
+        val r = ModoGamerEngine.avaliar(CategoriaJogoModoGamer.FPS_COMPETITIVO, DeviceJogo.PC, null)
+        assertEquals("Sem dados suficientes", r.veredito)
+    }
 }
