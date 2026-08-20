@@ -4,7 +4,7 @@ description: "Funil principal SIG-155 (7 eventos definidos, 5 disparando — os 
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-18"
+last_updated: "2026-08-20"
 ---
 
 # Contrato de Eventos — Firebase Analytics
@@ -215,6 +215,60 @@ valores são IDs fechados e tipados. SSID, BSSID, IP, localização, texto livre
 aparelho são proibidos. Restauração/recomposição não gera evento novo; abandono só conta no Voltar
 explícito. Esses eventos não substituem nem duplicam `diag_iniciado`/`diag_concluido`, que continuam
 pertencendo ao ciclo do motor.
+
+### Funil da jornada guiada 2.0 (Task 2.0.09, issue-mãe #1657, épico #1647)
+
+Especificação completa dos 8 eventos aprovada por Luiz em 2026-08-17 (comentário
+[#1657](https://github.com/buildea-labs/signallq/issues/1657)). `analise_id`
+(UUID gerado na entrada da análise) é a chave de correlação nova que amarra os
+passos — `diagnostic_id` já existia mas identifica a decisão de recomendação,
+não a jornada. Implementação faseada por sub-fatia; os dois últimos passos
+(reteste vinculado e comparação, Task 2.0.09e, issue #1707) chegaram na PR que
+introduziu esta seção.
+
+#### `diagnostico_reteste_iniciado` — implementado (#1707, passo 8)
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `analise_id` | String | Sim | Correlação com a análise **original** |
+| `reteste_id` | String | Sim | `analise_id` da nova execução — liga o par A/B |
+| `acao_anterior_id` | String | Sim | Ação executada antes do reteste; vazio se retestou sem agir |
+| `intervalo_ms` | Long | Sim | Tempo entre a análise original e o reteste |
+| `mesmo_contexto_rede` | Boolean | Sim | Se a rede é a mesma da análise original (`MedicaoEntity.networkId`) |
+
+**Dispara quando:** o usuário aciona "Testar novamente" **vinculado** a uma
+análise anterior (`AiAcaoRecomendada.tipo == "reteste" && executavelNoApp`).
+**Não dispara quando:** o usuário inicia uma análise nova do zero — isso é
+`diagnostico_analise_iniciada` com `origem` própria.
+
+**Tela:** `DiagnosticoGuiadoScreen` (CTA), cálculo em `MainViewModel.testarNovamenteVinculado`.
+**Plataforma:** Android
+
+---
+
+#### `diagnostico_comparacao_concluida` — implementado (#1707, passo 9)
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `analise_id` | String | Sim | Análise original |
+| `reteste_id` | String | Sim | Reteste comparado |
+| `veredito` | String | Sim | `"melhorou"` \| `"nao_mudou"` \| `"piorou"` \| `"inconclusiva"` |
+| `comparavel` | Boolean | Sim | `false` quando não havia par comparável na mesma rede |
+| `status_anterior` | String | Sim | `DiagnosticStatus` antes: `"ok"`\|`"info"`\|`"attention"`\|`"critical"`\|`"inconclusive"` |
+| `status_novo` | String | Sim | `DiagnosticStatus` depois, mesmo vocabulário |
+
+**Dispara quando:** a comparação é calculada, usando
+`MedicaoDao.buscarUltimaComparavelNaRede` (só mesma rede) e
+`calcularVereditoReteste` (`:feature:history`, reusa `TendenciaEstado`).
+**Não dispara quando:** o reteste é abandonado antes de concluir.
+
+**Tela:** `DiagnosticoGuiadoScreen` (banner de veredito).
+**Plataforma:** Android
+
+Nenhuma das duas propriedades carrega SSID/BSSID/IP/texto livre —
+`analise_id`/`reteste_id` são UUIDs efêmeros de sessão de diagnóstico.
+
+---
 
 ### `diag_iniciado` — implementado (SIG-155)
 

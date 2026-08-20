@@ -63,4 +63,15 @@ interface AnalyticsTracker {
      * deixaria uma implementacao futura perder este evento em silencio, sem erro de compilacao.
      */
     fun registrarDiagnosticoPlanoIniciado(evento: DiagnosticoPlanoIniciado)
+
+    /**
+     * GH#1707 (Task 2.0.09e) — passo 8 do funil: reteste vinculado à análise original.
+     *
+     * Sem corpo default pelo mesmo motivo dos eventos acima: um `= Unit` aqui deixaria uma
+     * implementação futura perder este evento em silêncio, sem erro de compilação.
+     */
+    fun registrarDiagnosticoRetesteIniciado(evento: DiagnosticoRetesteIniciado)
+
+    /** GH#1707 (Task 2.0.09e) — passo 9 do funil: comparação do reteste concluída. */
+    fun registrarDiagnosticoComparacaoConcluida(evento: DiagnosticoComparacaoConcluida)
 }

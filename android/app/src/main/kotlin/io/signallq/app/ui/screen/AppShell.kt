@@ -299,6 +299,8 @@ fun AppShell(
     val onRecommendationShown = diagnostico.onRecommendationShown
     val onRecommendationClicked = diagnostico.onRecommendationClicked
     val onRecommendationFeedback = diagnostico.onRecommendationFeedback
+    val onTestarNovamenteVinculado = diagnostico.onTestarNovamenteVinculado
+    val comparacaoRetesteState = diagnostico.comparacaoRetesteState
 
     val operadoraMovel = signallQ.operadoraMovel
     val onVerificarGemma = signallQ.onVerificarGemma
@@ -1008,6 +1010,7 @@ fun AppShell(
                                         conectadoPorWifi = snapshotRede.wifiLinkSnapshot != null,
                                         estadoConexao = snapshotRede.estadoConexao,
                                     ),
+                                comparacaoRetesteState = comparacaoRetesteState,
                             ),
                         operadora = operadoraResolvers,
                         acoes =
@@ -1027,6 +1030,7 @@ fun AppShell(
                                 },
                                 onAbrirFerramentaSugerida = onAbrirFerramentaSugeridaOverlay,
                                 onPlanoIniciado = onDiagnosticoPlanoIniciado,
+                                onTestarNovamenteVinculado = onTestarNovamenteVinculado,
                                 onRecommendationShown = onRecommendationShown,
                                 onRecommendationClicked = onRecommendationClicked,
                                 onRecommendationFeedback = onRecommendationFeedback,

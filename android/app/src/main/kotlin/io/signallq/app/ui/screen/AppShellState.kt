@@ -98,6 +98,11 @@ sealed class AnalisadorState {
          *  "laudo automatico" de "analise que o usuario pediu" na copy (follow-up Lia,
          *  PR #1013). */
         val problemaRelatado: String? = null,
+        /** GH#1657 (spec §14.4) / GH#1707 — rótulo textual de confiança (`baixa`/`media`/`alta`,
+         *  ver `RotuloConfianca`), nunca número. Vazio quando a origem não calculou (não deve
+         *  acontecer nos 3 pontos de construção reais em `MainViewModel.analisarProblema`, que
+         *  sempre têm um `DiagnosticReport` em mãos). */
+        val confianca: String = "",
     ) : AnalisadorState()
 
     data class Erro(
@@ -135,6 +140,12 @@ data class AppShellDiagnosticoState(
     val onRecommendationShown: () -> Unit = {},
     val onRecommendationClicked: () -> Unit = {},
     val onRecommendationFeedback: (RecommendationFeedbackType) -> Unit = {},
+    /** GH#1707 (Task 2.0.09e, parte 2/2) — CTA "Testar novamente" vinculado à análise original
+     *  (spec §8.8). Recebe `analiseId` da jornada e o id da ação anterior executada (vazio se
+     *  nenhuma). */
+    val onTestarNovamenteVinculado: (analiseId: String, acaoAnteriorId: String) -> Unit = { _, _ -> },
+    /** GH#1707 — estado do reteste vinculado em curso (spec §14.6). */
+    val comparacaoRetesteState: ComparacaoRetesteUiState = ComparacaoRetesteUiState.Ausente,
 )
 
 /**

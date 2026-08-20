@@ -100,6 +100,7 @@ import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.OperadoraBadge
 import io.signallq.app.ui.component.OperadoraBottomSheet
+import io.signallq.app.ui.component.RetesteVinculadoSection
 import io.signallq.app.ui.component.rememberResolvedOperadoraContact
 import io.signallq.app.ui.component.rememberResolvedOperadoraIdentity
 import java.util.UUID
@@ -178,6 +179,14 @@ fun DiagnosticoGuiadoScreen(
      *  ferramenta mapeada por [ObjetivoDiagnostico.ferramentaSugerida]; quem trata a
      *  navegação de fato (empilhar `Overlay.Ferramentas`) é o AppShell. */
     onAbrirFerramentaSugerida: (TipoFerramenta) -> Unit = {},
+    /** GH#1707 (Task 2.0.09e, parte 2/2) — CTA "Testar novamente" vinculado à análise original
+     *  (spec §8.8). Recebe `analiseId` (correlação do funil, gerado logo abaixo) e o id da ação
+     *  anterior executada pelo usuário — vazio quando ele retestou sem agir. Default no-op só
+     *  para não quebrar callers/testes que não passam esta CTA. */
+    onTestarNovamenteVinculado: (analiseId: String, acaoAnteriorId: String) -> Unit = { _, _ -> },
+    /** GH#1707 — estado do reteste em curso (spec §14.6): ausente/em andamento/concluído com o
+     *  veredito já em texto pronto pra exibição. */
+    comparacaoRetesteState: ComparacaoRetesteUiState = ComparacaoRetesteUiState.Ausente,
 ) {
     val c = LocalLkTokens.current
     // GH#1704 — a persistência destes quatro estados foi RETIRADA desta fatia, não esquecida.
@@ -416,6 +425,8 @@ fun DiagnosticoGuiadoScreen(
                     resolveOperadoraContatoRemoto = resolveOperadoraContatoRemoto,
                     onIniciarModoGamer = onIniciarModoGamer,
                     onAbrirFerramentaSugerida = onAbrirFerramentaSugerida,
+                    onTestarNovamenteVinculado = { onTestarNovamenteVinculado(analiseId, "") },
+                    comparacaoRetesteState = comparacaoRetesteState,
                     c = c,
                 )
             }
@@ -669,6 +680,8 @@ private fun ResultadoDiagnosticoGuiadoConteudo(
     resolveOperadoraContatoRemoto: suspend (String?, Boolean) -> ResolvedOperadoraContact,
     onIniciarModoGamer: (() -> Unit)?,
     onAbrirFerramentaSugerida: (TipoFerramenta) -> Unit,
+    onTestarNovamenteVinculado: () -> Unit,
+    comparacaoRetesteState: ComparacaoRetesteUiState,
     c: LkTokens,
     /** GH#1705 — slot para a continuidade da medição. Precisa entrar AQUI, dentro do `Column` que
      *  já rola, e não como segundo filho do slot do `Scaffold`: o `ScaffoldLayout` do Material3
@@ -694,6 +707,13 @@ private fun ResultadoDiagnosticoGuiadoConteudo(
 
         Spacer(Modifier.height(LkSpacing.lg))
         AiVsMotorExplainer(evidencias = resultado.evidencias, analisadorState = analisadorState, c = c)
+
+        RetesteVinculadoSection(
+            analisadorState = analisadorState,
+            comparacaoRetesteState = comparacaoRetesteState,
+            onTestarNovamente = onTestarNovamenteVinculado,
+            c = c,
+        )
 
         if (resultado.acoes.isNotEmpty()) {
             Spacer(Modifier.height(LkSpacing.lg))

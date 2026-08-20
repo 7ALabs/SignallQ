@@ -10,7 +10,9 @@ import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.AssistAbandonado
 import io.signallq.app.core.network.AssistObjetivoSelecionado
 import io.signallq.app.core.network.AssistPerguntaRespondida
+import io.signallq.app.core.network.DiagnosticoComparacaoConcluida
 import io.signallq.app.core.network.DiagnosticoPlanoIniciado
+import io.signallq.app.core.network.DiagnosticoRetesteIniciado
 import io.signallq.app.di.ApplicationScope
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
 import io.signallq.app.feature.diagnostico.ingest.AnalyticsEventIngestPayload
@@ -135,6 +137,14 @@ class CompositeAnalyticsTracker
         // esse contrato é escopo separado.
         override fun registrarDiagnosticoPlanoIniciado(evento: DiagnosticoPlanoIniciado) =
             firebaseTracker.registrarDiagnosticoPlanoIniciado(evento)
+
+        // GH#1707 (Task 2.0.09e) — mesmo racional dos dois blocos acima: só Firebase (GA4). O
+        // schema D1 do `signallq-admin-worker` não tem campo para o funil do diagnóstico guiado.
+        override fun registrarDiagnosticoRetesteIniciado(evento: DiagnosticoRetesteIniciado) =
+            firebaseTracker.registrarDiagnosticoRetesteIniciado(evento)
+
+        override fun registrarDiagnosticoComparacaoConcluida(evento: DiagnosticoComparacaoConcluida) =
+            firebaseTracker.registrarDiagnosticoComparacaoConcluida(evento)
 
         private fun enviarEvento(
             name: String,

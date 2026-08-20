@@ -19,6 +19,7 @@ import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 import io.signallq.app.core.network.DiagnosticoPlanoIniciado
+import io.signallq.app.feature.diagnostico.ai.AiAcaoRecomendada
 import io.signallq.app.feature.speedtest.MeasurementStatus
 import io.signallq.app.ui.SignallQTheme
 import org.junit.Assert.assertEquals
@@ -57,6 +58,7 @@ class DiagnosticoGuiadoScreenTest {
     private var analiseIniciada = 0
     private var analiseCancelada = 0
     private val planosIniciados = mutableListOf<DiagnosticoPlanoIniciado>()
+    private val testesVinculadosAcionados = mutableListOf<String>()
 
     @Test
     fun `sem pre-selecao mostra a lista de objetivos como antes`() {
@@ -164,6 +166,114 @@ class DiagnosticoGuiadoScreenTest {
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertDoesNotExist()
         composeRule.onNodeWithText("Força do sinal Wi-Fi").assertIsDisplayed()
     }
+
+    // GH#1707 (Task 2.0.09e, parte 2/2) — CTA "Testar novamente" vinculado (spec §8.8): só
+    // aparece quando a IA recomendou um reteste executável no app. Nenhuma tela renderizava esse
+    // gancho antes desta fatia.
+    @Test
+    fun `cta de reteste aparece quando a IA recomenda reteste executavel no app`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            input = inputJogosComWifiFraco(),
+            estadoAnalise = EstadoAnaliseGuiada.Concluida,
+            analisadorState = resultadoComAcoes(tipo = "reteste", executavelNoApp = true),
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithText("Testar novamente").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `cta de reteste nao aparece quando a acao nao e executavel no app`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            input = inputJogosComWifiFraco(),
+            estadoAnalise = EstadoAnaliseGuiada.Concluida,
+            analisadorState = resultadoComAcoes(tipo = "reteste", executavelNoApp = false),
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithText("Testar novamente").assertDoesNotExist()
+    }
+
+    @Test
+    fun `cta de reteste nao aparece para outros tipos de acao`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            input = inputJogosComWifiFraco(),
+            estadoAnalise = EstadoAnaliseGuiada.Concluida,
+            analisadorState = resultadoComAcoes(tipo = "contato_isp", executavelNoApp = true),
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithText("Testar novamente").assertDoesNotExist()
+    }
+
+    @Test
+    fun `clicar no cta de reteste aciona o callback vinculado`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            input = inputJogosComWifiFraco(),
+            estadoAnalise = EstadoAnaliseGuiada.Concluida,
+            analisadorState = resultadoComAcoes(tipo = "reteste", executavelNoApp = true),
+        )
+
+        completarSegundaPerguntaJogos()
+        composeRule.onNodeWithText("Testar novamente").performScrollTo().performClick()
+
+        assertEquals(1, testesVinculadosAcionados.size)
+        assertEquals("", testesVinculadosAcionados.first())
+    }
+
+    @Test
+    fun `estado em andamento do reteste mostra indicador em vez do cta`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            input = inputJogosComWifiFraco(),
+            estadoAnalise = EstadoAnaliseGuiada.Concluida,
+            analisadorState = resultadoComAcoes(tipo = "reteste", executavelNoApp = true),
+            comparacaoRetesteState = ComparacaoRetesteUiState.EmAndamento,
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithText("Testando novamente…").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Testar novamente").assertDoesNotExist()
+    }
+
+    @Test
+    fun `veredito concluido do reteste substitui o cta pelo texto do veredito`() {
+        setContent(
+            objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+            respostaPreSelecionadaPasso0 = 0,
+            input = inputJogosComWifiFraco(),
+            estadoAnalise = EstadoAnaliseGuiada.Concluida,
+            analisadorState = resultadoComAcoes(tipo = "reteste", executavelNoApp = true),
+            comparacaoRetesteState = ComparacaoRetesteUiState.Concluido(veredito = "Melhorou", comparavel = true),
+        )
+
+        completarSegundaPerguntaJogos()
+
+        composeRule.onNodeWithText("Melhorou").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Testar novamente").assertDoesNotExist()
+    }
+
+    private fun resultadoComAcoes(
+        tipo: String,
+        executavelNoApp: Boolean,
+    ) = AnalisadorState.Resultado(
+        texto = "texto",
+        origem = "local",
+        acoes = listOf(AiAcaoRecomendada(titulo = "t", descricao = "d", prioridade = "alta", tipo = tipo, executavelNoApp = executavelNoApp)),
+    )
 
     // Mutante: remover a cláusula `emAnalise ->` de `voltarUmPasso`. Rodado — este teste falha
     // com a tela ainda na análise: o back "vazaria" para a cláusula seguinte e voltaria uma
@@ -700,6 +810,8 @@ class DiagnosticoGuiadoScreenTest {
         statusMedicao: MeasurementStatus? = MeasurementStatus.COMPLETE,
         medidasConfiaveis: Boolean = true,
         contextoDoPlano: ContextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = true),
+        analisadorState: AnalisadorState = AnalisadorState.Inativo,
+        comparacaoRetesteState: ComparacaoRetesteUiState = ComparacaoRetesteUiState.Ausente,
     ) {
         composeRule.setContent {
             SignallQTheme {
@@ -711,6 +823,8 @@ class DiagnosticoGuiadoScreenTest {
                     statusMedicao = statusMedicao,
                     medidasConfiaveis = medidasConfiaveis,
                     contextoDoPlano = contextoDoPlano,
+                    analisadorState = analisadorState,
+                    comparacaoRetesteState = comparacaoRetesteState,
                 )
             }
         }
@@ -730,6 +844,8 @@ class DiagnosticoGuiadoScreenTest {
         statusMedicao: MeasurementStatus?,
         medidasConfiaveis: Boolean = true,
         contextoDoPlano: ContextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = true),
+        analisadorState: AnalisadorState = AnalisadorState.Inativo,
+        comparacaoRetesteState: ComparacaoRetesteUiState = ComparacaoRetesteUiState.Ausente,
     ) {
         DiagnosticoGuiadoScreen(
             input = input,
@@ -745,7 +861,7 @@ class DiagnosticoGuiadoScreenTest {
                 ),
             objetivoPreSelecionado = objetivoPreSelecionado,
             respostaPreSelecionadaPasso0 = respostaPreSelecionadaPasso0,
-            analisadorState = AnalisadorState.Inativo,
+            analisadorState = analisadorState,
             onAnalisarProblema = {},
             onResetarAnalisador = {},
             onVoltar = {},
@@ -763,6 +879,8 @@ class DiagnosticoGuiadoScreenTest {
             resolveOperadoraContatoLocal = { _, _ -> null },
             resolveOperadoraIdentidadeRemota = { _, _ -> error("categoria=null nunca chama resolucao de operadora") },
             resolveOperadoraContatoRemoto = { _, _ -> error("categoria=null nunca chama resolucao de operadora") },
+            onTestarNovamenteVinculado = { _, acaoAnteriorId -> testesVinculadosAcionados += acaoAnteriorId },
+            comparacaoRetesteState = comparacaoRetesteState,
         )
     }
 }
