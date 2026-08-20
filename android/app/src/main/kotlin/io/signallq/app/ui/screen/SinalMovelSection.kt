@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
 import io.signallq.app.ui.BancoOperadoras
+import io.signallq.app.ui.ContatoOperadora
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -66,18 +67,21 @@ internal fun MovelTab(
     resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity,
 ) {
     val c = tokens
-    if (!temPermissaoTelefonia) {
+    // GH#1662 — decisão de produto (Luiz, 2026-08-19): sem READ_PHONE_STATE a aba continua útil
+    // de forma reduzida (mostra o que der pra saber e explica o que falta), em vez de bloquear a
+    // tela inteira esperando o aceite. Só cai no empty state de permissão quando não há
+    // NENHUM dado — nem o snapshot reduzido (sem SIM, emulador, operadora não reportada).
+    val temAlgumDado = movelSnapshot != null || simsAtivos.isNotEmpty()
+    if (!temAlgumDado) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            EmptyStatePermissaoTelefonia(
-                onSolicitarPermissao = onSolicitarPermissaoTelefonia,
-                tokens = c,
-            )
-        }
-        return
-    }
-    if (movelSnapshot == null && simsAtivos.isEmpty()) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            EmptyStateMobile(c)
+            if (temPermissaoTelefonia) {
+                EmptyStateMobile(c)
+            } else {
+                EmptyStatePermissaoTelefonia(
+                    onSolicitarPermissao = onSolicitarPermissaoTelefonia,
+                    tokens = c,
+                )
+            }
         }
         return
     }
@@ -86,6 +90,12 @@ internal fun MovelTab(
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
+        if (!temPermissaoTelefonia) {
+            PermissaoReduzidaBanner(
+                onSolicitarPermissao = onSolicitarPermissaoTelefonia,
+                tokens = c,
+            )
+        }
         if (simsAtivos.isNotEmpty()) {
             ChipsAtivosSection(
                 simsAtivos = simsAtivos,
@@ -143,7 +153,8 @@ private fun SimCard(
     // TelephonyManager que o produz nunca e criado com createForSubscriptionId). So pode
     // complementar dados deste card quando `sim` e de fato o SIM padrao — nunca pra um SIM
     // secundario, senao o Chip 2 pode exibir operadora/tecnologia/RSRP do Chip 1.
-    val operadora = sim.operadora ?: summarySnapshot?.operadora?.takeIf { sim.isDefaultData } ?: "Operadora"
+    val operadoraIdentificada = sim.operadora ?: summarySnapshot?.operadora?.takeIf { sim.isDefaultData }
+    val operadora = operadoraIdentificada ?: "Operadora"
     // Contato (site/SAC/WhatsApp) continua so nivel 1 (catalogo local) — fora do escopo desta
     // troca (ver kdoc de ResolvedOperadoraIdentity: nao carrega contato).
     val operadoraLocal = remember(operadora) { BancoOperadoras.resolverMovel(operadora) }
@@ -159,11 +170,17 @@ private fun SimCard(
             resolveRemoteOrFallback = resolveOperadoraIdentidadeRemota,
         )
     val dadosSinal = sim.paraDadosSinalMovel(summarySnapshot)
-    val resumoRede = buildMobileSummary(dadosSinal)
+    // GH#1662 — cabeçalho não expõe mais RSRP em dBm direto (conclusão precede siglas, spec
+    // design 2.0 §4.3/4.4); o valor bruto passa a viver em MobileDetalhesTecnicosCard, depois
+    // dos cards de conclusão. buildMobileSummary (com o RSRP) continua existindo — é
+    // compartilhado com HomeScreen.kt (GH#1258) e não muda aqui.
+    val resumoRede = resumoCabecalhoMovel(dadosSinal, capturaReduzida = false)
     val qualidade = classificarQualidadeSinalMovel(dadosSinal, tokens)
     val tipoConexao = classificarTipoConexaoMovel(dadosSinal, tokens)
     val experiencia = classificarExperienciaMovel(dadosSinal, tokens)
-    val suporteUrl = operadoraLocal?.site
+    // GH#1662 — decisão de produto (Luiz, 2026-08-19): operadora não identificada não esconde
+    // o botão, cai num fallback genérico (busca) em vez de ficar desabilitado.
+    val suporteUrl = contatoOperadoraUrl(operadoraLocal, operadoraIdentificada)
     val context = LocalContext.current
 
     Column(
@@ -249,19 +266,15 @@ private fun SimCard(
             accent = experiencia.color,
             tokens = tokens,
         )
+        MobileDetalhesTecnicosCard(dadosSinal, tokens)
 
         OutlinedButton(
-            onClick = {
-                suporteUrl?.let { url ->
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                }
-            },
+            onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(suporteUrl))) },
             modifier = Modifier.fillMaxWidth(),
-            enabled = suporteUrl != null,
             shape = RoundedCornerShape(LkRadius.button),
         ) {
             Text(
-                text = "Falar com a $operadora",
+                text = rotuloBotaoContatoOperadora(operadoraIdentificada),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.W600,
                 maxLines = 1,
@@ -275,6 +288,160 @@ private fun SimCard(
 // classificarTipoConexaoMovel/classificarExperienciaMovel/piorMetricStatusSinalMovel/
 // radioTechDeTecnologia/buildMobileSummary foram extraidos para SinalMovelClassificacao.kt
 // (mesmo pacote, sem import necessario) porque a Home passou a consumi-los tambem — ver #1258.
+
+/**
+ * GH#1662 — subtítulo do cabeçalho do card (SimCard/MobileSnapshotCard). Antes usava
+ * [buildMobileSummary], que mostra "RSRP -85 dBm · 4G" — sigla técnica ANTES da conclusão
+ * (cards "Qualidade do sinal"/"Tipo de conexão" abaixo). A spec de design 2.0 (§4.3) diz que
+ * RSRP/RSRQ/SINR só devem aparecer "nos detalhes", depois da conclusão — por isso o valor bruto
+ * agora só existe em [MobileDetalhesTecnicosCard]. Esta função fica local (não em
+ * SinalMovelClassificacao.kt) porque só serve a esta tela — buildMobileSummary continua igual e
+ * é o que HomeScreen.kt consome (GH#1258), não mudou aqui.
+ */
+internal fun resumoCabecalhoMovel(
+    dados: DadosSinalMovel,
+    capturaReduzida: Boolean,
+): String =
+    when {
+        dados.radioDesligado -> "Modo avião ativo · rádio celular desligado"
+        capturaReduzida -> "Detalhes completos exigem permissão de telefone"
+        else -> dados.tecnologia ?: "Rede móvel"
+    }
+
+/**
+ * GH#1662 — decisão de produto (Luiz, 2026-08-19): operadora não identificada no catálogo local
+ * (ou não reportada pelo Android) não esconde nem desabilita o botão de contato — cai num
+ * fallback genérico de busca, sem link específico de nenhuma operadora.
+ */
+internal fun contatoOperadoraUrl(
+    operadoraLocal: ContatoOperadora?,
+    operadoraIdentificada: String?,
+): String {
+    operadoraLocal?.let { return it.site }
+    val consulta =
+        operadoraIdentificada?.let { "central de atendimento $it" }
+            ?: "central de atendimento operadora de celular"
+    // java.net.URLEncoder (JVM puro) em vez de android.net.Uri.encode: mesma funcao e
+    // testavel em unit test JVM sem Robolectric (Uri.* nao e mockado por padrao neste modulo).
+    val consultaCodificada = java.net.URLEncoder.encode(consulta, "UTF-8")
+    return "https://www.google.com/search?q=$consultaCodificada"
+}
+
+/** GH#1662 — rótulo do botão de contato: nomeia a operadora só quando o Android de fato
+ *  identificou uma (mesmo que fora do catálogo local); senão fica genérico. */
+internal fun rotuloBotaoContatoOperadora(operadoraIdentificada: String?): String =
+    operadoraIdentificada?.let { "Falar com a $it" } ?: "Falar com sua operadora"
+
+/**
+ * GH#1662 — "detalhes técnicos" exigidos pela spec de design 2.0 (§4.4: "Detalhes técnicos
+ * podem mostrar RSSI, banda, canal e evidências após a conclusão"). Mostra RSRP/RSRQ/SINR em
+ * dBm/dB só depois dos três cards de conclusão (Qualidade/Tipo de conexão/Experiência). Não
+ * renderiza nada quando não há nenhuma métrica bruta disponível (rádio desligado, captura
+ * reduzida sem permissão, ou OEM que não reporta).
+ */
+@Composable
+private fun MobileDetalhesTecnicosCard(
+    dados: DadosSinalMovel,
+    tokens: LkTokens,
+) {
+    val linhas =
+        buildList {
+            dados.tecnologia?.let { add("Tecnologia" to it) }
+            dados.rsrpDbm?.let { add("RSRP" to "$it dBm") }
+            dados.rsrqDb?.let { add("RSRQ" to "$it dB") }
+            dados.sinrDb?.let { add("SINR" to "$it dB") }
+        }
+    if (linhas.isEmpty()) return
+    LkSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
+            Text(
+                text = "Detalhes técnicos",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.W600,
+                color = tokens.textPrimary,
+            )
+            linhas.forEach { (rotulo, valor) ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = rotulo,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = tokens.textSecondary,
+                    )
+                    Text(
+                        text = valor,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.W600,
+                        color = tokens.textPrimary,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * GH#1662 — banner exibido no topo da aba Móvel quando não há READ_PHONE_STATE mas ainda assim
+ * há algo pra mostrar (snapshot reduzido). Substitui o bloqueio total anterior: explica o que
+ * falta e por quê, sem impedir o resto do conteúdo de renderizar (decisão de produto, Luiz
+ * 2026-08-19).
+ */
+@Composable
+private fun PermissaoReduzidaBanner(
+    onSolicitarPermissao: () -> Unit,
+    tokens: LkTokens,
+) {
+    LkSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(tokens.warning.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.SimCard,
+                    contentDescription = null,
+                    tint = tokens.warning,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+            ) {
+                Text(
+                    text = "Mostrando o que dá para saber sem a permissão de telefone",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.W600,
+                    color = tokens.textPrimary,
+                )
+                Text(
+                    text =
+                        "Qualidade do sinal e tecnologia (4G/5G) exigem a permissão de telefone. " +
+                            "Sem ela, mostramos só a operadora.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = tokens.textSecondary,
+                )
+                Spacer(Modifier.height(LkSpacing.xs))
+                OutlinedButton(onClick = onSolicitarPermissao) {
+                    Text(
+                        text = "Permitir leitura do chip",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.W600,
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun MobileDetailCard(
@@ -381,10 +548,18 @@ private fun MobileSnapshotCard(
             resolveLocal = resolveOperadoraIdentidadeLocal,
             resolveRemoteOrFallback = resolveOperadoraIdentidadeRemota,
         )
+    // GH#1662 — este card também passou a exibir o botão de contato da operadora (antes só
+    // SimCard tinha): é o caminho usado quando o snapshot vem reduzido (sem permissão) ou
+    // quando não há SIM detectado como ativo, e a decisão de produto (Luiz, 2026-08-19) vale
+    // pros dois cards, não só pra aba com SIM ativo.
+    val operadoraLocal = remember(operadora) { BancoOperadoras.resolverMovel(operadora) }
     val dadosSinal = snapshot.paraDadosSinalMovel()
+    val resumoRede = resumoCabecalhoMovel(dadosSinal, capturaReduzida = snapshot.capturaReduzida)
     val qualidade = classificarQualidadeSinalMovel(dadosSinal, tokens)
     val tipoConexao = classificarTipoConexaoMovel(dadosSinal, tokens)
     val experiencia = classificarExperienciaMovel(dadosSinal, tokens)
+    val suporteUrl = contatoOperadoraUrl(operadoraLocal, snapshot.operadora)
+    val context = LocalContext.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
@@ -413,7 +588,7 @@ private fun MobileSnapshotCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = buildMobileSummary(dadosSinal),
+                        text = resumoRede,
                         style = MaterialTheme.typography.bodySmall,
                         color = tokens.textSecondary,
                     )
@@ -450,6 +625,21 @@ private fun MobileSnapshotCard(
             accent = experiencia.color,
             tokens = tokens,
         )
+        MobileDetalhesTecnicosCard(dadosSinal, tokens)
+
+        OutlinedButton(
+            onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(suporteUrl))) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(LkRadius.button),
+        ) {
+            Text(
+                text = rotuloBotaoContatoOperadora(snapshot.operadora),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.W600,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 

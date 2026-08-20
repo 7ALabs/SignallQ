@@ -69,12 +69,19 @@ class MonitorTelephonyImpl(
 
     override fun iniciar() {
         if (iniciou) return
-        if (telephonyManager == null) {
+        val tm = telephonyManager
+        if (tm == null) {
             Timber.w("TelephonyManager indisponivel — emulador ou device sem radio.")
             return
         }
         if (!possuiPermissaoReadPhoneState()) {
-            Timber.w("READ_PHONE_STATE negada — snapshot ficara null. Solicite a permissao na UI.")
+            Timber.w(
+                "READ_PHONE_STATE negada — emitindo snapshot reduzido (GH#1662): " +
+                    "decisao de produto e a tela continuar util sem a permissao, nao ficar vazia.",
+            )
+            mutableSnapshot.value = runCatching {
+                capturarSnapshotReduzidoSemPermissao(tm)
+            }.getOrNull()
             return
         }
         iniciou = true
@@ -521,6 +528,42 @@ class MonitorTelephonyImpl(
             mnc = mnc,
             tac = tac,
             roaming = roaming,
+            timestampMs = System.currentTimeMillis(),
+        )
+    }
+
+    /**
+     * GH#1662 — captura reduzida sem READ_PHONE_STATE. So le APIs do TelephonyManager que a
+     * documentacao do AOSP nao lista como protegidas por permissao: getSimState(),
+     * getNetworkOperatorName(), getNetworkOperator() e isNetworkRoaming(). NAO tenta
+     * allCellInfo/dataNetworkType/CellSignalStrength (essas exigem READ_PHONE_STATE ou
+     * localizacao) — por isso tecnologia/rsrp/rsrq/sinr sempre ficam null aqui.
+     *
+     * Retorna null quando nao ha SIM pronta ou quando nem operadora nem MCC/MNC foram lidos —
+     * nesse caso a tela cai no empty state (nada de fato disponivel, permissao ou nao).
+     */
+    @Suppress("MissingPermission")
+    private fun capturarSnapshotReduzidoSemPermissao(tm: TelephonyManager): MovelSnapshot? {
+        if (runCatching { tm.simState }.getOrNull() != TelephonyManager.SIM_STATE_READY) return null
+        val operadora = runCatching { tm.networkOperatorName?.takeIf { it.isNotBlank() } }.getOrNull()
+        val (mcc, mnc) = parseMccMnc(runCatching { tm.networkOperator }.getOrNull())
+        if (operadora == null && mcc == null) return null
+        val roaming = runCatching { tm.isNetworkRoaming }.getOrNull()
+        return MovelSnapshot(
+            operadora = operadora,
+            tecnologia = null,
+            rsrpDbm = null,
+            rsrqDb = null,
+            sinrDb = null,
+            ecnoDb = null,
+            bandaMovel = null,
+            cellId = null,
+            mcc = mcc,
+            mnc = mnc,
+            tac = null,
+            roaming = roaming,
+            radioDesligado = false,
+            capturaReduzida = true,
             timestampMs = System.currentTimeMillis(),
         )
     }
