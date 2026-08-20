@@ -599,19 +599,10 @@ private fun GrupoRedeTree(
                 )
             }
 
-            // GH#1209 item 8 — só mostra o aviso de incerteza quando existe de fato ambiguidade
-            // (algum nó com confiança abaixo de ALTA); quando o motor confirma os papéis com
-            // confiança alta, não há necessidade de alertar sobre estimativa.
-            val temNoAmbiguo = nos.any { no -> confiancaPorBssid[no.bssid] != ConfiancaTopologia.ALTA }
-            if (nos.size > 1 && !ehDualBandUnico && temNoAmbiguo) {
-                Spacer(Modifier.height(LkSpacing.sm))
-                Text(
-                    "* Estrutura estimada por fabricante/sinal — sem confirmação de rota de rede",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = c.textTertiary,
-                    modifier = Modifier.padding(horizontal = LkSpacing.sm),
-                )
-            }
+            // Decisão de produto (issue #1661, comentário de 2026-08-19): quando o app não tem
+            // certeza se a estrutura é um sistema mesh (confiança abaixo de ALTA em algum nó),
+            // a tela fica em silêncio — nunca afirma a incerteza. Antes desta mudança, havia um
+            // aviso textual ("Estrutura estimada..."); a regra estrita substitui aviso por nada.
         }
     }
 }
