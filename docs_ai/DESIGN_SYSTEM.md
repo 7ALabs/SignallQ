@@ -4,17 +4,18 @@ description: "Cores, tipografia, espaçamento, componentes e tokens do app Andro
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-16"
+last_updated: "2026-08-20"
 ---
 
 # Design System — SignallQ (Android, consumer)
 
 - **Status:** ativo
-- **Última validação contra código:** 2026-08-15 — foundations 2.0 implementados como camada de
+- **Última validação contra código:** 2026-08-20 — foundations 2.0 implementados como camada de
   compatibilidade na issue #1649: pares claro/escuro, preto-base, superfícies de card, scrim,
   escala 4–64 dp, shapes, state layers, elevação tonal e movimento. A migração das telas continua
   incremental. A issue #1650 adiciona uma biblioteca central opt-in de controles, contêineres,
-  feedback e estados de tela; somente o banner offline de Dispositivos é piloto. Este registro não
+  feedback e estados de tela; a issue #1672 (Task 2.0.24) expandiu o banner offline de
+  `DispositivosScreen` (piloto único da #1663) para também cobrir `SinalScreen`. Este registro não
   declara jornadas nem consumidores legados integralmente migrados.
 - **Fonte de verdade:** o *código* — `android/app/src/main/kotlin/io/signallq/app/ui/SignallQTheme.kt`
   (`LkColors`, `LkTokens`, `LkSpacing`, `LkRadius`, `LkStateLayer`, `LkElevation`, `LkMotion`,
@@ -452,9 +453,17 @@ claro/escuro vive em `SignallQComponentPreviews.kt`. Os componentes `Lk*`, `Stat
   erro recuperável.
 
 Essas APIs usam Material 3 diretamente, têm alvo mínimo interativo de 48 dp, não dependem apenas
-de cor para comunicar feedback e aceitam texto multilinha. A adoção é incremental: nesta fatia,
-somente `DispositivosScreen` usa `SignallQOfflineBanner`; não houve alteração de navegação,
-ViewModel, telemetria, regra de negócio ou placement de anúncio.
+de cor para comunicar feedback e aceitam texto multilinha. A adoção é incremental: a issue #1663
+tornou `DispositivosScreen` o primeiro piloto de `SignallQOfflineBanner`; a issue #1672 (Task
+2.0.24, épico #1647) expandiu para `SinalScreen` (as três abas Wi-Fi/Canal/Móvel), substituindo o
+`OfflineBanner()` legado que a tela usava por engano desde a extração da issue #1660 — nenhuma
+outra tela migrada ganhou o banner ainda (`SignallQComponentsContractTest` trava a lista exata).
+`SinalWifiScreen` (issue #1668) é o único consumidor de `SignallQStatefulScreen` completo (estados
+Loading/Content/Empty/Offline/PermissionRequired/RecoverableError); as demais telas 2.0
+(Equipamento, Ping, DNS, Monitoramento, Modo gamer, Histórico, Ajustes, Onboarding) continuam com
+tratamento de estado ad hoc — ver issue de continuação registrada em #1672 para o restante da
+matriz. Não houve alteração de navegação, ViewModel, telemetria, regra de negócio ou placement de
+anúncio nesta expansão.
 
 ### TopBar
 

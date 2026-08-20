@@ -65,7 +65,7 @@ import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.OperadoraSource
 import io.signallq.app.ui.ResolvedOperadoraIdentity
-import io.signallq.app.ui.component.OfflineBanner
+import io.signallq.app.ui.component.SignallQOfflineBanner
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
@@ -210,7 +210,7 @@ fun SinalScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            if (!conectado) OfflineBanner()
+            if (!conectado) SignallQOfflineBanner()
             if (conexaoTipo == ConexaoTipo.WIFI && !temPermissaoLocalizacao && !localizacaoSheetDismissed) {
                 LocPermissaoBanner(onClick = { showLocalizacaoSheet = true })
             }
