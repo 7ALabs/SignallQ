@@ -458,6 +458,20 @@ Três CTAs saem daqui para o resto do app: "Ver dispositivos", "Executar diagnó
 detalhes do Wi-Fi" — este último fecha o overlay e leva à aba Sinal, em vez de empilhar mais uma
 tela (`AppShell.kt:555-561`).
 
+**Modelo não suportado.** Quando o app identifica um equipamento na rede mas não sabe ler os dados
+dele (`AcessoEquipamento.SOMENTE_IDENTIFICACAO`), a tela não se limita a avisar "não suportado" —
+oferece dois próximos passos concretos (decisão de produto, Luiz, 2026-08-19, issue #1664): "Abrir
+configurações no navegador" (só quando há um host configurado — abre `http://<host>` via
+`ExternalActionLauncher`) e "Falar com o suporte" (`abrirEmailSuporte`, `suporte@signallq.com`).
+
+**Confirmação antes de agir no equipamento.** A única ação que efetivamente muda o estado do
+modem/roteador do usuário nesta tela é "Reiniciar equipamento" — sempre passa por um diálogo de
+confirmação explicando o que vai acontecer (fica sem internet por 1-3 minutos) antes de executar
+(`ReiniciarEquipamentoDialog`, `EquipamentoAcoesCard.kt`). As outras ações listadas ("Ver
+dispositivos", "Executar diagnóstico", "Ver detalhes do Wi-Fi") são só navegação — não mexem no
+equipamento, por isso não pedem confirmação (decisão de produto, Luiz, 2026-08-19, issue #1664, item
+2).
+
 **Credenciais.** O CTA "Configure o acesso ao equipamento" abre a `GatewayConnectionSheet` — a mesma
 sheet do nó do gateway na Início. Existe um toggle "manter conectado" que vincula a sessão ao BSSID
 atual, para não reautenticar a cada retorno à mesma rede.

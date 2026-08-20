@@ -47,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,6 +57,7 @@ import io.signallq.app.core.network.contracts.gateway.AcessoEquipamento
 import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnapshot
 import io.signallq.app.feature.fibra.EstadoFibra
 import io.signallq.app.feature.fibra.SnapshotFibra
+import io.signallq.app.ui.ExternalActionLauncher
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -225,6 +227,7 @@ fun EquipamentoInternetScreen(
                 EquipamentoAcessoIndisponivelContent(
                     acesso = acesso,
                     dentroDaJanelaPosReboot = dentroDaJanelaPosReboot,
+                    modemHost = modemHost,
                     onRetentar = onRetentar,
                     onAbrirAjustes = onAbrirAjustes,
                     c = c,
@@ -478,11 +481,13 @@ private fun EquipamentoConectadoContent(
 private fun EquipamentoAcessoIndisponivelContent(
     acesso: AcessoEquipamento,
     dentroDaJanelaPosReboot: Boolean,
+    modemHost: String?,
     onRetentar: () -> Unit,
     onAbrirAjustes: () -> Unit,
     c: LkTokens,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     val (icone, titulo, descricao, mostrarRevisarConfig) =
         when (acesso) {
             AcessoEquipamento.CREDENCIAIS_NECESSARIAS ->
@@ -493,12 +498,20 @@ private fun EquipamentoAcessoIndisponivelContent(
                     true,
                 )
 
+            // Decisão de produto (Luiz, 2026-08-19, item 1, issue #1664): modelo não
+            // suportado ganha orientação genérica ÚTIL — como acessar a página de
+            // configuração pelo navegador (a maioria dos roteadores/ONTs domésticos
+            // aceita isso, independente de fabricante) ou falar com o suporte — em
+            // vez de só avisar "não suportado" e deixar a pessoa sem próximo passo.
             AcessoEquipamento.SOMENTE_IDENTIFICACAO ->
                 AcessoIndisponivelCopy(
                     Icons.AutoMirrored.Outlined.HelpOutline,
                     "Equipamento não suportado",
-                    "Identificamos um equipamento nesta rede, mas ainda não sabemos ler os dados dele — " +
-                        "isso costuma acontecer quando o modem não é o modelo que o SignallQ já conhece.",
+                    "Identificamos um equipamento nesta rede, mas o SignallQ ainda não sabe ler os dados " +
+                        "dele — isso costuma acontecer quando o modem não é o modelo que já conhecemos. " +
+                        "Você ainda pode acessar as configurações dele direto pelo navegador, usando o " +
+                        "endereço do fabricante (geralmente algo como 192.168.0.1 ou 192.168.1.1), ou " +
+                        "falar com o suporte do SignallQ para ajudar a resolver.",
                     true,
                 )
 
@@ -515,9 +528,12 @@ private fun EquipamentoAcessoIndisponivelContent(
                 )
         }
 
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(
+        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        contentAlignment = Alignment.Center,
+    ) {
         Column(
-            modifier = Modifier.padding(horizontal = 24.dp),
+            modifier = Modifier.padding(horizontal = 24.dp).padding(vertical = LkSpacing.lg),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Box(
@@ -542,6 +558,26 @@ private fun EquipamentoAcessoIndisponivelContent(
                 shape = RoundedCornerShape(LkRadius.button),
             ) {
                 Text("Tentar novamente", fontSize = 14.sp, fontWeight = FontWeight.W600)
+            }
+            if (acesso == AcessoEquipamento.SOMENTE_IDENTIFICACAO) {
+                if (!modemHost.isNullOrBlank()) {
+                    Spacer(Modifier.height(LkSpacing.sm))
+                    OutlinedButton(
+                        onClick = { ExternalActionLauncher.abrirView(context, "http://$modemHost") },
+                        modifier = Modifier.fillMaxWidth().height(44.dp),
+                        shape = RoundedCornerShape(LkRadius.button),
+                    ) {
+                        Text("Abrir configurações no navegador", fontSize = 14.sp)
+                    }
+                }
+                Spacer(Modifier.height(LkSpacing.sm))
+                OutlinedButton(
+                    onClick = { abrirEmailSuporte(context) },
+                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    shape = RoundedCornerShape(LkRadius.button),
+                ) {
+                    Text("Falar com o suporte", fontSize = 14.sp)
+                }
             }
             if (mostrarRevisarConfig) {
                 Spacer(Modifier.height(LkSpacing.sm))
