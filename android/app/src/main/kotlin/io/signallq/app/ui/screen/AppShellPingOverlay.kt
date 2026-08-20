@@ -1,23 +1,30 @@
 package io.signallq.app.ui.screen
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.zIndex
 
 /**
- * Overlay "Ping" (bottom sheet de latência) — extraído do corpo de [AppShell] pela issue #1695
- * (épico #1647), entrada de exemplo do [AppShellOverlayRegistry].
+ * Overlay "Ping" (tela cheia de tempo de resposta) — extraído do corpo de [AppShell] pela
+ * issue #1695 (épico #1647), entrada de exemplo do [AppShellOverlayRegistry].
  *
- * Único overlay do registro sem `AnimatedVisibility`: `PingScreen` já é uma `ModalBottomSheet`
- * com sua própria animação de entrada/saída — envolvê-la também em `AnimatedVisibility`
- * duplicaria a transição. Mantido igual ao comportamento original em `AppShell.kt`.
+ * issue #1665 migrou [PingScreen] de `ModalBottomSheet` para tela cheia roteada (mesmo padrão
+ * de [AppShellDnsOverlay]) — a transição passa a ser a mesma dos demais overlays de tela cheia
+ * em vez da animação própria do bottom sheet.
  */
 @Composable
 internal fun AppShellPingOverlay(overlayStack: MutableList<AppShellOverlay>) {
-    if (AppShellOverlay.Ping in overlayStack) {
-        Box(modifier = Modifier.zIndex(rememberOverlayZIndex(AppShellOverlay.Ping, overlayStack))) {
-            PingScreen(onDismiss = { overlayStack.remove(AppShellOverlay.Ping) })
-        }
+    AnimatedVisibility(
+        visible = AppShellOverlay.Ping in overlayStack,
+        modifier = Modifier.zIndex(rememberOverlayZIndex(AppShellOverlay.Ping, overlayStack)),
+        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+    ) {
+        PingScreen(onVoltar = { overlayStack.remove(AppShellOverlay.Ping) })
     }
 }

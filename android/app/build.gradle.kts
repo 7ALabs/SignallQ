@@ -272,6 +272,13 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            // PingScreenViewModelTest (issue #1665) é o primeiro teste de :app a construir um
+            // OkHttpClient real (via PingExecutor) fora do Robolectric -- sem isso,
+            // Platform.findPlatform() do OkHttp chama android.util.Log.isLoggable, que o
+            // stub padrão do android.jar em teste JVM lança como "not mocked". Não muda
+            // asserção de nenhum teste existente: só evita que chamadas Android não
+            // mockadas (fora de Robolectric) lancem exceção, retornando valor default.
+            isReturnDefaultValues = true
         }
     }
 }
