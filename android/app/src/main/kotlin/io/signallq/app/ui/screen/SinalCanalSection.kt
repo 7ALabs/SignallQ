@@ -3,11 +3,9 @@ package io.signallq.app.ui.screen
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,18 +52,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Fill
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.signallq.app.R
 import io.signallq.app.core.diagnostico.BandaWifi
@@ -81,7 +72,6 @@ import io.signallq.app.feature.diagnostico.CanalTextGenerator
 import io.signallq.app.feature.wifi.RedeVizinha
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
-import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.component.LkPillBadge
 import io.signallq.app.ui.component.LkSheetDivider
@@ -281,34 +271,6 @@ internal fun CanalTab(
                 )
             }
             Spacer(Modifier.height(LkSpacing.lg))
-        }
-
-        item {
-            Column(Modifier.padding(horizontal = LkSpacing.lg)) {
-                SectionLabel(
-                    if (selectedBanda == "Todos") {
-                        "Intensidade por canal"
-                    } else {
-                        "Intensidade por canal · $selectedBanda"
-                    },
-                )
-                Spacer(Modifier.height(LkSpacing.sm))
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(LkRadius.card))
-                            .background(c.surfaceContainer)
-                            .padding(LkSpacing.md),
-                ) {
-                    SpectrumChart(
-                        espectro = espectro,
-                        redesRaw = redesBanda,
-                        seuSSID = connectedNetwork?.ssid,
-                    )
-                }
-                Spacer(Modifier.height(LkSpacing.lg))
-            }
         }
 
         if (mostrarAlertaBandSteering) {
@@ -586,205 +548,6 @@ private fun CanalErroState(
                 }
             }
         }
-    }
-}
-
-// ─── Spectrum chart (Gaussian curves) ────────────────────────────────────────
-
-private data class RedeParaEspectro(
-    val ssid: String,
-    val canal: Int,
-    val rssiDbm: Int,
-    val cor: Color,
-    val isSua: Boolean,
-)
-
-@Composable
-private fun SpectrumChart(
-    espectro: SnapshotEspectroCanal,
-    redesRaw: List<RedeVizinha> = emptyList(),
-    seuSSID: String? = null,
-) {
-    val c = LocalLkTokens.current
-    val dados = espectro.dadosPorCanal
-    val accentColor = c.primary
-    val gridColor = c.border.copy(alpha = 0.35f)
-    val textTertiary = c.textTertiary
-    val textMeasurer = rememberTextMeasurer()
-    val chartLabelStyle = MaterialTheme.typography.labelSmall.copy(color = textTertiary)
-    val spectrumColors =
-        listOf(
-            c.secondary,
-            c.success,
-            c.warning,
-            c.primary,
-            c.error,
-            c.secondaryContainer,
-            c.successContainer,
-            c.warningContainer,
-        )
-
-    val redesParaDesenhar =
-        remember(redesRaw, seuSSID, accentColor, spectrumColors) {
-            redesRaw
-                .filter { it.canal != null }
-                .sortedByDescending { it.rssiDbm }
-                .take(20)
-                .mapIndexed { idx, rede ->
-                    val isSua = seuSSID != null && rede.ssid == seuSSID
-                    RedeParaEspectro(
-                        ssid = rede.ssid ?: "Oculta",
-                        canal = rede.canal!!,
-                        rssiDbm = rede.rssiDbm,
-                        cor = if (isSua) accentColor else spectrumColors[idx % spectrumColors.size],
-                        isSua = isSua,
-                    )
-                }
-        }
-
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgSecondary)
-            .padding(horizontal = LkSpacing.md, vertical = LkSpacing.md),
-    ) {
-        if (redesParaDesenhar.isEmpty() && dados.isEmpty()) {
-            Box(Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
-                Text(
-                    "Sem redes visíveis",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Normal,
-                    color = c.textTertiary,
-                )
-            }
-            return@Column
-        }
-
-        val chartAreaHeight = 130.dp
-        val xAxisHeight = 20.dp
-        val yAxisWidth = 30.dp
-
-        val canais = remember(dados) { dados.map { it.canal }.sorted() }
-        val canalMin = canais.firstOrNull() ?: 1
-        val canalMax = canais.lastOrNull() ?: 13
-
-        Canvas(
-            Modifier
-                .fillMaxWidth()
-                .height(chartAreaHeight + xAxisHeight),
-        ) {
-            val leftPx = yAxisWidth.toPx()
-            val chartH = chartAreaHeight.toPx()
-            val xAxisH = xAxisHeight.toPx()
-            val chartW = size.width - leftPx
-
-            listOf(-30 to "-30", -50 to "-50", -70 to "-70").forEach { (dBm, label) ->
-                val frac = 1f - ((dBm + 90f) / 70f)
-                val y = chartH * frac
-                drawLine(gridColor, Offset(leftPx, y), Offset(size.width, y), strokeWidth = 0.5.dp.toPx())
-                val textLayout = textMeasurer.measure(label, chartLabelStyle)
-                drawText(textLayout, topLeft = Offset(0f, y - textLayout.size.height / 2f))
-            }
-
-            val range = (canalMax - canalMin).coerceAtLeast(1).toFloat()
-
-            fun canalToX(canal: Float): Float = leftPx + ((canal - canalMin + 1f) / (range + 2f)) * chartW
-
-            val is24Ghz = canalMin <= 14
-            val halfWidthChannels = if (is24Ghz) 2.5f else 4f
-            val sigma = halfWidthChannels / 2.355f
-
-            redesParaDesenhar.reversed().forEach { rede ->
-                val centerX = canalToX(rede.canal.toFloat())
-                val heightFraction = ((rede.rssiDbm + 90).coerceIn(0, 70)) / 70f
-
-                val path = Path()
-                val steps = 60
-                val xSpread = halfWidthChannels * 2f
-                val startCanal = rede.canal - xSpread
-                val endCanal = rede.canal + xSpread
-                val step = (endCanal - startCanal) / steps
-
-                for (i in 0..steps) {
-                    val canalPos = startCanal + i * step
-                    val x = canalToX(canalPos)
-                    val dist = (canalPos - rede.canal) / sigma
-                    val gauss = kotlin.math.exp(-0.5 * dist * dist).toFloat()
-                    val y = chartH - (chartH * heightFraction * gauss)
-                    if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-                }
-
-                drawPath(path, color = rede.cor, style = Stroke(width = 2.dp.toPx()))
-
-                val fillPath = Path()
-                fillPath.addPath(path)
-                fillPath.lineTo(canalToX(endCanal), chartH)
-                fillPath.lineTo(canalToX(startCanal), chartH)
-                fillPath.close()
-                drawPath(fillPath, color = rede.cor.copy(alpha = 0.15f), style = Fill)
-            }
-
-            // #1131 (bug 1) — canalToX posiciona pelo VALOR numerico do canal, nao pelo indice.
-            // Com muitos canais proximos (ex.: 36,40,44,48 em 5GHz) os rotulos colam uns nos
-            // outros virando uma sequencia ilegivel. Desenha em ordem crescente e so escreve
-            // o proximo rotulo quando ele nao invade o espaco do ultimo rotulo desenhado —
-            // reduz a quantidade de numeros exibidos sem afetar as curvas do espectro.
-            val labelMinGapPx = LkSpacing.xs.toPx()
-            var lastLabelRight = Float.NEGATIVE_INFINITY
-            canais.forEach { canal ->
-                val x = canalToX(canal.toFloat())
-                val isAtual = canal == espectro.canalAtual
-                val xLabelColor = if (isAtual) accentColor else textTertiary
-                val xLabelWeight = if (isAtual) FontWeight.Bold else FontWeight.Normal
-                val xLayout =
-                    textMeasurer.measure(
-                        "$canal",
-                        chartLabelStyle.copy(color = xLabelColor, fontWeight = xLabelWeight),
-                    )
-                val labelLeft = x - xLayout.size.width / 2f
-                if (labelLeft >= lastLabelRight + labelMinGapPx) {
-                    drawText(
-                        xLayout,
-                        topLeft = Offset(labelLeft, chartH + (xAxisH - xLayout.size.height) / 2),
-                    )
-                    lastLabelRight = labelLeft + xLayout.size.width
-                }
-            }
-        }
-
-        Spacer(Modifier.height(LkSpacing.sm))
-
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
-        ) {
-            redesParaDesenhar.take(8).forEach { rede ->
-                LegendaRedeItem(ssid = rede.ssid, cor = rede.cor, c = c)
-            }
-        }
-    }
-}
-
-@Composable
-private fun LegendaRedeItem(
-    ssid: String,
-    cor: Color,
-    c: LkTokens,
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(8.dp).clip(CircleShape).background(cor))
-        Spacer(Modifier.width(LkSpacing.xs))
-        Text(
-            ssid,
-            style = MaterialTheme.typography.labelSmall,
-            color = c.textSecondary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }
 

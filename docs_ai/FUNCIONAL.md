@@ -351,18 +351,26 @@ seguem também na `CellularInfoSheet` da Início (`HomeScreen.kt`).
 **Aba Wi-Fi.** Lista as redes ao redor com filtro por banda (Todos / 2.4 / 5 / 6 GHz). O bloco "SUA
 CONEXÃO" desenha uma **árvore de topologia** do próprio SSID: o nó conectado agora, mais os BSSIDs
 que o motor de topologia confirmou como parte da mesma infraestrutura — SSID igual sem evidência de
-fabricante/banda cai em "outras redes" (`SinalScreen.kt:996-1017`). A árvore traz nota de rodapé
-declarando que a estrutura é estimada por fabricante/sinal, sem confirmação de rota de rede. Abaixo,
-as redes de terceiros agrupadas por SSID, expansíveis quando o SSID tem múltiplos pontos. Tocar em
-qualquer rede abre uma sheet com sinal, banda, canal, largura, segurança e BSSID; se o nó
-corresponder a um dispositivo real encontrado no scan da LAN, abre a sheet de AP mesh no lugar.
+fabricante/banda cai em "outras redes" (`SinalWifiSection.kt`, `GrupoRedeTree`). Quando o motor não
+tem confiança alta sobre a estrutura (mesh incerto), a tela fica em silêncio — decisão de produto
+(issue #1661, 2026-08-19): nunca afirma a incerteza, nem com nota de rodapé; antes da migração 2.0
+havia um aviso textual "estrutura estimada por fabricante/sinal, sem confirmação de rota de rede",
+removido nesta fatia. Abaixo, as redes de terceiros agrupadas por SSID, expansíveis quando o SSID
+tem múltiplos pontos. Tocar em qualquer rede abre uma sheet com sinal, banda, canal, largura,
+segurança e BSSID; se o nó corresponder a um dispositivo real encontrado no scan da LAN, abre a
+sheet de AP mesh no lugar.
 
-**Aba Canal.** Gráfico de espectro em Canvas com as redes vizinhas por canal e destaque do seu SSID;
-lista de ocupação ordenada por congestionamento; texto explicativo gerado conforme o cenário. Um
-único bloco de aviso por vez, mutuamente exclusivo (`SinalScreen.kt:2303-2364`): canal congestionado,
-canal limpo, ou canal recomendado para migração. Card de band steering quando você está em 2.4 GHz e
-existe um nó do mesmo SSID em 5 GHz. O próprio rótulo da aba ganha ícone de alerta quando o canal
-conectado está congestionado.
+**Aba Canal.** Explicação em linguagem simples (há interferência? vale trocar de canal?) seguida da
+lista "Ocupação dos canais" ordenada por congestionamento, com status Livre/Moderado/Congestionado
+por canal — sem visualização gráfica de espectro/ocupação. Decisão de produto (issue #1661,
+2026-08-19): o gráfico técnico de canais (curvas de espectro desenhadas em Canvas, GH#1131) foi
+**removido**, não escondido atrás de opção secundária — divergência deliberada do protótipo do
+Design System 2.0, que ainda cita "gráficos técnicos" como extensão de domínio futura (ver
+`docs_ai/design-system/SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md`, seção 5). Um único bloco de aviso por vez,
+mutuamente exclusivo (`SinalCanalSection.kt`, `CanalTab`): canal congestionado, canal limpo, ou canal
+recomendado para migração. Card de band steering quando você está em 2.4 GHz e existe um nó do mesmo
+SSID em 5 GHz. O próprio rótulo da aba ganha ícone de alerta quando o canal conectado está
+congestionado.
 
 Ambas as abas fazem auto-refresh a cada 30 s enquanto visíveis e em foreground
 (`SinalScreen.kt:268-278`), e mostram estado vazio "Você está usando a internet do chip" quando não
@@ -690,8 +698,9 @@ chat livre nem conversa multi-turno.
 
 **Métricas rotuladas como estimativa.** "Falhas estimadas na conexão" é taxa de timeout de probes
 HTTP, não perda de pacotes IP. O `PingScreen` mede latência HTTPS, não ICMP, e declara isso ao
-usuário. A árvore de topologia Wi-Fi é estimada por fabricante e sinal, com nota de rodapé dizendo
-que não há confirmação de rota de rede.
+usuário. A árvore de topologia Wi-Fi é estimada por fabricante e sinal; quando a confiança não é
+alta (mesh incerto), a tela de Sinal fica em silêncio em vez de afirmar a incerteza — não há mais
+nota de rodapé sobre isso (decisão de produto, issue #1661, 2026-08-19).
 
 **Varredura passiva tem teto.** Para APs mesh, o app não consegue ler sinal, banda nem clientes
 conectados — e recomenda o painel do roteador em vez de inventar o dado.
