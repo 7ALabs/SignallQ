@@ -395,24 +395,33 @@ Wi-Fi é desligado ou a rede é perdida, para nunca mostrar uma leitura antiga c
 
 ### 5.4 Dispositivos conectados
 
-**Tela:** `DispositivosScreen` (overlay via Ferramentas).
+**Tela:** `DispositivosScreen` (overlay via Ferramentas) — composição pura desde a issue #1663
+(épico #1647, Task 2.0.15). A lista e os estados vazio/sem-Wi-Fi vivem em `DispositivosLista.kt`;
+as sheets de detalhe (`DeviceDetailSheet`, `MeshApSheet`) e os helpers de rótulo/ícone
+compartilhados vivem em `DispositivoDetalheSheet.kt`. Extração mecânica, sem mudança de
+comportamento (`DispositivosScreenExtracaoCaracterizacaoTest.kt`).
 
 A tela só funciona em Wi-Fi — em rede móvel ou offline, mostra um fallback explicativo em vez da
-lista (`DispositivosScreen.kt:191-194`). A varredura roda com pull-to-refresh e avisa quando o
-resultado é parcial ("uma etapa da varredura não respondeu").
+lista (`DispositivosScreen.kt`, `SemWifiFallback` em `DispositivosLista.kt`). A varredura roda com
+pull-to-refresh e avisa quando o resultado é parcial ("uma etapa da varredura não respondeu").
 
 A lista vem em três seções: **Infraestrutura** (o gateway, com subtítulo composto "IP · bandas Wi-Fi
 · N clientes"), **Pontos de acesso** (nós mesh, badge "AP Mesh") e **Dispositivos**. Cada aparelho
-mostra nome resolvido ou fabricante, e "Este aparelho" no próprio celular. Tocar abre uma sheet com
-IP, MAC mascarado, fabricante, tipo e — só quando há correlação confirmada de topologia — conexão
-física e papel na rede.
+mostra nome resolvido ou fabricante, e "Este aparelho" no próprio celular. Dispositivo sem nome
+resolvido e sem fabricante confirmado nunca recebe marca/tipo inventado — mostra o rótulo genérico
+honesto "Dispositivo desconhecido" (ou "Dispositivo <Fabricante>" quando o fabricante É confirmado
+via OUI/UPnP/mDNS) com ícone genérico (decisão de produto do Luiz, issue #1663, 2026-08-19). Tocar
+abre uma sheet com IP, MAC mascarado, fabricante, tipo e — só quando há correlação confirmada de
+topologia — conexão física e papel na rede.
 
 O usuário pode dar **apelido** a qualquer dispositivo; o apelido é persistido por MAC, com fallback
-para IP+nome quando o Android não resolve o MAC via ARP (`DispositivosScreen.kt:612-614`).
+para IP+nome quando o Android não resolve o MAC via ARP (`DeviceDetailSheet` em
+`DispositivoDetalheSheet.kt`). IP/MAC/SSID nunca são enviados a analytics — a telemetria do scan
+(`DevicesViewModel`/`MainViewModel`) só emite contagem de dispositivos, nunca os valores.
 
 A sheet de AP mesh é explicitamente honesta sobre o limite: "Sinal, banda e clientes conectados não
 estão disponíveis via varredura passiva. Para métricas detalhadas, acesse o painel do seu roteador
-mesh." (`DispositivosScreen.kt:865-871`).
+mesh." (`MeshApSheet` em `DispositivoDetalheSheet.kt`).
 
 ### 5.5 DNS
 

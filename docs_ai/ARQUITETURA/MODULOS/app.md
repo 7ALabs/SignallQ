@@ -95,7 +95,7 @@ Nenhum. `:app` é o topo do grafo do Consumer — a busca por `project(":app")` 
 | `app/src/main/kotlin/io/signallq/app/ads/` (7 arquivos) | `AdSlot`, `AdUnitIds` (real vs teste conforme `-PplayTrack`), `ConsentManager` (UMP), `AdsRemoteConfigRepository` |
 | `app/src/main/kotlin/io/signallq/app/monitoramento/` (7 arquivos) | `MonitoramentoWorker`/`Scheduler`, `AdminSyncWorker`/`Scheduler`, `AnalyticsOutboxProcessor`, `HisteresiHelper` |
 | `app/src/main/kotlin/io/signallq/app/analytics/` (5 arquivos) | `CompositeAnalyticsTracker`, `FirebaseAnalyticsTracker`, `AnalyticsOutboxFunnelTracker`, `DistributionChannel` |
-| `app/src/main/kotlin/io/signallq/app/ui/screen/` | 90 arquivos de tela/estado — inclui `HomeScreen.kt` (2967), `SinalCanalSection.kt` (1215), `SinalWifiSection.kt` (1110), `DispositivosScreen.kt` (1380). `SinalScreen.kt` (476) virou scaffold — issue #1660 extraiu as três abas para `SinalWifiSection.kt`/`SinalCanalSection.kt`/`SinalMovelSection.kt` + `SinalSharedComponents.kt` |
+| `app/src/main/kotlin/io/signallq/app/ui/screen/` | 92 arquivos de tela/estado — inclui `HomeScreen.kt` (2967), `SinalCanalSection.kt` (1215), `SinalWifiSection.kt` (1110). `SinalScreen.kt` (476) virou scaffold — issue #1660 extraiu as três abas para `SinalWifiSection.kt`/`SinalCanalSection.kt`/`SinalMovelSection.kt` + `SinalSharedComponents.kt`. `DispositivosScreen.kt` (168) virou scaffold — issue #1663 extraiu lista/estados vazios para `DispositivosLista.kt` (622) e sheets de detalhe para `DispositivoDetalheSheet.kt` (617) |
 | `app/src/main/AndroidManifest.xml` | 8 permissões, `FileProvider`, App ID do AdMob, remoção do `WorkManagerInitializer` automático |
 
 Versão declarada em `android/gradle/libs.versions.toml`: `versionCode = 72`, `versionName = 0.31.0`
@@ -108,14 +108,17 @@ Versão declarada em `android/gradle/libs.versions.toml`: `versionCode = 72`, `v
   arquivos legados fisicamente em `io/veloo/app/kotlin/` concluída em uma única PR (§4.1 da higiene).
 - **Arquivos acima de 800 linhas em `src/main`** (contagem real, `wc -l`):
   `ui/screen/HomeScreen.kt` 2967, `MainViewModel.kt` 2438, `ui/screen/AppShell.kt` 1635,
-  `ui/screen/SinalCanalSection.kt` 1215, `ui/screen/DispositivosScreen.kt` 1380,
-  `ui/screen/SinalWifiSection.kt` 1110, `ui/component/LocalDeviceSection.kt` 1248,
-  `ui/screen/DiagnosticoGuiadoScreen.kt` 916, `ui/screen/SpeedTestScreen.kt` 851,
-  `ui/screen/HistoricoScreen.kt` 815 e `ui/screen/DnsScreen.kt` 815. A issue #1660 (épico #1647)
+  `ui/screen/SinalCanalSection.kt` 1215, `ui/screen/SinalWifiSection.kt` 1110,
+  `ui/component/LocalDeviceSection.kt` 1248, `ui/screen/DiagnosticoGuiadoScreen.kt` 916,
+  `ui/screen/SpeedTestScreen.kt` 851, `ui/screen/HistoricoScreen.kt` 815 e
+  `ui/screen/DnsScreen.kt` 815. A issue #1660 (épico #1647)
   extraiu `ui/screen/SinalScreen.kt` (era 3383 linhas, dívida crítica) em scaffold (476 linhas) +
   `SinalWifiSection.kt`/`SinalCanalSection.kt`/`SinalMovelSection.kt` (539)/`SinalSharedComponents.kt`
   (79) — `SinalWifiSection.kt` e `SinalCanalSection.kt` nasceram acima de 800 linhas e são
   candidatos a nova extração incremental por componente numa fatia futura, não redesign.
+  A issue #1663 (mesmo épico) extraiu `ui/screen/DispositivosScreen.kt` (era 1381 linhas, dívida
+  crítica) em scaffold (168 linhas) + `DispositivosLista.kt` (622) + `DispositivoDetalheSheet.kt`
+  (617) — as duas ficaram abaixo do limiar de 800 linhas, sem exigir extração adicional.
   `MainViewModel.kt` já é tratado como dívida crítica no próprio
   código (o KDoc de `ConsumerFeatureGateCoordinator` cita a regra de higiene §4.2: extrair, não
   adicionar responsabilidade). `AppShell.kt` caiu de 1703 para 1635 linhas com a issue #1695
