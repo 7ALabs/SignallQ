@@ -1,6 +1,5 @@
 package io.signallq.app.ui.screen
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -56,8 +55,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -187,37 +186,53 @@ fun DiagnosticoGuiadoScreen(
     /** GH#1707 — estado do reteste em curso (spec §14.6): ausente/em andamento/concluído com o
      *  veredito já em texto pronto pra exibição. */
     comparacaoRetesteState: ComparacaoRetesteUiState = ComparacaoRetesteUiState.Ausente,
+    /**
+     * Ponte para `RegistrarBackDoOverlay` — issue #1720. Chamado a cada composição bem-sucedida
+     * com a função de back **atual** desta tela (equivalente ao que era `BackHandler(onBack =
+     * ::voltarUmPasso)` antes desta issue). Quem registra de fato é o overlay que hospeda esta
+     * tela ([AppShellDiagnosticoGuiadoOverlay]) — fora do conteúdo do `AnimatedVisibility`, para o
+     * desregistro não ficar preso à animação de saída (ver KDoc de `RegistrarBackDoOverlay`).
+     *
+     * Esta tela não chama `BackHandler` diretamente: um `BackHandler` local aqui seria registrado
+     * DEPOIS do `BackHandler` de `AppShellBackHandlers` (LIFO do
+     * `OnBackPressedDispatcher`) e sequestraria o back antes de `consumirBackDoOverlayTopo`
+     * rodar — era exatamente esse o defeito que a #1720 corrigiu. Default no-op preserva quem
+     * usa esta tela sem overlay (testes, por exemplo).
+     */
+    onBackHandlerReady: (onBack: () -> Boolean) -> Unit = {},
 ) {
     val c = LocalLkTokens.current
-    // GH#1704 — a persistência destes quatro estados foi RETIRADA desta fatia, não esquecida.
-    // Ver a issue #1704: quatro slots `rememberSaveable` independentes conseguem restaurar
-    // incoerentes entre si (objetivo nulo com `passo > 0` estoura em `perguntas[passo]`;
+    // GH#1704 (persistência) / GH#1720 (ligação) — estado indivisível restaurável entre mortes de
+    // processo. Um saver sobre QUATRO slots `rememberSaveable` independentes conseguia restaurar
+    // incoerente entre si (objetivo nulo com `passo > 0` estoura em `perguntas[passo]`;
     // `mostrarResultado` verdadeiro com objetivo novo salta o roteiro e avalia com respostas de
-    // outra jornada). O invariante "objetivo == null ⇒ passo 0, respostas vazias, sem resultado"
-    // hoje vale por construção, porque todo caminho que zera `objetivo` zera os outros três junto.
-    //
-    // A persistência correta é um saver sobre UM objeto de estado, não sobre quatro campos — o
-    // que é exatamente o ViewModel da segunda metade da #1704. Fazer aqui seria criar um remendo
-    // que aquela fatia jogaria fora, com risco de diagnóstico errado no intervalo.
-    var objetivo by remember { mutableStateOf(objetivoPreSelecionado) }
-    var passo by remember { mutableIntStateOf(0) }
-    var respostas by
-        remember {
-            mutableStateOf<List<Int?>>(
-                if (objetivoPreSelecionado != null && respostaPreSelecionadaPasso0 != null) {
-                    listOf(respostaPreSelecionadaPasso0)
-                } else {
-                    emptyList()
-                },
+    // outra jornada) — motivo de existir [DiagnosticoGuiadoEstado] como objeto único. Ver
+    // `DiagnosticoGuiadoEstado.kt` para o racional completo do saver e do invariante `coerente`.
+    var estado by
+        rememberSaveable(stateSaver = DiagnosticoGuiadoEstado.Saver) {
+            mutableStateOf(
+                DiagnosticoGuiadoEstado(
+                    objetivo = objetivoPreSelecionado,
+                    respostas =
+                        if (objetivoPreSelecionado != null && respostaPreSelecionadaPasso0 != null) {
+                            listOf(respostaPreSelecionadaPasso0)
+                        } else {
+                            emptyList()
+                        },
+                ),
             )
         }
-    var mostrarResultado by remember { mutableStateOf(false) }
+    val objetivo = estado.objetivo
+    val passo = estado.passo
+    val respostas = estado.respostas
+    val mostrarResultado = estado.rotaAtual == DiagnosticoGuiadoRota.Resultado
 
-    // GH#1704 parte 4/4 — rota `Analise`. Booleano próprio, e não um terceiro valor derivado de
-    // `analise.estado`, porque o estado do executor é global: ele fica `Concluida` para o app
-    // inteiro depois de qualquer medição. Só este flag diz "a medição em curso pertence a ESTE
-    // fluxo", que é o que decide se a conclusão da medição deve avançar a tela.
-    var emAnalise by remember { mutableStateOf(false) }
+    // GH#1704 parte 4/4 — rota `Analise`. Derivado do topo da pilha, e não um terceiro valor
+    // independente calculado de `analise.estado`, porque o estado do executor é global: ele fica
+    // `Concluida` para o app inteiro depois de qualquer medição. Só este flag diz "a medição em
+    // curso pertence a ESTE fluxo", que é o que decide se a conclusão da medição deve avançar a
+    // tela.
+    val emAnalise = estado.rotaAtual == DiagnosticoGuiadoRota.Analise
 
     /**
      * A conclusão (§8.6) só é alcançável com um resultado que o motor aceite. Sem isso o fluxo
@@ -291,10 +306,7 @@ fun DiagnosticoGuiadoScreen(
         when {
             !emAnalise -> medicaoObservadaEmCurso = false
             analise.estado !is EstadoAnaliseGuiada.Concluida -> medicaoObservadaEmCurso = true
-            medicaoObservadaEmCurso -> {
-                emAnalise = false
-                mostrarResultado = true
-            }
+            medicaoObservadaEmCurso -> estado = estado.irPara(DiagnosticoGuiadoRota.Resultado)
         }
     }
 
@@ -302,32 +314,40 @@ fun DiagnosticoGuiadoScreen(
     // novo dentro do próprio fluxo. Não manda a pessoa para outra tela, que era o que o
     // `onMedirNovamente` do estado vazio fazia antes da #1704.
     fun remedirPelaAnalise() {
-        mostrarResultado = false
-        emAnalise = true
+        estado = estado.irPara(DiagnosticoGuiadoRota.Analise)
         analise.onIniciar()
     }
 
-    fun voltarUmPasso() {
-        when {
-            mostrarResultado -> {
-                mostrarResultado = false
-                onResetarAnalisador()
-            }
-            emAnalise -> {
-                emAnalise = false
-                analise.onCancelar()
-            }
-            objetivo != null && passo > 0 -> passo -= 1
-            objetivo != null -> {
-                objetivo = null
-                passo = 0
-                respostas = emptyList()
-            }
-            else -> onVoltar()
+    // GH#1720 — `estado.recuar()` é a MESMA regra que vivia aqui espalhada em cinco cláusulas
+    // `when`, só que centralizada em `DiagnosticoGuiadoEstado` e testada isoladamente
+    // (`DiagnosticoGuiadoEstadoTest`). `false` é o sinal "não há mais o que recuar dentro do
+    // fluxo" — é exatamente o contrato que `RegistrarBackDoOverlay` espera de `onBack`.
+    fun tentarRecuar(): Boolean {
+        val rotaAnterior = estado.rotaAtual
+        val proximo = estado.recuar() ?: return false
+        estado = proximo
+        when (rotaAnterior) {
+            DiagnosticoGuiadoRota.Resultado -> onResetarAnalisador()
+            DiagnosticoGuiadoRota.Analise -> analise.onCancelar()
+            else -> Unit
         }
+        return true
     }
 
-    BackHandler(onBack = ::voltarUmPasso)
+    // Wrapper Unit para os call sites de UI (ícone de voltar da AppBar, cancelar da análise): eles
+    // não têm "deixar o overlay inteiro fechar" como opção própria, então caem em [onVoltar]
+    // quando não há mais o que recuar.
+    fun voltarUmPasso() {
+        if (!tentarRecuar()) onVoltar()
+    }
+
+    // GH#1720 — substitui o `BackHandler` local: quem registra de fato é
+    // `AppShellDiagnosticoGuiadoOverlay`, via `RegistrarBackDoOverlay`. Repassa `tentarRecuar`
+    // (não `voltarUmPasso`): o `false` precisa chegar intacto ao navigator para ele decidir fechar
+    // o overlay — se repassássemos `voltarUmPasso`, o `false` seria engolido pelo `onVoltar()`
+    // interno e o navigator NUNCA veria o overlay pedindo para sair. Ver KDoc de
+    // [onBackHandlerReady].
+    SideEffect { onBackHandlerReady(::tentarRecuar) }
 
     Scaffold(
         containerColor = c.bgPrimary,
@@ -363,7 +383,7 @@ fun DiagnosticoGuiadoScreen(
             objetivoAtual == null ->
                 ListaObjetivos(
                     modifier = Modifier.padding(padding),
-                    onSelect = { objetivo = it },
+                    onSelect = { estado = estado.copy(objetivo = it) },
                     c = c,
                 )
             // GH#1705 — sem conclusão possível, a tela é a continuidade COM ação, não um banner
@@ -403,10 +423,7 @@ fun DiagnosticoGuiadoScreen(
                     resultado = resultado,
                     analisadorState = analisadorState,
                     onEscolherOutraSituacao = {
-                        mostrarResultado = false
-                        objetivo = null
-                        passo = 0
-                        respostas = emptyList()
+                        estado = DiagnosticoGuiadoEstado()
                         onResetarAnalisador()
                     },
                     onIrParaHome = onIrParaHome,
@@ -448,21 +465,24 @@ fun DiagnosticoGuiadoScreen(
                     total = perguntas.size,
                     respostaSelecionada = respostas.getOrNull(passo),
                     onEscolher = { opcaoIndex ->
-                        respostas =
-                            respostas.toMutableList().apply {
-                                while (size <= passo) add(null)
-                                this[passo] = opcaoIndex
-                            }
+                        estado =
+                            estado.copy(
+                                respostas =
+                                    respostas.toMutableList().apply {
+                                        while (size <= passo) add(null)
+                                        this[passo] = opcaoIndex
+                                    },
+                            )
                     },
                     onAvancar = {
                         when {
-                            passo < perguntas.size - 1 -> passo += 1
+                            passo < perguntas.size - 1 -> estado = estado.copy(passo = passo + 1)
                             // GH#1704 — o fim do roteiro leva à análise (§8.5), não direto à
                             // conclusão. Só pula a medição quando já existe resultado utilizável,
                             // que é o caminho de quem entrou aqui vindo da tela de Resultado.
-                            podeConcluirSemMedir -> mostrarResultado = true
+                            podeConcluirSemMedir -> estado = estado.irPara(DiagnosticoGuiadoRota.Resultado)
                             else -> {
-                                emAnalise = true
+                                estado = estado.irPara(DiagnosticoGuiadoRota.Analise)
                                 analise.onIniciar()
                             }
                         }

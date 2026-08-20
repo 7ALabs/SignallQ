@@ -7,6 +7,10 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.zIndex
@@ -96,10 +100,21 @@ internal data class AppShellDiagnosticoGuiadoAcoes(
  */
 @Composable
 internal fun AppShellDiagnosticoGuiadoOverlay(
-    overlayStack: MutableList<AppShellOverlay>,
+    navigator: AppShellNavigator,
     entry: AppShellDiagnosticoGuiadoEntry,
 ) {
+    val overlayStack = navigator.overlayStack
     val dados = entry.dados
+
+    // issue #1720 — ponte entre o `RegistrarBackDoOverlay` (que precisa viver FORA do
+    // `AnimatedVisibility`, ver KDoc dele em `AppShellNavigation.kt`) e o `voltarUmPasso` interno
+    // de `DiagnosticoGuiadoScreen` (que só existe DENTRO do conteúdo, porque é lá que mora o
+    // `estado`). `backHandler` é preenchido a cada composição da tela via `onBackHandlerReady` e
+    // consultado por `consumirBackDoOverlayTopo()` através da lambda abaixo — nunca lido
+    // diretamente por composição, então não precisa disparar recomposição sozinho.
+    var backHandler by remember { mutableStateOf<() -> Boolean>({ false }) }
+    RegistrarBackDoOverlay(navigator, AppShellOverlay.DiagnosticoGuiado) { backHandler() }
+
     AnimatedVisibility(
         visible = AppShellOverlay.DiagnosticoGuiado in overlayStack,
         modifier =
@@ -122,6 +137,7 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
             statusMedicao = resultado?.status,
             medidasConfiaveis = medidasConfiaveis(resultado),
             analise = entry.analise,
+            onBackHandlerReady = { backHandler = it },
             objetivoPreSelecionado = dados.objetivoPreSelecionado,
             respostaPreSelecionadaPasso0 = dados.respostaPreSelecionadaPasso0,
             analisadorState = dados.analisadorState,

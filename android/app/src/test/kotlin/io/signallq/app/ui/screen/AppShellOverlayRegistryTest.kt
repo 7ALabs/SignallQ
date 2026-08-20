@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -217,6 +218,16 @@ class AppShellOverlayRegistryTest {
     )
 
     /**
+     * Navigator de teste cuja pilha da raiz Home já nasce com [overlays] — issue #1720:
+     * `AppShellDiagnosticoGuiadoOverlay` passou a exigir o `navigator` (não só a lista crua) para
+     * poder chamar `RegistrarBackDoOverlay`. `.overlayStack` devolve a MESMA `SnapshotStateList`
+     * usada internamente, então mutações feitas pelo teste depois (`add`/`remove`) continuam
+     * visíveis para o registry sem precisar sincronizar duas listas.
+     */
+    private fun navigatorComPilha(vararg overlays: AppShellOverlay): AppShellNavigator =
+        AppShellNavigator(initialTab = AppShellRoot.Home.legacyIndex).apply { overlayStack.addAll(overlays) }
+
+    /**
      * Wiring padrão do [AppShellOverlayRegistry] para os testes desta classe — os parâmetros que
      * um teste precisa customizar (pilha, resultado de speedtest, callback de gerenciar dados,
      * entrada do diagnóstico guiado) ficam explícitos; o resto é o mínimo neutro para compor sem
@@ -224,13 +235,14 @@ class AppShellOverlayRegistryTest {
      */
     @Composable
     private fun RegistryDeTeste(
-        stack: MutableList<AppShellOverlay>,
+        navigator: AppShellNavigator,
         resultadoSpeedtest: ResultadoSpeedtest? = null,
         onAbrirGerenciarDados: () -> Unit = {},
         diagnosticoGuiado: AppShellDiagnosticoGuiadoEntry = diagnosticoGuiadoDeTeste(),
     ) {
         AppShellOverlayRegistry(
-            overlayStack = stack,
+            overlayStack = navigator.overlayStack,
+            navigator = navigator,
             onAssistObjetivo = {},
             onAssistResposta = {},
             onAssistAbandono = {},
@@ -269,8 +281,8 @@ class AppShellOverlayRegistryTest {
         //
         // O `testTag` continua sendo o que distingue "compôs" de "não compôs" — segue valendo o
         // achado de Caio no DetalhesTecnicos (PR #1697).
-        val stack = mutableStateListOf(AppShellOverlay.DiagnosticoGuiado)
-        composeRule.setContent { RegistryDeTeste(stack = stack) }
+        val navigator = navigatorComPilha(AppShellOverlay.DiagnosticoGuiado)
+        composeRule.setContent { RegistryDeTeste(navigator = navigator) }
         composeRule.onNodeWithTag(TAG_OVERLAY_DIAGNOSTICO_GUIADO).assertExists()
         composeRule.onNodeWithText("Vamos descobrir o que está acontecendo").assertExists()
         composeRule.onNodeWithText("Este resultado não está mais disponível").assertDoesNotExist()
@@ -280,14 +292,60 @@ class AppShellOverlayRegistryTest {
     fun `registry compoe diagnostico guiado quando esta na pilha e ha resultado`() {
         // Mutante que este teste mata: remover a chamada de AppShellDiagnosticoGuiadoOverlay de
         // dentro do registro — a tela sumiria do app com a suíte verde.
-        val stack = mutableStateListOf(AppShellOverlay.DiagnosticoGuiado)
+        val navigator = navigatorComPilha(AppShellOverlay.DiagnosticoGuiado)
         composeRule.setContent {
             RegistryDeTeste(
-                stack = stack,
+                navigator = navigator,
                 diagnosticoGuiado = diagnosticoGuiadoDeTeste(resultado = resultadoSpeedtestDeTeste()),
             )
         }
         composeRule.onNodeWithTag(TAG_OVERLAY_DIAGNOSTICO_GUIADO).assertExists()
+    }
+
+    // issue #1720 — fechamento do ciclo: `AppShellDiagnosticoGuiadoOverlay` passou a exigir
+    // `navigator` exatamente para poder chamar `RegistrarBackDoOverlay`. Os testes acima (e os de
+    // `AppShellNavigationComposeTest`/`AppShellBackDelegacaoTest`) já provam o mecanismo genérico
+    // com `onBack` fake; este prova a fiação de PRODUÇÃO ponta a ponta — `AppShellBackHandlers`
+    // (o `BackHandler` real, via `onBackPressedDispatcher`) até o `estado.recuar()` de
+    // `DiagnosticoGuiadoScreen`. Mutante que este teste mata: religar `BackHandler(::voltarUmPasso)`
+    // direto na tela (o defeito original da #1720) — o overlay sairia da pilha no primeiro back
+    // em vez de recuar um passo do roteiro.
+    @Test
+    fun `back de hardware recua um passo do roteiro guiado antes de fechar o overlay`() {
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.legacyIndex)
+        navigator.open(AppShellOverlay.DiagnosticoGuiado)
+        composeRule.setContent {
+            AppShellBackHandlers(navigator)
+            RegistryDeTeste(
+                navigator = navigator,
+                diagnosticoGuiado =
+                    diagnosticoGuiadoDeTeste(
+                        resultado = resultadoSpeedtestDeTeste(),
+                        objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+                        respostaPreSelecionadaPasso0 = 0,
+                    ),
+            )
+        }
+
+        composeRule.onNodeWithText("Continuar").performClick()
+        composeRule.onNodeWithText("Com que frequência isso acontece?").assertIsDisplayed()
+
+        composeRule.runOnIdle { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+
+        // Recuou um passo dentro do roteiro -- o overlay CONTINUA na pilha, não foi um pop().
+        composeRule.onNodeWithText("Em qual conexão você joga?").assertIsDisplayed()
+        assertTrue(AppShellOverlay.DiagnosticoGuiado in navigator.overlayStack)
+
+        // Objetivo já escolhido, passo 0: mais um back reseta pra lista de objetivos -- ainda
+        // dentro do fluxo, overlay continua aberto.
+        composeRule.runOnIdle { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        composeRule.onNodeWithText("Vamos descobrir o que está acontecendo").assertIsDisplayed()
+        assertTrue(AppShellOverlay.DiagnosticoGuiado in navigator.overlayStack)
+
+        // Nada mais para recuar dentro do fluxo: agora sim o back cai no `pop()` do navigator e
+        // fecha o overlay inteiro.
+        composeRule.runOnIdle { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        composeRule.runOnIdle { assertFalse(AppShellOverlay.DiagnosticoGuiado in navigator.overlayStack) }
     }
 
     // BLOQUEIO B8 da rodada 2 da PR #1723. `continuidadeDaMedicao(PARTIAL, medidasConfiaveis =
@@ -331,7 +389,7 @@ class AppShellOverlayRegistryTest {
     // roteiro termina, o fluxo mede, e só então o `PARTIAL` chega.
     @Test
     fun `overlay repassa medidas nao confiaveis e a conclusao parcial nao aparece`() {
-        val stack = mutableStateListOf(AppShellOverlay.DiagnosticoGuiado)
+        val navigator = navigatorComPilha(AppShellOverlay.DiagnosticoGuiado)
         val resultado =
             resultadoSpeedtestDeTeste(
                 status = MeasurementStatus.PARTIAL,
@@ -342,7 +400,7 @@ class AppShellOverlayRegistryTest {
 
         composeRule.setContent {
             RegistryDeTeste(
-                stack = stack,
+                navigator = navigator,
                 diagnosticoGuiado =
                     diagnosticoGuiadoDeTeste(
                         resultado = resultadoAtual,
@@ -381,10 +439,10 @@ class AppShellOverlayRegistryTest {
     @Test
     fun `sem resultado o registry nao declara o fluxo concluivel e a medicao acontece`() {
         val disparos = mutableListOf<String>()
-        val stack = mutableStateListOf(AppShellOverlay.DiagnosticoGuiado)
+        val navigator = navigatorComPilha(AppShellOverlay.DiagnosticoGuiado)
         composeRule.setContent {
             RegistryDeTeste(
-                stack = stack,
+                navigator = navigator,
                 diagnosticoGuiado =
                     diagnosticoGuiadoDeTeste(
                         resultado = null,
@@ -420,10 +478,10 @@ class AppShellOverlayRegistryTest {
         // lambdas como `{}` e nenhuma asserção olhava para qual disparou. É o achado R1 do
         // parecer de Caio na PR #1702, reincidente aqui.
         val disparos = mutableListOf<String>()
-        val stack = mutableStateListOf(AppShellOverlay.DiagnosticoGuiado)
+        val navigator = navigatorComPilha(AppShellOverlay.DiagnosticoGuiado)
         composeRule.setContent {
             RegistryDeTeste(
-                stack = stack,
+                navigator = navigator,
                 diagnosticoGuiado =
                     diagnosticoGuiadoDeTeste(
                         resultado = resultadoSpeedtestDeTeste(),
@@ -439,10 +497,10 @@ class AppShellOverlayRegistryTest {
 
     @Test
     fun `diagnostico guiado fora da pilha nao compoe`() {
-        val stack = mutableStateListOf<AppShellOverlay>()
+        val navigator = navigatorComPilha()
         composeRule.setContent {
             RegistryDeTeste(
-                stack = stack,
+                navigator = navigator,
                 diagnosticoGuiado = diagnosticoGuiadoDeTeste(resultado = resultadoSpeedtestDeTeste()),
             )
         }
@@ -610,8 +668,9 @@ class AppShellOverlayRegistryTest {
 
     @Test
     fun `registry compoe overlays independentes simultaneamente sem interferencia`() {
-        val stack = mutableStateListOf(AppShellOverlay.Termos, AppShellOverlay.Novidades)
-        composeRule.setContent { RegistryDeTeste(stack = stack) }
+        val navigator = navigatorComPilha(AppShellOverlay.Termos, AppShellOverlay.Novidades)
+        val stack = navigator.overlayStack
+        composeRule.setContent { RegistryDeTeste(navigator = navigator) }
 
         composeRule.onNodeWithText("Termos de Uso").assertExists()
         composeRule.onNodeWithText("Novidades").assertExists()
@@ -626,17 +685,18 @@ class AppShellOverlayRegistryTest {
 
     @Test
     fun `registry compoe assist a partir do estado padrao SignallQ Assist`() {
-        val stack = mutableStateListOf(AppShellOverlay.Assist)
-        composeRule.setContent { RegistryDeTeste(stack = stack) }
+        val navigator = navigatorComPilha(AppShellOverlay.Assist)
+        composeRule.setContent { RegistryDeTeste(navigator = navigator) }
         composeRule.onNodeWithText("O que está acontecendo com sua internet?").assertExists()
     }
 
     @Test
     fun `registry compoe privacidade e aciona onAbrirGerenciarDados`() {
-        val stack = mutableStateListOf(AppShellOverlay.Privacidade)
+        val navigator = navigatorComPilha(AppShellOverlay.Privacidade)
+        val stack = navigator.overlayStack
         var gerenciarDadosAberto = false
         composeRule.setContent {
-            RegistryDeTeste(stack = stack, onAbrirGerenciarDados = { gerenciarDadosAberto = true })
+            RegistryDeTeste(navigator = navigator, onAbrirGerenciarDados = { gerenciarDadosAberto = true })
         }
         composeRule.onNodeWithText("Privacidade").assertExists()
 
@@ -653,24 +713,24 @@ class AppShellOverlayRegistryTest {
 
     @Test
     fun `registry compoe detalhes tecnicos quando ha resultado de speedtest`() {
-        val stack = mutableStateListOf(AppShellOverlay.DetalhesTecnicos)
+        val navigator = navigatorComPilha(AppShellOverlay.DetalhesTecnicos)
         composeRule.setContent {
-            RegistryDeTeste(stack = stack, resultadoSpeedtest = resultadoSpeedtestDeTeste())
+            RegistryDeTeste(navigator = navigator, resultadoSpeedtest = resultadoSpeedtestDeTeste())
         }
         composeRule.onNodeWithText("Detalhes da conexão").assertExists()
     }
 
     @Test
     fun `registry compoe sinal wifi quando esta na pilha`() {
-        val stack = mutableStateListOf(AppShellOverlay.SinalWifi)
-        composeRule.setContent { RegistryDeTeste(stack = stack) }
+        val navigator = navigatorComPilha(AppShellOverlay.SinalWifi)
+        composeRule.setContent { RegistryDeTeste(navigator = navigator) }
         composeRule.onNodeWithText("Sinal WiFi").assertExists()
     }
 
     @Test
     fun `registry compoe ping quando esta na pilha`() {
-        val stack = mutableStateListOf(AppShellOverlay.Ping)
-        composeRule.setContent { RegistryDeTeste(stack = stack) }
+        val navigator = navigatorComPilha(AppShellOverlay.Ping)
+        composeRule.setContent { RegistryDeTeste(navigator = navigator) }
         // Mesma cautela do teste isolado de Ping: só o título estático (primeiro frame, não
         // depende do resultado do PingExecutor real) -- suficiente para travar o mutante
         // "remover a chamada de AppShellPingOverlay de dentro do registro".
@@ -679,8 +739,8 @@ class AppShellOverlayRegistryTest {
 
     @Test
     fun `registry compoe dns quando esta na pilha`() {
-        val stack = mutableStateListOf(AppShellOverlay.Dns)
-        composeRule.setContent { RegistryDeTeste(stack = stack) }
+        val navigator = navigatorComPilha(AppShellOverlay.Dns)
+        composeRule.setContent { RegistryDeTeste(navigator = navigator) }
         composeRule.onNodeWithText("Comparativo de DNS").assertExists()
     }
 }

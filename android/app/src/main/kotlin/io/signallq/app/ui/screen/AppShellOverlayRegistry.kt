@@ -63,6 +63,12 @@ import io.signallq.app.feature.speedtest.ResultadoSpeedtest
 @Composable
 internal fun AppShellOverlayRegistry(
     overlayStack: MutableList<AppShellOverlay>,
+    // issue #1720 — só o overlay de diagnóstico guiado precisa do `navigator` (não da lista crua)
+    // porque é o único que registra interceptador de back (`RegistrarBackDoOverlay`). Os demais
+    // continuam recebendo `overlayStack` — trocar a assinatura deles também não teria nenhum
+    // consumidor agora, e a regra de higiene (§11, "código sem consumidor") é exatamente o que
+    // esta issue está corrigindo, não repetindo.
+    navigator: AppShellNavigator,
     // Assist (issue #1656) — rewire do overlay já extraído, sem mudar seu comportamento.
     onAssistObjetivo: (AssistObjetivoSelecionado) -> Unit,
     onAssistResposta: (AssistPerguntaRespondida) -> Unit,
@@ -114,7 +120,7 @@ internal fun AppShellOverlayRegistry(
         localizacaoBloqueadaPermanentemente = localizacaoBloqueadaPermanentemente,
         onSolicitarPermissaoLocalizacao = onSolicitarPermissaoLocalizacao,
     )
-    AppShellDiagnosticoGuiadoOverlay(overlayStack = overlayStack, entry = diagnosticoGuiado)
+    AppShellDiagnosticoGuiadoOverlay(navigator = navigator, entry = diagnosticoGuiado)
     AppShellPingOverlay(overlayStack = overlayStack)
     AppShellDnsOverlay(
         overlayStack = overlayStack,

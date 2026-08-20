@@ -138,6 +138,19 @@ data class DiagnosticoGuiadoEstado(
     fun empilhar(rota: DiagnosticoGuiadoRota): DiagnosticoGuiadoEstado = copy(pilha = pilha + rota)
 
     /**
+     * Transição de avanço que troca o topo em vez de empilhar sobre ele — issue #1720.
+     *
+     * `Analise → Resultado` (medição concluída) e `Resultado → Analise` (CTA "testar
+     * novamente") são o mesmo tipo de evento: a rota anterior deixou de existir, não é um passo
+     * intermediário para onde [recuar] deva voltar. Empilhar de verdade só acontece quando
+     * [pilha] está vazia — ao entrar em `Analise` pela primeira vez a partir do roteiro de
+     * perguntas, onde [recuar] precisa devolver a `[]` (a última pergunta), não a um destino que
+     * nunca existiu.
+     */
+    fun irPara(rota: DiagnosticoGuiadoRota): DiagnosticoGuiadoEstado =
+        copy(pilha = if (pilha.isEmpty()) pilha + rota else pilha.dropLast(1) + rota)
+
+    /**
      * Recua um passo interno. Devolve `null` quando não há mais o que recuar — que é o sinal para
      * o `RegistrarBackDoOverlay` responder `false` e deixar o shell fechar o overlay inteiro.
      *
