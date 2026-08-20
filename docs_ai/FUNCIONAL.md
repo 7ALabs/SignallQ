@@ -569,11 +569,27 @@ execução que a medição exibida, o app recusa combinar os dois e avisa
 
 **Tela:** `HistoricoScreen` (aba 3).
 
-Lista de medições passadas, cada uma com ícone de rede, data e velocidade principal. Tocar abre uma
-sheet de detalhe com download/upload em destaque, latência/oscilação/perda, e linhas condicionais:
-tipo de rede, aviso de resultado contaminado, bufferbloat, vereditos de streaming/games/vídeo
-chamada, gargalo identificado, e o texto do diagnóstico com selo "Gerado por IA" ou "Diagnóstico
-local".
+Lista de medições passadas. Desde a issue #1669 (Task 2.0.21, épico #1647), cada linha prioriza
+**conclusão e objetivo** sobre a métrica crua: ícone de rede, uma frase de conclusão em destaque
+(ex.: "Bom para streaming", "Gargalo identificado: Bufferbloat", "Velocidade lenta"), o objetivo
+inferido ("Diagnóstico por IA" / "Diagnóstico guiado" / "Teste de velocidade") + data logo abaixo, e
+o Mbps de download como detalhe secundário à direita (não mais o valor dominante do card). A
+conclusão/objetivo é derivada em `HistoricoConclusaoMapper.kt` — função pura,
+**sem migration de schema**: usa campos que `MedicaoEntity` já persistia (vereditos de
+streaming/games/vídeo chamada, gargalo primário, texto de diagnóstico, status, fonte). Registro
+legado (colunas novas nulas, status "completed" default) sempre cai num fallback determinístico
+baseado só na velocidade de download — nunca quebra nem fica ilegível.
+
+Tocar num item abre uma sheet de detalhe com download/upload em destaque, latência/oscilação/perda,
+e linhas condicionais: tipo de rede, aviso de resultado contaminado, bufferbloat, vereditos de
+streaming/games/vídeo chamada, gargalo identificado, e o texto do diagnóstico com selo "Gerado por
+IA" ou "Diagnóstico local".
+
+**Pendente (fora desta fatia):** comparação entre duas medições (rota
+`session-detail → comparison`) e recusa de comparar condições incompatíveis (ex. Wi-Fi vs. 4G) —
+decisão de produto do Luiz (#1669, comentário de 2026-08-19) exige a recusa quando implementada.
+Adiado deliberadamente para reduzir o risco desta PR (mexe em apresentação de dado persistido, não
+em schema); acompanhar em issue de continuação referenciando #1669.
 
 **Filtro:** um só na UI — pills Todos / Wi-Fi / Rede móvel. As medições sintéticas do monitoramento
 em segundo plano são excluídas da lista de testes reais.
