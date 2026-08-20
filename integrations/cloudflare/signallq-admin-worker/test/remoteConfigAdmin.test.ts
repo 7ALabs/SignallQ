@@ -24,8 +24,8 @@ const VIEWER_SESSION = { userId: 'viewer-1', role: 'viewer' }
 
 // Flags reais do catálogo (#1477 + #1480) — usadas em vez de fixtures sintéticas pra provar que
 // o backend valida contra o arquivo de verdade, não um mock do catálogo. O catálogo atual tem 11 entradas.
-const MEDIUM_KEY = 'consumer.speedtest.cloudflare_engine_enabled' // criticality MEDIUM
-const HIGH_KEY = 'consumer.speedtest.enabled' // criticality HIGH
+const MEDIUM_KEY = 'consumer_speedtest_cloudflare_engine_enabled' // criticality MEDIUM
+const HIGH_KEY = 'consumer_speedtest_enabled' // criticality HIGH
 const CATALOG_FLAG_COUNT = 11
 
 function jsonRequest(url: string, body: unknown, init: { method?: string; headers?: Record<string, string> } = {}): Request {

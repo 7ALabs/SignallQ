@@ -75,7 +75,7 @@ object DiagnosticoModule {
     /**
      * Provê NdsDiagnosticRepository no grafo Hilt (NDS-02k, issue #1759) — chamada viva
      * remoto-primeiro/fallback-total ao NDS, atras da flag
-     * `consumer.diagnostico.nds_live_enabled` (decidida em [DiagnosticOrchestrator], nao aqui).
+     * `consumer_diagnostico_nds_live_enabled` (decidida em [DiagnosticOrchestrator], nao aqui).
      */
     @Provides
     @Singleton

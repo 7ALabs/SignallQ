@@ -90,7 +90,7 @@ interface AnalyticsHelper {
     /**
      * NDS-02k (issue #1759, item 10) — disparado uma vez por chamada a
      * `NdsClient.evaluate()` feita por `NdsDiagnosticRepository`, quando a flag
-     * `consumer.diagnostico.nds_live_enabled` esta ligada. Mede se o NDS
+     * `consumer_diagnostico_nds_live_enabled` esta ligada. Mede se o NDS
      * respondeu ou se a rede de seguranca (`DiagnosticRunner` local) precisou
      * assumir — evento operacional de rollout, distinto do funil
      * `diag_iniciado`/`diag_concluido` (SIG-155), que continua disparando

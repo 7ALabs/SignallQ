@@ -4,7 +4,7 @@ description: "Fundação de feature flags do Consumer — catálogo tipado e pro
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-15"
+last_updated: "2026-08-20"
 ---
 
 # `:core:featureflags`
@@ -89,7 +89,7 @@ Total: 17 arquivos Kotlin em `src/main` (711 linhas) + o catálogo JSON, e 4 arq
   flag no Consumer ao mesmo tempo. O único consumidor real do legado já migrou (#1497), mas o
   código legado permanece.
 - **Uma flag do catálogo não é implementada no Android.**
-  `consumer.speedtest.cloudflare_engine_enabled` tem `androidImplemented = false` — segue como
+  `consumer_speedtest_cloudflare_engine_enabled` tem `androidImplemented = false` — segue como
   smoke-test da fundação, não gateia nada. Das 11 chaves, 9 são as flags de módulo reais.
 - **`FeatureFlagCatalogParser` usa `org.json`**, o que obriga cada consumidor de teste JVM a
   declarar a dependência real de `org.json` para não cair no stub do `android.jar` — pegadinha já

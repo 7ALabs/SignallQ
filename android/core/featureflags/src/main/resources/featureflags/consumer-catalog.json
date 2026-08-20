@@ -2,7 +2,7 @@
   "schemaVersion": "1.0",
   "flags": [
     {
-      "key": "consumer.app_shell.guided_2_enabled",
+      "key": "consumer_app_shell_guided_2_enabled",
       "module": ":app",
       "type": "BOOLEAN",
       "defaultValue": false,
@@ -17,7 +17,7 @@
       "analyticsEvent": null
     },
     {
-      "key": "consumer.speedtest.enabled",
+      "key": "consumer_speedtest_enabled",
       "module": ":featureSpeedtest",
       "type": "BOOLEAN",
       "defaultValue": true,
@@ -32,7 +32,7 @@
       "analyticsEvent": "feature_blocked_remote"
     },
     {
-      "key": "consumer.speedtest.cloudflare_engine_enabled",
+      "key": "consumer_speedtest_cloudflare_engine_enabled",
       "module": ":featureSpeedtest",
       "type": "BOOLEAN",
       "defaultValue": true,
@@ -41,13 +41,13 @@
       "description": "Controla se o motor de SpeedTest usa o backend Cloudflare (__down/__up) como provedor primario.",
       "disabledBehavior": "SILENT_NO_OP",
       "disabledMessage": null,
-      "dependencies": ["consumer.speedtest.enabled"],
+      "dependencies": ["consumer_speedtest_enabled"],
       "androidImplemented": false,
       "adminManaged": true,
       "analyticsEvent": null
     },
     {
-      "key": "consumer.home.enabled",
+      "key": "consumer_home_enabled",
       "module": ":featureHome",
       "type": "BOOLEAN",
       "defaultValue": true,
@@ -62,7 +62,7 @@
       "analyticsEvent": "feature_blocked_remote"
     },
     {
-      "key": "consumer.wifi.enabled",
+      "key": "consumer_wifi_enabled",
       "module": ":featureWifi",
       "type": "BOOLEAN",
       "defaultValue": true,
@@ -77,7 +77,7 @@
       "analyticsEvent": "feature_blocked_remote"
     },
     {
-      "key": "consumer.devices.enabled",
+      "key": "consumer_devices_enabled",
       "module": ":featureDevices",
       "type": "BOOLEAN",
       "defaultValue": true,
@@ -92,7 +92,7 @@
       "analyticsEvent": "feature_blocked_remote"
     },
     {
-      "key": "consumer.dns.enabled",
+      "key": "consumer_dns_enabled",
       "module": ":featureDns",
       "type": "BOOLEAN",
       "defaultValue": true,
@@ -107,7 +107,7 @@
       "analyticsEvent": "feature_blocked_remote"
     },
     {
-      "key": "consumer.fibra.enabled",
+      "key": "consumer_fibra_enabled",
       "module": ":featureFibra",
       "type": "BOOLEAN",
       "defaultValue": true,
@@ -122,7 +122,7 @@
       "analyticsEvent": "feature_blocked_remote"
     },
     {
-      "key": "consumer.diagnostico.enabled",
+      "key": "consumer_diagnostico_enabled",
       "module": ":featureDiagnostico",
       "type": "BOOLEAN",
       "defaultValue": true,
@@ -137,7 +137,7 @@
       "analyticsEvent": "feature_blocked_remote"
     },
     {
-      "key": "consumer.diagnostico.shadow_mode_enabled",
+      "key": "consumer_diagnostico_shadow_mode_enabled",
       "module": ":featureDiagnostico",
       "type": "BOOLEAN",
       "defaultValue": true,
@@ -146,28 +146,28 @@
       "description": "Kill switch do shadow mode de diagnostico (comparacao local-vs-remoto para observabilidade, envia registro classificado ao worker signallq-diagnostic; nunca altera o que a UI mostra).",
       "disabledBehavior": "SILENT_NO_OP",
       "disabledMessage": null,
-      "dependencies": ["consumer.diagnostico.enabled"],
+      "dependencies": ["consumer_diagnostico_enabled"],
       "androidImplemented": true,
       "adminManaged": true,
       "analyticsEvent": null
     },
     {
-      "key": "consumer.diagnostico.nds_live_enabled",
+      "key": "consumer_diagnostico_nds_live_enabled",
       "module": ":featureDiagnostico",
       "type": "BOOLEAN",
       "defaultValue": false,
       "criticality": "HIGH",
       "owner": "product-signallq",
-      "description": "Liga a chamada viva ao NDS (NdsClient.evaluate) como fonte do diagnostico. Default false preserva o motor local (DiagnosticRunner) como autoritativo. Ligada, desliga automaticamente o shadow mode do signallq-diagnostic-worker (consumer.diagnostico.shadow_mode_enabled) para o mesmo install -- sem chamadas triplicadas.",
+      "description": "Liga a chamada viva ao NDS (NdsClient.evaluate) como fonte do diagnostico. Default false preserva o motor local (DiagnosticRunner) como autoritativo. Ligada, desliga automaticamente o shadow mode do signallq-diagnostic-worker (consumer_diagnostico_shadow_mode_enabled) para o mesmo install -- sem chamadas triplicadas.",
       "disabledBehavior": "SILENT_NO_OP",
       "disabledMessage": null,
-      "dependencies": ["consumer.diagnostico.enabled"],
+      "dependencies": ["consumer_diagnostico_enabled"],
       "androidImplemented": true,
       "adminManaged": true,
       "analyticsEvent": null
     },
     {
-      "key": "consumer.history.enabled",
+      "key": "consumer_history_enabled",
       "module": ":featureHistory",
       "type": "BOOLEAN",
       "defaultValue": true,
@@ -182,7 +182,7 @@
       "analyticsEvent": "feature_blocked_remote"
     },
     {
-      "key": "consumer.settings.enabled",
+      "key": "consumer_settings_enabled",
       "module": ":featureSettings",
       "type": "BOOLEAN",
       "defaultValue": true,
