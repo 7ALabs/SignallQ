@@ -42,10 +42,14 @@ class SignallQComponentsContractTest {
 
     @Test
     fun `legacy component contracts remain available`() {
+        // OfflineBanner.kt e StatefulScreen.kt (pré-2.0) foram removidos na issue #1673
+        // (Task 2.0.25, épico #1647): zero consumidor de produção restante -- só
+        // sobreviviam porque este teste os travava propositalmente até a remoção.
+        // ConfirmacaoDialog segue vigente e sem substituto 2.0, então continua coberto aqui.
         val components = File(findSourceRoot(), "component")
-        assertTrue(File(components, "OfflineBanner.kt").readText().contains("fun OfflineBanner("))
         assertTrue(File(components, "ConfirmacaoDialog.kt").readText().contains("fun ConfirmacaoDialog("))
-        assertTrue(File(components, "StatefulScreen.kt").readText().contains("fun <T> StatefulScreen("))
+        assertFalse(File(components, "OfflineBanner.kt").exists())
+        assertFalse(File(components, "StatefulScreen.kt").exists())
     }
 
     private fun findSourceRoot(): File {

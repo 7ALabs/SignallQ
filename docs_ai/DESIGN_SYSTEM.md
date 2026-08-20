@@ -439,8 +439,11 @@ fatias verticais. Não fazer varredura oportunista nem inverter o default antes 
 **Localização real:** `android/app/src/main/kotlin/io/signallq/app/ui/component/`. A biblioteca
 2.0 opt-in está separada por responsabilidade em `SignallQControls.kt`,
 `SignallQContainers.kt`, `SignallQFeedbackTone.kt` e `SignallQScreenState.kt`; o catálogo de previews
-claro/escuro vive em `SignallQComponentPreviews.kt`. Os componentes `Lk*`, `StatefulScreen`,
-`OfflineBanner` e `ConfirmacaoDialog` continuam disponíveis com seus contratos legados.
+claro/escuro vive em `SignallQComponentPreviews.kt`. Os componentes `Lk*` e `ConfirmacaoDialog`
+continuam disponíveis com seus contratos legados. `OfflineBanner.kt` e `StatefulScreen.kt`
+(pré-2.0) foram removidos na issue #1673 (Task 2.0.25, épico #1647) — zero consumidor de produção
+restante; `git show <sha-anterior-à-remoção>:android/app/src/main/kotlin/io/signallq/app/ui/component/OfflineBanner.kt`
+recupera o histórico se necessário.
 
 ### APIs centrais 2.0 opt-in
 
@@ -456,8 +459,9 @@ Essas APIs usam Material 3 diretamente, têm alvo mínimo interativo de 48 dp, n
 de cor para comunicar feedback e aceitam texto multilinha. A adoção é incremental: a issue #1663
 tornou `DispositivosScreen` o primeiro piloto de `SignallQOfflineBanner`; a issue #1672 (Task
 2.0.24, épico #1647) expandiu para `SinalScreen` (as três abas Wi-Fi/Canal/Móvel), substituindo o
-`OfflineBanner()` legado que a tela usava por engano desde a extração da issue #1660 — nenhuma
-outra tela migrada ganhou o banner ainda (`SignallQComponentsContractTest` trava a lista exata).
+`OfflineBanner()` legado (removido na issue #1673) que a tela usava por engano desde a extração da
+issue #1660 — nenhuma outra tela migrada ganhou o banner ainda (`SignallQComponentsContractTest`
+trava a lista exata).
 `SinalWifiScreen` (issue #1668) é o único consumidor de `SignallQStatefulScreen` completo (estados
 Loading/Content/Empty/Offline/PermissionRequired/RecoverableError). Não houve alteração de
 navegação, ViewModel, telemetria, regra de negócio ou placement de anúncio nesta expansão.
@@ -510,9 +514,10 @@ bloco de destino). Mapeamento: o antigo `UiState.Empty` (estado inicial, antes d
 execução em progresso 0 para os dois; `UiState.Success<PingUiData>` virou
 `SignallQScreenState.Content<PingUiData>`; `UiState.Error` virou
 `SignallQScreenState.RecoverableError`. `UiState<T>` **não ficou órfão**: `MainViewModel`/
-`AppShell` (estado de IP local/público e ISP) e o componente legado `StatefulScreen.kt` (mantido de
-propósito por `SignallQComponentsContractTest`, sem consumidor de tela ativo) continuam usando-o —
-migrar esses fica para uma próxima rodada, registrada em comentário da issue #1779.
+`AppShell` (estado de IP local/público e ISP) continua usando-o — migrar isso fica para uma
+próxima rodada, registrada em comentário da issue #1779. O componente legado `StatefulScreen.kt`
+que também usava `UiState<T>` foi removido na issue #1673 (Task 2.0.25) — zero consumidor de tela
+ativo, só sobrevivia porque `SignallQComponentsContractTest` o travava de propósito.
 
 ### TopBar
 
@@ -737,7 +742,7 @@ usado, implementação real hoje.
 | `SignallQMiniGrafico` | Mini gráfico inline | — | `color.data.*`/`outlineVariant` | `MiniGrafico.kt` |
 | `SignallQSpeedBarsChart` | Barras de sinal/velocidade | — | `color.status.*` | `SpeedBarsChart.kt` |
 | `SignallQWifiChannelGuide` | Gráfico de canais Wi-Fi | 2.4/5/6 GHz | `color.data.*`, `outlineVariant` | `WifiChannelGuide.kt` |
-| `SignallQOfflineBanner` | Banner de estado offline | — | `color.status.warning`/`error` | `OfflineBanner.kt` |
+| `SignallQOfflineBanner` | Banner de estado offline | — | `color.status.warning`/`error` | `SignallQScreenState.kt` |
 | `SignallQOperadoraBadge` | Badge de operadora | — | fundo branco fixo + `outlineVariant` (regra de container de logo, 2026-07-17) | `OperadoraBadge.kt` |
 | `SignallQProfileAvatarButton` | Avatar no TopBar (acesso a Ajustes) | — | gradiente `primary→secondary` | `ProfileAvatarButton.kt` |
 | `SignallQNativeAdCard` | Card de anúncio nativo | Resultado, Histórico | borda tracejada, CTA outline | `ads/NativeAdCard.kt` |
