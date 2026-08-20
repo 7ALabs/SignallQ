@@ -212,6 +212,9 @@ class MainActivity : ComponentActivity() {
             // GH#1249 -- perfil de conexao por rede (substitui estadoUf/cidadeNome/
             // velocidadeContratadaDown-UpMbps/ispConfirmado globais na tela de Ajustes).
             val connectionProfileAtual = viewModel.connectionProfileAtual.collectAsStateWithLifecycle().value
+            // Issue #1670 — estado observável (EmAndamento/Sucesso/Falha) de limpar
+            // histórico/apagar dados/resetar app, disparados pela DadosLocaisSheet.
+            val dadosLocaisAcaoEstado = viewModel.dadosLocaisAcaoEstado.collectAsStateWithLifecycle().value
 
             val speedtestMovel = viewModel.preferenciasSpeedtestMovel.collectAsStateWithLifecycle().value
             val speedtestPermiteHeavyMovel = speedtestMovel.permiteHeavy
@@ -483,6 +486,8 @@ class MainActivity : ComponentActivity() {
                         onLimparHistorico = { viewModel.limparHistorico() },
                         onApagarDadosLocais = { viewModel.apagarDadosLocais() },
                         onResetarApp = { viewModel.resetarApp() },
+                        dadosLocaisAcaoEstado = dadosLocaisAcaoEstado,
+                        onConsumirDadosLocaisAcaoEstado = { viewModel.consumirDadosLocaisAcaoEstado() },
                         monitoramentoAtivo = monitoramentoAtivo,
                         onAtivarMonitoramento = { ativo ->
                             if (ativo && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

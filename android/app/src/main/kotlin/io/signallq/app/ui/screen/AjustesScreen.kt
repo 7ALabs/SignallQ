@@ -3,7 +3,6 @@ package io.signallq.app.ui.screen
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -17,10 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Close
@@ -34,20 +31,17 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Speed
-import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,8 +53,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -87,6 +79,10 @@ fun AjustesScreen(
     onLimparHistorico: () -> Unit,
     onApagarDadosLocais: () -> Unit,
     onResetarApp: () -> Unit,
+    // Issue #1670 — estado observável (EmAndamento/Sucesso/Falha) da última ação disparada
+    // pela DadosLocaisSheet abaixo; ver AcaoDadosLocaisEstado.kt.
+    dadosLocaisAcaoEstado: AcaoDadosLocaisEstado = AcaoDadosLocaisEstado.Ocioso,
+    onConsumirDadosLocaisAcaoEstado: () -> Unit = {},
     onAbrirHistorico: () -> Unit,
     onAbrirLaudo: () -> Unit,
     onAbrirPrivacidade: () -> Unit = {},
@@ -140,7 +136,6 @@ fun AjustesScreen(
     var showPerfilSheet by remember { mutableStateOf(false) }
     var showSobreSheet by remember { mutableStateOf(false) }
     var showDadosLocaisSheet by remember { mutableStateOf(false) }
-    var showDiagnosticoAppSheet by remember { mutableStateOf(false) }
     var showMinhaConexaoSheet by remember { mutableStateOf(false) }
     // GH#936 — sheet de "Alertas de qualidade", entrada na seção Notificações.
     var showPreferenciasSheet by remember { mutableStateOf(false) }
@@ -402,14 +397,8 @@ fun AjustesScreen(
             onLimparHistorico = onLimparHistorico,
             onApagarDadosLocais = onApagarDadosLocais,
             onResetarApp = onResetarApp,
-        )
-    }
-
-    if (showDiagnosticoAppSheet) {
-        DiagnosticoAppSheet(
-            c = c,
-            appVersion = appVersion,
-            onDismiss = { showDiagnosticoAppSheet = false },
+            estado = dadosLocaisAcaoEstado,
+            onConsumirEstado = onConsumirDadosLocaisAcaoEstado,
         )
     }
 
@@ -565,75 +554,6 @@ private fun SectionHeader(
 }
 
 @Composable
-private fun SettingItem(
-    c: LkTokens,
-    icon: ImageVector,
-    label: String,
-    subtitle: String,
-    onClick: (() -> Unit)? = null,
-    badge: String? = null,
-    tintError: Boolean = false,
-) {
-    val iconTint = if (tintError) c.error else c.primary
-    val labelColor = if (tintError) c.error else c.textPrimary
-
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-                .padding(LkSpacing.lg),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(LkRadius.input))
-                    .background(c.primary.copy(alpha = 0.14f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (tintError) c.error else c.primary,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-
-        Spacer(Modifier.width(LkSpacing.md))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = label, style = MaterialTheme.typography.bodyMedium, color = labelColor, fontWeight = FontWeight.W500)
-            Spacer(Modifier.height(2.dp))
-            Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
-        }
-
-        if (badge != null) {
-            Box(
-                modifier =
-                    Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(c.border)
-                        .padding(horizontal = LkSpacing.sm, vertical = 4.dp),
-            ) {
-                // Contraste WCAG AA (GH#937): textTertiary sobre chip com fundo c.border
-                // dava ~2:1 (fail) e textSecondary ~3.9:1 (ainda abaixo do AA p/ 10sp);
-                // textPrimary garante AA/AAA. Path hoje sem call site com badge != null.
-                Text(badge, fontSize = 10.sp, fontWeight = FontWeight.W600, color = c.textPrimary)
-            }
-        } else {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                contentDescription = null,
-                tint = if (onClick != null) c.textTertiary else c.border,
-                modifier = Modifier.size(14.dp),
-            )
-        }
-    }
-}
-
-@Composable
 internal fun ToggleItem(
     c: LkTokens,
     icon: ImageVector,
@@ -684,85 +604,5 @@ internal fun ToggleItem(
                     uncheckedTrackColor = c.border,
                 ),
         )
-    }
-}
-
-// ─── Diagnóstico do app sheet ─────────────────────────────────────────────────
-// Fora do escopo 6a-6f (item "Diagnóstico do app" não faz parte da reorganização
-// Perfil/Ajustes da Fase 7) — mantido aqui por enquanto.
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DiagnosticoAppSheet(
-    c: LkTokens,
-    appVersion: String,
-    onDismiss: () -> Unit,
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        dragHandle = {},
-        containerColor = c.bgSecondary,
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
-                    .navigationBarsPadding(),
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .width(40.dp)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(c.border)
-                        .align(Alignment.CenterHorizontally)
-                        .semantics { contentDescription = "Arrastar para fechar" },
-            )
-            Spacer(Modifier.height(LkSpacing.md))
-            Text(
-                text = "Diagnóstico do app",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = c.textPrimary,
-                modifier = Modifier.padding(horizontal = LkSpacing.lg),
-            )
-            Spacer(Modifier.height(LkSpacing.md))
-            InfoRow(c, "Versão", "v$appVersion")
-            HorizontalDivider(color = c.border, thickness = 1.dp)
-            InfoRow(c, "Plataforma", "Android · Kotlin + Compose")
-            HorizontalDivider(color = c.border, thickness = 1.dp)
-            InfoRow(c, "Integridade", "OK")
-            HorizontalDivider(color = c.border, thickness = 1.dp)
-            InfoRow(c, "Assinatura", "Verificada")
-            HorizontalDivider(color = c.border, thickness = 1.dp)
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = LkSpacing.lg)
-                        .padding(top = LkSpacing.md),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.VerifiedUser,
-                    contentDescription = null,
-                    tint = c.success,
-                    modifier = Modifier.size(16.dp),
-                )
-                Text(
-                    text = "Binários íntegros · Nenhuma anomalia detectada",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.success,
-                )
-            }
-            Spacer(Modifier.height(LkSpacing.md))
-        }
     }
 }

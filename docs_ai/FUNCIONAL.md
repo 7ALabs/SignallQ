@@ -668,13 +668,20 @@ acontece se o usuário já tinha confirmado explicitamente o valor salvo; sem co
 app atualiza silenciosamente (`AjustesScreen.kt:209-247`).
 
 `DadosLocaisSheet` concentra as três ações destrutivas, escalonadas por gravidade e **todas com
-diálogo de confirmação**: limpar histórico de testes, apagar dados locais, resetar o app.
+diálogo de confirmação**: limpar histórico de testes, apagar dados locais, resetar o app. A partir
+da issue #1670, cada ação é observável — `MainViewModel.dadosLocaisAcaoEstado`
+(`AcaoDadosLocaisEstado`: Ocioso/EmAndamento/Sucesso/Falha) mostra progresso nos botões, mantém o
+sheet aberto e exibe o erro em caso de falha (nunca apresenta falha como sucesso), e só fecha o
+sheet quando a ação termina com sucesso. O texto do sheet também esclarece que apagar dados locais
+**não remove dados já enviados a servidores do SignallQ** (ex.: Diagnóstico por IA, compartilhar
+resultado) — decisão de produto (Luiz, 2026-08-19): só explica a diferença, sem oferecer um segundo
+caminho de contato/suporte para pedir remoção remota.
 
 **Divergências reais no código:** `AjustesScreen` recebe os estados de monitoramento e de dados
 móveis (permitir teste pesado em rede móvel, MB consumidos no mês) mas **não renderiza nenhuma linha
 para eles** (`AjustesScreen.kt:90-99,122,136-138`) — monitoramento só é configurável pelo hub
-Ferramentas, e a preferência de dados móveis não tem ponto de entrada na UI hoje. Existe também um
-`DiagnosticoAppSheet` implementado sem nenhum ponto de entrada (`AjustesScreen.kt:694-768`).
+Ferramentas, e a preferência de dados móveis não tem ponto de entrada na UI hoje. `DiagnosticoAppSheet`
+(implementado sem nenhum ponto de entrada) foi removido em #1670, junto com o `SettingItem` órfão.
 
 ### 5.11 Modo gamer
 
@@ -826,7 +833,6 @@ conectados — e recomenda o painel do roteador em vez de inventar o dado.
 - Filtro por operadora no Histórico — lógica presente, sem controle na UI (`HistoricoScreen.kt:302-304`).
 - Monitoramento e preferência de dados móveis dentro de Ajustes — estados recebidos, sem linha
   renderizada (`AjustesScreen.kt:90-99`).
-- `DiagnosticoAppSheet` — implementada, sem ponto de entrada (`AjustesScreen.kt:694-768`).
 - `MinhaConexaoScreen.kt` — arquivo de tela não roteado por `AppShell.kt`; o conteúdo vive como
   sheet dentro de Ajustes.
 
