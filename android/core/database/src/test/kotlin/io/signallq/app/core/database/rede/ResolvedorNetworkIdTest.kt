@@ -1,4 +1,4 @@
-package io.signallq.app.feature.settings
+package io.signallq.app.core.database.rede
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -6,7 +6,10 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /** GH#1227 item 3/RF-A — networkId nunca deve colidir entre redes diferentes nem cair pra
- *  um valor global/genérico quando há sinal de rede real disponível. */
+ *  um valor global/genérico quando há sinal de rede real disponível.
+ *
+ *  Movido de `feature/settings` pra `core/database` na issue #1707 (Task 2.0.09e, épico #1647) —
+ *  ver kdoc de [ResolvedorNetworkId] pro racional da promoção. */
 class ResolvedorNetworkIdTest {
 
     @Test

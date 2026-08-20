@@ -26,6 +26,10 @@ kotlin {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    // GH#1707 (Task 2.0.09e) — ResolvedorNetworkId foi promovido pra :coreDatabase, módulo comum
+    // já alcançado por feature/history, pra servir tanto ConnectionProfile (GH#1227) quanto
+    // MedicaoEntity.networkId (comparação de reteste, spec §8.8).
+    implementation(project(":coreDatabase"))
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

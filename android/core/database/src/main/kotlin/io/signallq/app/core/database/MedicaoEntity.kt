@@ -56,4 +56,12 @@ data class MedicaoEntity(
      *  desta coluna existir recebem `"legacy-unversioned"` — nunca inventamos qual regra
      *  classificou dados antigos. */
     val rulesVersion: String = "legacy-unversioned",
+    /** GH#1707 (Task 2.0.09e, épico #1647) — identificador estável da rede em que esta medição
+     *  foi feita (ver [io.signallq.app.core.database.rede.ResolvedorNetworkId]). Permite comparar
+     *  um reteste com a análise original só quando as condições de rede são equivalentes — a
+     *  spec §8.8 exige declarar o limite em vez de comparar redes diferentes. Null quando não há
+     *  sinal estável disponível (Ethernet, rede desconhecida) ou em linhas persistidas antes desta
+     *  coluna existir — nunca inventado por trás.
+     */
+    val networkId: String? = null,
 )

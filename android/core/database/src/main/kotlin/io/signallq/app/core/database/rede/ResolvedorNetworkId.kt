@@ -1,10 +1,16 @@
-package io.signallq.app.feature.settings
+package io.signallq.app.core.database.rede
 
 /**
- * GH#1227 item 3/RF-A — deriva um [ConnectionProfile.networkId] estável a partir dos sinais de
+ * GH#1227 item 3/RF-A — deriva um `ConnectionProfile.networkId` estável a partir dos sinais de
  * rede disponíveis. Função pura (sem Android/Hilt) pra permitir teste unitário isolado — quem
- * chama já resolveu SSID/BSSID via `WifiManager`/`ConnectivityManager` (feature/settings não
- * depende de coreNetwork por enquanto; se essa necessidade crescer, promover pra core comum).
+ * chama já resolveu SSID/BSSID via `WifiManager`/`ConnectivityManager`.
+ *
+ * Promovido de `feature/settings` pra `core/database` na issue #1707 (Task 2.0.09e, épico #1647):
+ * `MedicaoEntity.networkId` (comparação de reteste, spec §8.8) precisa do mesmo resolvedor que
+ * `ConnectionProfile.networkId` (issue #1227) já usava, e `core/database` é o módulo comum que
+ * tanto `feature/settings` quanto `feature/history` (via `:coreDatabase`) já alcançam — evita um
+ * segundo resolvedor concorrente com regra própria (ver `.claude/rules/higiene-e-padronizacao-
+ * repositorio.md`, §4.9).
  *
  * Prioridade de estabilidade (do mais pro menos estável):
  * 1. BSSID (MAC do ponto de acesso) — não muda entre reconexões na mesma rede física, mesmo

@@ -51,6 +51,12 @@ private class FakeMedicaoDao(
     override suspend fun atualizarDiagnostico(id: String, texto: String?, origem: String?, problemas: String?) = Unit
 
     override suspend fun atualizarScore(id: String, score: Double) = Unit
+
+    override suspend fun buscarUltimaComparavelNaRede(
+        networkId: String,
+        excluirId: String,
+        antesDoTimestamp: Long,
+    ): MedicaoEntity? = null
 }
 
 // ---------------------------------------------------------------------------
