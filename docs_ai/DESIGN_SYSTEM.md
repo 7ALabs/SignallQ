@@ -460,10 +460,26 @@ tornou `DispositivosScreen` o primeiro piloto de `SignallQOfflineBanner`; a issu
 outra tela migrada ganhou o banner ainda (`SignallQComponentsContractTest` trava a lista exata).
 `SinalWifiScreen` (issue #1668) é o único consumidor de `SignallQStatefulScreen` completo (estados
 Loading/Content/Empty/Offline/PermissionRequired/RecoverableError); as demais telas 2.0
-(Equipamento, Ping, DNS, Monitoramento, Modo gamer, Histórico, Ajustes, Onboarding) continuam com
+(Equipamento, DNS, Monitoramento, Modo gamer, Histórico, Ajustes, Onboarding) continuam com
 tratamento de estado ad hoc — ver issue de continuação registrada em #1672 para o restante da
 matriz. Não houve alteração de navegação, ViewModel, telemetria, regra de negócio ou placement de
 anúncio nesta expansão.
+
+**Unificação de `UiState` → `SignallQScreenState` (issue #1779, decisão do Luiz 2026-08-20):** o
+sistema tipado genérico legado `UiState<T>` (`ui/state/UiState.kt`) não deveria coexistir com
+`SignallQScreenState<T>` — quem tinha `UiState<T>` como estado de tela migra para
+`SignallQScreenState<T>`, que já cobre `Offline`/`PermissionRequired` que `UiState` não tem.
+`PingScreen` migrou nesta issue: seu `PingScreenViewModel` expõe `SignallQScreenState<PingUiData>`
+em vez de `UiState<PingUiData>`, sem trocar o layout — continua com `when` inline (não adotou
+`SignallQStatefulScreen`, que impõe um layout de tela cheia incompatível com o cabeçalho fixo do
+bloco de destino). Mapeamento: o antigo `UiState.Empty` (estado inicial, antes da 1ª execução) virou
+`SignallQScreenState.Loading` — visualmente idêntico, já que a UI sempre renderizava o bloco de
+execução em progresso 0 para os dois; `UiState.Success<PingUiData>` virou
+`SignallQScreenState.Content<PingUiData>`; `UiState.Error` virou
+`SignallQScreenState.RecoverableError`. `UiState<T>` **não ficou órfão**: `MainViewModel`/
+`AppShell` (estado de IP local/público e ISP) e o componente legado `StatefulScreen.kt` (mantido de
+propósito por `SignallQComponentsContractTest`, sem consumidor de tela ativo) continuam usando-o —
+migrar esses fica para uma próxima rodada, registrada em comentário da issue #1779.
 
 ### TopBar
 
