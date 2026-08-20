@@ -59,7 +59,7 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
-import io.signallq.app.ui.state.UiState
+import io.signallq.app.ui.component.SignallQScreenState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -148,35 +148,45 @@ sealed interface PingUiData {
  * `PingExecutor()` original quando [destino] é nulo/vazio, e usa o host informado na opção
  * avançada como novo alvo caso contrário. Motor de amostragem/mediana continua o mesmo
  * [PingExecutor] — não duplicado.
+ *
+ * Estado tipado como [SignallQScreenState] (issue #1779, decisão de arquitetura do Luiz
+ * 2026-08-20) — antes usava o `UiState` genérico legado. [SignallQScreenState.Loading]
+ * representa tanto o estado inicial (antes da primeira execução) quanto o progresso 0,
+ * já que a UI sempre renderiza o bloco de execução para os dois — não havia distinção
+ * visual entre eles no comportamento original.
  */
 class PingScreenViewModel(
     private val criarExecutor: (destino: String?) -> PingExecutor = { destino ->
         if (destino.isNullOrBlank()) PingExecutor() else PingExecutor(targetUrl = "https://$destino/")
     },
 ) {
-    private val mutableStateFlow = MutableStateFlow<UiState<PingUiData>>(UiState.Empty)
-    val stateFlow: StateFlow<UiState<PingUiData>> = mutableStateFlow.asStateFlow()
+    private val mutableStateFlow = MutableStateFlow<SignallQScreenState<PingUiData>>(SignallQScreenState.Loading)
+    val stateFlow: StateFlow<SignallQScreenState<PingUiData>> = mutableStateFlow.asStateFlow()
 
     suspend fun executarPing(destino: String? = null) {
         try {
-            mutableStateFlow.value = UiState.Success(PingUiData.Executando(0))
+            mutableStateFlow.value = SignallQScreenState.Content(PingUiData.Executando(0))
             val executor = criarExecutor(destino)
             val resultado =
                 executor.executar(count = 20) { progresso ->
-                    mutableStateFlow.value = UiState.Success(PingUiData.Executando(progresso))
+                    mutableStateFlow.value = SignallQScreenState.Content(PingUiData.Executando(progresso))
                 }
-            mutableStateFlow.value = UiState.Success(PingUiData.Concluido(resultado))
+            mutableStateFlow.value = SignallQScreenState.Content(PingUiData.Concluido(resultado))
         } catch (e: CancellationException) {
             // GH#1211 item 5 — nunca vira estado de erro na UI: fechar a tela/cancelar o
             // teste precisa propagar o cancelamento cooperativo, não ser tratado como falha.
             throw e
         } catch (e: Exception) {
-            mutableStateFlow.value = UiState.Error(e.message ?: "Erro ao executar ping")
+            mutableStateFlow.value =
+                SignallQScreenState.RecoverableError(
+                    title = "Não foi possível medir",
+                    message = e.message ?: "Erro ao executar ping",
+                )
         }
     }
 
     fun resetar() {
-        mutableStateFlow.value = UiState.Empty
+        mutableStateFlow.value = SignallQScreenState.Loading
     }
 }
 
@@ -204,7 +214,7 @@ fun PingScreen(
     var validando by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        if (state == UiState.Empty) {
+        if (state == SignallQScreenState.Loading) {
             viewModel.executarPing(destinoAtivo)
         }
     }
@@ -252,7 +262,7 @@ fun PingScreen(
 
             val estadoAtualParaDestino = state
             val emExecucao =
-                estadoAtualParaDestino is UiState.Success && estadoAtualParaDestino.data is PingUiData.Executando
+                estadoAtualParaDestino is SignallQScreenState.Content && estadoAtualParaDestino.value is PingUiData.Executando
 
             PingDestinoBloco(
                 c = c,
@@ -298,16 +308,14 @@ fun PingScreen(
             Spacer(Modifier.height(LkSpacing.md))
 
             when (val currentState = state) {
-                UiState.Empty -> {
+                SignallQScreenState.Loading -> {
+                    // Estado inicial (antes da 1a execucao) e progresso 0 sao a mesma UI —
+                    // nao havia distincao visual entre eles no comportamento original.
                     PingExecutandoBloco(c = c, progresso = 0)
                 }
 
-                UiState.Loading -> {
-                    // Loading generico nao usado neste fluxo — estado intermediario e Success<Executando>
-                }
-
-                is UiState.Success -> {
-                    when (val data = currentState.data) {
+                is SignallQScreenState.Content -> {
+                    when (val data = currentState.value) {
                         is PingUiData.Executando -> PingExecutandoBloco(c = c, progresso = data.progresso)
 
                         is PingUiData.Concluido -> {
@@ -326,7 +334,7 @@ fun PingScreen(
                     }
                 }
 
-                is UiState.Error -> {
+                is SignallQScreenState.RecoverableError -> {
                     Text(
                         text = currentState.message,
                         style = MaterialTheme.typography.bodySmall,
@@ -343,6 +351,10 @@ fun PingScreen(
                         Text(stringResource(R.string.global_btn_tentar_novamente))
                     }
                 }
+
+                // PingScreenViewModel nunca produz estes estados — mantidos apenas para
+                // exaustividade do sealed interface compartilhado (SignallQScreenState).
+                is SignallQScreenState.Empty, is SignallQScreenState.Offline, is SignallQScreenState.PermissionRequired -> Unit
             }
         }
     }

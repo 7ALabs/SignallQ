@@ -1,7 +1,7 @@
 package io.signallq.app.ui.screen
 
 import io.signallq.app.feature.speedtest.PingExecutor
-import io.signallq.app.ui.state.UiState
+import io.signallq.app.ui.component.SignallQScreenState
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
@@ -23,9 +23,9 @@ class PingScreenViewModelTest {
     private val destinoQueNuncaResolve = "https://nao-existe.invalid/__down"
 
     @Test
-    fun `estado inicial e Empty antes de qualquer execucao`() {
+    fun `estado inicial e Loading antes de qualquer execucao`() {
         val viewModel = PingScreenViewModel()
-        assertEquals(UiState.Empty, viewModel.stateFlow.value)
+        assertEquals(SignallQScreenState.Loading, viewModel.stateFlow.value)
     }
 
     @Test
@@ -36,11 +36,11 @@ class PingScreenViewModelTest {
 
             viewModel.executarPing(destino = null)
 
-            // Rede indisponível vira Success<Concluido> com abortadoPorRede=true (tratamento
+            // Rede indisponível vira Content<Concluido> com abortadoPorRede=true (tratamento
             // dedicado — não é o mesmo estado de erro genérico; ver PingExecutorTest).
             val estado = viewModel.stateFlow.value
-            assertTrue(estado is UiState.Success<*>)
-            val dado = (estado as UiState.Success<*>).data as PingUiData.Concluido
+            assertTrue(estado is SignallQScreenState.Content<*>)
+            val dado = (estado as SignallQScreenState.Content<*>).value as PingUiData.Concluido
             assertTrue(dado.resultado.abortadoPorRede)
         }
 
@@ -79,15 +79,15 @@ class PingScreenViewModelTest {
         }
 
     @Test
-    fun `job cancelado antes de iniciar nunca produz UiState Error`() =
+    fun `job cancelado antes de iniciar nunca produz RecoverableError`() =
         runTest {
             // GH#1211 item 5 / PingExecutorTest: cancelamento cooperativo real em pleno voo
             // (com I/O de rede real em andamento) é inerentemente não-determinístico num teste
             // JVM -- a mesma ressalva já registrada em PingExecutorTest se aplica aqui. Este
             // teste cobre o contrato que É determinístico: se a coroutine que chama
             // [PingScreenViewModel.executarPing] for cancelada antes de rodar (voltar da tela
-            // antes da primeira composição concluir, por ex.), nunca produz UiState.Error --
-            // o `catch (e: CancellationException) { throw e }` nunca é convertido em Error.
+            // antes da primeira composição concluir, por ex.), nunca produz RecoverableError --
+            // o `catch (e: CancellationException) { throw e }` nunca é convertido em erro.
             val viewModel =
                 PingScreenViewModel(criarExecutor = { PingExecutor(targetUrl = destinoQueNuncaResolve) })
             val job = launch(start = CoroutineStart.LAZY) { viewModel.executarPing(destino = null) }
@@ -96,20 +96,20 @@ class PingScreenViewModelTest {
             job.join()
 
             assertTrue(job.isCancelled)
-            assertFalse(viewModel.stateFlow.value is UiState.Error)
+            assertFalse(viewModel.stateFlow.value is SignallQScreenState.RecoverableError)
         }
 
     @Test
-    fun `resetar volta o estado para Empty`() =
+    fun `resetar volta o estado para Loading`() =
         runTest {
             val viewModel =
                 PingScreenViewModel(criarExecutor = { PingExecutor(targetUrl = destinoQueNuncaResolve) })
 
             viewModel.executarPing(destino = null)
-            assertTrue(viewModel.stateFlow.value is UiState.Success<*>)
+            assertTrue(viewModel.stateFlow.value is SignallQScreenState.Content<*>)
 
             viewModel.resetar()
 
-            assertEquals(UiState.Empty, viewModel.stateFlow.value)
+            assertEquals(SignallQScreenState.Loading, viewModel.stateFlow.value)
         }
 }
