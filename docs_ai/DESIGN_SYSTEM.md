@@ -459,11 +459,44 @@ tornou `DispositivosScreen` o primeiro piloto de `SignallQOfflineBanner`; a issu
 `OfflineBanner()` legado que a tela usava por engano desde a extração da issue #1660 — nenhuma
 outra tela migrada ganhou o banner ainda (`SignallQComponentsContractTest` trava a lista exata).
 `SinalWifiScreen` (issue #1668) é o único consumidor de `SignallQStatefulScreen` completo (estados
-Loading/Content/Empty/Offline/PermissionRequired/RecoverableError); as demais telas 2.0
-(Equipamento, DNS, Monitoramento, Modo gamer, Histórico, Ajustes, Onboarding) continuam com
-tratamento de estado ad hoc — ver issue de continuação registrada em #1672 para o restante da
-matriz. Não houve alteração de navegação, ViewModel, telemetria, regra de negócio ou placement de
-anúncio nesta expansão.
+Loading/Content/Empty/Offline/PermissionRequired/RecoverableError). Não houve alteração de
+navegação, ViewModel, telemetria, regra de negócio ou placement de anúncio nesta expansão.
+
+**Matriz de avaliação encerrada (issue #1779, lote 3, 2026-08-20):** as demais telas 2.0
+(`EquipamentoInternetScreen` #1664, `DnsScreen` #1665, `MonitoramentoSheet` #1666,
+`ModoGamerScreen` #1667, `HistoricoScreen` #1669, `AjustesScreen` #1670, `OnboardingScreen`
+#1671) foram avaliadas individualmente e **mantidas deliberadamente** com tratamento de estado ad
+hoc — não é dívida pendente, é decisão registrada por tela:
+- `EquipamentoInternetScreen`: acesso é só LAN (via `ExecutorFibra` ao gateway), nunca depende de
+  internet — a variante `Offline` de `SignallQScreenState` não se aplica. Os 3 estados de "acesso
+  indisponível" (`CREDENCIAIS_NECESSARIAS`/`SOMENTE_IDENTIFICACAO`/`SESSAO_EXPIRADA`) já têm
+  ícone, texto e **múltiplas** ações contextuais (até 3 CTAs simultâneos: tentar novamente, abrir
+  no navegador, falar com suporte, revisar configurações) — mais rico do que o único
+  `actionLabel`/`onAction` que `SignallQFullScreenState` aceita hoje; forçar a migração perderia
+  CTAs sem ganho de arquitetura.
+- `MonitoramentoSheet`: sheet de toggles locais (DataStore via callback), sem carregamento
+  assíncrono, sem dependência de internet, sem gate de permissão nesta composable — não há
+  máquina de estado alguma para substituir.
+- `ModoGamerScreen`: fluxo de wizard por etapa (`ModoGamerEtapa`), não uma tela de
+  carregamento/conteúdo — `SignallQScreenState` modela disponibilidade de conteúdo, não passos de
+  navegação. As duas operações assíncronas (medição extra de ping, explicação por IA via
+  `AnalisadorState` compartilhado com `DiagnosticoGuiadoScreen`) já degradam sem esvaziar a tela
+  (o veredito do motor local nunca some).
+- `HistoricoScreen`: dado 100% local (Room), sem dependência de internet. `EmptyHistorico` já
+  diferencia "nenhum teste ainda" de "nenhum teste para este filtro", cada um com CTA própria —
+  já cumpre "explica situação, limite e próximo passo".
+- `AjustesScreen`: configuração local síncrona (DataStore via ViewModel), sem estado de
+  carregamento/vazio/offline/permissão na composable. O único estado assíncrono do arquivo
+  (`AcaoDadosLocaisEstado`, issue #1670: Ocioso/EmAndamento/Sucesso/Falha de uma ação destrutiva
+  dentro da `DadosLocaisSheet`) é feedback transitório de ação, não disponibilidade de conteúdo de
+  tela — categoria diferente do que `SignallQScreenState` cobre.
+
+`DnsScreen` e `OnboardingScreen` mantêm a avaliação já registrada no lote anterior (#1779, comentário
+do lote 2): `DnsScreen` é um card inline com lógica própria (`semDadosOffline`) sem os dois sistemas
+de estado coexistindo; `OnboardingScreen` é fluxo local, não se aplica.
+
+Com esta rodada, a matriz de #1672/#1779 está com todas as 15 telas do escopo original avaliadas —
+nenhuma pendência de arquitetura de estado de tela restante nesta frente.
 
 **Unificação de `UiState` → `SignallQScreenState` (issue #1779, decisão do Luiz 2026-08-20):** o
 sistema tipado genérico legado `UiState<T>` (`ui/state/UiState.kt`) não deveria coexistir com
