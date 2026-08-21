@@ -4,7 +4,7 @@ description: "O que o app Android SignallQ (io.signallq.app) entrega ao usuário
 type: "funcional"
 status: "ativo"
 owner: "Claudete"
-last_updated: "2026-08-20"
+last_updated: "2026-08-21"
 ---
 
 - **Fonte de verdade:** o código do app consumer em `android/app/src/main/kotlin/io/signallq/app/`
@@ -785,9 +785,11 @@ loading/no-fill/erro/offline ocupam zero espaço e nunca bloqueiam conteúdo ou 
 
 `rememberNativeAdState` preserva uma sessão por chave estável de slot/configuração, evita novo
 request por recomposição e destrói o `NativeAd` quando a composição sai ou a chave muda. Não há
-cache global nem preload: um fill pertence somente ao lifecycle do placement que o solicitou. O
-wrapper `rememberNativeAd` permanece temporariamente para os cinco callsites legados; cada tela o
-migrará em sua própria fatia.
+cache global nem preload: um fill pertence somente ao lifecycle do placement que o solicitou. Os
+cinco callsites (`ResultadoVelocidadeScreen.kt`, `DispositivosLista.kt`, `HistoricoScreen.kt`,
+`ModoGamerConfigResultadoSection.kt`, `SpeedTestScreen.kt`) usam `rememberNativeAdState`
+diretamente; o wrapper `rememberNativeAd` (API mais simples que colapsava todo o contrato num
+único `NativeAd?` nulo) foi removido na issue #1785 por não ter mais consumidor de produção.
 
 Remote Config continua fail-safe desligado e `canRequestAds` da UMP precede todo request. O estado
 sem consentimento mantém a funcionalidade integral. Sinais contextuais continuam limitados ao slot

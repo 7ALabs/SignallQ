@@ -82,7 +82,9 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
-import io.signallq.app.ui.ads.rememberNativeAd
+import io.signallq.app.ui.ads.NativeAdEligibility
+import io.signallq.app.ui.ads.NativeAdLoadState
+import io.signallq.app.ui.ads.rememberNativeAdState
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkSheetDivider
 import io.signallq.app.ui.component.LkSheetFrame
@@ -276,6 +278,20 @@ private fun FiltrosConexao(
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
+/**
+ * GH#1785 — mesmo mapeamento de [NativeAdEligibility] usado em `eligibilidadeAnuncioResultado`
+ * (ResultadoVelocidadeScreen.kt): a tela só recebe o flag `adsEnabled` de fora, sem sinal de
+ * consentimento UMP nem de conectividade separados (mesma limitação que `rememberNativeAd()`,
+ * o wrapper antigo, já tinha).
+ */
+internal fun eligibilidadeAnuncioHistorico(adsEnabled: Boolean): NativeAdEligibility =
+    NativeAdEligibility(
+        slot = AdSlot.HISTORICO,
+        flagEnabled = adsEnabled,
+        canRequestAds = adsEnabled,
+        online = true,
+    )
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoricoScreen(
@@ -423,11 +439,12 @@ fun HistoricoScreen(
                 }
                 if (!nativeAdDismissedHistorico) {
                     item(key = "native_ad_historico") {
-                        val nativeAd by rememberNativeAd(
+                        val nativeAdState by rememberNativeAdState(
                             adUnitId = AdUnitIds.para(AdSlot.HISTORICO),
                             contentSignal = NativeAdContentSignal.forSlot(AdSlot.HISTORICO),
-                            eligible = adsEnabled,
+                            eligibility = eligibilidadeAnuncioHistorico(adsEnabled),
                         )
+                        val nativeAd = (nativeAdState as? NativeAdLoadState.Fill)?.ad
                         NativeAdCard(
                             nativeAd = nativeAd,
                             source = NativeAdSource.ADMOB,

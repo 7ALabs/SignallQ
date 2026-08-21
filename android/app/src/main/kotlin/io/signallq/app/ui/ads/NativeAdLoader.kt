@@ -3,7 +3,6 @@ package io.signallq.app.ui.ads
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -15,34 +14,6 @@ import com.google.android.gms.ads.nativead.NativeAd
 import io.signallq.app.ads.NativeAdContentSignal
 import kotlinx.coroutines.awaitCancellation
 import timber.log.Timber
-
-/**
- * Carrega um [NativeAd] real do AdMob para um slot -- issue #555.
- *
- * `eligible = false` (Remote Config desligado ou consentimento UMP pendente/negado)
- * nunca chega a chamar [AdLoader.loadAd] -- nem a fazer request de rede a toa. O
- * anuncio anterior e sempre destruido (`NativeAd.destroy()`) antes de um novo e ao
- * sair de composicao -- exigencia do SDK para nao vazar memoria/recursos de midia.
- */
-@Composable
-fun rememberNativeAd(
-    adUnitId: String,
-    contentSignal: NativeAdContentSignal,
-    eligible: Boolean,
-): State<NativeAd?> {
-    val state =
-        rememberNativeAdState(
-            adUnitId = adUnitId,
-            contentSignal = contentSignal,
-            eligibility =
-                NativeAdEligibility(
-                    flagEnabled = eligible,
-                    canRequestAds = eligible,
-                    online = true,
-                ),
-        )
-    return remember(state) { derivedStateOf { (state.value as? NativeAdLoadState.Fill)?.ad } }
-}
 
 /**
  * Contrato tipado para as migrações 2.0. A chave estável da coroutine impede request duplicada

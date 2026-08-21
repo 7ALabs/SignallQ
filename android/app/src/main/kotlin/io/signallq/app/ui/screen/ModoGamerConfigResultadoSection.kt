@@ -57,7 +57,9 @@ import io.signallq.app.modogamer.icone
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
-import io.signallq.app.ui.ads.rememberNativeAd
+import io.signallq.app.ui.ads.NativeAdEligibility
+import io.signallq.app.ui.ads.NativeAdLoadState
+import io.signallq.app.ui.ads.rememberNativeAdState
 import io.signallq.app.ui.component.AcoesRecomendadasCard
 import io.signallq.app.ui.component.AiVsMotorExplainer
 import io.signallq.app.ui.component.DiagnosticoStatusBanner
@@ -258,6 +260,20 @@ private fun ModoGamerOpcaoConfig(
 }
 
 /**
+ * GH#1785 — mesmo mapeamento de [NativeAdEligibility] usado em `eligibilidadeAnuncioResultado`
+ * (ResultadoVelocidadeScreen.kt): a tela só recebe o flag `adsEnabled` de fora, sem sinal de
+ * consentimento UMP nem de conectividade separados (mesma limitação que `rememberNativeAd()`,
+ * o wrapper antigo, já tinha).
+ */
+internal fun eligibilidadeAnuncioModoGamer(adsEnabled: Boolean): NativeAdEligibility =
+    NativeAdEligibility(
+        slot = AdSlot.JOGOS,
+        flagEnabled = adsEnabled,
+        canRequestAds = adsEnabled,
+        online = true,
+    )
+
+/**
  * Resultado do Modo gamer — reaproveita [DiagnosticoStatusBanner]/[AiVsMotorExplainer]/
  * [AcoesRecomendadasCard] (mesmos componentes de [DiagnosticoGuiadoScreen], issue #1476
  * critério "reaproveita motor de decisão de #1475, sem lógica duplicada").
@@ -359,11 +375,12 @@ internal fun ModoGamerResultadoConteudo(
 
         if (!nativeAdDismissedModoGamer) {
             Spacer(Modifier.height(LkSpacing.lg))
-            val nativeAd by rememberNativeAd(
+            val nativeAdState by rememberNativeAdState(
                 adUnitId = AdUnitIds.para(AdSlot.JOGOS),
                 contentSignal = NativeAdContentSignal.forSlot(AdSlot.JOGOS),
-                eligible = adsEnabled,
+                eligibility = eligibilidadeAnuncioModoGamer(adsEnabled),
             )
+            val nativeAd = (nativeAdState as? NativeAdLoadState.Fill)?.ad
             NativeAdCard(
                 nativeAd = nativeAd,
                 source = NativeAdSource.ADMOB,

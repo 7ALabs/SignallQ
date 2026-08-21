@@ -5,12 +5,17 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import io.signallq.app.ads.AdSlot
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
 import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
 import io.signallq.app.ui.SignallQTheme
+import io.signallq.app.ui.ads.NativeAdIneligibleReason
+import io.signallq.app.ui.ads.NativeAdLoadState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -90,5 +95,43 @@ class SpeedTestScreenTest {
         cta.performClick()
 
         assertEquals("esperava exatamente 1 chamada, teve ${contador.get()}", 1, contador.get())
+    }
+
+    // =========================================================================
+    // GH#1785 — migração do último call site restante de rememberNativeAd() (legado) pra
+    // rememberNativeAdState() (contrato tipado). eligibilidadeAnuncioVelocidade é o mapeamento
+    // puro entre o único sinal que a tela recebe de fora (adsEnabled) e NativeAdEligibility --
+    // mesmo padrão de eligibilidadeAnuncioResultado (ResultadoVelocidadeScreenTest).
+    // =========================================================================
+
+    @Test
+    fun `eligibilidadeAnuncioVelocidade com adsEnabled true habilita flag e consentimento e assume online`() {
+        val eligibility = eligibilidadeAnuncioVelocidade(adsEnabled = true)
+
+        assertEquals(AdSlot.VELOCIDADE, eligibility.slot)
+        assertTrue(eligibility.flagEnabled)
+        assertTrue(eligibility.canRequestAds)
+        assertTrue(eligibility.online)
+        assertTrue(eligibility.canLoad)
+        assertEquals(NativeAdLoadState.Loading, eligibility.initialState())
+    }
+
+    @Test
+    fun `eligibilidadeAnuncioVelocidade com adsEnabled false desabilita flag e consentimento`() {
+        val eligibility = eligibilidadeAnuncioVelocidade(adsEnabled = false)
+
+        assertFalse(eligibility.flagEnabled)
+        assertFalse(eligibility.canRequestAds)
+        assertFalse(eligibility.canLoad)
+        assertEquals(
+            NativeAdLoadState.Ineligible(NativeAdIneligibleReason.FlagDisabled),
+            eligibility.initialState(),
+        )
+    }
+
+    @Test
+    fun `eligibilidadeAnuncioVelocidade sempre usa o slot VELOCIDADE`() {
+        assertEquals(AdSlot.VELOCIDADE, eligibilidadeAnuncioVelocidade(adsEnabled = true).slot)
+        assertEquals(AdSlot.VELOCIDADE, eligibilidadeAnuncioVelocidade(adsEnabled = false).slot)
     }
 }
