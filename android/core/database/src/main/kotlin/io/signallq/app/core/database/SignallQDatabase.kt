@@ -25,7 +25,7 @@ import io.signallq.app.core.database.analytics.AnalyticsOutboxEntity
         ProviderDirectoryCacheEntity::class,
         AnalyticsOutboxEntity::class,
     ],
-    version = 19,
+    version = 20,
     exportSchema = true,
 )
 abstract class SignallQDatabase : RoomDatabase() {
