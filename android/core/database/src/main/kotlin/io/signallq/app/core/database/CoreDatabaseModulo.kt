@@ -304,6 +304,22 @@ object CoreDatabaseModulo {
             }
         }
 
+    /** GH#1787 -- corrige a inconsistência original da migração 17->18: aquela migração já
+     *  criava `index_analytics_outbox_nextAttemptAtEpochMs` via SQL bruto, mas
+     *  `AnalyticsOutboxEntity` nunca declarou o `@Index` correspondente. Quem migrou pela
+     *  17->18 (ou além) já tem o índice físico no SQLite; instalação nova antes desta correção
+     *  não tinha. `CREATE INDEX IF NOT EXISTS` é seguro para os dois casos -- não falha em quem
+     *  já tem o índice, cria em quem não tem. Nenhum dado é alterado ou perdido. */
+    internal val MIGRATION_19_20 =
+        object : Migration(19, 20) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_analytics_outbox_nextAttemptAtEpochMs` " +
+                        "ON `analytics_outbox` (`nextAttemptAtEpochMs`)",
+                )
+            }
+        }
+
     fun criarBanco(context: Context): SignallQDatabase {
         return Room.databaseBuilder(
             context.applicationContext,
@@ -327,6 +343,7 @@ object CoreDatabaseModulo {
             .addMigrations(migracao16para17)
             .addMigrations(MIGRATION_17_18)
             .addMigrations(MIGRATION_18_19)
+            .addMigrations(MIGRATION_19_20)
             .build()
     }
 
