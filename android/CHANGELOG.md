@@ -11,9 +11,31 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ## [Unreleased]
 
+## [0.32.0] — 2026-08-21
+
+### Adicionado
+- **Reteste vinculado e comparação antes/depois**: o botão "Testar novamente" no resultado de uma análise volta a medir o mesmo cenário e mostra um veredito claro — Melhorou, Não mudou ou Piorou — com o nível de confiança explicado em texto, não só em ícone (2.0.09e).
+- Grid de disponibilidade dos últimos 7 dias voltou a aparecer na tela de Monitoramento, junto com o texto explicando de quanto em quanto tempo o app mede em segundo plano.
+
+### Alterado
+- **12 telas redesenhadas** com linguagem mais direta e menos jargão técnico: Sinal (Wi-Fi e Canal), Rede móvel, Dispositivos conectados, Equipamento, Ping/DNS, Monitoramento, Modo Gamer, Wi-Fi ao vivo, Histórico, Ajustes e Onboarding.
+- Histórico agora destaca primeiro a conclusão de cada teste (o que ele descobriu), não só o número bruto.
+- Modo Gamer aproximado do fluxo de diagnóstico guiado por objetivo, com tom mais direto no resultado.
+- Início da migração do motor de diagnóstico para o novo Núcleo de Diagnóstico SignallQ (NDS, ver ADR-017): roda internamente atrás de uma configuração remota desligada por padrão — nenhuma mudança perceptível ainda para quem usa o app.
+
+### Corrigido
+- **As 13 configurações remotas do app** (que permitem ligar/desligar recursos sem lançar uma versão nova) finalmente podem ser ajustadas remotamente — um erro de nomenclatura as bloqueava desde que existem.
+- Exclusão de dados locais em Ajustes agora espera a confirmação de que terminou antes de avisar sucesso, em vez de assumir que deu certo.
+- Onboarding: o pedido de permissão de telefone/localização volta a mostrar o diálogo nativo do Android, em vez de levar direto para a tela de Ajustes sem perguntar.
+
 ### Removido
+- `OfflineBanner` e `StatefulScreen`: componentes visuais legados sem mais nenhum consumidor, substituídos pela versão 2.0 dos estados de tela.
 - `AnaliseDetalhadaBottomSheet` e seu teste: sheet do fluxo legado "Analisar meu problema com IA" (3 sintomas fixos), órfão desde que a #1475 o substituiu pelo diagnóstico guiado de objetivos fechados (`DiagnosticoGuiadoScreen`). Sem consumidor em produção — 347 linhas (#1485).
 - Composables mortas de `HomeScreen.kt`: `MobileSignalCard`, `CardMovelDualSim` e `SimChipCompact`, mais os helpers exclusivos delas (`mobileSignalPercent`, `MiniSignalBars`). Nunca eram chamadas em lugar nenhum do app — 296 linhas, sem mudança visual para o usuário (#1261).
+
+### Documentação / Testes
+- 6 testes de migration de banco de dados corrigidos (nunca rodavam de fato por configuração ausente) e um índice novo adicionado com migration de schema 19→20.
+- 5 anúncios nativos migrados para o mecanismo de carregamento atual, sem mudança visual para quem usa o app.
 
 ## [0.31.0] — 2026-08-01
 
