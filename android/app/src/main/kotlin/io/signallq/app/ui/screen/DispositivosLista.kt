@@ -57,7 +57,9 @@ import io.signallq.app.feature.devices.ehClienteFinal
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
-import io.signallq.app.ui.ads.rememberNativeAd
+import io.signallq.app.ui.ads.NativeAdEligibility
+import io.signallq.app.ui.ads.NativeAdLoadState
+import io.signallq.app.ui.ads.rememberNativeAdState
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.ads.NativeAdListRow
 import io.signallq.app.ui.component.ads.NativeAdSource
@@ -66,6 +68,20 @@ import io.signallq.app.ui.component.ads.NativeAdSource
 // Lista principal com pull-to-refresh — extraído de DispositivosScreen.kt na
 // issue #1663 (épico #1647, Task 2.0.15). Sem mudança de comportamento.
 // ---------------------------------------------------------------------------
+
+/**
+ * GH#1785 — mesmo mapeamento de [io.signallq.app.ui.ads.NativeAdEligibility] usado em
+ * `eligibilidadeAnuncioResultado` (ResultadoVelocidadeScreen.kt): a tela só recebe o flag
+ * `adsEnabled` de fora, sem sinal de consentimento UMP nem de conectividade separados
+ * (mesma limitação que `rememberNativeAd()`, o wrapper antigo, já tinha).
+ */
+internal fun eligibilidadeAnuncioDispositivos(adsEnabled: Boolean): NativeAdEligibility =
+    NativeAdEligibility(
+        slot = AdSlot.DISPOSITIVOS,
+        flagEnabled = adsEnabled,
+        canRequestAds = adsEnabled,
+        online = true,
+    )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,11 +113,14 @@ internal fun DispositivosLista(
 
     var deviceEmSheet by remember { mutableStateOf<DispositivoRede?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val nativeAd by rememberNativeAd(
+    // GH#1785 — contrato tipado no lugar do rememberNativeAd() antigo. NativeAdListRow continua
+    // só aceitando NativeAd?, então só o Fill vira anúncio de fato.
+    val nativeAdState by rememberNativeAdState(
         adUnitId = AdUnitIds.para(AdSlot.DISPOSITIVOS),
         contentSignal = NativeAdContentSignal.forSlot(AdSlot.DISPOSITIVOS),
-        eligible = adsEnabled,
+        eligibility = eligibilidadeAnuncioDispositivos(adsEnabled),
     )
+    val nativeAd = (nativeAdState as? NativeAdLoadState.Fill)?.ad
 
     PullToRefreshBox(
         isRefreshing = isLoading,

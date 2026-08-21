@@ -1,7 +1,12 @@
 package io.signallq.app.ui.screen
 
+import io.signallq.app.ads.AdSlot
 import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.ui.ads.NativeAdIneligibleReason
+import io.signallq.app.ui.ads.NativeAdLoadState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -68,5 +73,43 @@ class HistoricoScreenHelpersTest {
         assertEquals(" · 5GHz", bandaWifiSufixo("ghz5"))
         assertEquals("", bandaWifiSufixo(null))
         assertEquals("", bandaWifiSufixo("desconhecida"))
+    }
+
+    // =========================================================================
+    // GH#1785 — migração de rememberNativeAd() (legado) pra rememberNativeAdState() (contrato
+    // tipado). eligibilidadeAnuncioHistorico é o mapeamento puro entre o único sinal que a tela
+    // recebe de fora (adsEnabled) e NativeAdEligibility -- mesmo padrão de
+    // eligibilidadeAnuncioResultado (ResultadoVelocidadeScreenTest).
+    // =========================================================================
+
+    @Test
+    fun `eligibilidadeAnuncioHistorico com adsEnabled true habilita flag e consentimento e assume online`() {
+        val eligibility = eligibilidadeAnuncioHistorico(adsEnabled = true)
+
+        assertEquals(AdSlot.HISTORICO, eligibility.slot)
+        assertTrue(eligibility.flagEnabled)
+        assertTrue(eligibility.canRequestAds)
+        assertTrue(eligibility.online)
+        assertTrue(eligibility.canLoad)
+        assertEquals(NativeAdLoadState.Loading, eligibility.initialState())
+    }
+
+    @Test
+    fun `eligibilidadeAnuncioHistorico com adsEnabled false desabilita flag e consentimento`() {
+        val eligibility = eligibilidadeAnuncioHistorico(adsEnabled = false)
+
+        assertFalse(eligibility.flagEnabled)
+        assertFalse(eligibility.canRequestAds)
+        assertFalse(eligibility.canLoad)
+        assertEquals(
+            NativeAdLoadState.Ineligible(NativeAdIneligibleReason.FlagDisabled),
+            eligibility.initialState(),
+        )
+    }
+
+    @Test
+    fun `eligibilidadeAnuncioHistorico sempre usa o slot HISTORICO`() {
+        assertEquals(AdSlot.HISTORICO, eligibilidadeAnuncioHistorico(adsEnabled = true).slot)
+        assertEquals(AdSlot.HISTORICO, eligibilidadeAnuncioHistorico(adsEnabled = false).slot)
     }
 }

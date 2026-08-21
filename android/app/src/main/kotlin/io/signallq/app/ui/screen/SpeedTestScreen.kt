@@ -69,7 +69,9 @@ import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
-import io.signallq.app.ui.ads.rememberNativeAd
+import io.signallq.app.ui.ads.NativeAdEligibility
+import io.signallq.app.ui.ads.NativeAdLoadState
+import io.signallq.app.ui.ads.rememberNativeAdState
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.ads.NativeAdRow
@@ -206,6 +208,20 @@ fun SpeedTestScreen(
     }
 }
 
+/**
+ * GH#1785 — mesmo mapeamento de [NativeAdEligibility] usado em `eligibilidadeAnuncioResultado`
+ * (ResultadoVelocidadeScreen.kt): a tela só recebe o flag `adsEnabled` de fora, sem sinal de
+ * consentimento UMP nem de conectividade separados (mesma limitação que `rememberNativeAd()`,
+ * o wrapper antigo, já tinha).
+ */
+internal fun eligibilidadeAnuncioVelocidade(adsEnabled: Boolean): NativeAdEligibility =
+    NativeAdEligibility(
+        slot = AdSlot.VELOCIDADE,
+        flagEnabled = adsEnabled,
+        canRequestAds = adsEnabled,
+        online = true,
+    )
+
 @Composable
 private fun ConteudoSpeedTest(
     padding: androidx.compose.foundation.layout.PaddingValues,
@@ -270,11 +286,12 @@ private fun ConteudoSpeedTest(
 
         if (estadoIdle) {
             Spacer(Modifier.height(LkSpacing.md))
-            val nativeAd by rememberNativeAd(
+            val nativeAdState by rememberNativeAdState(
                 adUnitId = AdUnitIds.para(AdSlot.VELOCIDADE),
                 contentSignal = NativeAdContentSignal.forSlot(AdSlot.VELOCIDADE),
-                eligible = adsEnabled,
+                eligibility = eligibilidadeAnuncioVelocidade(adsEnabled),
             )
+            val nativeAd = (nativeAdState as? NativeAdLoadState.Fill)?.ad
             NativeAdRow(
                 nativeAd = nativeAd,
                 source = NativeAdSource.ADMOB,
