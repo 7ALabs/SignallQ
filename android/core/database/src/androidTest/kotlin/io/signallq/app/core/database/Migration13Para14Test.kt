@@ -41,7 +41,7 @@ class Migration13Para14Test {
                     "operadoraMovel, diagnosticoTexto, diagnosticoOrigem, diagnosticoProblemas, score, status) " +
                     "VALUES ('test-id-1', 1700000000000, 'wifi', NULL, NULL, 0, NULL, NULL, " +
                     "150.5, 20.3, 12.0, 2.5, 0.1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, " +
-                    "NULL, NULL, NULL, NULL, 'completed')",
+                    "NULL, NULL, NULL, NULL, NULL, 'completed')",
             )
         }
 
@@ -69,7 +69,7 @@ class Migration13Para14Test {
                     "operadoraMovel, diagnosticoTexto, diagnosticoOrigem, diagnosticoProblemas, score, status) " +
                     "VALUES ('test-id-2', 1700000001000, 'wifi', NULL, NULL, 0, NULL, NULL, " +
                     "100.0, 10.0, 15.0, 3.0, 0.0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, " +
-                    "NULL, NULL, NULL, NULL, 'completed')",
+                    "NULL, NULL, NULL, NULL, NULL, 'completed')",
             )
         }
 
@@ -84,7 +84,7 @@ class Migration13Para14Test {
                 "operadoraMovel, diagnosticoTexto, diagnosticoOrigem, diagnosticoProblemas, score, status, bandaWifi) " +
                 "VALUES ('test-id-3', 1700000002000, 'wifi', NULL, NULL, 0, NULL, NULL, " +
                 "50.0, 5.0, 20.0, 4.0, 0.0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, " +
-                "NULL, NULL, NULL, NULL, 'completed', 'ghz24')",
+                "NULL, NULL, NULL, NULL, NULL, 'completed', 'ghz24')",
         )
 
         db.query("SELECT bandaWifi FROM medicao WHERE id = 'test-id-2'").use { cursor ->

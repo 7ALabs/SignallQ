@@ -123,7 +123,7 @@ class Migration15Para16Test {
                 "score, status, executionId, rulesVersion) " +
                 "VALUES ('pos-migracao', 1700000002000, 'wifi', NULL, NULL, 0, 'fast', '3', " +
                 "300.0, 30.0, 10.0, 1.0, 0.0, 3.0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, " +
-                "NULL, NULL, NULL, 'completed', 'exec-real-uuid-001', 'diagnostic-rules-v1')",
+                "NULL, NULL, NULL, NULL, 'completed', 'exec-real-uuid-001', 'diagnostic-rules-v1')",
         )
 
         db.query("SELECT executionId, rulesVersion FROM medicao WHERE id = 'pos-migracao'").use { cursor ->
