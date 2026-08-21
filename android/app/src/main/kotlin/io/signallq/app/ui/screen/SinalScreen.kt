@@ -14,21 +14,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.outlined.WifiFind
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.minimumInteractiveComponentSize
@@ -42,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -50,9 +45,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import io.signallq.app.R
-import io.signallq.app.core.diagnostico.NivelCongestionamento
-import io.signallq.app.core.diagnostico.RedeWifiVizinha
-import io.signallq.app.core.diagnostico.WifiChannelDiagnosticEngine
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.WifiLinkSnapshot
 import io.signallq.app.core.network.wifi.SnapshotScanWifi
@@ -326,88 +318,42 @@ private fun SinalTopTabRow(
     connectedNetwork: RedeVizinha?,
     c: LkTokens,
 ) {
-    val canalCongestionado =
-        remember(snapshotWifi.redes, connectedNetwork) {
-            if (connectedNetwork == null) return@remember false
-            val bandaConectada = connectedNetwork.banda
-            val redesBanda = snapshotWifi.redes.filter { it.banda == bandaConectada }
-            val espectro =
-                WifiChannelDiagnosticEngine.computarEspectro(
-                    redes =
-                        redesBanda.map {
-                            RedeWifiVizinha(
-                                canal = it.canal,
-                                rssiDbm = it.rssiDbm,
-                                frequenciaMhz = it.frequenciaMhz,
-                                ssid = it.ssid,
-                                bssid = it.bssid,
-                                larguraCanalMhz = it.larguraCanalMhz,
-                            )
-                        },
-                    canalAtual = connectedNetwork.canal,
-                    banda = bandaConectada,
-                    seuSSID = connectedNetwork.ssid,
-                )
-            espectro.dadosPorCanal
-                .firstOrNull { it.ehCanalAtual }
-                ?.nivel == NivelCongestionamento.congestionado
-        }
-
-    TabRow(
-        selectedTabIndex = selectedTab,
-        containerColor = c.bgPrimary,
-        contentColor = c.primary,
-        divider = { HorizontalDivider(color = c.outlineVariant, thickness = 1.dp) },
-        // GH#1080 (P0): faltava `modifier = Modifier.tabIndicatorOffset(...)` -- sem ele o
-        // TabRow mede o indicador com Constraints.fixed(larguraTotal, alturaTotal) da propria
-        // TabRow (nao so a altura de 3dp pedida), entao o indicador cobre a faixa inteira com
-        // cor solida por cima dos 3 labels (Wi-Fi/Canal/Movel), que continuam compostos --
-        // so ficam visualmente cobertos. Padrao correto ja existia em DnsScreen.kt:657-668.
-        indicator = { tabPositions ->
-            TabRowDefaults.SecondaryIndicator(
-                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                height = 3.dp,
-                color = c.primary,
-            )
-        },
+    // Simulating .tabs component from prototype
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(LkSpacing.xl)
+                .clip(
+                    androidx.compose.foundation.shape
+                        .RoundedCornerShape(8.dp),
+                ).background(c.primary.copy(alpha = 0.08f))
+                .padding(4.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        listOf("Wi-Fi", "Canal", "Móvel").forEachIndexed { index, label ->
-            Tab(
-                selected = selectedTab == index,
-                onClick = { onTabSelected(index) },
-                text = {
-                    if (index == 1 && canalCongestionado) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp),
-                        ) {
-                            Text(
-                                label,
-                                style = MaterialTheme.typography.titleSmall,
-                                maxLines = 1,
-                                softWrap = false,
-                                fontWeight = if (selectedTab == index) FontWeight.W600 else FontWeight.W500,
-                                color = if (selectedTab == index) c.primary else c.textSecondary,
-                            )
-                            Icon(
-                                imageVector = Icons.Outlined.Warning,
-                                contentDescription = "Canal congestionado",
-                                tint = c.warning,
-                                modifier = Modifier.size(12.dp),
-                            )
-                        }
-                    } else {
-                        Text(
-                            label,
-                            style = MaterialTheme.typography.titleSmall,
-                            maxLines = 1,
-                            softWrap = false,
-                            fontWeight = if (selectedTab == index) FontWeight.W600 else FontWeight.W500,
-                            color = if (selectedTab == index) c.primary else c.textSecondary,
-                        )
-                    }
-                },
-            )
+        val tabs = listOf("Wi-Fi", "Canal", "Móvel")
+        tabs.forEachIndexed { index, label ->
+            val isActive = selectedTab == index
+            Box(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .clip(
+                            androidx.compose.foundation.shape
+                                .RoundedCornerShape(6.dp),
+                        ).background(if (isActive) c.bgPrimary else androidx.compose.ui.graphics.Color.Transparent)
+                        .clickable { onTabSelected(index) }
+                        .padding(vertical = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isActive) c.textPrimary else c.textSecondary,
+                )
+            }
         }
     }
 }

@@ -1,35 +1,23 @@
 package io.signallq.app.ui.screen
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.ManageSearch
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.SportsEsports
-import androidx.compose.material.icons.outlined.Troubleshoot
-import androidx.compose.material.icons.outlined.Tv
-import androidx.compose.material.icons.outlined.Videocam
-import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material.icons.rounded.CellTower
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Wifi
+import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -39,10 +27,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -55,36 +40,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.signallq.app.ads.AdSlot
-import io.signallq.app.ads.AdUnitIds
-import io.signallq.app.ads.NativeAdContentSignal
 import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.feature.speedtest.ResultadoSpeedtest
-import io.signallq.app.feature.speedtest.VereditoUso
 import io.signallq.app.ui.IspInfo
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
-import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.ResultadoPdfGenerator
 import io.signallq.app.ui.ads.NativeAdEligibility
-import io.signallq.app.ui.ads.NativeAdLoadState
-import io.signallq.app.ui.ads.rememberNativeAdState
-import io.signallq.app.ui.component.LkInfoCallout
-import io.signallq.app.ui.component.LkSectionOverline
-import io.signallq.app.ui.component.LkSurfaceCard
-import io.signallq.app.ui.component.ads.NativeAdCard
-import io.signallq.app.ui.component.ads.NativeAdSource
 import io.signallq.app.ui.component.classificarBufferbloatLocal
 import io.signallq.app.ui.component.classificarDownloadLocal
 import io.signallq.app.ui.component.classificarJitterLocal
@@ -297,502 +267,103 @@ fun ResultadoVelocidadeScreen(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .background(c.bgPrimary),
+                    .padding(padding)
+                    .background(c.bgPrimary)
+                    .verticalScroll(scrollState)
+                    .padding(LkSpacing.xl),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Column(
+            // Hero do Veredito (result-verdict)
+            Box(
                 modifier =
                     Modifier
-                        .weight(1f)
-                        .verticalScroll(scrollState)
-                        .padding(padding)
-                        .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.xxl),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                        .size(56.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(c.primary.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center,
             ) {
-                // GH#1659a — visível assim que o compartilhamento (botão na TopAppBar) falha;
-                // some sozinho no próximo toque em compartilhar (erroCompartilhamento = null).
-                if (erroCompartilhamento != null) {
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(LkRadius.card))
-                                .background(c.error.copy(alpha = 0.12f))
-                                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        LkInfoCallout(
-                            icon = Icons.Outlined.Warning,
-                            text = erroCompartilhamento!!,
-                            iconTint = c.error,
-                        )
-                    }
-                    Spacer(Modifier.height(LkSpacing.md))
-                }
-
-                // Título + mensagem diagnóstico
-                Text(
-                    text = decisaoTitulo ?: "Resultado do teste",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = c.textPrimary,
-                    textAlign = TextAlign.Center,
-                )
-
-                if (decisaoMensagem != null) {
-                    Spacer(Modifier.height(LkSpacing.sm))
-                    Text(
-                        text = decisaoMensagem,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = c.textSecondary,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-
-                // Badge discreto do tipo de rede
-                ChipTipoRede(
-                    connectionType = resultado.connectionType,
-                    tecnologia = resultado.tecnologia,
-                    c = c,
-                )
-
-                Spacer(Modifier.height(LkSpacing.xl))
-
-                // Cards principais: Download + Upload
-                Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                    MetricCard(
-                        label = "Velocidade de download",
-                        value = "%.1f".format(resultado.downloadMbps),
-                        unit = "Mbps",
-                        cor = corDownload,
-                        veredito = veredictoDownload,
-                        c = c,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Spacer(Modifier.width(LkSpacing.md))
-                    MetricCard(
-                        label = "Velocidade de upload",
-                        value = if (resultado.uploadNaoDetectado) "—" else "%.1f".format(resultado.uploadMbps),
-                        unit = if (resultado.uploadNaoDetectado) "Não foi possível medir" else "Mbps",
-                        cor = corUpload,
-                        veredito = veredictoUpload,
-                        c = c,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-
-                Spacer(Modifier.height(LkSpacing.md))
-                TextButton(onClick = { metricasDetalhadasAbertas = !metricasDetalhadasAbertas }) {
-                    Text(
-                        text = if (metricasDetalhadasAbertas) "Ocultar detalhes da conexão" else "Ver detalhes da conexão",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = c.primary,
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Icon(
-                        imageVector = Icons.Outlined.ExpandMore,
-                        contentDescription = null,
-                        tint = c.primary,
-                        modifier = Modifier.size(18.dp).rotate(if (metricasDetalhadasAbertas) 180f else 0f),
-                    )
-                }
-
-                AnimatedVisibility(visible = metricasDetalhadasAbertas) {
-                    Column {
-                        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                            MetricCard(
-                                label = "Tempo de resposta",
-                                value = "%.0f".format(resultado.latenciaMs),
-                                unit = "ms",
-                                cor = corLatencia,
-                                veredito = veredictoLatencia,
-                                c = c,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Spacer(Modifier.width(LkSpacing.md))
-                            MetricCard(
-                                label = "Variação do tempo de resposta",
-                                value = "%.0f".format(resultado.jitterMs),
-                                unit = "ms",
-                                cor = corJitter,
-                                veredito = veredictoJitter,
-                                c = c,
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                        Spacer(Modifier.height(LkSpacing.md))
-                        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                            MetricCard(
-                                // GH#1221 RF-04/#1219 — "perda de pacotes" sugere medicao direta;
-                                // o metodo real e taxa de falha/timeout de probes HTTP (ver
-                                // ResultadoSpeedtest.packetLossSource == "estimated"). Rotulo
-                                // honesto sobre a metodologia, sem prometer mais precisao do
-                                // que o teste realmente mede.
-                                label = "Falhas estimadas na conexão",
-                                value = "%.1f".format(resultado.perdaPercentual),
-                                unit = "%",
-                                cor = corPerda,
-                                veredito = veredictoPerda,
-                                c = c,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Spacer(Modifier.width(LkSpacing.md))
-                            MetricCard(
-                                label = "Lentidão com a rede ocupada",
-                                value = "%.0f".format(resultado.bufferbloatMs),
-                                unit = "ms",
-                                cor = corBufferbloat,
-                                veredito = veredictoBufferbloat,
-                                c = c,
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                    }
-                }
-
-                if (resultado.uploadNaoDetectado) {
-                    Spacer(Modifier.height(LkSpacing.md))
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(LkRadius.card))
-                                .background(c.warning.copy(alpha = 0.12f))
-                                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        LkInfoCallout(
-                            icon = Icons.Outlined.Info,
-                            text = "Não consegui medir o envio de dados. Vamos tentar novamente.",
-                            iconTint = c.warning,
-                        )
-                    }
-                }
-
-                // Integridade do teste — não é "informação secundária", é sobre a
-                // confiabilidade dos números que acabaram de ser mostrados.
-                if (resultado.contaminado) {
-                    val faseInterrompida = resultado.diagnosticoFases.faseInterrompida
-                    val interrompidoPorRedeMudou = faseInterrompida.contains("redeMudou", ignoreCase = true)
-                    val mensagemContaminacao =
-                        if (interrompidoPorRedeMudou) {
-                            "O teste foi interrompido porque a conexão caiu ou mudou durante a medição. Tente novamente quando a rede estabilizar."
-                        } else {
-                            "Outros aplicativos podem ter afetado o resultado."
-                        }
-                    Spacer(Modifier.height(LkSpacing.md))
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(LkRadius.card))
-                                .background(c.warning.copy(alpha = 0.12f))
-                                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        LkInfoCallout(
-                            icon = Icons.Outlined.Warning,
-                            text = mensagemContaminacao,
-                            iconTint = c.warning,
-                        )
-                    }
-                }
-
-                if (!metricasDetalhadasAbertas) {
-                    Spacer(Modifier.height(LkSpacing.sm))
-                    if (!nativeAdDismissedResultado) {
-                        // GH#1659a — contrato tipado (Ineligible/Loading/Fill/NoFill/
-                        // RecoverableError/Offline) no lugar do rememberNativeAd() antigo, que
-                        // colapsava tudo isso num único NativeAd? nulo. NativeAdCard continua
-                        // só aceitando NativeAd?, então só o Fill vira anúncio de fato.
-                        val nativeAdState by rememberNativeAdState(
-                            adUnitId = AdUnitIds.para(AdSlot.RESULTADO),
-                            contentSignal = NativeAdContentSignal.forSlot(AdSlot.RESULTADO),
-                            eligibility = eligibilidadeAnuncioResultado(adsEnabled),
-                        )
-                        val nativeAd = (nativeAdState as? NativeAdLoadState.Fill)?.ad
-                        NativeAdCard(
-                            nativeAd = nativeAd,
-                            source = NativeAdSource.ADMOB,
-                            onDismiss = { nativeAdDismissedResultado = true },
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(LkSpacing.xl))
-                LkSectionOverline(text = "Como sua internet deve funcionar")
-                Spacer(Modifier.height(LkSpacing.sm))
-                LkSurfaceCard(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth(),
-                ) {
-                    Column {
-                        ImpactoPraticoLinha(
-                            label = "Vídeos em alta qualidade",
-                            veredito = resultado.diagnosticoQualidade.vereditoStreaming,
-                            icon = Icons.Outlined.Tv,
-                            c = c,
-                        )
-                        HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
-                        ImpactoPraticoLinha(
-                            label = "Jogos online",
-                            veredito = resultado.diagnosticoQualidade.vereditoGamer,
-                            icon = Icons.Outlined.SportsEsports,
-                            c = c,
-                        )
-                        HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
-                        ImpactoPraticoLinha(
-                            label = "Chamadas de vídeo",
-                            veredito = resultado.diagnosticoQualidade.vereditoVideoChamada,
-                            icon = Icons.Outlined.Videocam,
-                            c = c,
-                        )
-                    }
-                }
-
-                // 3 CTAs do resumo pós-teste (issue #1475) — nada de dado técnico despejado
-                // aqui, cada caminho abre seu próprio destino dedicado.
-                Spacer(Modifier.height(LkSpacing.lg))
-                Button(
-                    onClick = onIniciarDiagnosticoGuiado,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(LkRadius.button),
-                    colors = ButtonDefaults.buttonColors(containerColor = c.primary, contentColor = c.onPrimary),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Troubleshoot,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(LkSpacing.sm))
-                    Text(
-                        text = "Descobrir o que está acontecendo",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-                Spacer(Modifier.height(LkSpacing.sm))
-                OutlinedButton(
-                    onClick = onIniciarModoGamer,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(LkRadius.button),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.SportsEsports,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(LkSpacing.sm))
-                    Text(
-                        text = "Analisar jogos online",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = c.textPrimary,
-                    )
-                }
-                Spacer(Modifier.height(LkSpacing.sm))
-                TextButton(
-                    onClick = onVerDetalhesTecnicos,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.ManageSearch,
-                        contentDescription = null,
-                        tint = c.textSecondary,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(LkSpacing.xs))
-                    Text(
-                        text = "Ver detalhes da conexão",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = c.textSecondary,
-                    )
-                }
-
-                Spacer(Modifier.height(LkSpacing.sm))
-                HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
-                Spacer(Modifier.height(LkSpacing.sm))
-
-                OutlinedButton(
-                    onClick = onTestarNovamente,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(LkRadius.button),
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Refresh,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(LkSpacing.sm))
-                    Text(
-                        text = "Refazer o teste",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = c.textPrimary,
-                    )
-                }
-                TextButton(
-                    onClick = onIrParaHome,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        text = "Voltar ao início",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = c.textSecondary,
-                    )
-                }
-
-                Spacer(Modifier.height(LkSpacing.xl))
+                Icon(Icons.Outlined.Speed, contentDescription = null, tint = c.primary, modifier = Modifier.size(28.dp))
             }
-        }
-    }
-}
-
-@Composable
-private fun ChipTipoRede(
-    connectionType: String?,
-    tecnologia: String?,
-    c: LkTokens,
-) {
-    val (label, icon) =
-        remember(connectionType, tecnologia) {
-            when {
-                connectionType == null -> null
-                connectionType.equals("wifi", ignoreCase = true) ->
-                    "Teste feito pelo Wi-Fi" to Icons.Rounded.Wifi
-                connectionType.equals("movel", ignoreCase = true) -> {
-                    val tecLabel =
-                        when {
-                            tecnologia == null -> "Teste feito pela rede móvel"
-                            tecnologia.contains("5G", ignoreCase = true) -> "Teste feito pelo 5G"
-                            tecnologia.contains("4G", ignoreCase = true) ||
-                                tecnologia.contains("LTE", ignoreCase = true) -> "Teste feito pelo 4G"
-                            else -> "Teste feito pela rede móvel"
-                        }
-                    tecLabel to Icons.Rounded.CellTower
-                }
-                else -> null
-            }
-        } ?: return
-
-    Spacer(Modifier.height(LkSpacing.sm))
-    SuggestionChip(
-        onClick = {},
-        label = {
+            Spacer(Modifier.height(LkSpacing.md))
             Text(
-                text = label,
-                style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                text = decisaoTitulo ?: "Boa velocidade, resposta instável",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = c.textPrimary,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(LkSpacing.sm))
+            Text(
+                text = decisaoMensagem ?: "Downloads devem funcionar bem. Chamadas e jogos podem oscilar quando a rede está ocupada.",
+                style = MaterialTheme.typography.bodyMedium,
                 color = c.textSecondary,
+                textAlign = TextAlign.Center,
             )
-        },
-        icon = {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = c.textSecondary,
-                modifier = Modifier.size(14.dp),
-            )
-        },
-        colors =
-            SuggestionChipDefaults.suggestionChipColors(
-                containerColor = c.surfaceContainer,
-                labelColor = c.onSurfaceVariant,
-                iconContentColor = c.onSurfaceVariant,
-            ),
-        border = null,
-    )
-}
 
-@Composable
-private fun ImpactoPraticoLinha(
-    label: String,
-    veredito: VereditoUso,
-    icon: ImageVector,
-    c: LkTokens,
-) {
-    val (cor, badgeLabel) =
-        when (veredito) {
-            VereditoUso.good -> c.success to "Ótimo"
-            VereditoUso.acceptable -> c.warning to "Bom"
-            VereditoUso.poor -> c.error to "Ruim"
+            Spacer(Modifier.height(LkSpacing.xxl))
+
+            // O que medimos
+            Text(
+                text = "O que medimos",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = c.textPrimary,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Start,
+            )
+            Spacer(Modifier.height(LkSpacing.md))
+
+            // Metric-row
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(LkSpacing.md)) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "%.0f Mbps".format(resultado.downloadMbps), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = corDownload)
+                    Text(text = "Download · ${veredictoDownload.lowercase()}", style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    val labelUp = if (resultado.uploadNaoDetectado) "Não detectado" else "%.0f Mbps".format(resultado.uploadMbps)
+                    Text(text = labelUp, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = corUpload)
+                    Text(text = "Upload · ${veredictoUpload.lowercase()}", style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+                }
+            }
+
+            Spacer(Modifier.height(LkSpacing.xl))
+
+            // Metric-list
+            Column(modifier = Modifier.fillMaxWidth()) {
+                androidx.compose.material3.HorizontalDivider(color = c.outlineVariant)
+                Row(modifier = Modifier.fillMaxWidth().padding(vertical = LkSpacing.md), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Tempo de resposta", style = MaterialTheme.typography.bodyMedium, color = c.textSecondary, modifier = Modifier.weight(1f))
+                    Text("${resultado.latenciaMs} ms · ${veredictoLatencia.lowercase()}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = corLatencia)
+                }
+                androidx.compose.material3.HorizontalDivider(color = c.outlineVariant)
+                Row(modifier = Modifier.fillMaxWidth().padding(vertical = LkSpacing.md), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Rede ocupada", style = MaterialTheme.typography.bodyMedium, color = c.textSecondary, modifier = Modifier.weight(1f))
+                    Text("${resultado.bufferbloatMs ?: "-"} ms · ${veredictoBufferbloat.lowercase()}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = corBufferbloat)
+                }
+                androidx.compose.material3.HorizontalDivider(color = c.outlineVariant)
+            }
+
+            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.height(LkSpacing.xxl))
+
+            // Actions
+            androidx.compose.material3.Button(
+                onClick = onIniciarDiagnosticoGuiado,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(LkRadius.button),
+                colors =
+                    androidx.compose.material3.ButtonDefaults
+                        .buttonColors(containerColor = c.primary, contentColor = c.onPrimary),
+            ) {
+                Text("Entender o que está acontecendo", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.height(LkSpacing.sm))
+            TextButton(
+                onClick = onVerDetalhesTecnicos,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Ver detalhes técnicos", style = MaterialTheme.typography.titleMedium, color = c.textTertiary)
+            }
         }
-
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = c.textSecondary,
-            modifier = Modifier.size(22.dp),
-        )
-        Spacer(Modifier.width(LkSpacing.md))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = c.textPrimary,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            text = badgeLabel,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.W700,
-            color = cor,
-            modifier =
-                Modifier
-                    .clip(RoundedCornerShape(LkRadius.pill))
-                    .background(cor.copy(alpha = 0.16f))
-                    .padding(horizontal = LkSpacing.sm, vertical = 4.dp),
-        )
-    }
-}
-
-@Composable
-private fun MetricCard(
-    label: String,
-    value: String,
-    unit: String,
-    cor: Color,
-    veredito: String,
-    c: LkTokens,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier =
-            modifier
-                .fillMaxHeight()
-                .clip(RoundedCornerShape(LkRadius.card))
-                .background(c.surfaceContainer)
-                .padding(LkSpacing.lg)
-                .semantics(mergeDescendants = true) { contentDescription = "$label: $value $unit, $veredito" },
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = c.textSecondary,
-            textAlign = TextAlign.Center,
-            minLines = 2,
-        )
-        Spacer(Modifier.height(LkSpacing.xs))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.headlineSmall,
-            color = cor,
-        )
-        Text(
-            text = unit,
-            style = MaterialTheme.typography.labelSmall,
-            color = c.textTertiary,
-        )
-        Spacer(Modifier.height(LkSpacing.xs))
-        Text(
-            text = veredito,
-            style = MaterialTheme.typography.labelSmall,
-            color = cor,
-        )
     }
 }
