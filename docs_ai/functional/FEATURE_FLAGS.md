@@ -4,7 +4,7 @@ description: "Contrato de flags remotas do SignallQ Android + Admin Panel — ro
 type: "funcional"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-01"
+last_updated: "2026-08-20"
 ---
 
 # Feature Flags remotas — SignallQ Android + Admin Panel
@@ -213,11 +213,11 @@ de verdade as 9 flags principais de módulo (`consumer.{modulo}.enabled` — hom
 devices, dns, fibra, diagnostico, history, settings), todas `androidImplemented=true`, gateando
 tab/overlay em `AppShell.kt` (detalhe completo:
 `docs_ai/technical/feature-flags-remote-config.md`, seção 10). Só
-`consumer.speedtest.cloudflare_engine_enabled` continua smoke-test (`androidImplemented=false`).
+`consumer_speedtest_cloudflare_engine_enabled` continua smoke-test (`androidImplemented=false`).
 
 **Issue #1497 (2026-08-01):** migrou `DiagnosticDivergenceReporter` — único consumidor real
 restante do sistema SIG-13 acima (kill switch do shadow mode de diagnóstico,
-`feature_diagnostic_shadow_mode`) — para `consumer.diagnostico.shadow_mode_enabled` no catálogo
+`feature_diagnostic_shadow_mode`) — para `consumer_diagnostico_shadow_mode_enabled` no catálogo
 novo. O sistema SIG-13 descrito neste documento (`FeatureFlagManager`/`FeatureFlagRepository`,
 endpoints `GET /flags`/`GET /feature-flags`, tabelas D1 `feature_flags`/`feature_flag_audit`)
 **continua existindo e em produção** — #1497 não o removeu, só migrou o último ponto de consumo

@@ -85,7 +85,7 @@ regras de negócio ou ViewModels para a shell.
 ### 4.1 Barra inferior — Jornada 2.0 e fallback legado
 
 `AppShellBottomBar.kt` implementa os dois conjuntos reversíveis. A flag canônica
-`consumer.app_shell.guided_2_enabled` seleciona o modo; seu default local é `false`, portanto o
+`consumer_app_shell_guided_2_enabled` seleciona o modo; seu default local é `false`, portanto o
 fallback offline seguro é `Legacy`. Quando ativado via configuração já persistida pelo provider,
 `Guided2` expõe quatro raízes e abre em Início. O modo legado mantém cinco abas e cold start em
 Velocidade, sem depender de rede para rollback.
@@ -165,7 +165,7 @@ responsáveis e não foram redesenhados nesta fatia.
 
 ### 4.3.2 Início 2.0
 
-Quando a flag canônica `consumer.app_shell.guided_2_enabled` está ativa, a raiz Início usa
+Quando a flag canônica `consumer_app_shell_guided_2_enabled` está ativa, a raiz Início usa
 `Inicio2Screen`; com o default local `false`, `HomeScreen` permanece como fallback Legacy completo.
 A troca não cria estado paralelo: `Inicio2UiStateMapper` adapta `SnapshotRede`,
 `SnapshotDiagnostico` e a medição escolhida pelo mesmo `resolverMedicaoHome` usado pela Home antiga.

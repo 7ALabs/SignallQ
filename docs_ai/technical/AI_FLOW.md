@@ -4,7 +4,7 @@ description: "Fluxo de diagnóstico assistido por IA no app Android e o worker q
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-19"
+last_updated: "2026-08-20"
 ---
 
 # AI Flow — Android SignallQ
@@ -124,7 +124,7 @@ chama `coletarContextoAdicionalIa()` + `DiagnosisAiContextFactory.fromRaw()` e
 `AiDiagnosisRepository.explainDiagnosis()` diretamente — sem orquestrador intermediário — e
 apresenta o resultado em `LaudoScreen`.
 
-**NDS-02k PR2 (issue #1746, ADR-017):** atrás da flag `consumer.diagnostico.nds_live_enabled`
+**NDS-02k PR2 (issue #1746, ADR-017):** atrás da flag `consumer_diagnostico_nds_live_enabled`
 (`FeatureFlagKeys.CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED`, default `false` em todo ambiente),
 `analisarProblema()` desvia desse caminho — ver `resolverResultadoAnaliseViaNds` (função de nível
 de arquivo em `MainViewModel.kt`, extraída para ser testável sem instanciar o ViewModel inteiro).

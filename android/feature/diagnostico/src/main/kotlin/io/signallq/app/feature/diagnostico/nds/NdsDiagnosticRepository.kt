@@ -30,7 +30,7 @@ import timber.log.Timber
  * mode antigo ja tem hoje — 2 chamadas remotas por diagnostico).
  *
  * ## Quando este repository e chamado
- * Só quando `consumer.diagnostico.nds_live_enabled` está ligada — ver
+ * Só quando `consumer_diagnostico_nds_live_enabled` está ligada — ver
  * `DiagnosticOrchestrator.executarProtegido`. Com a flag desligada (default, todo ambiente hoje),
  * este repository nunca é instanciado com tráfego real: a instância default do Hilt existe, mas
  * `evaluate()` nunca é chamado.

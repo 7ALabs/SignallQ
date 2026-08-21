@@ -278,7 +278,7 @@ class DiagnosticOrchestratorTest {
     }
 
     // -------------------------------------------------------------------
-    // NDS-02k (issue #1759) — flag `consumer.diagnostico.nds_live_enabled`.
+    // NDS-02k (issue #1759) — flag `consumer_diagnostico_nds_live_enabled`.
     // -------------------------------------------------------------------
 
     private fun ndsSuccessBody(): String = """

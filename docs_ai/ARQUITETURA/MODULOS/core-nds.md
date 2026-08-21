@@ -1,10 +1,10 @@
 ---
 title: "Módulo :core:nds"
-description: "Cliente HTTP e contrato tipado do Network Diagnostics Service (NDS) — atrás da flag consumer.diagnostico.nds_live_enabled (default desligada), primeiro consumidor real desde NDS-02k."
+description: "Cliente HTTP e contrato tipado do Network Diagnostics Service (NDS) — atrás da flag consumer_diagnostico_nds_live_enabled (default desligada), primeiro consumidor real desde NDS-02k."
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-19"
+last_updated: "2026-08-20"
 ---
 
 # `:core:nds`
@@ -26,7 +26,7 @@ tratamento de erro (`NdsDiagnosticsOutcome`).
 consome (`:featureDiagnostico`, ver seção Consumidores). NDS-01 (#1744) isolou o cliente; NDS-02a-j
 (#1747–#1758) adicionaram mappers puros consumidos por seams locais sem tocar rede; NDS-02k
 (#1759) plugou o primeiro consumidor de produção real (`NdsDiagnosticRepository`, atrás da flag
-`consumer.diagnostico.nds_live_enabled`, default desligada — zero mudança de comportamento até a
+`consumer_diagnostico_nds_live_enabled`, default desligada — zero mudança de comportamento até a
 flag ligar).
 
 Módulo dedicado (não `:core:network` nem gaveta genérica) porque o NDS vai substituir
@@ -65,7 +65,7 @@ agora porque a NDS-02k depende diretamente dela para os dois mappers novos.
 - **`:featureDiagnostico` (NDS-02k, issue #1759)** — `NdsDiagnosticRepository` (novo,
   `feature/diagnostico/nds/`) chama `NdsClient.evaluate()` a partir de
   `DiagnosticOrchestrator.executarProtegido()`, atrás da flag
-  `consumer.diagnostico.nds_live_enabled` (default `false`). Qualquer falha (`KnownError`/
+  `consumer_diagnostico_nds_live_enabled` (default `false`). Qualquer falha (`KnownError`/
   `UnknownError`/timeout) cai para `DiagnosticRunner` local — fallback total, sem exceção
   propagada. Com a flag desligada (todo mundo, hoje), este módulo continua sem tráfego real.
 - Vários arquivos de UI do Consumer (`SignalBars.kt`, `SinalMovelClassificacao.kt`, etc., NDS-02b-f)

@@ -84,7 +84,7 @@ internal class MonitoramentoWorker
             // nesta execucao. Nao apaga historico ja salvo, so pula esta rodada -- proxima
             // execucao agendada reavalia a flag de novo (sem cancelar o WorkManager em si).
             if (!featureFlagProvider.isEnabled(FeatureFlagKeys.CONSUMER_SETTINGS_ENABLED)) {
-                Timber.d("MonitoramentoWorker ocioso: consumer.settings.enabled desligado remotamente")
+                Timber.d("MonitoramentoWorker ocioso: consumer_settings_enabled desligado remotamente")
                 return Result.success()
             }
 

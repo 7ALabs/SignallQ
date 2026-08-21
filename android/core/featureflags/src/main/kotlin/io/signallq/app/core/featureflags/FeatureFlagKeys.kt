@@ -32,19 +32,19 @@ package io.signallq.app.core.featureflags
  * (regra do repo), fora do escopo desta fatia.
  */
 object FeatureFlagKeys {
-    val CONSUMER_SPEEDTEST_ENABLED = FeatureFlagKey("consumer.speedtest.enabled")
-    val CONSUMER_SPEEDTEST_CLOUDFLARE_ENGINE_ENABLED = FeatureFlagKey("consumer.speedtest.cloudflare_engine_enabled")
-    val CONSUMER_HOME_ENABLED = FeatureFlagKey("consumer.home.enabled")
-    val CONSUMER_WIFI_ENABLED = FeatureFlagKey("consumer.wifi.enabled")
-    val CONSUMER_DEVICES_ENABLED = FeatureFlagKey("consumer.devices.enabled")
-    val CONSUMER_DNS_ENABLED = FeatureFlagKey("consumer.dns.enabled")
-    val CONSUMER_FIBRA_ENABLED = FeatureFlagKey("consumer.fibra.enabled")
-    val CONSUMER_DIAGNOSTICO_ENABLED = FeatureFlagKey("consumer.diagnostico.enabled")
-    val CONSUMER_DIAGNOSTICO_SHADOW_MODE_ENABLED = FeatureFlagKey("consumer.diagnostico.shadow_mode_enabled")
-    val CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED = FeatureFlagKey("consumer.diagnostico.nds_live_enabled")
-    val CONSUMER_HISTORY_ENABLED = FeatureFlagKey("consumer.history.enabled")
-    val CONSUMER_SETTINGS_ENABLED = FeatureFlagKey("consumer.settings.enabled")
-    val CONSUMER_APP_SHELL_GUIDED_2_ENABLED = FeatureFlagKey("consumer.app_shell.guided_2_enabled")
+    val CONSUMER_SPEEDTEST_ENABLED = FeatureFlagKey("consumer_speedtest_enabled")
+    val CONSUMER_SPEEDTEST_CLOUDFLARE_ENGINE_ENABLED = FeatureFlagKey("consumer_speedtest_cloudflare_engine_enabled")
+    val CONSUMER_HOME_ENABLED = FeatureFlagKey("consumer_home_enabled")
+    val CONSUMER_WIFI_ENABLED = FeatureFlagKey("consumer_wifi_enabled")
+    val CONSUMER_DEVICES_ENABLED = FeatureFlagKey("consumer_devices_enabled")
+    val CONSUMER_DNS_ENABLED = FeatureFlagKey("consumer_dns_enabled")
+    val CONSUMER_FIBRA_ENABLED = FeatureFlagKey("consumer_fibra_enabled")
+    val CONSUMER_DIAGNOSTICO_ENABLED = FeatureFlagKey("consumer_diagnostico_enabled")
+    val CONSUMER_DIAGNOSTICO_SHADOW_MODE_ENABLED = FeatureFlagKey("consumer_diagnostico_shadow_mode_enabled")
+    val CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED = FeatureFlagKey("consumer_diagnostico_nds_live_enabled")
+    val CONSUMER_HISTORY_ENABLED = FeatureFlagKey("consumer_history_enabled")
+    val CONSUMER_SETTINGS_ENABLED = FeatureFlagKey("consumer_settings_enabled")
+    val CONSUMER_APP_SHELL_GUIDED_2_ENABLED = FeatureFlagKey("consumer_app_shell_guided_2_enabled")
 
     /** Todas as constantes declaradas aqui -- usado pelo teste de paridade catalogo/codigo. */
     val ALL: List<FeatureFlagKey> =

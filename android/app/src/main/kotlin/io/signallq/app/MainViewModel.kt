@@ -192,7 +192,7 @@ class MainViewModel
          *  duplica logica; so intervem no cenario exato do bug (ver
          *  [interromperSpeedtestPorWifiSemInternet]). */
         private val connectivityDiagnosisRepository: ConnectivityDiagnosisRepository,
-        /** NDS-02k PR2 (issue #1746) — le `consumer.diagnostico.nds_live_enabled` dentro de
+        /** NDS-02k PR2 (issue #1746) — le `consumer_diagnostico_nds_live_enabled` dentro de
          *  [analisarProblema] para decidir a fonte da narrativa. MESMA instancia @Singleton
          *  (`AppModule.provideConsumerFeatureFlagProvider`) que [DiagnosticOrchestrator] ja usa
          *  para decidir a fonte do proprio relatorio -- nunca pode divergir dentro da mesma

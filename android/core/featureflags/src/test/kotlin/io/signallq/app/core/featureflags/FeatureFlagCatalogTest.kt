@@ -7,7 +7,7 @@ import org.junit.Test
 class FeatureFlagCatalogTest {
     private val definicaoSpeedtest =
         FeatureFlagDefinition(
-            key = FeatureFlagKey("consumer.speedtest.enabled"),
+            key = FeatureFlagKey("consumer_speedtest_enabled"),
             module = ":featureSpeedtest",
             type = FeatureFlagType.BOOLEAN,
             defaultValue = FeatureFlagRawValue.BooleanValue(true),
@@ -55,6 +55,6 @@ class FeatureFlagCatalogTest {
 
         val mapa = catalog.toRemoteConfigDefaultsMap()
 
-        assertEquals(mapOf("consumer.speedtest.enabled" to true), mapa)
+        assertEquals(mapOf("consumer_speedtest_enabled" to true), mapa)
     }
 }

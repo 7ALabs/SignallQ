@@ -14,7 +14,7 @@ import org.junit.Test
  * dependencias Hilt/Android, mesma limitacao documentada em MainViewModelHistoricoTest/
  * MainViewModelLocalDeviceTest).
  *
- * NDS-02k PR2 (issue #1746, ADR-017) -- flag `consumer.diagnostico.nds_live_enabled` decide
+ * NDS-02k PR2 (issue #1746, ADR-017) -- flag `consumer_diagnostico_nds_live_enabled` decide
  * se `analisarProblema()` chama o worker legado `ai-diagnosis-worker`
  * (`AiDiagnosisRepository.explainDiagnosis`, flag desligada -- comportamento hoje em todo
  * ambiente) ou deriva o resultado direto do relatorio ja avaliado pelo NDS

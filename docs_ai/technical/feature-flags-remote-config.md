@@ -4,14 +4,15 @@ description: "Mecanismo técnico do módulo :core:featureflags: catálogo tipado
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-19"
-version: "1.1.0"
+last_updated: "2026-08-20"
+version: "1.2.0"
 ---
 
 # Fundação de Feature Flags do Consumer — Firebase Remote Config (`:core:featureflags`)
 
 - **Status:** ativo
-- **Última validação:** 2026-08-19 (NDS-02k, issue #1759 — 12ª entrada do catálogo)
+- **Última validação:** 2026-08-20 (issue #1790 — as 13 chaves do catálogo trocaram `.` por `_`;
+  Firebase Remote Config rejeita ponto no nome de parâmetro, ver seção 9)
 - **Fonte de verdade:** este arquivo para o mecanismo técnico do módulo `:core:featureflags`; o
   catálogo em si (schema completo, valores reais) tem fonte de verdade única no arquivo JSON —
   `android/core/featureflags/src/main/resources/featureflags/consumer-catalog.json` — não copiado
@@ -45,10 +46,10 @@ funcionalidades do Consumer sem exigir nova publicação de app.
 Esta Feature (#1477) entregou só a fundação: módulo, contratos, catálogo com 2 flags de
 smoke-test. F4 (#1480, ver seção 10) instrumentou as 9 flags principais de módulo de verdade em
 `AppShell.kt` — o catálogo tem 10 entradas desde então (as 2 de #1477 + as 8 novas; a 9ª chave
-principal, `consumer.speedtest.enabled`, já existia como smoke-test e passou a `androidImplemented:
-true`). #1497 (ver seção 9) acrescentou a 11ª entrada, `consumer.diagnostico.shadow_mode_enabled`,
+principal, `consumer_speedtest_enabled`, já existia como smoke-test e passou a `androidImplemented:
+true`). #1497 (ver seção 9) acrescentou a 11ª entrada, `consumer_diagnostico_shadow_mode_enabled`,
 migrando o último consumidor real do sistema legado SIG-13. NDS-02k (issue #1759) acrescentou a
-12ª entrada, `consumer.diagnostico.nds_live_enabled` — kill switch da chamada viva ao NDS
+12ª entrada, `consumer_diagnostico_nds_live_enabled` — kill switch da chamada viva ao NDS
 (`NdsClient.evaluate`) dentro de `DiagnosticOrchestrator`, `defaultValue: false`, mutuamente
 exclusiva com a flag do shadow mode acima (ligada, desliga o shadow mode para o mesmo install).
 Backend/UI do Admin (F2/#1478, F3/#1479) continuam fora do escopo deste documento.
@@ -103,8 +104,8 @@ já tem Hilt no classpath), encapsulando o `dagger.Lazy<FirebaseRemoteConfig>.ge
 Obrigatório, definido no Épico #1347: `consumer.{modulo}.{funcionalidade}.{controle}` (ou
 `shared.*`/`app.*` para núcleos compartilhados). Exemplos reais no catálogo desta Feature:
 
-- `consumer.speedtest.enabled`
-- `consumer.speedtest.cloudflare_engine_enabled`
+- `consumer_speedtest_enabled`
+- `consumer_speedtest_cloudflare_engine_enabled`
 
 ### 3.2 Schema do catálogo (por entrada)
 
@@ -163,7 +164,7 @@ Feature, não desta.
 
 - **Firebase Remote Config compartilhado:** a instância `FirebaseRemoteConfig` é a **mesma** já
   usada pelo toggle de anúncios (issue #555, `AdsRemoteConfigRepository`) — um único template
-  remoto, namespaces de chave diferentes (`consumer.*`/`shared.*`/`app.*` aqui,
+  remoto, namespaces de chave diferentes (`consumer_*`/`shared_*`/`app_*` aqui,
   `ads_native_*` lá). `AppModule.provideFirebaseRemoteConfig()` foi ajustado para mesclar os dois
   mapas de defaults num único `setDefaultsAsync` (chamar duas vezes substituiria o mapa inteiro, não
   soma).
@@ -224,7 +225,7 @@ Feature, não desta.
   instrumentou as 9 flags de módulo sobre o sistema novo; #1497 migrou o único consumidor real do
   sistema legado (`DiagnosticDivergenceReporter`, kill switch do shadow mode de diagnóstico,
   GH#1444/#1445) para `FeatureFlagKeys.CONSUMER_DIAGNOSTICO_SHADOW_MODE_ENABLED`
-  (`consumer.diagnostico.shadow_mode_enabled` no catálogo, `disabledBehavior: SILENT_NO_OP`,
+  (`consumer_diagnostico_shadow_mode_enabled` no catálogo, `disabledBehavior: SILENT_NO_OP`,
   `defaultValue: true` — preserva o default do sistema legado). O binding Hilt que só existia para
   esse consumidor (`provideLegacyHttpFeatureFlagProvider`/`LegacyHttpFeatureFlagProvider`) foi
   removido de `AppModule.kt` por ficar morto. **Não resolvido por #1497 (fora do escopo daquela
@@ -242,15 +243,25 @@ Feature, não desta.
   virar necessário. F4/#1480 cobre "mudanças em runtime" só até onde o `refresh()` existente
   alcança (chamado uma vez no startup); sem o listener, uma publicação no Admin só reflete no app
   depois do próximo `refresh()`, não instantaneamente.
+- **Nomes de chave com ponto rejeitados pelo Firebase Remote Config (achado e corrigido em #1790,
+  2026-08-20):** o Firebase Remote Config não aceita `.` no nome de parâmetro (`400
+  INVALID_KEY`). As 13 chaves do catálogo usavam a convenção `consumer.<modulo>.<nome>` desde
+  #1477/#1480/#1497/#1759 — nenhuma delas jamais pôde ser configurada remotamente pelo Admin,
+  incluindo `consumer_diagnostico_nds_live_enabled` (a migração NDS/ADR-017 discutiu "ligar em
+  produção" sem que isso fosse tecnicamente possível). #1790 renomeou as 13 chaves para
+  `consumer_<modulo>_<nome>` (underscore); as constantes Kotlin em `FeatureFlagKeys.kt`
+  (`CONSUMER_*`) não mudaram de nome, só a string que carregam. Corrigir os nomes só destrava a
+  possibilidade de configuração remota — não muda comportamento até uma nova versão do app com o
+  catálogo corrigido ser publicada.
 
 ---
 
 ## 10. F4/#1480 — instrumentação dos 9 módulos feature (Consumer)
 
-Cobriu as 9 flags principais de módulo listadas no Épico (`consumer.{modulo}.enabled`), todas
+Cobriu as 9 flags principais de módulo listadas no Épico (`consumer_{modulo}_enabled`), todas
 `androidImplemented: true`, `disabledBehavior: HIDE_ENTRY_AND_BLOCK_ROUTE`, default `true`. Só a
-chave `enabled` de cada módulo — sub-flags mais finas (ex.: `consumer.diagnostico.ai_enabled`,
-`consumer.settings.privacidade_enabled`) não fazem parte desta Feature.
+chave `enabled` de cada módulo — sub-flags mais finas (ex.: `consumer_diagnostico_ai_enabled`,
+`consumer_settings_privacidade_enabled`) não fazem parte desta Feature.
 
 **Onde vive a lógica:**
 - `android/app/src/main/kotlin/io/signallq/app/ui/screen/AppShellFeatureGating.kt` — funções
@@ -298,7 +309,7 @@ indiretamente pela flag de `:featureSpeedtest`).
    de prioridade 1→0→2→3, `Ferramentas` como último recurso) e registra o bloqueio — único caminho
    onde isso acontece sem tap explícito.
 4. `MonitoramentoWorker.doWork()` consulta `FeatureFlagProvider.isEnabled` diretamente (não passa
-   pelo coordinator, que é `:app`-only reativo) — se `consumer.settings.enabled` estiver desligado,
+   pelo coordinator, que é `:app`-only reativo) — se `consumer_settings_enabled` estiver desligado,
    pula a execução (não mede, não persiste, não notifica) sem cancelar o agendamento do
    WorkManager em si, e sem apagar histórico já salvo.
 
@@ -322,6 +333,6 @@ perder):**
 - Gate de capacidades de `:core:*` (`coreNetwork`/discovery, `coreTelephony`, `coreRecommendation`)
   — o Épico lista isso como parte da visão maior, mas fora do escopo textual de #1480 (só os 9
   módulos `:feature:*`).
-- Sub-flags mais finas por módulo (ex.: `consumer.diagnostico.ai_enabled` pra bloquear só a
+- Sub-flags mais finas por módulo (ex.: `consumer_diagnostico_ai_enabled` pra bloquear só a
   chamada de IA sem desligar o diagnóstico local inteiro).
 - F5 (#1480 bloqueia, não inclui): CI gate de consistência catálogo↔código↔Remote Config.

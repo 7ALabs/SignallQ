@@ -30,7 +30,7 @@ class NdsClient(
      * Timeout reduzido de 20s (fatia NDS-01) para 12s de leitura — decisao da
      * NDS-02k (issue #1759, item 8). Os dois gatilhos de producao que passaram a
      * chamar [evaluate] (`DiagnosticOrchestrator.executarProtegido`, atras da
-     * flag `consumer.diagnostico.nds_live_enabled`) disparam em BACKGROUND, sem
+     * flag `consumer_diagnostico_nds_live_enabled`) disparam em BACKGROUND, sem
      * "aguarde" explicito do usuario — bem diferente do padrao de UI que
      * justificava um teto mais largo em outros pontos do app (ex.: o teto de
      * 42s de `RemoteDiagnosticRepository`, atras de uma tela que ja mostra
