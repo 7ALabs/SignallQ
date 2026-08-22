@@ -105,6 +105,27 @@ class NativeAdLoaderLifecycleTest {
     }
 
     @Test
+    fun `new signal instance with same slot does not restart request`() {
+        val requester = FakeNativeAdRequester()
+        var unrelatedState by mutableIntStateOf(0)
+
+        composeRule.setContent {
+            unrelatedState
+            rememberNativeAdState(
+                adUnitId = "test-unit",
+                contentSignal = NativeAdContentSignal.forSlot(AdSlot.VELOCIDADE),
+                eligibility = eligibility,
+                requester = requester,
+            )
+        }
+
+        composeRule.runOnIdle { unrelatedState++ }
+        composeRule.runOnIdle { unrelatedState++ }
+
+        assertEquals("recomposição não pode cancelar a carga ativa", 1, requester.loadCount)
+    }
+
+    @Test
     fun `late fill after navigation is destroyed and never adopted`() {
         val requester = FakeNativeAdRequester()
         var visible by mutableStateOf(true)
