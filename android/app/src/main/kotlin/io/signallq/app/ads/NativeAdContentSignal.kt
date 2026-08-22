@@ -40,6 +40,16 @@ package io.signallq.app.ads
 class NativeAdContentSignal private constructor(
     val contentUrl: String,
 ) {
+    /**
+     * O sinal é uma chave de carregamento, não identidade de composição. As telas
+     * recriam [NativeAdContentSignal] durante recomposições; comparar pelo URL
+     * impede que cada frame cancele e reinicie a mesma solicitação de anúncio.
+     */
+    override fun equals(other: Any?): Boolean =
+        other is NativeAdContentSignal && contentUrl == other.contentUrl
+
+    override fun hashCode(): Int = contentUrl.hashCode()
+
     companion object {
         private const val BASE = "https://signallq.app/contexto-anuncio"
 

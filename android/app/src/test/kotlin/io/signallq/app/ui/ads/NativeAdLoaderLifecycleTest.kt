@@ -105,6 +105,27 @@ class NativeAdLoaderLifecycleTest {
     }
 
     @Test
+    fun `new signal instance with same slot does not restart request`() {
+        val requester = FakeNativeAdRequester()
+        var unrelatedState by mutableIntStateOf(0)
+
+        composeRule.setContent {
+            unrelatedState
+            rememberNativeAdState(
+                adUnitId = "test-unit",
+                contentSignal = NativeAdContentSignal.forSlot(AdSlot.VELOCIDADE),
+                eligibility = eligibility,
+                requester = requester,
+            )
+        }
+
+        composeRule.runOnIdle { unrelatedState++ }
+        composeRule.runOnIdle { unrelatedState++ }
+
+        assertEquals("recomposição não pode cancelar a carga ativa", 1, requester.loadCount)
+    }
+
+    @Test
     fun `late fill after navigation is destroyed and never adopted`() {
         val requester = FakeNativeAdRequester()
         var visible by mutableStateOf(true)
@@ -154,6 +175,27 @@ class NativeAdLoaderLifecycleTest {
             assertSame(currentAd, fill.ad)
         }
         verify(exactly = 0) { currentAd.destroy() }
+    }
+
+    @Test
+    fun `content signal change starts new session and destroys previous fill`() {
+        val requester = FakeNativeAdRequester()
+        var currentSignal by mutableStateOf(signal)
+        var observedState: NativeAdLoadState? = null
+
+        composeRule.setContent {
+            observedState = rememberNativeAdState("test-unit", currentSignal, eligibility, requester).value
+        }
+
+        val firstAd = mockk<NativeAd>(relaxed = true)
+        composeRule.runOnIdle { requester.session(0).fill(firstAd) }
+        composeRule.runOnIdle { currentSignal = NativeAdContentSignal.forSlot(AdSlot.RESULTADO) }
+        composeRule.waitForIdle()
+
+        assertEquals(2, requester.loadCount)
+        assertEquals(1, requester.cancelCount)
+        verify(exactly = 1) { firstAd.destroy() }
+        composeRule.runOnIdle { assertEquals(NativeAdLoadState.Loading, observedState) }
     }
 }
 
