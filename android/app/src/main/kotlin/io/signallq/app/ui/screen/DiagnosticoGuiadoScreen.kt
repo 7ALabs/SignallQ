@@ -12,39 +12,23 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.Call
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.CompareArrows
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material.icons.outlined.NetworkWifi
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Speed
-import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material.icons.outlined.ThumbDown
 import androidx.compose.material.icons.outlined.ThumbUp
-import androidx.compose.material.icons.outlined.Tv
-import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material.icons.outlined.VisibilityOff
-import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material.icons.outlined.WifiOff
-import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -55,7 +39,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -69,7 +52,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -82,12 +64,9 @@ import androidx.compose.ui.unit.sp
 import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.DiagnosticReport
-import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.DiagnosticoGuiadoEngine
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
-import io.signallq.app.core.diagnostico.PerguntaFechada
 import io.signallq.app.core.diagnostico.PerguntasDiagnosticoGuiado
-import io.signallq.app.core.diagnostico.ResultadoDiagnosticoGuiado
 import io.signallq.app.core.network.DiagnosticoPlanoIniciado
 import io.signallq.app.core.recommendation.RecommendationDecision
 import io.signallq.app.core.recommendation.RecommendationFeedbackType
@@ -99,16 +78,9 @@ import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.ResolvedOperadoraContact
 import io.signallq.app.ui.ResolvedOperadoraIdentity
-import io.signallq.app.ui.component.AcoesRecomendadasCard
-import io.signallq.app.ui.component.AiVsMotorExplainer
-import io.signallq.app.ui.component.DiagnosticoStatusBanner
-import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.OperadoraBadge
-import io.signallq.app.ui.component.OperadoraBottomSheet
-import io.signallq.app.ui.component.RetesteVinculadoSection
-import io.signallq.app.ui.component.rememberResolvedOperadoraContact
-import io.signallq.app.ui.component.rememberResolvedOperadoraIdentity
+import io.signallq.app.ui.component.SignallQScreenState
 import java.util.UUID
 
 /**
@@ -139,6 +111,10 @@ fun DiagnosticoGuiadoScreen(
      *  valores de `MeasurementStatus` viravam um bit exatamente aqui. `null` = ainda não há
      *  medição. Ver [continuidadeDaMedicao]. */
     statusMedicao: MeasurementStatus?,
+    /** Origem que define se a medição pode ser reaproveitada nesta jornada. */
+    entradaAssist: EntradaAssist = EntradaAssist.Padrao,
+    tipoMidiaAssist: TipoMidiaAssist? = null,
+    onAvaliarAssist: (suspend (DiagnosticInput) -> DiagnosticReport)? = null,
     /** GH#1705 / bloqueios B3 e B7 — `false` quando o download foi derrubado pelo nosso rate limit
      *  (429) ou o upload não foi detectado. Nos dois casos o número medido não pode alimentar
      *  conclusão. Ver [continuidadeDaMedicao]. */
@@ -155,7 +131,7 @@ fun DiagnosticoGuiadoScreen(
     objetivoPreSelecionado: ObjetivoDiagnostico? = null,
     /** Resposta da primeira pergunta do roteiro já coletada pelo Assist (índice da
      *  opção) — só relevante quando [objetivoPreSelecionado] tem uma pergunta
-     *  contextual (`contextoQueAlteraDiagnostico()` no AssistScreen). Nulo = usuário
+     *  contextual da jornada consolidada. Nulo = usuário
      *  responde a primeira pergunta normalmente aqui. */
     respostaPreSelecionadaPasso0: Int? = null,
     analisadorState: AnalisadorState,
@@ -222,6 +198,8 @@ fun DiagnosticoGuiadoScreen(
         rememberSaveable(stateSaver = DiagnosticoGuiadoEstado.Saver) {
             mutableStateOf(
                 DiagnosticoGuiadoEstado(
+                    entrada = entradaAssist,
+                    tipoMidia = tipoMidiaAssist,
                     objetivo = objetivoPreSelecionado,
                     respostas =
                         if (objetivoPreSelecionado != null && respostaPreSelecionadaPasso0 != null) {
@@ -296,7 +274,8 @@ fun DiagnosticoGuiadoScreen(
     // Engine e contato com operadora", e a versão anterior desta fatia a tinha deixado sem nenhum
     // consumidor de produção (ressalva RS5).
     val podeConcluirSemMedir =
-        analise.estado is EstadoAnaliseGuiada.Concluida &&
+        (onAvaliarAssist == null || estado.entrada == EntradaAssist.ComDadosRecentes) &&
+            analise.estado is EstadoAnaliseGuiada.Concluida &&
             statusMedicao?.liberaConclusaoCompleta == true
 
     // "Já vi esta análise sair do estado concluído" — sem isso há uma corrida real, encontrada
@@ -308,6 +287,8 @@ fun DiagnosticoGuiadoScreen(
     // concluía imediatamente — a pessoa clicava "ver o que identifiquei", nada era medido, e ela
     // recebia o banner do mesmo resultado inválido que motivou a remedição.
     var medicaoObservadaEmCurso by remember { mutableStateOf(false) }
+    var estadoChamadaNds by remember { mutableStateOf<EstadoChamadaNds>(EstadoChamadaNds.EmCurso) }
+    val relatorioAssist = (estadoChamadaNds as? EstadoChamadaNds.Sucesso)?.relatorio ?: diagnosticReport
 
     // A medição terminou enquanto ESTE fluxo a esperava: avança para a conclusão. A validade do
     // resultado não entra aqui de propósito — medição concluída com resultado insuficiente leva ao
@@ -316,7 +297,26 @@ fun DiagnosticoGuiadoScreen(
         when {
             !emAnalise -> medicaoObservadaEmCurso = false
             analise.estado !is EstadoAnaliseGuiada.Concluida -> medicaoObservadaEmCurso = true
-            medicaoObservadaEmCurso -> estado = estado.irPara(DiagnosticoGuiadoRota.Resultado)
+            medicaoObservadaEmCurso -> {
+                if (onAvaliarAssist == null) {
+                    estado = estado.irPara(DiagnosticoGuiadoRota.Resultado)
+                } else {
+                    estado = estado.irPara(DiagnosticoGuiadoRota.Processando)
+                    estadoChamadaNds = EstadoChamadaNds.EmCurso
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(estado.rotaAtual, input) {
+        if (estado.rotaAtual != DiagnosticoGuiadoRota.Processando || estadoChamadaNds != EstadoChamadaNds.EmCurso) return@LaunchedEffect
+        val inputAtual = input ?: return@LaunchedEffect
+        val relatorio = runCatching { onAvaliarAssist?.invoke(inputAtual) }.getOrNull()
+        if (relatorio?.evaluationSource == DiagnosticEvaluationSource.REMOTE) {
+            estadoChamadaNds = EstadoChamadaNds.Sucesso(relatorio)
+            estado = estado.irPara(DiagnosticoGuiadoRota.Resultado)
+        } else {
+            estadoChamadaNds = EstadoChamadaNds.Falhou
         }
     }
 
@@ -394,15 +394,41 @@ fun DiagnosticoGuiadoScreen(
     ) { padding ->
         val objetivoAtual = objetivo
         when {
+            estado.entrada == EntradaAssist.VideoOuChamada && estado.tipoMidia == null && objetivoAtual == null ->
+                DiagnosticoGuiadoPerguntaBinariaSection(
+                    modifier = Modifier.padding(padding),
+                    onSelecionarVideo = {
+                        estado = estado.copy(tipoMidia = TipoMidiaAssist.VIDEO, objetivo = ObjetivoDiagnostico.VIDEOS_TRAVAM)
+                    },
+                    onSelecionarChamada = {
+                        estado = estado.copy(tipoMidia = TipoMidiaAssist.CHAMADA, objetivo = ObjetivoDiagnostico.CHAMADAS_CONGELAM)
+                    },
+                    c = c,
+                )
             // GH#1704 — o banner de resultado inválido saiu daqui (era a PRIMEIRA cláusula, e por
             // isso substituía a tela inteira desde a entrada, inclusive a escolha do objetivo).
             // Agora ele é o que a conclusão mostra quando a medição fecha sem resultado que o
             // motor aceite — o único momento em que a informação é acionável.
             objetivoAtual == null ->
-                ListaObjetivos(
+                DiagnosticoGuiadoListaObjetivosSection(
                     modifier = Modifier.padding(padding),
-                    onSelect = { estado = estado.copy(objetivo = it) },
+                    onSelect = { estado = estado.copy(objetivo = it ?: ObjetivoDiagnostico.INTERNET_CAI_OSCILA) },
                     c = c,
+                )
+            estado.rotaAtual == DiagnosticoGuiadoRota.Processando ->
+                DiagnosticoGuiadoProcessandoSection(
+                    modifier = Modifier.padding(padding),
+                    estado =
+                        when (estadoChamadaNds) {
+                            EstadoChamadaNds.EmCurso -> SignallQScreenState.Loading
+                            is EstadoChamadaNds.Sucesso -> SignallQScreenState.Content(Unit)
+                            EstadoChamadaNds.Falhou ->
+                                SignallQScreenState.RecoverableError(
+                                    title = "Não foi possível acessar o Assist no momento",
+                                    message = "Tente novamente para buscar uma análise atualizada.",
+                                )
+                        },
+                    onTentarNovamente = { estadoChamadaNds = EstadoChamadaNds.EmCurso },
                 )
             // GH#1705 — sem conclusão possível, a tela é a continuidade COM ação, não um banner
             // mudo. `permiteVerConclusaoParcial` decide entre substituir e acompanhar o resultado.
@@ -424,7 +450,7 @@ fun DiagnosticoGuiadoScreen(
                     onResetarAnalisador()
                     onAnalisarProblema(objetivoAtual.titulo)
                 }
-                ResultadoDiagnosticoNdsConteudo(
+                DiagnosticoGuiadoResultadoSection(
                     modifier = Modifier.padding(padding),
                     // Conclusão parcial: mostra o que deu para apurar E o que falta, na ordem que a
                     // spec §9 pede. Como cabeçalho do conteúdo que já rola — ver o KDoc do parâmetro.
@@ -439,7 +465,7 @@ fun DiagnosticoGuiadoScreen(
                             }
                         },
                     resultado = resultado,
-                    diagnosticReport = diagnosticReport,
+                    diagnosticReport = relatorioAssist,
                     input = input,
                     analisadorState = analisadorState,
                     onEscolherOutraSituacao = {
@@ -478,7 +504,7 @@ fun DiagnosticoGuiadoScreen(
             else -> {
                 val perguntas = remember(objetivoAtual) { PerguntasDiagnosticoGuiado.perguntas(objetivoAtual) }
                 val pergunta = perguntas[passo]
-                PerguntaFechadaConteudo(
+                DiagnosticoGuiadoPerguntaFechadaSection(
                     modifier = Modifier.padding(padding),
                     pergunta = pergunta,
                     passo = passo,
@@ -500,7 +526,14 @@ fun DiagnosticoGuiadoScreen(
                             // GH#1704 — o fim do roteiro leva à análise (§8.5), não direto à
                             // conclusão. Só pula a medição quando já existe resultado utilizável,
                             // que é o caminho de quem entrou aqui vindo da tela de Resultado.
-                            podeConcluirSemMedir -> estado = estado.irPara(DiagnosticoGuiadoRota.Resultado)
+                            podeConcluirSemMedir -> {
+                                if (onAvaliarAssist == null) {
+                                    estado = estado.irPara(DiagnosticoGuiadoRota.Resultado)
+                                } else {
+                                    estado = estado.irPara(DiagnosticoGuiadoRota.Processando)
+                                    estadoChamadaNds = EstadoChamadaNds.EmCurso
+                                }
+                            }
                             else -> {
                                 estado = estado.irPara(DiagnosticoGuiadoRota.Analise)
                                 analise.onIniciar()
@@ -514,420 +547,8 @@ fun DiagnosticoGuiadoScreen(
     }
 }
 
-private fun ObjetivoDiagnostico.icone(): ImageVector =
-    when (this) {
-        ObjetivoDiagnostico.INTERNET_CAI_OSCILA -> Icons.Outlined.WifiOff
-        ObjetivoDiagnostico.VIDEOS_TRAVAM -> Icons.Outlined.Tv
-        ObjetivoDiagnostico.JOGOS_COM_LAG -> Icons.Outlined.SportsEsports
-        ObjetivoDiagnostico.CHAMADAS_CONGELAM -> Icons.Outlined.Videocam
-        ObjetivoDiagnostico.SITES_DEMORAM -> Icons.Outlined.Language
-        ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA -> Icons.Outlined.Speed
-        ObjetivoDiagnostico.WIFI_VS_OPERADORA -> Icons.Outlined.CompareArrows
-    }
-
 @Composable
-private fun ListaObjetivos(
-    modifier: Modifier = Modifier,
-    onSelect: (ObjetivoDiagnostico) -> Unit,
-    c: LkTokens,
-) {
-    Column(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .background(c.bgPrimary)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg),
-    ) {
-        Text(
-            text = "O que está acontecendo com sua internet?",
-            style = MaterialTheme.typography.bodyMedium,
-            color = c.textSecondary,
-        )
-        Spacer(Modifier.height(LkSpacing.lg))
-        ObjetivoDiagnostico.entries.forEach { objetivo ->
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(LkRadius.card))
-                        .background(c.bgPrimary)
-                        .clickable { onSelect(objetivo) }
-                        .padding(LkSpacing.lg),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(
-                    modifier =
-                        Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(c.primary.copy(alpha = 0.1f)),
-                ) {
-                    Icon(
-                        imageVector = objetivo.icone(),
-                        contentDescription = null,
-                        tint = c.primary,
-                        modifier = Modifier.padding(9.dp),
-                    )
-                }
-                Spacer(Modifier.width(LkSpacing.md))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = objetivo.titulo,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.W600,
-                        color = c.textPrimary,
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = objetivo.subtitulo,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = c.textSecondary,
-                    )
-                }
-                Icon(
-                    imageVector = Icons.Rounded.ChevronRight,
-                    contentDescription = null,
-                    tint = c.textTertiary,
-                )
-            }
-            Spacer(Modifier.height(LkSpacing.sm))
-        }
-    }
-}
-
-@Composable
-private fun PerguntaFechadaConteudo(
-    modifier: Modifier = Modifier,
-    pergunta: PerguntaFechada,
-    passo: Int,
-    total: Int,
-    respostaSelecionada: Int?,
-    onEscolher: (Int) -> Unit,
-    onAvancar: () -> Unit,
-    c: LkTokens,
-) {
-    Column(modifier = modifier.fillMaxSize().background(c.bgPrimary)) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = LkSpacing.xl, vertical = LkSpacing.sm)) {
-            repeat(total) { i ->
-                Spacer(
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(if (i <= passo) c.primary else c.bgSecondary),
-                )
-                if (i < total - 1) Spacer(Modifier.width(6.dp))
-            }
-        }
-        Column(
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg),
-        ) {
-            Text(
-                text = pergunta.texto,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = c.textPrimary,
-            )
-            Spacer(Modifier.height(LkSpacing.lg))
-            pergunta.opcoes.forEachIndexed { index, opcao ->
-                val selecionada = respostaSelecionada == index
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(LkRadius.card))
-                            .background(if (selecionada) c.primary.copy(alpha = 0.08f) else c.bgCard)
-                            .clickable { onEscolher(index) }
-                            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(
-                        modifier =
-                            Modifier
-                                .size(20.dp)
-                                .clip(CircleShape)
-                                .then(
-                                    if (selecionada) {
-                                        Modifier
-                                    } else {
-                                        Modifier.border(1.5.dp, c.border, CircleShape)
-                                    },
-                                ).background(if (selecionada) c.primary else Color.Transparent),
-                    ) {
-                        if (selecionada) {
-                            Icon(
-                                imageVector = Icons.Outlined.Check,
-                                contentDescription = null,
-                                tint = c.onPrimary,
-                                modifier = Modifier.padding(3.dp),
-                            )
-                        }
-                    }
-                    Spacer(Modifier.width(LkSpacing.sm))
-                    Text(
-                        text = opcao,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = if (selecionada) FontWeight.W600 else FontWeight.Normal,
-                        color = c.textPrimary,
-                    )
-                }
-                Spacer(Modifier.height(LkSpacing.xs))
-            }
-        }
-        Column(modifier = Modifier.padding(horizontal = LkSpacing.xl, vertical = LkSpacing.md).navigationBarsPadding()) {
-            Button(
-                onClick = onAvancar,
-                enabled = respostaSelecionada != null,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(LkRadius.button),
-                colors = ButtonDefaults.buttonColors(containerColor = c.primary, contentColor = c.onPrimary),
-            ) {
-                Text(
-                    text = if (passo < total - 1) "Continuar" else "Ver o que identifiquei",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ResultadoDiagnosticoNdsConteudo(
-    modifier: Modifier,
-    resultado: ResultadoDiagnosticoGuiado,
-    diagnosticReport: DiagnosticReport?,
-    input: DiagnosticInput?,
-    analisadorState: AnalisadorState,
-    onEscolherOutraSituacao: () -> Unit,
-    onIrParaHome: () -> Unit,
-    categoria: String?,
-    ispNome: String?,
-    connectionType: String?,
-    operadoraMovel: String?,
-    recommendationDecision: RecommendationDecision?,
-    recommendationFeedback: RecommendationFeedbackType?,
-    onRecommendationShown: () -> Unit,
-    onRecommendationClicked: () -> Unit,
-    onRecommendationFeedback: (RecommendationFeedbackType) -> Unit,
-    resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity?,
-    resolveOperadoraContatoLocal: (String?, Boolean) -> ResolvedOperadoraContact?,
-    resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity,
-    resolveOperadoraContatoRemoto: suspend (String?, Boolean) -> ResolvedOperadoraContact,
-    onIniciarModoGamer: (() -> Unit)?,
-    onAbrirFerramentaSugerida: (TipoFerramenta) -> Unit,
-    onTestarNovamenteVinculado: () -> Unit,
-    comparacaoRetesteState: ComparacaoRetesteUiState,
-    c: LkTokens,
-    cabecalho: (@Composable () -> Unit)? = null,
-) {
-    val decisao = diagnosticReport?.decisao
-    val status = decisao?.status ?: resultado.status
-    val titulo = decisao?.titulo ?: resultado.mensagemMotor
-    val mensagem = decisao?.mensagemUsuario ?: resultado.mensagemMotor
-    val evidencia =
-        decisao?.evidencia
-            ?: resultado.evidencias.firstOrNull()?.let { "${it.label}: ${it.valorExibido}." }
-            ?: "A análise não encontrou dados suficientes para concluir."
-    val veioDoNds = diagnosticReport?.evaluationSource == DiagnosticEvaluationSource.REMOTE
-    val internet = input?.internet
-    val latenciaLivre = internet?.latencyMs
-    val atrasoSobCarga = internet?.latencyMs?.let { it + (internet.bufferbloatMs ?: 0.0) }
-    val ferramentaSugerida = remember(resultado.objetivo) { resultado.objetivo.ferramentaSugerida() }
-    var detalhesAbertos by remember { mutableStateOf(false) }
-
-    Column(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .background(c.bgPrimary)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg),
-    ) {
-        cabecalho?.let {
-            it()
-            Spacer(Modifier.height(LkSpacing.lg))
-        }
-        Box(
-            modifier =
-                Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .background(c.warning.copy(alpha = 0.16f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            val positivo = status == DiagnosticStatus.ok
-            Icon(
-                imageVector = if (positivo) Icons.Outlined.CheckCircle else Icons.Outlined.Warning,
-                contentDescription = null,
-                tint = if (positivo) c.success else c.warning,
-                modifier = Modifier.size(40.dp),
-            )
-        }
-        Spacer(Modifier.height(LkSpacing.xl))
-        Text(
-            text = titulo,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = c.textPrimary,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.height(LkSpacing.md))
-        Text(
-            text = mensagem,
-            style = MaterialTheme.typography.bodyLarge,
-            color = c.textSecondary,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        if (veioDoNds) {
-            Spacer(Modifier.height(LkSpacing.sm))
-            Text(
-                text = "Análise feita pelo NDS",
-                style = MaterialTheme.typography.bodySmall,
-                color = c.textSecondary,
-            )
-        }
-        Spacer(Modifier.height(LkSpacing.lg))
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Icon(
-                imageVector = Icons.Outlined.CheckCircle,
-                contentDescription = null,
-                tint = c.textSecondary,
-                modifier = Modifier.size(24.dp),
-            )
-            Spacer(Modifier.width(LkSpacing.md))
-            Text(
-                when (status) {
-                    DiagnosticStatus.ok -> "Sua conexão está funcionando bem"
-                    DiagnosticStatus.info -> "Sua conexão funciona, mas há espaço para melhorar"
-                    DiagnosticStatus.attention -> "Encontramos sinais de instabilidade"
-                    DiagnosticStatus.critical -> "Encontramos um problema que precisa de atenção"
-                    DiagnosticStatus.inconclusive -> "Ainda não há dados suficientes para concluir"
-                },
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = c.textPrimary,
-            )
-        }
-        Spacer(Modifier.height(LkSpacing.xl))
-        LkSurfaceCard(modifier = Modifier.fillMaxWidth(), outlined = false) {
-            Column(Modifier.padding(LkSpacing.lg)) {
-                Text(
-                    text = "O que encontramos",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = c.textPrimary,
-                )
-                Spacer(Modifier.height(LkSpacing.sm))
-                Text(evidencia, style = MaterialTheme.typography.bodyLarge, color = c.textSecondary)
-                if (latenciaLivre != null && atrasoSobCarga != null) {
-                    Spacer(Modifier.height(LkSpacing.lg))
-                    Row(Modifier.fillMaxWidth()) {
-                        ResultadoMetricaCard(
-                            value = "%.0f ms".format(latenciaLivre),
-                            label = "Rede livre · resposta estável",
-                            c = c,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Spacer(Modifier.width(LkSpacing.md))
-                        ResultadoMetricaCard(
-                            value = "%.0f ms".format(atrasoSobCarga),
-                            label = "Sob carga · atraso perceptível",
-                            c = c,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-                diagnosticReport?.dadosAusentes?.takeIf { it.isNotEmpty() }?.let { dadosAusentes ->
-                    Spacer(Modifier.height(LkSpacing.md))
-                    Text(
-                        text = "O que faltou para refinar",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = c.textPrimary,
-                    )
-                    Spacer(Modifier.height(LkSpacing.xs))
-                    Text(
-                        text = dadosAusentes.joinToString(", ") { it.replace('.', ' ') },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = c.textSecondary,
-                    )
-                }
-            }
-        }
-        if (resultado.evidencias.size > 1) {
-            Column(modifier = Modifier.fillMaxWidth().padding(top = LkSpacing.md)) {
-                resultado.evidencias.drop(1).forEach { evidenciaSecundaria ->
-                    Text(
-                        text = evidenciaSecundaria.label,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = c.textSecondary,
-                        modifier = Modifier.padding(vertical = LkSpacing.xs),
-                    )
-                }
-            }
-        }
-        RetesteVinculadoSection(
-            analisadorState = analisadorState,
-            comparacaoRetesteState = comparacaoRetesteState,
-            onTestarNovamente = onTestarNovamenteVinculado,
-            c = c,
-        )
-        Spacer(Modifier.height(LkSpacing.lg))
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { detalhesAbertos = !detalhesAbertos },
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Ver detalhes técnicos",
-                style = MaterialTheme.typography.titleMedium,
-                color = c.textPrimary,
-                modifier = Modifier.weight(1f),
-            )
-            Icon(
-                imageVector = Icons.Outlined.ExpandMore,
-                contentDescription = null,
-                tint = c.textSecondary,
-                modifier = Modifier.rotate(if (detalhesAbertos) 180f else 0f),
-            )
-        }
-        if (detalhesAbertos) {
-            Spacer(Modifier.height(LkSpacing.md))
-            AiVsMotorExplainer(evidencias = resultado.evidencias, analisadorState = analisadorState, c = c, sectionTitle = "Medições")
-        }
-        Spacer(Modifier.height(LkSpacing.xl))
-        Button(
-            onClick = {
-                if (ferramentaSugerida != null) {
-                    onAbrirFerramentaSugerida(ferramentaSugerida)
-                } else {
-                    onEscolherOutraSituacao()
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(LkRadius.button),
-            colors = ButtonDefaults.buttonColors(containerColor = c.primary, contentColor = c.onPrimary),
-        ) {
-            Text("Ver como melhorar", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        }
-        TextButton(onClick = onEscolherOutraSituacao, modifier = Modifier.fillMaxWidth()) {
-            Text("Ver resultado inconclusivo", style = MaterialTheme.typography.bodyLarge, color = c.primary)
-        }
-        Spacer(Modifier.height(LkSpacing.xl))
-    }
-}
-
-@Composable
-private fun ResultadoMetricaCard(
+internal fun ResultadoMetricaCard(
     value: String,
     label: String,
     c: LkTokens,
@@ -945,187 +566,6 @@ private fun ResultadoMetricaCard(
     }
 }
 
-@Composable
-private fun ResultadoDiagnosticoGuiadoConteudo(
-    modifier: Modifier = Modifier,
-    resultado: ResultadoDiagnosticoGuiado,
-    analisadorState: AnalisadorState,
-    onEscolherOutraSituacao: () -> Unit,
-    onIrParaHome: () -> Unit,
-    categoria: String?,
-    ispNome: String?,
-    connectionType: String?,
-    operadoraMovel: String?,
-    recommendationDecision: RecommendationDecision?,
-    recommendationFeedback: RecommendationFeedbackType?,
-    onRecommendationShown: () -> Unit,
-    onRecommendationClicked: () -> Unit,
-    onRecommendationFeedback: (RecommendationFeedbackType) -> Unit,
-    resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity?,
-    resolveOperadoraContatoLocal: (String?, Boolean) -> ResolvedOperadoraContact?,
-    resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity,
-    resolveOperadoraContatoRemoto: suspend (String?, Boolean) -> ResolvedOperadoraContact,
-    onIniciarModoGamer: (() -> Unit)?,
-    onAbrirFerramentaSugerida: (TipoFerramenta) -> Unit,
-    onTestarNovamenteVinculado: () -> Unit,
-    comparacaoRetesteState: ComparacaoRetesteUiState,
-    c: LkTokens,
-    /** GH#1705 — slot para a continuidade da medição. Precisa entrar AQUI, dentro do `Column` que
-     *  já rola, e não como segundo filho do slot do `Scaffold`: o `ScaffoldLayout` do Material3
-     *  posiciona todos os placeables do corpo em (0,0), então dois filhos-raiz se **sobrepõem** em
-     *  vez de empilhar. A primeira versão desta fatia fazia isso e escondia o veredito atrás da
-     *  top bar e as duas primeiras métricas embaixo do banner opaco — bloqueio B1 de Caio na PR
-     *  #1723, medido por bounds na árvore semântica. */
-    cabecalho: (@Composable () -> Unit)? = null,
-) {
-    Column(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .background(c.bgPrimary)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg),
-    ) {
-        if (cabecalho != null) {
-            cabecalho()
-            Spacer(Modifier.height(LkSpacing.lg))
-        }
-        DiagnosticoStatusBanner(status = resultado.status, mensagem = resultado.mensagemMotor, c = c)
-
-        Spacer(Modifier.height(LkSpacing.lg))
-        AiVsMotorExplainer(
-            evidencias = resultado.evidencias,
-            analisadorState = analisadorState,
-            c = c,
-            sectionTitle = "O que encontramos",
-        )
-
-        RetesteVinculadoSection(
-            analisadorState = analisadorState,
-            comparacaoRetesteState = comparacaoRetesteState,
-            onTestarNovamente = onTestarNovamenteVinculado,
-            c = c,
-        )
-
-        if (resultado.acoes.isNotEmpty()) {
-            Spacer(Modifier.height(LkSpacing.lg))
-            LkSectionOverline(text = "Ações recomendadas")
-            Spacer(Modifier.height(LkSpacing.sm))
-            AcoesRecomendadasCard(acoes = resultado.acoes, c = c)
-        }
-
-        // Camada A (issue #1503) — card "próximo passo sugerido", mapeado por objetivo
-        // (ver ferramentaSugerida() em TipoFerramenta.kt). Nunca aponta pras 8 ferramentas
-        // de uma vez, só a mais relevante pro objetivo escolhido — e alguns objetivos
-        // (vídeos travam, jogos com lag, chamadas congelam) não têm mapeamento forte o
-        // bastante e ficam sem card, de propósito.
-        val ferramentaSugerida = remember(resultado.objetivo) { resultado.objetivo.ferramentaSugerida() }
-        val conteudoProximoPasso = remember(ferramentaSugerida) { ferramentaSugerida?.conteudoProximoPasso() }
-        if (ferramentaSugerida != null && conteudoProximoPasso != null) {
-            Spacer(Modifier.height(LkSpacing.lg))
-            LkSectionOverline(text = "Próximo passo")
-            Spacer(Modifier.height(LkSpacing.sm))
-            ProximoPassoSugeridoCard(
-                conteudo = conteudoProximoPasso,
-                onClick = { onAbrirFerramentaSugerida(ferramentaSugerida) },
-                c = c,
-            )
-        }
-
-        val mostrarContato = categoria == "isp" || categoria == "fibra"
-        var showOperadoraSheet by remember { mutableStateOf(false) }
-        if (mostrarContato) {
-            Spacer(Modifier.height(LkSpacing.lg))
-            val identidade =
-                rememberResolvedOperadoraIdentity(
-                    ispNomeBruto = ispNome,
-                    viaMovel = false,
-                    resolveLocal = resolveOperadoraIdentidadeLocal,
-                    resolveRemoteOrFallback = resolveOperadoraIdentidadeRemota,
-                )
-            val contato =
-                rememberResolvedOperadoraContact(
-                    ispNomeBruto = ispNome,
-                    viaMovel = false,
-                    resolveLocal = resolveOperadoraContatoLocal,
-                    resolveRemoteOrFallback = resolveOperadoraContatoRemoto,
-                )
-            OperadoraResumoCardGuiado(identidade = identidade, contato = contato, c = c)
-            Spacer(Modifier.height(LkSpacing.xs))
-            OutlinedButton(
-                onClick = { showOperadoraSheet = true },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(LkRadius.button),
-            ) {
-                Icon(imageVector = Icons.Outlined.Call, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(LkSpacing.sm))
-                Text(text = "Entrar em contato com a operadora", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.W600)
-            }
-            if (showOperadoraSheet) {
-                OperadoraBottomSheet(
-                    connectionType = connectionType,
-                    ispNome = ispNome,
-                    operadoraMovel = operadoraMovel,
-                    onDismiss = { showOperadoraSheet = false },
-                    resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
-                    resolveOperadoraContatoLocal = resolveOperadoraContatoLocal,
-                    resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
-                    resolveOperadoraContatoRemoto = resolveOperadoraContatoRemoto,
-                )
-            }
-        }
-
-        if (recommendationDecision != null) {
-            Spacer(Modifier.height(LkSpacing.lg))
-            LkSectionOverline(text = "Sugestão")
-            Spacer(Modifier.height(LkSpacing.sm))
-            RecommendationEngineCardGuiado(
-                decision = recommendationDecision,
-                feedback = recommendationFeedback,
-                onShown = onRecommendationShown,
-                onClicked = onRecommendationClicked,
-                onFeedback = onRecommendationFeedback,
-                c = c,
-            )
-        }
-
-        if (resultado.objetivo == ObjetivoDiagnostico.JOGOS_COM_LAG && onIniciarModoGamer != null) {
-            Spacer(Modifier.height(LkSpacing.lg))
-            OutlinedButton(
-                onClick = onIniciarModoGamer,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(LkRadius.button),
-            ) {
-                Icon(imageVector = Icons.Outlined.SportsEsports, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(LkSpacing.sm))
-                Text(
-                    text = "Analisar um jogo específico",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.W600,
-                )
-            }
-        }
-
-        Spacer(Modifier.height(LkSpacing.lg))
-        OutlinedButton(
-            onClick = onEscolherOutraSituacao,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(LkRadius.button),
-        ) {
-            Text(text = "Analisar outro problema", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
-        }
-        Spacer(Modifier.height(LkSpacing.sm))
-        TextButton(onClick = onIrParaHome, modifier = Modifier.fillMaxWidth()) {
-            Text(text = "Voltar ao início", style = MaterialTheme.typography.bodyMedium, color = c.primary)
-        }
-        Spacer(Modifier.height(LkSpacing.xl))
-    }
-}
-
-/** Conteúdo do card "próximo passo sugerido" (Camada A, issue #1503) — icone/título/
- *  descrição/rótulo do botão só existem pras 3 ferramentas alcançáveis por
- *  [ferramentaSugerida] ([TipoFerramenta.DNS], [TipoFerramenta.MONITORAMENTO],
- *  [TipoFerramenta.SINAL_WIFI]); as demais nunca chegam aqui. */
 private data class ConteudoProximoPasso(
     val icon: ImageVector,
     val titulo: String,

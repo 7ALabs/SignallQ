@@ -101,7 +101,7 @@ class FirebaseAnalyticsTrackerTest {
     fun `registrarAssistAbandono com objetivo preenchido inclui a chave objetivo`() {
         val bundle = slot<android.os.Bundle>()
 
-        // AssistScreen hoje só abandona de fato na lista (voltar na pergunta contextual volta
+        // A jornada guiada abandona de fato na lista (voltar na pergunta contextual volta
         // um passo em vez de abandonar — review da PR #1683, bloqueios 1/2), então
         // objetivoId preenchido não é produzido em produção agora; o mapeamento do tracker
         // continua correto pra essa forma do dado, e a interface não impede outro chamador

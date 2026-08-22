@@ -200,6 +200,7 @@ class AppShellOverlayRegistryTest {
         // `onIrParaHome` limpa o estado do Assist e navega para a raiz.
         acoes =
             AppShellDiagnosticoGuiadoAcoes(
+                onAvaliarAssist = { error("não usado neste teste") },
                 onAnalisarProblema = { disparos += "analisarProblema" },
                 onResetarAnalisador = { disparos += "resetarAnalisador" },
                 onVoltar = { disparos += "voltar" },
@@ -245,11 +246,6 @@ class AppShellOverlayRegistryTest {
         AppShellOverlayRegistry(
             overlayStack = navigator.overlayStack,
             navigator = navigator,
-            onAssistObjetivo = {},
-            onAssistResposta = {},
-            onAssistAbandono = {},
-            onPreSelecaoParaDiagnosticoGuiado = { _, _ -> },
-            onSolicitarDiagnostico = { null },
             appVersion = "1.0.0",
             onAbrirGerenciarDados = onAbrirGerenciarDados,
             resultadoSpeedtest = resultadoSpeedtest,
@@ -704,13 +700,6 @@ class AppShellOverlayRegistryTest {
         composeRule.runOnIdle { stack.remove(AppShellOverlay.Termos) }
         composeRule.onNodeWithText("Termos de Uso").assertDoesNotExist()
         composeRule.onNodeWithText("Novidades").assertExists()
-    }
-
-    @Test
-    fun `registry compoe assist a partir do estado padrao SignallQ Assist`() {
-        val navigator = navigatorComPilha(AppShellOverlay.Assist)
-        composeRule.setContent { RegistryDeTeste(navigator = navigator) }
-        composeRule.onNodeWithText("O que está acontecendo com sua internet?").assertExists()
     }
 
     @Test

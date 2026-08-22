@@ -21,7 +21,6 @@ import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material.icons.outlined.Wifi
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,7 +56,6 @@ internal fun Inicio2Screen(
     onAbrirPerfil: () -> Unit,
     onAlternarTema: () -> Unit = {},
     connectionTrail: Inicio2ConnectionTrailState? = null,
-    onAbrirProblemas: () -> Unit = {},
     onAbrirVideos: () -> Unit = {},
 ) {
     val c = LocalLkTokens.current
@@ -117,13 +115,6 @@ internal fun Inicio2Screen(
                     descricao = "Interrupções, áudio cortando ou imagem congelada",
                     icon = Icons.Outlined.Wifi,
                     onClick = onAbrirVideos,
-                )
-                HorizontalDivider(color = c.outlineVariant)
-                Inicio2AtalhoProblema(
-                    titulo = "Outro problema",
-                    descricao = "Conte o que está acontecendo com sua conexão",
-                    icon = Icons.Outlined.WarningAmber,
-                    onClick = onAbrirProblemas,
                 )
             }
         }

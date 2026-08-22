@@ -113,6 +113,7 @@ fun SignallQResultBlock(
     modifier: Modifier = Modifier,
     tone: SignallQFeedbackTone = SignallQFeedbackTone.Neutral,
     nextStep: String? = null,
+    nextSteps: List<String>? = null,
 ) {
     val c = LocalLkTokens.current
     Surface(
@@ -130,6 +131,12 @@ fun SignallQResultBlock(
             nextStep?.let {
                 Text("Próximo passo", style = MaterialTheme.typography.titleSmall)
                 Text(it, style = MaterialTheme.typography.bodyMedium)
+            }
+            nextSteps?.takeIf { it.isNotEmpty() }?.let { steps ->
+                Text("Como resolver", style = MaterialTheme.typography.titleSmall)
+                steps.forEachIndexed { index, step ->
+                    Text("${index + 1}. $step", style = MaterialTheme.typography.bodyMedium)
+                }
             }
         }
     }

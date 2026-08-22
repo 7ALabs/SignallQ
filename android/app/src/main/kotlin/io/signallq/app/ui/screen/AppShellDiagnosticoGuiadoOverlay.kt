@@ -60,6 +60,8 @@ internal data class AppShellDiagnosticoGuiadoDados(
     val analisadorState: AnalisadorState,
     val objetivoPreSelecionado: ObjetivoDiagnostico?,
     val respostaPreSelecionadaPasso0: Int?,
+    val entradaAssist: EntradaAssist = EntradaAssist.Padrao,
+    val tipoMidiaAssist: TipoMidiaAssist? = null,
     val categoria: String?,
     val ispNome: String?,
     val operadoraMovel: String?,
@@ -75,6 +77,7 @@ internal data class AppShellDiagnosticoGuiadoDados(
 /** Navegação e efeitos colaterais que só o shell sabe executar. */
 @Stable
 internal data class AppShellDiagnosticoGuiadoAcoes(
+    val onAvaliarAssist: suspend (DiagnosticInput) -> DiagnosticReport,
     val onAnalisarProblema: (String?) -> Unit,
     val onResetarAnalisador: () -> Unit,
     val onVoltar: () -> Unit,
@@ -140,6 +143,9 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
             contextoDoPlano = dados.contextoDoPlano,
             onPlanoIniciado = entry.acoes.onPlanoIniciado,
             statusMedicao = resultado?.status,
+            entradaAssist = dados.entradaAssist,
+            tipoMidiaAssist = dados.tipoMidiaAssist,
+            onAvaliarAssist = entry.acoes.onAvaliarAssist,
             medidasConfiaveis = medidasConfiaveis(resultado),
             analise = entry.analise,
             onBackHandlerReady = { backHandler = it },

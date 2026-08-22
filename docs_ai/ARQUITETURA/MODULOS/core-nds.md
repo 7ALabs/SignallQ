@@ -4,7 +4,7 @@ description: "Cliente HTTP e contrato tipado do Network Diagnostics Service (NDS
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-20"
+last_updated: "2026-08-22"
 ---
 
 # `:core:nds`
@@ -18,7 +18,7 @@ last_updated: "2026-08-20"
 Camada de rede e contrato tipado do NDS (Network Diagnostics Service,
 `network-diagnostics-service.buildealabs.workers.dev`), fatia NDS-01 (issue #1744, ADR-017).
 Cobre: cliente HTTP (`NdsClient.evaluate`), modelos de request (`NdsDiagnosticsRequest` e blocos
-aninhados), modelos de resposta (`NdsDiagnosticsResponse`, `NdsModuleResult`, `NdsTrace`),
+aninhados), modelos de resposta (`NdsDiagnosticsResponse`, `NdsNextBestAction`, `NdsModuleResult`, `NdsTrace`),
 decoders tipados para os 3 módulos confirmados no ADR (`asScoring`, `asAi`, `asWifiDiagnostics`) e
 tratamento de erro (`NdsDiagnosticsOutcome`).
 
@@ -78,7 +78,7 @@ agora porque a NDS-02k depende diretamente dela para os dois mappers novos.
 | `NdsClient.kt` | `suspend fun evaluate(NdsDiagnosticsRequest): NdsDiagnosticsOutcome` — `POST /v1/diagnostics/evaluate` com `Authorization: Bearer`. Nunca lança exceção ao chamador |
 | `NdsClientFactory.kt` | Fábrica de conveniência que monta `NdsClient` a partir de `BuildConfig.NDS_BASE_URL`/`NDS_API_TOKEN` |
 | `NdsDiagnosticsRequest.kt` | Request tipado (`NdsAppInfo`, `NdsConnectionInfo`, `NdsWifiInfo`, `NdsWifiScanInfo`, `NdsSpeedInfo`, `NdsDnsInfo`, `NdsFiberInfo`) + `toJson()` interno — cada bloco opcional é omitido do payload quando `null` |
-| `NdsDiagnosticsResponse.kt` | Resposta tipada (`NdsDiagnosticsResponse`, `NdsModuleResult`, `NdsTrace`) + `NdsResponseParser` tolerante. `NdsModuleResult.result`/`cards` ficam como `Map`/`List` genéricos (não `org.json.JSONObject`) para manter `equals` estrutural e permanecer extensível a módulos futuros sem mudança de contrato |
+| `NdsDiagnosticsResponse.kt` | Resposta tipada (`NdsDiagnosticsResponse`, `NdsNextBestAction`, `NdsModuleResult`, `NdsTrace`) + `NdsResponseParser` tolerante. `recommendation` é objeto tipado e `steps` decompõe a ação única; `NdsModuleResult.result`/`cards` continuam como `Map`/`List` genéricos para manter extensibilidade |
 | `NdsModuleResults.kt` | Decoders tipados para os 3 módulos confirmados no ADR-017: `asScoring()`, `asAi()`, `asWifiDiagnostics()` — cada um devolve `null` se o `module` não bater ou faltar campo obrigatório |
 | `NdsDiagnosticsOutcome.kt` | `sealed class` do resultado: `Success`, `KnownError` (dois shapes — flat `{error,message}` confirmado no ADR-017, e o envelope canônico `{error:{code,message,retryable},request_id}` do PR#12/NDS, ainda em draft) e `UnknownError` (5xx/timeout/corpo não-JSON — nenhum dos dois shapes bateu, tratado defensivamente) |
 | `NdsJson.kt` | Helpers internos de conversão `JSONObject`/`JSONArray` → `Map`/`List` Kotlin puros |

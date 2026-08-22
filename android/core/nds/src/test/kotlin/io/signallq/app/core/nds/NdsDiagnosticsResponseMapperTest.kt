@@ -19,7 +19,7 @@ class NdsDiagnosticsResponseMapperTest {
     private fun responseComScoringEAi(
         veredicto: String = "regular",
         score: Int = 50,
-        recommendation: String? = null,
+        recommendation: NdsNextBestAction? = null,
         tituloAmigavel: String? = "Sua rede está OK",
         resumo: String? = "Score 50, regular.",
         missingInputs: List<String> = emptyList(),
@@ -108,10 +108,22 @@ class NdsDiagnosticsResponseMapperTest {
 
     @Test
     fun `sem modulo ai, mensagemUsuario cai para recommendation e depois para texto padrao`() {
-        val comRecommendation = responseComScoringEAi(tituloAmigavel = null, resumo = null, recommendation = "Reinicie o roteador.")
+        val comRecommendation = responseComScoringEAi(
+            tituloAmigavel = null,
+            resumo = null,
+            recommendation = NdsNextBestAction(
+                id = "restart_router",
+                type = "resolution",
+                title = "Reinicie o roteador",
+                description = "Reinicie o roteador.",
+                sourceFindingIds = emptyList(),
+                steps = listOf("Desligue o roteador.", "Ligue o roteador novamente."),
+            ),
+        )
             .toDiagnosticReport(input = DiagnosticInput(), geradoEmMs = 0L)
         assertEquals("Reinicie o roteador.", comRecommendation.decisao.mensagemUsuario)
         assertEquals("Reinicie o roteador.", comRecommendation.decisao.recomendacao)
+        assertEquals(listOf("Desligue o roteador.", "Ligue o roteador novamente."), comRecommendation.decisao.recomendacaoPassos)
 
         val semNada = responseComScoringEAi(tituloAmigavel = null, resumo = null, recommendation = null)
             .toDiagnosticReport(input = DiagnosticInput(), geradoEmMs = 0L)

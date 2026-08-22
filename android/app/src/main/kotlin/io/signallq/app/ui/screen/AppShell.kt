@@ -55,11 +55,10 @@ import io.signallq.app.bssidElegivelParaAutoconexao
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.datastore.ConnectionProfilePersistido
 import io.signallq.app.core.datastore.ModoGamerPadraoPersistido
+import io.signallq.app.core.diagnostico.DiagnosticInput
+import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.diagnostico.topology.model.NatStatus
-import io.signallq.app.core.network.AssistAbandonado
-import io.signallq.app.core.network.AssistObjetivoSelecionado
-import io.signallq.app.core.network.AssistPerguntaRespondida
 import io.signallq.app.core.network.DiagnosticoPlanoIniciado
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
@@ -217,11 +216,9 @@ fun AppShell(
     // montado pela MainActivity como os demais `AppShellXxxState`.
     historicoTela: AppShellHistoricoState = AppShellHistoricoState(),
     onScreenView: (screenName: String) -> Unit = {},
-    onAssistObjetivo: (AssistObjetivoSelecionado) -> Unit = {},
-    onAssistResposta: (AssistPerguntaRespondida) -> Unit = {},
-    onAssistAbandono: (AssistAbandonado) -> Unit = {},
     // GH#1706 — funil do diagnostico guiado (plano apresentado / bloqueio encontrado).
     onDiagnosticoPlanoIniciado: (DiagnosticoPlanoIniciado) -> Unit = {},
+    onAvaliarAssist: suspend (DiagnosticInput) -> DiagnosticReport = { throw IllegalStateException("Assist evaluator not configured") },
     // GH#784 — etapa "compartilhou" do funil do teste de velocidade.
     onCompartilharResultadoVelocidade: () -> Unit = {},
     // GH#970 — resolucao de identidade/contato de operadora: nivel 1 (catalogo local,
@@ -550,16 +547,13 @@ fun AppShell(
     var showSobreAppSheet by remember { mutableStateOf(false) }
     var testeAtivo by remember { mutableStateOf(false) }
     var mostrarConcluido by remember { mutableStateOf(false) }
-    // Issue #1656 — objetivo/resposta escolhidos no SignallQ Assist (overlay pré-teste),
-    // repassados ao DiagnosticoGuiadoScreen quando o usuário abre o "plano existente"
-    // depois do resultado, pra não perguntar a mesma coisa duas vezes. Zerados sempre que
-    // o usuário sai desse fluxo pós-teste (voltar ao início ou testar de novo) — ver
-    // onTestarNovamente/onIrParaHome abaixo.
-    var assistObjetivoPreSelecionado by remember { mutableStateOf<ObjetivoDiagnostico?>(null) }
-    var assistRespostaPreSelecionada by remember { mutableStateOf<Int?>(null) }
-    val onAbrirDiagnosticoGuiado: (ObjetivoDiagnostico?) -> Unit = { objetivo ->
-        assistObjetivoPreSelecionado = objetivo
-        assistRespostaPreSelecionada = null
+    var entradaAssistInicial by remember { mutableStateOf(EntradaAssist.Padrao) }
+    var tipoMidiaAssistInicial by remember { mutableStateOf<TipoMidiaAssist?>(null) }
+    var objetivoAssistInicial by remember { mutableStateOf<ObjetivoDiagnostico?>(null) }
+    val onAbrirDiagnosticoGuiado: (EntradaAssist, TipoMidiaAssist?, ObjetivoDiagnostico?) -> Unit = { entrada, midia, objetivo ->
+        entradaAssistInicial = entrada
+        tipoMidiaAssistInicial = midia
+        objetivoAssistInicial = objetivo
         if (Overlay.DiagnosticoGuiado !in overlayStack) {
             overlayStack.add(Overlay.DiagnosticoGuiado)
         }
@@ -709,7 +703,7 @@ fun AppShell(
                                         medicao = medicaoHomeResolvida,
                                     ),
                                 onAnalisarConexao = {
-                                    onAbrirDiagnosticoGuiado(null)
+                                    onAbrirDiagnosticoGuiado(EntradaAssist.Padrao, null, null)
                                     null
                                 },
                                 onAbrirPerfil = onAbrirPerfilOverlay,
@@ -722,11 +716,8 @@ fun AppShell(
                                         snapshotWifi = snapshotWifi,
                                         temPermissaoLocalizacao = temPermissaoLocalizacao,
                                     ),
-                                onAbrirProblemas = {
-                                    if (Overlay.Assist !in overlayStack) overlayStack.add(Overlay.Assist)
-                                },
                                 onAbrirVideos = {
-                                    onAbrirDiagnosticoGuiado(ObjetivoDiagnostico.VIDEOS_TRAVAM)
+                                    onAbrirDiagnosticoGuiado(EntradaAssist.VideoOuChamada, null, null)
                                 },
                             )
                         // NAV-E: raiz 1 — Velocidade (SpeedTestScreen como raiz fixa)
@@ -835,14 +826,6 @@ fun AppShell(
         AppShellOverlayRegistry(
             overlayStack = overlayStack,
             navigator = navigator,
-            onAssistObjetivo = onAssistObjetivo,
-            onAssistResposta = onAssistResposta,
-            onAssistAbandono = onAssistAbandono,
-            onPreSelecaoParaDiagnosticoGuiado = { objetivoSelecionado, respostaSelecionada ->
-                assistObjetivoPreSelecionado = objetivoSelecionado
-                assistRespostaPreSelecionada = respostaSelecionada
-            },
-            onSolicitarDiagnostico = onSolicitarDiagnostico,
             appVersion = BuildConfig.VERSION_NAME,
             onAbrirGerenciarDados = { showGerenciarDadosSheet = true },
             resultadoSpeedtest = snapshotSpeedtest.resultado,
@@ -864,8 +847,10 @@ fun AppShell(
                             diagnosticReport = snapshotDiagnostico.relatorio,
                             resultado = snapshotSpeedtest.resultado,
                             analisadorState = analisadorState,
-                            objetivoPreSelecionado = assistObjetivoPreSelecionado,
-                            respostaPreSelecionadaPasso0 = assistRespostaPreSelecionada,
+                            objetivoPreSelecionado = objetivoAssistInicial,
+                            respostaPreSelecionadaPasso0 = null,
+                            entradaAssist = entradaAssistInicial,
+                            tipoMidiaAssist = tipoMidiaAssistInicial,
                             categoria = snapshotDiagnostico.relatorio?.decisao?.categoriaOrigem,
                             ispNome = ispInfoData?.isp,
                             operadoraMovel = operadoraMovel,
@@ -886,6 +871,7 @@ fun AppShell(
                     operadora = operadoraResolvers,
                     acoes =
                         AppShellDiagnosticoGuiadoAcoes(
+                            onAvaliarAssist = onAvaliarAssist,
                             onAnalisarProblema = onAnalisarProblema,
                             onResetarAnalisador = onResetarAnalisador,
                             onVoltar = { overlayStack.remove(Overlay.DiagnosticoGuiado) },
@@ -896,8 +882,6 @@ fun AppShell(
                             onIrParaHome = {
                                 overlayStack.remove(Overlay.DiagnosticoGuiado)
                                 overlayStack.remove(Overlay.ResultadoVelocidade)
-                                assistObjetivoPreSelecionado = null
-                                assistRespostaPreSelecionada = null
                                 navigator.select(AppShellRoot.Home)
                             },
                             onIniciarModoGamer = {
@@ -930,13 +914,9 @@ fun AppShell(
                     onTestarNovamente = {
                         overlayStack.remove(Overlay.ResultadoVelocidade)
                         // Issue #1656 — novo teste invalida a pré-seleção do Assist do anterior.
-                        assistObjetivoPreSelecionado = null
-                        assistRespostaPreSelecionada = null
                     },
                     onIrParaHome = {
                         overlayStack.remove(Overlay.ResultadoVelocidade)
-                        assistObjetivoPreSelecionado = null
-                        assistRespostaPreSelecionada = null
                         navigator.select(AppShellRoot.Home)
                     },
                     onVoltar = { overlayStack.remove(Overlay.ResultadoVelocidade) },
@@ -946,7 +926,7 @@ fun AppShell(
                         navigator.select(AppShellRoot.Speed)
                     },
                     onIniciarDiagnosticoGuiado = {
-                        if (Overlay.DiagnosticoGuiado !in overlayStack) overlayStack.add(Overlay.DiagnosticoGuiado)
+                        onAbrirDiagnosticoGuiado(EntradaAssist.ComDadosRecentes, null, null)
                     },
                     onIniciarModoGamer = {
                         if (Overlay.ModoGamer !in overlayStack) overlayStack.add(Overlay.ModoGamer)

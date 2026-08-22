@@ -1,10 +1,6 @@
 package io.signallq.app.ui.screen
 
 import androidx.compose.runtime.Composable
-import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
-import io.signallq.app.core.network.AssistAbandonado
-import io.signallq.app.core.network.AssistObjetivoSelecionado
-import io.signallq.app.core.network.AssistPerguntaRespondida
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnapshot
 import io.signallq.app.feature.dns.SnapshotBenchmarkDns
@@ -20,7 +16,7 @@ import io.signallq.app.feature.speedtest.ResultadoSpeedtest
  * wiring de root content em duas fatias, lambda de regra de negócio numa terceira, estado
  * hoisted numa quarta) não passa por aqui e continua sendo risco de crescimento do arquivo — ver
  * `docs_ai/technical/appshell-overlay-registry.md`, seção "O que este registro não resolve".
- * Dentro do que resolve, generaliza o padrão que `AppShellAssistOverlay.kt` (issue #1656) já
+ * Dentro do que resolve, generaliza o padrão de overlays extraídos (issue #1656) já
  * provou — overlay com Composable e callbacks próprios, em arquivo dedicado — para os demais
  * overlays do [AppShellOverlay.Companion] migrados aqui, e cria o único ponto de agregação: este
  * arquivo.
@@ -37,7 +33,7 @@ import io.signallq.app.feature.speedtest.ResultadoSpeedtest
  *    se decide "qual Composable desenha o overlay X", não "quando X entra/sai da pilha";
  * 2. crie `AppShellXxxOverlay.kt` com um `@Composable internal fun` que recebe **só o que
  *    precisa** (nunca a lista inteira de parâmetros do [AppShell]) — `overlayStack` mais um
- *    punhado de callbacks/dados estreitos, exatamente como `AppShellAssistOverlay.kt`;
+ *    punhado de callbacks/dados estreitos;
  * 3. adicione uma chamada para ele dentro de [AppShellOverlayRegistry] abaixo — a ordem de
  *    declaração aqui NÃO decide o z-index visual (isso é [rememberOverlayZIndex], baseado na
  *    posição real em `overlayStack`; ver KDoc dela em `AppShell.kt`), então a entrada nova pode
@@ -52,7 +48,7 @@ import io.signallq.app.feature.speedtest.ResultadoSpeedtest
  * `showEquipamentoCredenciaisSheet` etc. — sheets sem back-stack) ficam fora deste registro por
  * enquanto; migrá-los é trabalho futuro das 17 fatias restantes, não escopo desta issue.
  *
- * Migrados nesta issue (7 overlays): [AppShellOverlay.Assist] (rewire do que #1656 já extraiu),
+ * Migrados nesta issue (7 overlays): diagnóstico guiado e os demais overlays registrados,
  * [AppShellOverlay.Termos], [AppShellOverlay.Novidades], [AppShellOverlay.Privacidade],
  * [AppShellOverlay.DetalhesTecnicos], [AppShellOverlay.SinalWifi], [AppShellOverlay.Ping] e
  * [AppShellOverlay.Dns]. Os demais overlays (Ajustes, Perfil, Ferramentas, Dispositivos,
@@ -69,12 +65,6 @@ internal fun AppShellOverlayRegistry(
     // consumidor agora, e a regra de higiene (§11, "código sem consumidor") é exatamente o que
     // esta issue está corrigindo, não repetindo.
     navigator: AppShellNavigator,
-    // Assist (issue #1656) — rewire do overlay já extraído, sem mudar seu comportamento.
-    onAssistObjetivo: (AssistObjetivoSelecionado) -> Unit,
-    onAssistResposta: (AssistPerguntaRespondida) -> Unit,
-    onAssistAbandono: (AssistAbandonado) -> Unit,
-    onPreSelecaoParaDiagnosticoGuiado: (objetivo: ObjetivoDiagnostico?, respostaPasso0: Int?) -> Unit,
-    onSolicitarDiagnostico: () -> Long?,
     // Termos / Novidades / Privacidade — Perfil (GH#1358).
     appVersion: String,
     onAbrirGerenciarDados: () -> Unit,
@@ -98,14 +88,6 @@ internal fun AppShellOverlayRegistry(
     // cada overlay for tocado.
     diagnosticoGuiado: AppShellDiagnosticoGuiadoEntry,
 ) {
-    AppShellAssistOverlay(
-        overlayStack = overlayStack,
-        onAssistObjetivo = onAssistObjetivo,
-        onAssistResposta = onAssistResposta,
-        onAssistAbandono = onAssistAbandono,
-        onPreSelecaoParaDiagnosticoGuiado = onPreSelecaoParaDiagnosticoGuiado,
-        onSolicitarDiagnostico = onSolicitarDiagnostico,
-    )
     AppShellTermosOverlay(overlayStack = overlayStack)
     AppShellNovidadesOverlay(overlayStack = overlayStack, appVersion = appVersion)
     AppShellPrivacidadeOverlay(overlayStack = overlayStack, onAbrirGerenciarDados = onAbrirGerenciarDados)

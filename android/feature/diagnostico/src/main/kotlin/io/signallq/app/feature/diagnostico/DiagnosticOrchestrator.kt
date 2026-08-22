@@ -3,6 +3,7 @@ package io.signallq.app.feature.diagnostico
 import io.signallq.app.core.diagnostico.ConnectionType
 import io.signallq.app.core.diagnostico.DiagnosticArea
 import io.signallq.app.core.diagnostico.DiagnosticInput
+import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.core.diagnostico.DiagnosticRunner
 import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.FibraDiagnosticInput
@@ -51,6 +52,10 @@ class DiagnosticOrchestrator(
         NdsDiagnosticRepository(ndsClient = NdsClientFactory.create()),
     private val featureFlagProvider: FeatureFlagProvider = DisabledFeatureFlagProvider,
 ) {
+
+    /** Avaliação exclusiva do SignallQ Assist: ignora a flag global e não altera o snapshot do fluxo legado. */
+    suspend fun avaliarAssist(input: DiagnosticInput): DiagnosticReport =
+        ndsDiagnosticRepository.evaluate(input)
 
     private val mutableSnapshotFlow = MutableStateFlow(
         SnapshotDiagnostico(

@@ -16,4 +16,6 @@ data class DiagnosticResult(
      *  seu uso atual inalterado. Nulo quando a causa e genuinamente ambigua/nao
      *  atribuivel a uma origem especifica. */
     val categoriaOrigem: String? = null,
+    /** Passos imperativos da mesma ação única recomendada pelo NDS. */
+    val recomendacaoPassos: List<String> = emptyList(),
 )

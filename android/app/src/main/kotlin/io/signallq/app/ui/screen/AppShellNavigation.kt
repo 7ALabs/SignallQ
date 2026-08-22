@@ -31,7 +31,6 @@ internal enum class AppShellOverlay {
     DiagnosticoGuiado,
     DetalhesTecnicos,
     ModoGamer,
-    Assist,
 }
 
 internal enum class AppShellRoot(
