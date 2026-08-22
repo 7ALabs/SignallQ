@@ -176,6 +176,27 @@ class NativeAdLoaderLifecycleTest {
         }
         verify(exactly = 0) { currentAd.destroy() }
     }
+
+    @Test
+    fun `content signal change starts new session and destroys previous fill`() {
+        val requester = FakeNativeAdRequester()
+        var currentSignal by mutableStateOf(signal)
+        var observedState: NativeAdLoadState? = null
+
+        composeRule.setContent {
+            observedState = rememberNativeAdState("test-unit", currentSignal, eligibility, requester).value
+        }
+
+        val firstAd = mockk<NativeAd>(relaxed = true)
+        composeRule.runOnIdle { requester.session(0).fill(firstAd) }
+        composeRule.runOnIdle { currentSignal = NativeAdContentSignal.forSlot(AdSlot.RESULTADO) }
+        composeRule.waitForIdle()
+
+        assertEquals(2, requester.loadCount)
+        assertEquals(1, requester.cancelCount)
+        verify(exactly = 1) { firstAd.destroy() }
+        composeRule.runOnIdle { assertEquals(NativeAdLoadState.Loading, observedState) }
+    }
 }
 
 private class FakeNativeAdRequester : NativeAdRequester {
