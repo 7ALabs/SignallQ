@@ -46,6 +46,7 @@ fun NdsDiagnosticsResponse.toDiagnosticReport(
     val ai = resultFor("ai")?.asAi()
     val status = parseNdsVeredicto(scoring?.veredicto).toDiagnosticStatus()
     val dadosAusentes = results.flatMap { it.missingInputs }.distinct()
+    val recomendacao = recommendation?.description ?: recommendationText
 
     val decisao = DiagnosticResult(
         id = "nds:${scoring?.veredicto ?: "inconclusivo"}",
@@ -53,9 +54,9 @@ fun NdsDiagnosticsResponse.toDiagnosticReport(
         status = status,
         evidencia = null,
         mensagemUsuario = ai?.explanation?.resumoTecnicoTraduzido
-            ?: recommendation?.description
+            ?: recomendacao
             ?: "Diagnóstico concluído.",
-        recomendacao = recommendation?.description,
+        recomendacao = recomendacao,
         recomendacaoPassos = recommendation?.steps.orEmpty(),
         categoria = "nds",
         podeConcluir = status != DiagnosticStatus.inconclusive,

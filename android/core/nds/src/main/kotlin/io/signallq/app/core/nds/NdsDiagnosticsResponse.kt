@@ -8,6 +8,8 @@ data class NdsDiagnosticsResponse(
     val recommendation: NdsNextBestAction?,
     val results: List<NdsModuleResult>,
     val traces: List<NdsTrace>,
+    /** Compatibilidade com o shape textual anterior do contrato NDS. */
+    val recommendationText: String? = null,
 ) {
     /**
      * Busca um item de [results] por `module`. **Nunca assuma posicao fixa**:
@@ -62,6 +64,10 @@ internal object NdsResponseParser {
         val root = JSONObject(raw)
         return NdsDiagnosticsResponse(
             recommendation = root.optJSONObject("recommendation")?.let(::parseRecommendation),
+            recommendationText = root.opt("recommendation")
+                ?.takeIf { it is String }
+                ?.let { it as String }
+                ?.takeIf(String::isNotBlank),
             results = root.optJSONArray("results")?.let(::parseResults) ?: emptyList(),
             traces = root.optJSONArray("traces")?.let(::parseTraces) ?: emptyList(),
         )

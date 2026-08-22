@@ -148,6 +148,20 @@ class NdsClientTest {
     }
 
     @Test
+    fun `evaluate preserva recommendation textual do contrato anterior`() = runBlocking {
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                """{"recommendation":"Reinicie o roteador.","results":[],"traces":[]}""",
+            ),
+        )
+
+        val response = (client.evaluate(sampleRequest) as NdsDiagnosticsOutcome.Success).response
+
+        assertNull(response.recommendation)
+        assertEquals("Reinicie o roteador.", response.recommendationText)
+    }
+
+    @Test
     fun `resultFor busca por module e nao por posicao`() = runBlocking {
         // capabilities pedidas foram scoring+ai, mas o servidor devolveu wifi tambem
         // e em ordem diferente da capabilities[] — o cliente nao pode assumir posicao.

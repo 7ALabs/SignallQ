@@ -131,6 +131,17 @@ class NdsDiagnosticsResponseMapperTest {
     }
 
     @Test
+    fun `mapeia recommendation textual legado sem fabricar passos`() {
+        val report = responseComScoringEAi(tituloAmigavel = null, resumo = null)
+            .copy(recommendationText = "Reinicie o roteador.")
+            .toDiagnosticReport(input = DiagnosticInput(), geradoEmMs = 0L)
+
+        assertEquals("Reinicie o roteador.", report.decisao.mensagemUsuario)
+        assertEquals("Reinicie o roteador.", report.decisao.recomendacao)
+        assertEquals(emptyList<String>(), report.decisao.recomendacaoPassos)
+    }
+
+    @Test
     fun `as 8 listas por dominio ficam vazias -- gap documentado, NDS nao devolve granularidade por metrica`() {
         val report = responseComScoringEAi().toDiagnosticReport(input = DiagnosticInput(), geradoEmMs = 0L)
 

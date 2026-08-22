@@ -308,7 +308,7 @@ fun DiagnosticoGuiadoScreen(
         }
     }
 
-    LaunchedEffect(estado.rotaAtual, input) {
+    LaunchedEffect(estado.rotaAtual, input, estadoChamadaNds) {
         if (estado.rotaAtual != DiagnosticoGuiadoRota.Processando || estadoChamadaNds != EstadoChamadaNds.EmCurso) return@LaunchedEffect
         val inputAtual = input ?: return@LaunchedEffect
         val relatorio = runCatching { onAvaliarAssist?.invoke(inputAtual) }.getOrNull()
