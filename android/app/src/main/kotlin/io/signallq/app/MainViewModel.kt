@@ -1329,6 +1329,9 @@ class MainViewModel
             solicitarDiagnostico()
         }
 
+        suspend fun avaliarAssist(input: DiagnosticInput): DiagnosticReport =
+            diagnosticOrchestrator.avaliarAssist(input)
+
         fun solicitarDiagnostico(): Long? {
             val reserva = diagnosticOrchestrator.tentarReservar() ?: return null
             val job =

@@ -35,8 +35,8 @@ import io.signallq.app.core.diagnostico.ScoreResult
  * ## `recomendacoes`
  * Fica vazia — a lista estruturada (REC-01..REC-14) vem do
  * `RecomendacaoPraticaEngine` local (`feature/diagnostico`, fora do alcance deste
- * modulo `core`). O `recommendation` (texto livre, unico) que o NDS devolve entra
- * em [DiagnosticResult.recomendacao] de [DiagnosticReport.decisao].
+ * modulo `core`). O `recommendation.description` e seus `steps` entram em
+ * [DiagnosticResult.recomendacao] e [DiagnosticResult.recomendacaoPassos].
  */
 fun NdsDiagnosticsResponse.toDiagnosticReport(
     input: DiagnosticInput,
@@ -46,6 +46,7 @@ fun NdsDiagnosticsResponse.toDiagnosticReport(
     val ai = resultFor("ai")?.asAi()
     val status = parseNdsVeredicto(scoring?.veredicto).toDiagnosticStatus()
     val dadosAusentes = results.flatMap { it.missingInputs }.distinct()
+    val recomendacao = recommendation?.description ?: recommendationText
 
     val decisao = DiagnosticResult(
         id = "nds:${scoring?.veredicto ?: "inconclusivo"}",
@@ -53,9 +54,10 @@ fun NdsDiagnosticsResponse.toDiagnosticReport(
         status = status,
         evidencia = null,
         mensagemUsuario = ai?.explanation?.resumoTecnicoTraduzido
-            ?: recommendation
+            ?: recomendacao
             ?: "Diagnóstico concluído.",
-        recomendacao = recommendation,
+        recomendacao = recomendacao,
+        recomendacaoPassos = recommendation?.steps.orEmpty(),
         categoria = "nds",
         podeConcluir = status != DiagnosticStatus.inconclusive,
         categoriaOrigem = null,

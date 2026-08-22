@@ -582,11 +582,9 @@ class MainActivity : ComponentActivity() {
                                     blocosUptime = blocosUptimeHistorico,
                                 ),
                             onScreenView = { screenName -> analyticsTracker.registrarScreenView(screenName) },
-                            onAssistObjetivo = analyticsTracker::registrarAssistObjetivo,
-                            onAssistResposta = analyticsTracker::registrarAssistResposta,
-                            onAssistAbandono = analyticsTracker::registrarAssistAbandono,
                             // GH#1706 — funil do diagnostico guiado (spec §12, passos 3 e 4).
                             onDiagnosticoPlanoIniciado = analyticsTracker::registrarDiagnosticoPlanoIniciado,
+                            onAvaliarAssist = viewModel::avaliarAssist,
                             onCompartilharResultadoVelocidade = {
                                 analyticsTracker.registrarFeatureUsada("speedtest_compartilhou")
                             },

@@ -3,6 +3,7 @@ package io.signallq.app.feature.diagnostico
 import io.signallq.app.core.diagnostico.ConnectionType
 import io.signallq.app.core.diagnostico.DiagnosticArea
 import io.signallq.app.core.diagnostico.DiagnosticInput
+import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.core.diagnostico.DiagnosticRunner
 import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.FibraDiagnosticInput
@@ -51,6 +52,18 @@ class DiagnosticOrchestrator(
         NdsDiagnosticRepository(ndsClient = NdsClientFactory.create()),
     private val featureFlagProvider: FeatureFlagProvider = DisabledFeatureFlagProvider,
 ) {
+
+    /**
+     * Avaliação do SignallQ Assist sem alterar o snapshot do fluxo legado.
+     * A flag controla o backend usado também neste caminho: NDS live ligado,
+     * shadow/local legado desligado.
+     */
+    suspend fun avaliarAssist(input: DiagnosticInput): DiagnosticReport =
+        if (featureFlagProvider.isEnabled(FeatureFlagKeys.CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED)) {
+            ndsDiagnosticRepository.evaluate(input)
+        } else {
+            remoteDiagnosticRepository.evaluateShadow(input)
+        }
 
     private val mutableSnapshotFlow = MutableStateFlow(
         SnapshotDiagnostico(

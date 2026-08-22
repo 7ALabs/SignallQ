@@ -5,6 +5,20 @@ import androidx.compose.runtime.saveable.Saver
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.diagnostico.PerguntasDiagnosticoGuiado
 
+enum class EntradaAssist { Padrao, ComDadosRecentes, VideoOuChamada }
+
+enum class TipoMidiaAssist { VIDEO, CHAMADA }
+
+sealed interface EstadoChamadaNds {
+    data object EmCurso : EstadoChamadaNds
+
+    data class Sucesso(
+        val relatorio: io.signallq.app.core.diagnostico.DiagnosticReport,
+    ) : EstadoChamadaNds
+
+    data object Falhou : EstadoChamadaNds
+}
+
 // Estado do fluxo guiado 2.0 — issue #1704 (2.0.09b), épico #1647.
 //
 // Substitui os quatro `remember` independentes que a PR #1708 tentou persistir e foi reprovada por
@@ -19,7 +33,7 @@ import io.signallq.app.core.diagnostico.PerguntasDiagnosticoGuiado
 // separados, e [DiagnosticoGuiadoEstado.coerente] é a rede que trava o resto.
 
 /**
- * As cinco rotas do fluxo guiado — **cinco, não sete**.
+ * As seis rotas do fluxo guiado — **seis, não sete**.
  *
  * `insufficient` e `recoverable-error`, que a issue #1657 listava como rotas, são **variações
  * dentro das telas**, não destinos: a spec §9 os classifica como estados globais (e sobre "erro
@@ -34,6 +48,9 @@ import io.signallq.app.core.diagnostico.PerguntasDiagnosticoGuiado
  * `docs_ai/technical/appshell-overlay-registry.md`, seção "Delegação de back".
  */
 enum class DiagnosticoGuiadoRota {
+    /** Chamada direta ao NDS em curso, ou erro explícito de acesso ao serviço. */
+    Processando,
+
     /** Plano montado e medição em andamento. */
     Analise,
 
@@ -58,6 +75,8 @@ enum class DiagnosticoGuiadoRota {
  */
 @Immutable
 data class DiagnosticoGuiadoEstado(
+    val entrada: EntradaAssist = EntradaAssist.Padrao,
+    val tipoMidia: TipoMidiaAssist? = null,
     val objetivo: ObjetivoDiagnostico? = null,
     val passo: Int = 0,
     val respostas: List<Int?> = emptyList(),
@@ -195,6 +214,8 @@ data class DiagnosticoGuiadoEstado(
             Saver(
                 save = { estado ->
                     listOf(
+                        estado.entrada.name,
+                        estado.tipoMidia?.name.orEmpty(),
                         estado.objetivo?.name ?: SEM_OBJETIVO,
                         estado.passo.toString(),
                         estado.respostas.joinToString(",") { (it ?: RESPOSTA_NAO_RESPONDIDA).toString() },
@@ -202,10 +223,13 @@ data class DiagnosticoGuiadoEstado(
                     )
                 },
                 restore = { valores ->
-                    val nomeObjetivo = valores.getOrNull(0).orEmpty()
+                    val formatoAtual = valores.size >= 6
+                    val nomeEntrada = if (formatoAtual) valores.getOrNull(0).orEmpty() else EntradaAssist.Padrao.name
+                    val nomeMidia = if (formatoAtual) valores.getOrNull(1).orEmpty() else ""
+                    val nomeObjetivo = valores.getOrNull(if (formatoAtual) 2 else 0).orEmpty()
                     val tokensPilha =
                         valores
-                            .getOrNull(3)
+                            .getOrNull(if (formatoAtual) 5 else 3)
                             .orEmpty()
                             .split(',')
                             .filter(String::isNotBlank)
@@ -232,10 +256,12 @@ data class DiagnosticoGuiadoEstado(
                                 } else {
                                     ObjetivoDiagnostico.entries.firstOrNull { it.name == nomeObjetivo }
                                 },
-                            passo = valores.getOrNull(1)?.toIntOrNull() ?: 0,
+                            entrada = EntradaAssist.entries.firstOrNull { it.name == nomeEntrada } ?: EntradaAssist.Padrao,
+                            tipoMidia = TipoMidiaAssist.entries.firstOrNull { it.name == nomeMidia },
+                            passo = valores.getOrNull(if (formatoAtual) 3 else 1)?.toIntOrNull() ?: 0,
                             respostas =
                                 valores
-                                    .getOrNull(2)
+                                    .getOrNull(if (formatoAtual) 4 else 2)
                                     .orEmpty()
                                     .split(',')
                                     .filter(String::isNotBlank)

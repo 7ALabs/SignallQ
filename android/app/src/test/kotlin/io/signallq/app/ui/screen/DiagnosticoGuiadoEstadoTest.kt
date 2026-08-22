@@ -300,9 +300,9 @@ class DiagnosticoGuiadoEstadoTest {
         // Trava a decisão de escopo: `insufficient` e `recoverable-error` são variações dentro das
         // telas, não destinos (spec §9 + COVERAGE.md do protótipo). Se alguém acrescentar uma
         // delas como rota, este teste obriga a rediscutir em vez de deixar passar.
-        assertEquals(5, DiagnosticoGuiadoRota.entries.size)
+        assertEquals(6, DiagnosticoGuiadoRota.entries.size)
         assertEquals(
-            listOf("Analise", "Resultado", "Orientacao", "Reteste", "Comparacao"),
+            listOf("Processando", "Analise", "Resultado", "Orientacao", "Reteste", "Comparacao"),
             DiagnosticoGuiadoRota.entries.map { it.name },
         )
     }

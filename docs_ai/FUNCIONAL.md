@@ -4,7 +4,7 @@ description: "O que o app Android SignallQ (io.signallq.app) entrega ao usuário
 type: "funcional"
 status: "ativo"
 owner: "Claudete"
-last_updated: "2026-08-21"
+last_updated: "2026-08-22"
 ---
 
 - **Fonte de verdade:** o código do app consumer em `android/app/src/main/kotlin/io/signallq/app/`
@@ -183,18 +183,12 @@ independente de roteador central; SSID igual, BSSID único com OUI de fabricante
 durante scan, em erro ou offline a trilha permanece parcial e textual. Equipamento, Wi-Fi e sinal
 móvel reutilizam overlays canônicos somente quando aplicáveis. Como não existe detalhe dedicado do
 aparelho local, “Este aparelho” permanece textual nesta fatia em vez de abrir a lista geral da LAN.
-O CTA principal abre o **SignallQ Assist**, um fluxo guiado — não chat e não IA — que
-reutiliza os sete `ObjetivoDiagnostico` e oferece também a escolha neutra de verificar a conexão.
-O Assist só apresenta pergunta contextual quando a resposta é consumida pelo motor atual: conexão
-usada para jogos ou melhora ao desligar o Wi-Fi. As demais situações seguem direto para a análise,
-sem perguntas decorativas. Objetivo, resposta fechada e abandono explícito sobrevivem à recriação
-da UI sem repetir eventos. O objetivo (e a resposta da pergunta contextual, quando existir) seguem
-para o "plano existente": se o usuário depois abrir o diagnóstico guiado pós-teste
-(`DiagnosticoGuiadoScreen`), a lista de objetivos e a primeira pergunta já chegam pré-preenchidas
-com o que foi respondido no Assist — a pessoa não escolhe o mesmo objetivo nem responde a mesma
-pergunta duas vezes, e a resposta muda de fato as dimensões/ações do
-`DiagnosticoGuiadoEngine` para Jogos com lag e Wi-Fi vs. operadora. Essa pré-seleção expira ao
-testar de novo ou voltar ao início.
+O CTA principal abre o **SignallQ Assist**, a jornada única de diagnóstico guiado — não chat — com
+lista de objetivos, roteiro de perguntas, coleta quando necessária e resultado vindo exclusivamente
+do NDS. A entrada pelo resultado do speedtest reaproveita os dados recém-medidos; a entrada
+"Vídeos ou chamadas travam" pergunta primeiro o tipo de mídia e então fixa o roteiro correspondente.
+O resultado mostra confiança e passos imperativos de resolução. Se o NDS não responder, exibe erro
+explícito e nova tentativa, sem apresentar fallback local como resultado do Assist.
 Não há grade técnica, catálogo de ferramentas, diagnóstico completo nem placement AdMob na Início.
 A issue #1601 continua responsável pelo acesso direto ao resultado persistido exato; esta fatia
 somente apresenta sua existência sem duplicar essa navegação.
@@ -515,10 +509,12 @@ real de equipamento hoje passa só pelo driver Nokia (ver seção 7).
 
 ### 5.7 Diagnóstico com IA
 
-**Telas:** `DiagnosticoGuiadoScreen` (overlay sobre o resultado do teste) e `DetalhesTecnicosScreen`.
+**Telas:** `DiagnosticoGuiadoScreen` e seções do SignallQ Assist (`DiagnosticoGuiado*Section`), além
+de `DetalhesTecnicosScreen`.
 
-O fluxo é **guiado por objetivo, nunca chat livre**. Depois de um teste de velocidade, o CTA
-"Descobrir o que está acontecendo" abre uma lista de **7 objetivos fechados**
+O fluxo é **guiado por objetivo, nunca chat livre**. Pela Início ou pelo resultado do speedtest, o
+CTA do SignallQ Assist abre uma lista de **7 objetivos fechados** e a opção neutra
+"Quero verificar minha conexão"
 (`core/diagnostico/.../ObjetivoDiagnostico.kt:14-41`): a internet cai ou fica instável; vídeos travam
 ou ficam carregando; jogos atrasam ou travam; chamadas de vídeo travam; sites demoram para abrir; a
 velocidade está abaixo do plano; não sei onde está o problema.
@@ -719,8 +715,8 @@ usado pela entrada direta (hub Ferramentas) — um único fluxo, dois pontos de 
 O topo apresenta o estado da conexão, o veredito humano, uma explicação curta e o CTA **"Analisar minha
 conexão"**. Em seguida, a tela mostra uma trilha horizontal de até cinco nós (Internet, equipamento
 principal, mesh quando confirmado, Wi-Fi e este aparelho), como contexto visual não interativo. A lista
-de problemas oferece os atalhos "Vídeos ou chamadas travam" e "Outro problema" com destinos distintos:
-o primeiro inicia a análise e o segundo abre a lista de problemas.
+de problemas oferece o atalho "Vídeos ou chamadas travam"; o antigo card "Outro problema"
+foi removido porque era uma segunda entrada redundante para a mesma jornada.
 
 Os detalhes de aparelho, roteador e provedor continuam acessíveis pelos fluxos próprios de
 Ferramentas e Ajustes; a trilha da Início não promete uma ação quando o nó é tocado.

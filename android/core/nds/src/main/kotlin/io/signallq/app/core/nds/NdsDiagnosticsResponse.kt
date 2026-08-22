@@ -5,9 +5,11 @@ import org.json.JSONObject
 
 /** Resposta de sucesso (200 OK) de `POST /v1/diagnostics/evaluate` (ADR-017). */
 data class NdsDiagnosticsResponse(
-    val recommendation: String?,
+    val recommendation: NdsNextBestAction?,
     val results: List<NdsModuleResult>,
     val traces: List<NdsTrace>,
+    /** Compatibilidade com o shape textual anterior do contrato NDS. */
+    val recommendationText: String? = null,
 ) {
     /**
      * Busca um item de [results] por `module`. **Nunca assuma posicao fixa**:
@@ -17,6 +19,16 @@ data class NdsDiagnosticsResponse(
      */
     fun resultFor(module: String): NdsModuleResult? = results.firstOrNull { it.module == module }
 }
+
+/** Recomendação determinística do NDS. `steps` executa a mesma ação única recomendada. */
+data class NdsNextBestAction(
+    val id: String,
+    val type: String,
+    val title: String,
+    val description: String,
+    val sourceFindingIds: List<String>,
+    val steps: List<String>,
+)
 
 /**
  * Um item de `results[]`. [result] e [cards] ficam como estrutura JSON
@@ -51,9 +63,26 @@ internal object NdsResponseParser {
     fun parse(raw: String): NdsDiagnosticsResponse {
         val root = JSONObject(raw)
         return NdsDiagnosticsResponse(
-            recommendation = root.optStringOrNull("recommendation"),
+            recommendation = root.optJSONObject("recommendation")?.let(::parseRecommendation),
+            recommendationText = root.opt("recommendation")
+                ?.takeIf { it is String }
+                ?.let { it as String }
+                ?.takeIf(String::isNotBlank),
             results = root.optJSONArray("results")?.let(::parseResults) ?: emptyList(),
             traces = root.optJSONArray("traces")?.let(::parseTraces) ?: emptyList(),
+        )
+    }
+
+    private fun parseRecommendation(obj: JSONObject): NdsNextBestAction? {
+        val id = obj.optStringOrNull("id") ?: return null
+        val description = obj.optStringOrNull("description") ?: return null
+        return NdsNextBestAction(
+            id = id,
+            type = obj.optString("type", ""),
+            title = obj.optString("title", ""),
+            description = description,
+            sourceFindingIds = stringListFrom(obj.optJSONArray("source_finding_ids")),
+            steps = stringListFrom(obj.optJSONArray("steps")),
         )
     }
 

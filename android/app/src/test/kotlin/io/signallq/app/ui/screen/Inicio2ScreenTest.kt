@@ -209,9 +209,8 @@ class Inicio2ScreenTest {
     }
 
     @Test
-    fun `atalhos de problema nao compartilham o mesmo destino`() {
+    fun `atalho de videos abre o SignallQ Assist`() {
         var videos = 0
-        var problems = 0
         composeRule.setContent {
             SignallQTheme {
                 Inicio2Screen(
@@ -220,7 +219,6 @@ class Inicio2ScreenTest {
                         1L
                     },
                     onAbrirPerfil = {},
-                    onAbrirProblemas = { problems++ },
                     onAbrirVideos = { videos++ },
                 )
             }
@@ -232,18 +230,10 @@ class Inicio2ScreenTest {
                 .fetchSemanticsNode()
                 .config[SemanticsActions.OnClick]
                 .action
-        val otherProblemAction =
-            composeRule
-                .onNodeWithText("Outro problema")
-                .fetchSemanticsNode()
-                .config[SemanticsActions.OnClick]
-                .action
         composeRule.runOnIdle {
             videoAction?.invoke()
-            otherProblemAction?.invoke()
         }
 
         assertEquals(1, videos)
-        assertEquals(1, problems)
     }
 }

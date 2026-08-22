@@ -15,7 +15,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
 import io.signallq.app.core.diagnostico.DiagnosticInput
+import io.signallq.app.core.diagnostico.DiagnosticReport
+import io.signallq.app.core.diagnostico.DiagnosticRunner
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
@@ -433,6 +436,46 @@ class DiagnosticoGuiadoScreenTest {
 
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertDoesNotExist()
         composeRule.onNodeWithText("Força do sinal Wi-Fi").assertIsDisplayed()
+    }
+
+    @Test
+    fun `erro do Assist permite retry e relanca a avaliacao`() {
+        var estado by mutableStateOf<EstadoAnaliseGuiada>(EstadoAnaliseGuiada.NaoIniciada)
+        var status by mutableStateOf<MeasurementStatus?>(null)
+        var chamadas = 0
+        composeRule.setContent {
+            SignallQTheme {
+                TelaDeTeste(
+                    objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+                    respostaPreSelecionadaPasso0 = 0,
+                    input = inputJogosComWifiFraco(),
+                    estadoAnalise = estado,
+                    statusMedicao = status,
+                    onAvaliarAssist = {
+                        chamadas += 1
+                        if (chamadas == 1) {
+                            error("falha transitória")
+                        } else {
+                            DiagnosticRunner.run(it).copy(evaluationSource = DiagnosticEvaluationSource.REMOTE)
+                        }
+                    },
+                )
+            }
+        }
+
+        completarSegundaPerguntaJogos()
+        estado = EstadoAnaliseGuiada.EmAndamento(0.4f, "Medindo a velocidade de recebimento")
+        composeRule.waitForIdle()
+        estado = EstadoAnaliseGuiada.Concluida
+        status = MeasurementStatus.COMPLETE
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Não foi possível acessar o Assist no momento").assertIsDisplayed()
+        composeRule.onNodeWithText("Tentar novamente").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals("o retry precisa fazer uma nova chamada", 2, chamadas)
+        composeRule.onNodeWithText("Tentar novamente").assertDoesNotExist()
     }
 
     // RESSALVA RS1 do parecer. `etapaEmLinguagemHumana` era testada como função pura e nunca como
@@ -945,6 +988,7 @@ class DiagnosticoGuiadoScreenTest {
         contextoDoPlano: ContextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = true),
         analisadorState: AnalisadorState = AnalisadorState.Inativo,
         comparacaoRetesteState: ComparacaoRetesteUiState = ComparacaoRetesteUiState.Ausente,
+        onAvaliarAssist: (suspend (DiagnosticInput) -> DiagnosticReport)? = null,
     ) {
         DiagnosticoGuiadoScreen(
             input = input,
@@ -980,6 +1024,7 @@ class DiagnosticoGuiadoScreenTest {
             resolveOperadoraContatoRemoto = { _, _ -> error("categoria=null nunca chama resolucao de operadora") },
             onTestarNovamenteVinculado = { _, acaoAnteriorId -> testesVinculadosAcionados += acaoAnteriorId },
             comparacaoRetesteState = comparacaoRetesteState,
+            onAvaliarAssist = onAvaliarAssist,
         )
     }
 }
