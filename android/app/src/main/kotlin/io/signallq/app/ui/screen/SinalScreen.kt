@@ -1,5 +1,7 @@
 package io.signallq.app.ui.screen
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,11 +14,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.outlined.WifiFind
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -24,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -37,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +53,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import io.signallq.app.R
+import io.signallq.app.core.diagnostico.NivelCongestionamento
+import io.signallq.app.core.diagnostico.RedeWifiVizinha
+import io.signallq.app.core.diagnostico.WifiChannelDiagnosticEngine
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.WifiLinkSnapshot
 import io.signallq.app.core.network.wifi.SnapshotScanWifi
@@ -96,7 +107,10 @@ fun SinalScreen(
     onSolicitarPermissaoLocalizacao: () -> Unit = {},
     onRefresh: () -> Unit,
     onVoltar: () -> Unit,
+    /** Quando aberto pelo hub Ferramentas, volta para a origem em vez de abrir o menu global. */
+    exibirBotaoVoltar: Boolean = false,
     onAbrirMenu: () -> Unit = {},
+    onAlternarTema: () -> Unit = {},
     wifiLinkSnapshot: WifiLinkSnapshot? = null,
     // GH#1025 — dado do scan LAN (mesmo carregado em Dispositivos/5a), usado só pra correlacionar
     // um nó da árvore de topologia classificado como AP/mesh com o DispositivoRede real e abrir
@@ -110,7 +124,7 @@ fun SinalScreen(
     autoRefreshIntervalMs: Long = SINAL_AUTO_REFRESH_INTERVAL_MS,
     // GH#970 — resolucao de identidade de operadora (nivel 1, catalogo local, sincrono).
     // Sem I/O, sem corrotina — mesmo comportamento de sempre pras ~12 operadoras principais.
-    // Mesmo padrao ja usado em HomeScreen/DiagnosticoGuiadoScreen — injetado a partir da
+    // Mesmo padrao ja usado em Inicio2Screen/DiagnosticoGuiadoScreen — injetado a partir da
     // MainActivity (OperadoraDirectoryResolver via Hilt), AppShell so repassa.
     resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity? =
         { _, _ -> null },
@@ -127,8 +141,10 @@ fun SinalScreen(
                 source = OperadoraSource.FALLBACK,
             )
         },
+    onAbrirLaudo: () -> Unit = {},
 ) {
     val c = LocalLkTokens.current
+    val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
 
     val conexaoTipo = estadoConexao.toConexaoTipo()
@@ -137,6 +153,7 @@ fun SinalScreen(
     var localizacaoSheetDismissed by remember { mutableStateOf(false) }
     var showTelefoniaSheet by remember { mutableStateOf(false) }
     var telefoniaSheetDismissed by remember { mutableStateOf(false) }
+    var contatoOperadoraSelecionado by remember { mutableStateOf<ContatoOperadoraSelecionada?>(null) }
 
     val locSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val telSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -156,20 +173,38 @@ fun SinalScreen(
     Scaffold(
         containerColor = c.bgPrimary,
         topBar = {
-            CenterAlignedTopAppBar(
+            TopAppBar(
                 title = {
-                    Text("Sinal", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
+                    Text(
+                        text =
+                            when (selectedTab) {
+                                1 -> "Canais Wi-Fi"
+                                2 -> "Sinal móvel"
+                                else -> "Sinal"
+                            },
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.W600,
+                        color = c.textPrimary,
+                    )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onAbrirMenu) {
+                    IconButton(onClick = if (exibirBotaoVoltar) onVoltar else onAbrirMenu) {
                         Icon(
-                            imageVector = Icons.Filled.Menu,
-                            contentDescription = stringResource(R.string.appshell_cd_abrir_menu),
+                            imageVector = if (exibirBotaoVoltar) Icons.Filled.Close else Icons.Filled.Menu,
+                            contentDescription = if (exibirBotaoVoltar) "Fechar" else stringResource(R.string.appshell_cd_abrir_perfil),
                             tint = c.textPrimary,
                         )
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = c.bgPrimary),
+                actions = {
+                    IconButton(onClick = onAbrirMenu) {
+                        Icon(Icons.Filled.AccountCircle, contentDescription = "Abrir perfil e ajustes", tint = c.textPrimary)
+                    }
+                    IconButton(onClick = onAlternarTema) {
+                        Icon(Icons.Outlined.DarkMode, contentDescription = "Alternar tema", tint = c.textPrimary)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = c.bgPrimary),
             )
         },
     ) { padding ->
@@ -251,6 +286,10 @@ fun SinalScreen(
                         temPermissaoTelefonia = temPermissaoTelefonia,
                         onSolicitarPermissaoTelefonia = onSolicitarPermissaoTelefonia,
                         tokens = c,
+                        onAbrirContatoOperadora = { operadora, nome ->
+                            contatoOperadoraSelecionado =
+                                ContatoOperadoraSelecionada(operadora = operadora, nomeOperadora = nome)
+                        },
                         resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
                         resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
                     )
@@ -301,6 +340,31 @@ fun SinalScreen(
             )
         }
     }
+
+    contatoOperadoraSelecionado?.let { contato ->
+        OperadoraContatoSheet(
+            contato = contato,
+            onDismiss = { contatoOperadoraSelecionado = null },
+            onAbrirSite = {
+                context.startActivity(
+                    Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse(contatoOperadoraUrl(contato.operadora, contato.nomeOperadora)),
+                    ),
+                )
+            },
+            onLigar =
+                contato.operadora?.sac?.let { sac ->
+                    {
+                        context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$sac")))
+                    }
+                },
+            onAbrirLaudo = {
+                contatoOperadoraSelecionado = null
+                onAbrirLaudo()
+            },
+        )
+    }
 }
 
 // ─── SinalTopTabRow ───────────────────────────────────────────────────────────
@@ -318,41 +382,72 @@ private fun SinalTopTabRow(
     connectedNetwork: RedeVizinha?,
     c: LkTokens,
 ) {
-    // Simulating .tabs component from prototype
+    val canalCongestionado =
+        remember(snapshotWifi.redes, connectedNetwork) {
+            if (connectedNetwork == null) return@remember false
+            val bandaConectada = connectedNetwork.banda
+            val redesBanda = snapshotWifi.redes.filter { it.banda == bandaConectada }
+            val espectro =
+                WifiChannelDiagnosticEngine.computarEspectro(
+                    redes =
+                        redesBanda.map {
+                            RedeWifiVizinha(
+                                canal = it.canal,
+                                rssiDbm = it.rssiDbm,
+                                frequenciaMhz = it.frequenciaMhz,
+                                ssid = it.ssid,
+                                bssid = it.bssid,
+                                larguraCanalMhz = it.larguraCanalMhz,
+                            )
+                        },
+                    canalAtual = connectedNetwork.canal,
+                    banda = bandaConectada,
+                    seuSSID = connectedNetwork.ssid,
+                )
+            espectro.dadosPorCanal
+                .firstOrNull { it.ehCanalAtual }
+                ?.nivel == NivelCongestionamento.congestionado
+        }
+
     Row(
         modifier =
             Modifier
+                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md)
                 .fillMaxWidth()
-                .padding(LkSpacing.xl)
-                .clip(
-                    androidx.compose.foundation.shape
-                        .RoundedCornerShape(8.dp),
-                ).background(c.primary.copy(alpha = 0.08f))
+                .clip(RoundedCornerShape(28.dp))
+                .background(c.surfaceContainerLow)
                 .padding(4.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val tabs = listOf("Wi-Fi", "Canal", "Móvel")
-        tabs.forEachIndexed { index, label ->
-            val isActive = selectedTab == index
-            Box(
+        listOf("Wi-Fi", "Canal", "Móvel").forEachIndexed { index, label ->
+            Row(
                 modifier =
                     Modifier
                         .weight(1f)
-                        .clip(
-                            androidx.compose.foundation.shape
-                                .RoundedCornerShape(6.dp),
-                        ).background(if (isActive) c.bgPrimary else androidx.compose.ui.graphics.Color.Transparent)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(if (selectedTab == index) c.surfaceContainerHigh else c.surfaceContainerLow)
                         .clickable { onTabSelected(index) }
-                        .padding(vertical = 6.dp),
-                contentAlignment = Alignment.Center,
+                        .padding(vertical = LkSpacing.md),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isActive) c.textPrimary else c.textSecondary,
+                    label,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    softWrap = false,
+                    fontWeight = if (selectedTab == index) FontWeight.W600 else FontWeight.W500,
+                    color = if (selectedTab == index) c.textPrimary else c.textSecondary,
                 )
+                if (index == 1 && canalCongestionado) {
+                    Icon(
+                        imageVector = Icons.Outlined.Warning,
+                        contentDescription = "Canal congestionado",
+                        tint = c.warning,
+                        modifier = Modifier.padding(start = 3.dp).size(12.dp),
+                    )
+                }
             }
         }
     }
@@ -387,6 +482,31 @@ private fun WifiEmptyState() {
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
         }
+    }
+}
+
+@Composable
+internal fun SinalContentIntro(
+    title: String,
+    description: String,
+    modifier: Modifier = Modifier,
+) {
+    val c = LocalLkTokens.current
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.W600,
+            color = c.textPrimary,
+        )
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodyLarge,
+            color = c.textSecondary,
+        )
     }
 }
 

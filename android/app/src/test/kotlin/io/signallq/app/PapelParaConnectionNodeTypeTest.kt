@@ -11,7 +11,7 @@ import org.junit.Test
  * `MainViewModel.coletarInfoLocalRede` — Fase 2B, issue #980.
  *
  * O caso crítico é [PapelTopologia.SISTEMA_MESH_PROVAVEL]: precisa virar [ConnectionNodeType.WifiMesh],
- * nunca [ConnectionNodeType.WifiRouter] — `HomeScreen.onGatewayTap` aciona um fluxo de login real
+ * nunca [ConnectionNodeType.WifiRouter] — `Inicio2Screen.onGatewayTap` aciona um fluxo de login real
  * do modem (`GatewayConnectionSheet`) só para `WifiRouter`; um nó "provavelmente" mesh não pode
  * cair nesse fluxo como se fosse um roteador confirmado.
  */

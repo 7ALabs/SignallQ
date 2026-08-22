@@ -95,7 +95,7 @@ Nenhum. `:app` é o topo do grafo do Consumer — a busca por `project(":app")` 
 | `app/src/main/kotlin/io/signallq/app/ads/` (7 arquivos) | `AdSlot`, `AdUnitIds` (real vs teste conforme `-PplayTrack`), `ConsentManager` (UMP), `AdsRemoteConfigRepository` |
 | `app/src/main/kotlin/io/signallq/app/monitoramento/` (7 arquivos) | `MonitoramentoWorker`/`Scheduler`, `AdminSyncWorker`/`Scheduler`, `AnalyticsOutboxProcessor`, `HisteresiHelper` |
 | `app/src/main/kotlin/io/signallq/app/analytics/` (5 arquivos) | `CompositeAnalyticsTracker`, `FirebaseAnalyticsTracker`, `AnalyticsOutboxFunnelTracker`, `DistributionChannel` |
-| `app/src/main/kotlin/io/signallq/app/ui/screen/` | 92 arquivos de tela/estado — inclui `HomeScreen.kt` (2967), `SinalCanalSection.kt` (1215), `SinalWifiSection.kt` (1110). `SinalScreen.kt` (476) virou scaffold — issue #1660 extraiu as três abas para `SinalWifiSection.kt`/`SinalCanalSection.kt`/`SinalMovelSection.kt` + `SinalSharedComponents.kt`. `DispositivosScreen.kt` (168) virou scaffold — issue #1663 extraiu lista/estados vazios para `DispositivosLista.kt` (622) e sheets de detalhe para `DispositivoDetalheSheet.kt` (617) |
+| `app/src/main/kotlin/io/signallq/app/ui/screen/` | telas e estados da jornada única — inclui `Inicio2Screen.kt`, `SinalCanalSection.kt`, `SinalWifiSection.kt` e os overlays do shell. `SinalScreen.kt` (476) virou scaffold — issue #1660 extraiu as três seções para `SinalWifiSection.kt`/`SinalCanalSection.kt`/`SinalMovelSection.kt` + `SinalSharedComponents.kt`. `DispositivosScreen.kt` virou scaffold — issue #1663 extraiu lista/estados para `DispositivosLista.kt` e sheets de detalhe para `DispositivoDetalheSheet.kt` |
 | `app/src/main/AndroidManifest.xml` | 8 permissões, `FileProvider`, App ID do AdMob, remoção do `WorkManagerInitializer` automático |
 
 Versão declarada em `android/gradle/libs.versions.toml`: `versionCode = 72`, `versionName = 0.31.0`
@@ -107,7 +107,7 @@ Versão declarada em `android/gradle/libs.versions.toml`: `versionCode = 72`, `v
   os 73 de `src/test` vivem em `io/signallq/app/` desde 2026-08-15 (#1645); migração de 221
   arquivos legados fisicamente em `io/veloo/app/kotlin/` concluída em uma única PR (§4.1 da higiene).
 - **Arquivos acima de 800 linhas em `src/main`** (contagem real, `wc -l`):
-  `ui/screen/HomeScreen.kt` 2967, `MainViewModel.kt` 2438, `ui/screen/AppShell.kt` 1635,
+  `ui/screen/Inicio2Screen.kt`, `MainViewModel.kt` 2438, `ui/screen/AppShell.kt`,
   `ui/screen/SinalCanalSection.kt` 1215, `ui/screen/SinalWifiSection.kt` 1110,
   `ui/component/LocalDeviceSection.kt` 1248, `ui/screen/DiagnosticoGuiadoScreen.kt` 916,
   `ui/screen/SpeedTestScreen.kt` 851, `ui/screen/HistoricoScreen.kt` 815 e

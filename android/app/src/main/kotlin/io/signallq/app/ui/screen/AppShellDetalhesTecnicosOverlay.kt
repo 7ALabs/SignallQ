@@ -13,7 +13,7 @@ import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnap
 import io.signallq.app.feature.speedtest.ResultadoSpeedtest
 
 /**
- * Overlay "Detalhes da conexão" (Feature #550, issue #1475), aberto a partir do
+ * Overlay "Detalhes técnicos" (Feature #550, issue #1475), aberto a partir do
  * ResultadoVelocidadeScreen — extraído do corpo de [AppShell] pela issue #1695 (épico #1647),
  * entrada de exemplo do [AppShellOverlayRegistry].
  *
@@ -30,6 +30,7 @@ internal fun AppShellDetalhesTecnicosOverlay(
     resultadoSpeedtest: ResultadoSpeedtest?,
     localizacaoServidor: String?,
     localDevice: LocalNetworkDeviceSnapshot?,
+    onGerarLaudo: () -> Unit = {},
 ) {
     AnimatedVisibility(
         visible = AppShellOverlay.DetalhesTecnicos in overlayStack,
@@ -44,13 +45,14 @@ internal fun AppShellDetalhesTecnicosOverlay(
         // nada. Antes, o container ficava vazio e o back consumia um `pop()` invisível.
         val fechar = { overlayStack.remove(AppShellOverlay.DetalhesTecnicos) }
         if (resultadoSpeedtest == null) {
-            ResultadoIndisponivelScreen(titulo = "Detalhes da conexão", onVoltar = { fechar() })
+            ResultadoIndisponivelScreen(titulo = "Detalhes técnicos", onVoltar = { fechar() })
         } else {
             DetalhesTecnicosScreen(
                 resultado = resultadoSpeedtest,
                 localizacaoServidor = localizacaoServidor,
                 localDevice = localDevice,
                 onVoltar = { fechar() },
+                onGerarLaudo = onGerarLaudo,
             )
         }
     }

@@ -1,11 +1,7 @@
 package io.signallq.app.ui.screen
 
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performScrollToNode
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.feature.history.BlocoUptime
 import io.signallq.app.feature.history.StatusUptime
@@ -19,13 +15,8 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 /**
- * Testes de caracterização das issues #1666 (Task 2.0.18, épico #1647) e #1520 — religam o
- * wiring de `UptimeGridChart` em `HistoricoScreen.kt`, órfão desde uma refatoração anterior
- * (GH#495 original, regressão confirmada em #1518/#1520).
- *
- * Decisão de produto (Luiz, 2026-08-19, comentário final na #1520): restaurar o wiring de
- * `UptimeGridChart`/`UptimeChartUseCase`/`UptimeNarrativaEngine` a partir de `HistoricoScreen.kt`,
- * com teste cobrindo a renderização real — é este arquivo.
+ * Caracterização da decisão atual do Histórico: o bloco de estabilidade dos últimos 7 dias não
+ * faz parte da tela, mesmo quando o estado antigo ainda chega pelo shell por compatibilidade.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -67,8 +58,6 @@ class HistoricoUptimeWiringCaracterizacaoTest {
     private fun blocoOffline(dt: LocalDateTime = LocalDateTime.now()) =
         BlocoUptime(dataHora = dt, status = StatusUptime.OFFLINE, latencyMs = null, latencyMediaMs = null)
 
-    // LkSectionOverline aplica `.uppercase()` ao texto (BaseComponents.kt) -- os asserts abaixo
-    // usam ignoreCase para nao acoplar o teste a essa transformacao visual.
     private val overlineUptime = "Estabilidade da conexão · últimos 7 dias"
 
     @Test
@@ -83,7 +72,7 @@ class HistoricoUptimeWiringCaracterizacaoTest {
     }
 
     @Test
-    fun `blocosUptime com dados reais renderiza secao e narrativa de rede estavel`() {
+    fun `blocosUptime com dados reais nao renderiza mais a secao`() {
         val blocos = List(336) { blocoOk() }
         composeRule.setContent {
             SignallQTheme {
@@ -91,14 +80,11 @@ class HistoricoUptimeWiringCaracterizacaoTest {
             }
         }
         composeRule.waitForIdle()
-        composeRule.onNodeWithText(overlineUptime, ignoreCase = true).assertExists()
-        composeRule
-            .onNodeWithText("Sua rede esteve estável nos últimos 7 dias. Nenhuma lentidão ou queda detectada.")
-            .assertExists()
+        composeRule.onNodeWithText(overlineUptime, ignoreCase = true).assertDoesNotExist()
     }
 
     @Test
-    fun `blocosUptime com quedas reais distingue offline na narrativa`() {
+    fun `blocosUptime com quedas reais nao renderiza narrativa`() {
         val blocos = List(336) { idx -> if (idx < 40) blocoOffline() else blocoOk() }
         composeRule.setContent {
             SignallQTheme {
@@ -106,10 +92,8 @@ class HistoricoUptimeWiringCaracterizacaoTest {
             }
         }
         composeRule.waitForIdle()
-        composeRule.onNodeWithText(overlineUptime, ignoreCase = true).assertExists()
-        // Narrativa deve mencionar offline (rede indisponivel), nao apenas lentidao -- aparece
-        // tanto no card de narrativa quanto no resumo por dia, por isso pega o primeiro match.
-        composeRule.onAllNodesWithText("offline", substring = true)[0].assertExists()
+        composeRule.onNodeWithText(overlineUptime, ignoreCase = true).assertDoesNotExist()
+        composeRule.onNodeWithText("offline", substring = true).assertDoesNotExist()
     }
 
     @Test
@@ -121,17 +105,7 @@ class HistoricoUptimeWiringCaracterizacaoTest {
             }
         }
         composeRule.waitForIdle()
-        // Estado totalmente vazio (EmptyHistorico em tela cheia) nao renderiza a secao de
-        // uptime -- a presenca dela prova que caiu no ramo do LazyColumn, nao no ramo de tela
-        // cheia vazia (a lista manual continua vazia, mas nao e o UNICO conteudo da tela).
-        composeRule.onNodeWithText(overlineUptime, ignoreCase = true).assertExists()
-        // #1666: sem filtro ativo, o texto de lista manual vazia deve ser o generico, nunca
-        // "para este filtro" (regressao corrigida nesta mesma fatia -- antes vinha hardcoded).
-        // O card de uptime empurra esse item para fora da viewport inicial do teste --
-        // rola a LazyColumn ate ele antes de checar (LazyColumn so compoe itens visiveis).
-        composeRule
-            .onNodeWithTag("historico_lista")
-            .performScrollToNode(hasText("Nenhum teste realizado ainda"))
+        composeRule.onNodeWithText(overlineUptime, ignoreCase = true).assertDoesNotExist()
         composeRule.onNodeWithText("Nenhum teste para este filtro").assertDoesNotExist()
         composeRule.onNodeWithText("Nenhum teste realizado ainda").assertExists()
     }

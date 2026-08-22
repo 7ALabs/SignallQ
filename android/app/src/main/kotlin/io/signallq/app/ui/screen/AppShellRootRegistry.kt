@@ -20,7 +20,7 @@ import androidx.compose.runtime.Stable
  * 2. mova a construção do grupo para quem já constrói os outros: a `MainActivity` monta
  *    [AppShellSpeedtestState], [AppShellWifiState] etc. desde antes deste épico — grupo novo
  *    nasce lá, não em `AppShell.kt`;
- * 3. mova a entrada de [naoMigradas] para o `when` desta função.
+ * 3. mantenha no slot inline apenas as raízes que precisam do estado operacional do shell.
  *
  * **Um parâmetro por raiz, nunca N campos soltos.** Esta é a decisão que a issue #1698 pedia
  * explicitamente antes da primeira migração, herdada da ressalva 3 de Caio na PR #1697:
@@ -42,19 +42,19 @@ import androidx.compose.runtime.Stable
  * Ver `docs_ai/technical/appshell-root-content-registry.md`.
  *
  * @param root raiz selecionada — vem de `navigator.selectedRoot`, que é
- *   [AppShellRoot.fromLegacyIndex] sobre `selectedTab`. Índice desconhecido cai em
+ *   [AppShellRoot.fromIndex] sobre `selectedTab`. Índice desconhecido cai em
  *   [AppShellRoot.Tools], mesmo comportamento do `else ->` que o `when` inline tinha em
  *   `AppShell.kt` antes desta extração.
- * @param naoMigradas escapatória temporária: recebe as raízes ainda inline em `AppShell.kt`
- *   (Home, Speed, Wifi). **Encolhe a cada fatia** — quando a última migrar, o parâmetro sai junto.
- *   Não usar para raiz nova: raiz nova nasce migrada.
+ * @param inlineRootContent slot explícito para as raízes que precisam permanecer inline em
+ *   `AppShell.kt` (Início e Velocidade). Uma raiz nova deve ser adicionada ao registro com uma
+ *   entrada própria, quando seu estado puder ser isolado.
  */
 @Composable
 internal fun AppShellRootRegistry(
     root: AppShellRoot,
     historico: AppShellHistoricoRootEntry,
     ferramentas: AppShellFerramentasRootEntry,
-    naoMigradas: @Composable (AppShellRoot) -> Unit,
+    inlineRootContent: @Composable (AppShellRoot) -> Unit,
 ) {
     when (root) {
         AppShellRoot.History ->
@@ -71,7 +71,7 @@ internal fun AppShellRootRegistry(
                 onAbrirMenu = ferramentas.onAbrirMenu,
                 onRegistrarAbertura = ferramentas.onRegistrarAbertura,
             )
-        AppShellRoot.Home, AppShellRoot.Speed, AppShellRoot.Wifi -> naoMigradas(root)
+        AppShellRoot.Home, AppShellRoot.Speed -> inlineRootContent(root)
     }
 }
 

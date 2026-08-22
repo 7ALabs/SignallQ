@@ -42,7 +42,6 @@ import io.signallq.app.ui.SignallQTheme
 import io.signallq.app.ui.component.LgpdConsentDialog
 import io.signallq.app.ui.screen.AppShell
 import io.signallq.app.ui.screen.OnboardingScreen
-import io.signallq.app.ui.screen.shellMode
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -62,7 +61,7 @@ class MainActivity : ComponentActivity() {
 
     // GH#970 — resolve identidade/contato de operadora local -> diretorio remoto do
     // worker signallq-diagnostic -> fallback generico. Injetado aqui (nao dentro de
-    // Composable) porque AppShell/HomeScreen/ResultadoVelocidadeScreen sao 100%
+    // Composable) porque AppShell/Inicio2Screen/ResultadoVelocidadeScreen sao 100%
     // data-driven (sem hiltViewModel() em Composables leaf neste app).
     @Inject
     lateinit var operadoraDirectoryResolver: io.signallq.app.ui.OperadoraDirectoryResolver
@@ -291,8 +290,6 @@ class MainActivity : ComponentActivity() {
             val comparacaoRetesteState by viewModel.comparacaoRetesteState.collectAsStateWithLifecycle()
             val recommendationDecision by viewModel.recommendationDecision.collectAsStateWithLifecycle()
             val recommendationFeedback by viewModel.recommendationFeedback.collectAsStateWithLifecycle()
-            // #82 — Banner Anatel dismissível
-            val anatelBannerDismissed = viewModel.anatelBannerDismissed.collectAsStateWithLifecycle().value
             // Issue #555 -- toggle remoto (Firebase Remote Config) de anuncios nativos.
             val adsFlags by adsFlagsManager.flags.collectAsStateWithLifecycle()
             // GH#1480 (Epico #1347, F4) -- gate de navegacao dos 9 modulos feature do Consumer.
@@ -397,7 +394,6 @@ class MainActivity : ComponentActivity() {
                         )
                     RotaInicialApp.Home ->
                         AppShell(
-                            shellMode = featureFlagsState.shellMode,
                             snapshotRede = snapshotRede,
                             speedtest =
                                 io.signallq.app.ui.screen.AppShellSpeedtestState(
@@ -567,8 +563,6 @@ class MainActivity : ComponentActivity() {
                             temPermissaoLocalizacao = temPermissaoLocalizacao,
                             localizacaoBloqueadaPermanentemente = localizacaoBloqueadaPermanentemente,
                             onSolicitarPermissaoLocalizacao = { solicitarPermissaoLocalizacaoContextual() },
-                            anatelBannerDismissed = anatelBannerDismissed,
-                            onDispensarBannerAnatel = { viewModel.dispensarBannerAnatel() },
                             historicoTela =
                                 io.signallq.app.ui.screen.AppShellHistoricoState(
                                     historicoFiltrado = historicoFiltrado,
@@ -584,6 +578,7 @@ class MainActivity : ComponentActivity() {
                                         analyticsTracker.registrarFeatureUsada("historico")
                                     },
                                     operadorasDisponiveis = operadorasDisponiveisHistorico,
+                                    onExcluirMedicao = viewModel::deletarMedicao,
                                     blocosUptime = blocosUptimeHistorico,
                                 ),
                             onScreenView = { screenName -> analyticsTracker.registrarScreenView(screenName) },

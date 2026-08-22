@@ -1,6 +1,6 @@
 ---
 title: "Módulo :core:nds"
-description: "Cliente HTTP e contrato tipado do Network Diagnostics Service (NDS) — atrás da flag consumer_diagnostico_nds_live_enabled (default desligada), primeiro consumidor real desde NDS-02k."
+description: "Cliente HTTP e contrato tipado do Network Diagnostics Service (NDS) — atrás da flag consumer_diagnostico_nds_live_enabled (default ligada, com fallback local), primeiro consumidor real desde NDS-02k."
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
@@ -26,8 +26,7 @@ tratamento de erro (`NdsDiagnosticsOutcome`).
 consome (`:featureDiagnostico`, ver seção Consumidores). NDS-01 (#1744) isolou o cliente; NDS-02a-j
 (#1747–#1758) adicionaram mappers puros consumidos por seams locais sem tocar rede; NDS-02k
 (#1759) plugou o primeiro consumidor de produção real (`NdsDiagnosticRepository`, atrás da flag
-`consumer_diagnostico_nds_live_enabled`, default desligada — zero mudança de comportamento até a
-flag ligar).
+`consumer_diagnostico_nds_live_enabled`, default ligada — qualquer falha mantém o fallback local).
 
 Módulo dedicado (não `:core:network` nem gaveta genérica) porque o NDS vai substituir
 `:core:diagnostico`, `ai-diagnosis-worker` e `signallq-diagnostic-worker` (ADR-017) — precisa de um

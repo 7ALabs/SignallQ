@@ -33,7 +33,6 @@ private data class AppShellNavItem(
 @Composable
 internal fun AppShellBottomBar(
     c: LkTokens,
-    mode: AppShellMode,
     selectedTab: Int,
     testeAtivo: Boolean = false,
     featureFlags: AppShellFeatureFlagsState = AppShellFeatureFlagsState(),
@@ -45,10 +44,9 @@ internal fun AppShellBottomBar(
         listOf(
             AppShellNavItem(AppShellRoot.Home, "Início", "home"),
             AppShellNavItem(AppShellRoot.Speed, "Velocidade", "speed"),
-            AppShellNavItem(AppShellRoot.Wifi, "Sinal", "wifi"),
             AppShellNavItem(AppShellRoot.History, "Histórico", "history"),
             AppShellNavItem(AppShellRoot.Tools, "Ferramentas", "build"),
-        ).filter { it.root in mode.roots() }
+        )
 
     Column(modifier = modifier) {
         HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
@@ -58,7 +56,7 @@ internal fun AppShellBottomBar(
                     c = c,
                     selectedTab = selectedTab,
                     item = item,
-                    habilitada = featureFlags.tabHabilitada(item.root.legacyIndex),
+                    habilitada = featureFlags.tabHabilitada(item.root.index),
                     onRootSelected = onRootSelected,
                     onTabBloqueada = onTabBloqueada,
                     showBadge = item.root == AppShellRoot.Speed && testeAtivo,
@@ -90,27 +88,27 @@ private fun RowScope.AppNavItem(
         label = "badgeAlpha",
     )
     NavigationBarItem(
-        selected = selectedTab == item.root.legacyIndex,
+        selected = selectedTab == item.root.index,
         enabled = habilitada,
         onClick = {
             if (habilitada) {
                 onRootSelected(item.root)
             } else {
-                tabModuleId(item.root.legacyIndex)?.let(onTabBloqueada)
+                tabModuleId(item.root.index)?.let(onTabBloqueada)
             }
         },
         icon = {
             BadgedBox(badge = {
                 if (showBadge) Badge(modifier = Modifier.graphicsLayer { alpha = badgePulseAlpha })
             }) {
-                LkSymbol(name = item.symbol, filled = selectedTab == item.root.legacyIndex)
+                LkSymbol(name = item.symbol, filled = selectedTab == item.root.index)
             }
         },
         label = {
             Text(
                 text = item.label,
                 style = MaterialTheme.typography.labelSmall,
-                fontWeight = if (selectedTab == item.root.legacyIndex) FontWeight.SemiBold else FontWeight.Medium,
+                fontWeight = if (selectedTab == item.root.index) FontWeight.SemiBold else FontWeight.Medium,
             )
         },
         colors =

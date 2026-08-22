@@ -1539,6 +1539,12 @@ class MainViewModel
             }
         }
 
+        fun deletarMedicao(id: String) {
+            viewModelScope.launch(dispatchers.io) {
+                bancoDados.medicaoDao().deletarPorId(id)
+            }
+        }
+
         fun apagarDadosLocais() {
             executarAcaoDadosLocais(TipoAcaoDadosLocais.APAGAR_DADOS_LOCAIS) {
                 preferenciasAppRepository.limparTodasPreferencias()
@@ -2589,7 +2595,7 @@ internal fun deveSolicitarConfirmacaoRedeMovel(
 // #980 (Fase 2B) — traduz o papel canonico do motor de topologia unificado
 // (TopologiaRedeEngine, Fase 2A/#979) pro enum que a Home ja usa. SISTEMA_MESH_PROVAVEL vira
 // WifiMesh (nunca WifiRouter): so o papel ROTEADOR aciona o fluxo de login do modem
-// (GatewayConnectionSheet, ver HomeScreen.onGatewayTap) — um no so "provavelmente" mesh nao
+// (GatewayConnectionSheet, ver Inicio2Screen.onGatewayTap) — um no so "provavelmente" mesh nao
 // pode acionar esse fluxo como se fosse um roteador confirmado.
 internal fun papelParaConnectionNodeType(papel: PapelTopologia): ConnectionNodeType =
     when (papel) {

@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,6 +24,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +52,9 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.component.ConfirmacaoDialog
+import io.signallq.app.ui.component.LkSurfaceCard
+import io.signallq.app.ui.component.SignallQButton
+import io.signallq.app.ui.component.SignallQButtonStyle
 
 // ─── Dados locais sheet ───────────────────────────────────────────────────────
 // GH#936 — Fase 7 MD3 (6c Dados e privacidade): extraido de AjustesScreen.kt.
@@ -70,6 +75,9 @@ internal fun DadosLocaisSheet(
     // mantém os outros call sites/previews compiláveis sem precisar de um ViewModel real.
     estado: AcaoDadosLocaisEstado = AcaoDadosLocaisEstado.Ocioso,
     onConsumirEstado: () -> Unit = {},
+    quantidadeHistorico: Int? = null,
+    quantidadeApelidos: Int? = null,
+    onAbrirHistorico: (() -> Unit)? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showConfirmLimpar by remember { mutableStateOf(false) }
@@ -117,16 +125,21 @@ internal fun DadosLocaisSheet(
             )
             Spacer(Modifier.height(LkSpacing.sm))
             Text(
-                text = "Gerenciar dados e privacidade",
+                text = "Dados neste aparelho",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = c.textPrimary,
             )
             Text(
-                text = "Estas ações são irreversíveis e removem os dados permanentemente deste aparelho.",
+                text = "Você pode apagar cada grupo sem excluir sua conta ou desinstalar o app.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = c.textSecondary,
                 lineHeight = 20.sp,
+            )
+            DadosLocaisResumo(
+                quantidadeHistorico = quantidadeHistorico,
+                quantidadeApelidos = quantidadeApelidos,
+                c = c,
             )
             // Decisão de produto (Luiz, 2026-08-19, issue #1670): a tela só explica a
             // diferença entre apagar localmente e apagar do servidor — sem oferecer um
@@ -140,6 +153,17 @@ internal fun DadosLocaisSheet(
                 color = c.textTertiary,
                 lineHeight = 18.sp,
             )
+            onAbrirHistorico?.let { abrirHistorico ->
+                SignallQButton(
+                    label = "Exportar histórico",
+                    onClick = {
+                        onDismiss()
+                        abrirHistorico()
+                    },
+                    style = SignallQButtonStyle.Secondary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             if (falha != null) {
                 Text(
                     text = falha.mensagem,
@@ -229,6 +253,45 @@ internal fun DadosLocaisSheet(
             },
             onCancelar = { showConfirmResetar = false },
         )
+    }
+}
+
+@Composable
+private fun DadosLocaisResumo(
+    quantidadeHistorico: Int?,
+    quantidadeApelidos: Int?,
+    c: LkTokens,
+) {
+    LkSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
+            DadoLocalRow(
+                titulo = "Histórico de medições",
+                valor = quantidadeHistorico?.let { "$it itens" } ?: "Carregando",
+                c = c,
+            )
+            HorizontalDivider(color = c.outlineVariant)
+            DadoLocalRow(
+                titulo = "Apelidos de dispositivos",
+                valor = quantidadeApelidos?.let { "$it itens" } ?: "Carregando",
+                c = c,
+            )
+            HorizontalDivider(color = c.outlineVariant)
+            DadoLocalRow(titulo = "Preferências", valor = "Gerenciadas pelo app", c = c)
+            HorizontalDivider(color = c.outlineVariant)
+            DadoLocalRow(titulo = "Credenciais", valor = "Protegidas neste aparelho", c = c)
+        }
+    }
+}
+
+@Composable
+private fun DadoLocalRow(
+    titulo: String,
+    valor: String,
+    c: LkTokens,
+) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(text = titulo, style = MaterialTheme.typography.bodyMedium, color = c.textPrimary)
+        Text(text = valor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.W600, color = c.textSecondary)
     }
 }
 

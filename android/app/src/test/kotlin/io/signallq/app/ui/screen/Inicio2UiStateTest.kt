@@ -12,7 +12,6 @@ import io.signallq.app.feature.home.OrigemMedicaoHome
 import io.signallq.app.feature.home.ResolvedHomeMeasurement
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -50,9 +49,11 @@ class Inicio2UiStateTest {
     }
 
     @Test
-    fun `feature flag canonica mantem Inicio2 opt in e Legacy como fallback`() {
-        assertFalse(AppShellMode.Legacy.usaInicio2())
-        assertTrue(AppShellMode.Guided2.usaInicio2())
+    fun `jornada unica usa Inicio2 como entrada oficial`() {
+        assertEquals(
+            listOf(AppShellRoot.Home, AppShellRoot.Speed, AppShellRoot.History, AppShellRoot.Tools),
+            AppShellRoot.entries.toList(),
+        )
     }
 
     private fun map(

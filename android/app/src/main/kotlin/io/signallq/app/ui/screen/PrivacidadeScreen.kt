@@ -1,9 +1,7 @@
 ﻿package io.signallq.app.ui.screen
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,13 +12,13 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -30,13 +28,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.signallq.app.ui.LkSpacing
@@ -125,7 +123,8 @@ fun PrivacidadeScreen(
                     .padding(padding),
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
-            // Hero: shield icon + title + description
+            // O resumo vem antes dos detalhes: é a informação que o protótipo prioriza para
+            // uma pessoa decidir se quer continuar usando o app.
             item {
                 Column(
                     modifier =
@@ -133,42 +132,67 @@ fun PrivacidadeScreen(
                             .fillMaxWidth()
                             .padding(horizontal = LkSpacing.lg)
                             .padding(top = LkSpacing.md, bottom = LkSpacing.xl),
-                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .size(56.dp)
-                                .clip(CircleShape)
-                                .background(c.success.copy(alpha = 0.14f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Shield,
-                            contentDescription = null,
-                            tint = c.success,
-                            modifier = Modifier.size(28.dp),
-                        )
-                    }
-                    Spacer(Modifier.height(LkSpacing.md))
                     Text(
-                        text = "Tudo é processado localmente",
+                        text = "Seus dados, com clareza",
                         style = MaterialTheme.typography.headlineSmall,
                         color = c.textPrimary,
                     )
                     Spacer(Modifier.height(LkSpacing.sm))
                     Text(
                         text =
-                            "O SignallQ roda inteiramente no seu aparelho. Resultados são salvos localmente. " +
-                                "Nada vai para servidores externos sem você acionar.",
+                            "O SignallQ coleta somente o necessário para diagnosticar a conexão e melhorar o produto.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = c.textSecondary,
-                        modifier = Modifier.padding(horizontal = LkSpacing.md),
                     )
                 }
             }
 
-            // Section: Dados que coletamos
+            item {
+                ResumoPrivacidade(
+                    c = c,
+                    titulo = "Diagnósticos",
+                    valor = "No aparelho",
+                )
+            }
+            item {
+                ResumoPrivacidade(
+                    c = c,
+                    titulo = "Histórico",
+                    valor = "Armazenado localmente",
+                )
+            }
+            item {
+                ResumoPrivacidade(
+                    c = c,
+                    titulo = "Analytics",
+                    valor = "Consentimento controlável",
+                )
+            }
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = LkSpacing.lg, vertical = LkSpacing.lg),
+                    verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                ) {
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onAbrirOpcoesAnuncios,
+                    ) {
+                        Text("Gerenciar consentimento")
+                    }
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onAbrirGerenciarDados,
+                        colors = ButtonDefaults.textButtonColors(contentColor = c.primary),
+                    ) {
+                        Text("Excluir dados locais")
+                    }
+                }
+            }
+
+            item { LkSheetDivider(modifier = Modifier.padding(horizontal = LkSpacing.lg)) }
+
+            // Detalhes preservados para quem quer entender cada categoria antes de agir.
             item {
                 PrivacidadeSection(
                     titulo = "Dados que coletamos",
@@ -299,6 +323,22 @@ fun PrivacidadeScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ResumoPrivacidade(
+    c: LkTokens,
+    titulo: String,
+    valor: String,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = titulo, style = MaterialTheme.typography.bodyLarge, color = c.textPrimary)
+        Text(text = valor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.W600, color = c.textPrimary)
     }
 }
 

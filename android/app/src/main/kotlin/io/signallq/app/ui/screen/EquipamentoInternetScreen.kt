@@ -374,6 +374,8 @@ private fun EquipamentoConectadoContent(
             )
         }
 
+        EquipamentoResumoHeader(papel = painelSelecionado.papel, c = c)
+
         // Zona "Resumo" — status/identidade → grid → topologia (wireframe aprovado
         // 2026-07-25, artifact 547faba7-3981-42d0-a82f-58e0eba64da8, ver KDoc em
         // EquipamentoStatusPanel.kt e EquipamentoTopologiaCard.kt).
@@ -476,6 +478,29 @@ private fun EquipamentoConectadoContent(
         Spacer(Modifier.height(LkSpacing.lg))
     }
 }
+
+@Composable
+private fun EquipamentoResumoHeader(
+    papel: String,
+    c: LkTokens,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
+        Text(
+            text = tituloResumoEquipamento(papel),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.W600,
+            color = c.textPrimary,
+        )
+        Text(
+            text = "As informações disponíveis dependem do modelo e do acesso permitido.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = c.textSecondary,
+        )
+    }
+}
+
+internal fun tituloResumoEquipamento(papel: String): String =
+    papel.replaceFirstChar { primeiroCaractere -> primeiroCaractere.titlecase() }
 
 @Composable
 private fun EquipamentoAcessoIndisponivelContent(

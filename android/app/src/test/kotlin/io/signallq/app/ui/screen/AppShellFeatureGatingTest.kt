@@ -19,47 +19,43 @@ class AppShellFeatureGatingTest {
             AppShellFeatureFlagsState(
                 homeEnabled = false,
                 speedtestEnabled = true,
-                wifiEnabled = false,
                 historyEnabled = true,
             )
 
         assertFalse(flags.tabHabilitada(0)) // Home
         assertTrue(flags.tabHabilitada(1)) // Velocidade
-        assertFalse(flags.tabHabilitada(2)) // Sinal
-        assertTrue(flags.tabHabilitada(3)) // Historico
-        assertTrue(flags.tabHabilitada(4)) // Ferramentas -- nunca gateada
+        assertTrue(flags.tabHabilitada(2)) // Historico
+        assertTrue(flags.tabHabilitada(3)) // Ferramentas -- nunca gateada
     }
 
     @Test
     fun `tabModuleId retorna null para Ferramentas -- hub nao pertence a um modulo`() {
         assertEquals("home", tabModuleId(0))
         assertEquals("speedtest", tabModuleId(1))
-        assertEquals("wifi", tabModuleId(2))
-        assertEquals("history", tabModuleId(3))
-        assertEquals(null, tabModuleId(4))
+        assertEquals("history", tabModuleId(2))
+        assertEquals(null, tabModuleId(3))
     }
 
     @Test
-    fun `primeiraTabHabilitada prioriza Velocidade quando tudo ligado`() {
-        assertEquals(1, AppShellFeatureFlagsState().primeiraTabHabilitada())
+    fun `primeiraTabHabilitada prioriza Inicio quando tudo ligado`() {
+        assertEquals(0, AppShellFeatureFlagsState().primeiraTabHabilitada())
     }
 
     @Test
-    fun `primeiraTabHabilitada pula modulos desligados na ordem 1-0-2-3`() {
+    fun `primeiraTabHabilitada pula Inicio e Velocidade`() {
         val flags = AppShellFeatureFlagsState(speedtestEnabled = false, homeEnabled = false)
         assertEquals(2, flags.primeiraTabHabilitada())
     }
 
     @Test
-    fun `primeiraTabHabilitada cai em Ferramentas quando todas as 4 tabs estao desligadas`() {
+    fun `primeiraTabHabilitada cai em Ferramentas quando as raizes gateadas estao desligadas`() {
         val flags =
             AppShellFeatureFlagsState(
                 homeEnabled = false,
                 speedtestEnabled = false,
-                wifiEnabled = false,
                 historyEnabled = false,
             )
-        assertEquals(4, flags.primeiraTabHabilitada())
+        assertEquals(3, flags.primeiraTabHabilitada())
     }
 
     @Test

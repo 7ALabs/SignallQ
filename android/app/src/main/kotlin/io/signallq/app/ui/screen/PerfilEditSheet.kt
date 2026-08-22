@@ -40,7 +40,7 @@ import io.signallq.app.ui.LkTokens
 
 // ─── Perfil edit sheet ────────────────────────────────────────────────────────
 // GH#936 — Fase 7 MD3 (6a): extraido de AjustesScreen.kt. Entrada pela linha "Nome"
-// da tela de Ajustes (alcançada pelo menu lateral, ver AppShell.kt).
+// da tela de Ajustes (alcançada pelo Perfil, ver AppShell.kt).
 // GH#1358 — avatar/seletor de foto removidos: qualquer imagem de perfil fica
 // desabilitada em todo o app. `fotoUriAtual` segue sendo repassado a `onSalvar`
 // sem alteração (persistência intocada), só a UI de troca de foto saiu daqui.

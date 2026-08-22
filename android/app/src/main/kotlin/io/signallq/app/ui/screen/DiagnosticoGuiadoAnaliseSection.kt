@@ -6,10 +6,14 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.WifiTethering
 import androidx.compose.material3.Button
@@ -71,6 +75,7 @@ internal fun DiagnosticoGuiadoAnaliseSection(
         modifier =
             modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = LkSpacing.xl)
                 .testTag(TAG_ANALISE_GUIADA),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -116,6 +121,21 @@ internal fun DiagnosticoGuiadoAnaliseSection(
                 // diferente a cada análise.
                 val emAndamento = estado as? EstadoAnaliseGuiada.EmAndamento
                 val etapa = emAndamento?.etapa ?: etapaEmLinguagemHumana(FaseSpeedtest.idle)
+                val etapaAtual = indiceEtapaAnalise(emAndamento?.progresso ?: 0f)
+                Text(
+                    text = "Verificando a conexão",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.W600,
+                    color = c.textPrimary,
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    text = "Estamos observando a rede antes de explicar o que está acontecendo.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = c.textSecondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = LkSpacing.xs),
+                )
                 Box(contentAlignment = Alignment.Center) {
                     // Indicador DETERMINADO quando há progresso — §8.5 pede progresso, e a versão
                     // anterior desenhava um spinner indeterminado enquanto `EmAndamento.progresso`
@@ -163,7 +183,7 @@ internal fun DiagnosticoGuiadoAnaliseSection(
                     textAlign = TextAlign.Center,
                     modifier =
                         Modifier
-                            .padding(top = LkSpacing.xl)
+                            .padding(top = LkSpacing.lg)
                             .testTag(TAG_ANALISE_GUIADA_ETAPA)
                             .clearAndSetSemantics { contentDescription = "Analisando: $etapa" },
                 )
@@ -189,12 +209,66 @@ internal fun DiagnosticoGuiadoAnaliseSection(
                         modifier = Modifier.padding(top = LkSpacing.sm).testTag(TAG_ANALISE_GUIADA_LIMITE),
                     )
                 }
+                EtapasDaAnalise(etapaAtual = etapaAtual)
                 TextButton(
                     onClick = onCancelar,
                     modifier = Modifier.padding(top = LkSpacing.lg).testTag(TAG_ANALISE_GUIADA_CANCELAR),
                 ) {
                     Text("Cancelar", color = c.textSecondary)
                 }
+            }
+        }
+    }
+}
+
+private fun indiceEtapaAnalise(progresso: Float): Int =
+    when {
+        progresso < 1f / 3f -> 0
+        progresso < 2f / 3f -> 1
+        else -> 2
+    }
+
+@Composable
+private fun EtapasDaAnalise(etapaAtual: Int) {
+    val c = LocalLkTokens.current
+    val etapas =
+        listOf(
+            "Observando o tempo de resposta",
+            "Medindo a capacidade de recebimento",
+            "Medindo a capacidade de envio",
+        )
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(top = LkSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+    ) {
+        Text(
+            text = "Etapa ${etapaAtual + 1} de ${etapas.size}",
+            style = MaterialTheme.typography.labelMedium,
+            color = c.textTertiary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        etapas.forEachIndexed { index, texto ->
+            val concluida = index < etapaAtual
+            val atual = index == etapaAtual
+            Row(horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
+                Text(
+                    text =
+                        if (concluida) {
+                            "✓"
+                        } else if (atual) {
+                            "●"
+                        } else {
+                            "○"
+                        },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (concluida || atual) c.primary else c.textTertiary,
+                )
+                Text(
+                    text = texto,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (atual) c.textPrimary else c.textSecondary,
+                )
             }
         }
     }

@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.zIndex
 import io.signallq.app.core.diagnostico.DiagnosticInput
+import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.network.DiagnosticoPlanoIniciado
 import io.signallq.app.core.recommendation.RecommendationDecision
@@ -54,6 +55,7 @@ internal data class AppShellDiagnosticoGuiadoEntry(
 @Stable
 internal data class AppShellDiagnosticoGuiadoDados(
     val input: DiagnosticInput?,
+    val diagnosticReport: DiagnosticReport? = null,
     val resultado: ResultadoSpeedtest?,
     val analisadorState: AnalisadorState,
     val objetivoPreSelecionado: ObjetivoDiagnostico?,
@@ -76,6 +78,8 @@ internal data class AppShellDiagnosticoGuiadoAcoes(
     val onAnalisarProblema: (String?) -> Unit,
     val onResetarAnalisador: () -> Unit,
     val onVoltar: () -> Unit,
+    val onAbrirPerfil: () -> Unit = {},
+    val onAlternarTema: () -> Unit = {},
     val onIrParaHome: () -> Unit,
     val onIniciarModoGamer: () -> Unit,
     val onAbrirFerramentaSugerida: (TipoFerramenta) -> Unit,
@@ -132,6 +136,7 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
         val resultado = dados.resultado
         DiagnosticoGuiadoScreen(
             input = dados.input,
+            diagnosticReport = dados.diagnosticReport,
             contextoDoPlano = dados.contextoDoPlano,
             onPlanoIniciado = entry.acoes.onPlanoIniciado,
             statusMedicao = resultado?.status,
@@ -144,6 +149,8 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
             onAnalisarProblema = entry.acoes.onAnalisarProblema,
             onResetarAnalisador = entry.acoes.onResetarAnalisador,
             onVoltar = entry.acoes.onVoltar,
+            onAbrirPerfil = entry.acoes.onAbrirPerfil,
+            onAlternarTema = entry.acoes.onAlternarTema,
             onIrParaHome = entry.acoes.onIrParaHome,
             categoria = dados.categoria,
             ispNome = dados.ispNome,

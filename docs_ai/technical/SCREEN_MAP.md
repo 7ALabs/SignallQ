@@ -17,30 +17,27 @@ last_updated: "2026-08-16"
 
 > Versão anterior deste documento descrevia a tab bar com `Ajustes` como 5ª aba — isso mudou em
 > GH#930 (Fase 1 do plano MD3 To-Be, arquivado em `docs_ai/_archive/2026-07-23_TOBE_MD3_APP_PLANO_IMPLEMENTACAO.md`).
-> A tab bar atual usa `Ferramentas`; Ajustes virou overlay `Perfil`, acessado pelo avatar no TopBar.
+> A barra atual usa `Ferramentas` como quarta raiz; Ajustes virou overlay `Perfil`, acessado pelo avatar no TopBar.
 
 Todas as telas residem em: `app/src/main/kotlin/io/signallq/app/ui/screen/`
 
 ---
 
-## NavigationBar — 5 Abas
+## NavigationBar — 4 abas
 
-`tabScreenNames = listOf("home", "speedtest", "sinal_wifi", "historico", "ferramentas")` em
-`AppShell.kt`.
+As raízes são `home`, `speedtest`, `historico` e `ferramentas` em `AppShellNavigation.kt`.
 
 | Índice | Label | Composable | Arquivo |
 |---|---|---|---|
-| 0 | Início | `HomeScreen` | `HomeScreen.kt` |
-| 1 | Velocidade | `VelocidadeScreen` (tab) | `VelocidadeScreen.kt` |
-| 2 | Sinal | `SinalScreen` | `SinalScreen.kt` |
-| 3 | Histórico | `HistoricoScreen` | `HistoricoScreen.kt` |
-| 4 | Ferramentas | `FerramentasScreen` | `FerramentasScreen.kt` |
+| 0 | Início | `Inicio2Screen` | `Inicio2Screen.kt` |
+| 1 | Velocidade | `SpeedTestScreen` | `SpeedTestScreen.kt` |
+| 2 | Histórico | `HistoricoScreen` | `HistoricoScreen.kt` |
+| 3 | Ferramentas | `FerramentasScreen` | `FerramentasScreen.kt` |
 
 > Não existe aba "Ajustes" nem "Mais". `DispositivosScreen`, diagnóstico de IA e os demais
 > itens do hub Ferramentas não são abas — são overlays.
 >
-> `navigation/AppNavGraph.kt` (se ainda existir) pode conter constantes legadas que não
-> correspondem às abas reais — a navegação viva é `selectedTab` (índice 0–4) + `overlayStack`
+> A navegação viva é `selectedTab` (índice 0–3) + `overlayStack`
 > (enum `Overlay`, privado) dentro de `AppShell.kt`, não Compose Navigation.
 
 ---
@@ -89,7 +86,7 @@ reintroduzir rota para nenhuma dessas telas.
 
 | Arquivo | Papel |
 |---|---|
-| `AppShell.kt` | Shell do app — `NavigationBar` de 5 abas (índice 0–4) + pilha de overlays (`overlayStack`, enum `Overlay`) |
+| `AppShell.kt` | Shell do app — `NavigationBar` de 4 raízes + pilha de overlays (`overlayStack`, enum `AppShellOverlay`) |
 | `MainViewModel.kt` | ViewModel raiz `@HiltViewModel` — expõe os snapshots/estados consumidos pelas telas (2191 linhas — dívida técnica registrada em `.claude/rules/higiene-e-padronizacao-repositorio.md`, seção 4.2) |
 
 ---
@@ -99,8 +96,8 @@ reintroduzir rota para nenhuma dessas telas.
 ```
 OnboardingScreen (primeira execução)
     ↓
-AppShell  (NavigationBar índice 0–4 + overlays)
-├── [0] HomeScreen
+AppShell  (NavigationBar índice 0–3 + overlays)
+├── [0] Inicio2Screen
 │       ├── → Dispositivos (overlay)
 │       └── → Laudo (overlay)
 ├── [1] VelocidadeScreen

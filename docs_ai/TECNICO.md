@@ -22,7 +22,7 @@ last_updated: "2026-08-19"
 
 | Fato | Valor | Fonte |
 |---|---|---|
-| versionName / versionCode | **0.31.0** / **72** | `android/gradle/libs.versions.toml` |
+| versionName / versionCode | **0.33.0** / **74** | `android/gradle/libs.versions.toml` |
 | compileSdk / minSdk / targetSdk | 37 / 24 / 36 | `android/gradle/libs.versions.toml` |
 | Compose BOM · Room · Hilt | 2026.06.01 · 2.8.4 · 2.60.1 | `android/gradle/libs.versions.toml` |
 | Módulos Gradle | **20** | `android/settings.gradle.kts` |
@@ -264,7 +264,7 @@ estado estático entre classes (ver GH#1684). Não roda no CI por padrão:
 
 | Risco | Detalhe |
 |---|---|
-| UI monolítica em `:app` | ~150 arquivos em `src/main`, dez acima de 800. `HomeScreen.kt` 2967, `MainViewModel.kt` 2438, `SinalCanalSection.kt` 1215, `SinalWifiSection.kt` 1110 (issue #1660 extraiu o antigo `SinalScreen.kt` monolítico, 3383 linhas, em scaffold + `SinalWifiSection.kt`/`SinalCanalSection.kt`/`SinalMovelSection.kt`/`SinalSharedComponents.kt`) |
+| UI monolítica em `:app` | ~150 arquivos em `src/main`, dez acima de 800. `Inicio2Screen.kt`, `MainViewModel.kt` 2438, `SinalCanalSection.kt` 1215, `SinalWifiSection.kt` 1110 (issue #1660 extraiu o antigo `SinalScreen.kt` monolítico, 3383 linhas, em scaffold + `SinalWifiSection.kt`/`SinalCanalSection.kt`/`SinalMovelSection.kt`/`SinalSharedComponents.kt`) |
 | Dependência feature→feature | 2 violações — ver `ARQUITETURA/README.md` §2 |
 | Três mecanismos de feature flag | `:core:featureflags` (11 flags), `FeatureFlagProvider` legado em `:coreNetwork`, e Firebase Remote Config — com colisão de nome entre os dois primeiros |
 | Ausência de teste em pontos sensíveis | `:core:relatorio` (0 testes, compartilhado com o Pro), `:corePermissions` (0), `ExecutorSpeedtestCloudflare.kt` (1495 linhas, sem teste direto), `ExecutorFibra` e `NokiaModemCrypto` |

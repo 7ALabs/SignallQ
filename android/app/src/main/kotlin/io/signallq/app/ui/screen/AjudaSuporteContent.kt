@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,11 +29,24 @@ internal const val SUPPORT_EMAIL = "suporte@signallq.com"
 internal fun AjudaSuporteContent(
     onAbrirEmail: () -> Boolean,
     onCopiarEmail: (String) -> Unit,
+    onAbrirLaudo: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val c = LocalLkTokens.current
     var feedback by remember { mutableStateOf<String?>(null) }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
+        Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
+            Text(
+                text = "Como podemos ajudar?",
+                style = MaterialTheme.typography.titleLarge,
+                color = c.onSurface,
+            )
+            Text(
+                text = "Conte o que aconteceu e inclua o código exibido pelo app, se houver.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.onSurfaceVariant,
+            )
+        }
         SelectionContainer {
             SignallQListRow(
                 title = SUPPORT_EMAIL,
@@ -45,6 +59,12 @@ internal fun AjudaSuporteContent(
                 },
             )
         }
+        SignallQListRow(
+            title = "Anexar relatório",
+            subtitle = "Dados técnicos sem senhas",
+            icon = Icons.Outlined.Description,
+            onClick = onAbrirLaudo,
+        )
         SignallQButton(
             label = "Copiar endereço",
             onClick = {

@@ -1,18 +1,17 @@
 package io.signallq.app.ui.screen
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +48,8 @@ fun DispositivosScreen(
     apelidos: Map<String, String>,
     onSalvarApelido: (mac: String, apelido: String) -> Unit,
     onVoltar: (() -> Unit)? = null,
+    onAbrirMenu: () -> Unit = {},
+    onAlternarTema: () -> Unit = {},
     // GH#531 — resumo "2,4G + 5G" das bandas Wi-Fi do gateway conectado, exibido
     // no subtítulo do GatewayItem na seção INFRAESTRUTURA. Null quando sem dado.
     bandasWifi: String? = null,
@@ -65,54 +66,50 @@ fun DispositivosScreen(
     Scaffold(
         containerColor = c.bgPrimary,
         topBar = {
-            // GH#1079: migrado de Column/Row cru para TopAppBar real do M3 -- o layout
-            // manual nao aplicava inset de status bar/notch (`.statusBarsPadding()`),
-            // diferente das outras 14 telas do app que ja usam TopAppBar/
-            // CenterAlignedTopAppBar reais.
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .background(c.bgPrimary),
-            ) {
-                TopAppBar(
-                    title = {
-                        Text(
-                            "Dispositivos",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.W600,
-                            color = c.textPrimary,
+            TopAppBar(
+                title = {
+                    Text(
+                        "Dispositivos",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.W600,
+                        color = c.textPrimary,
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onVoltar ?: onAbrirMenu) {
+                        Icon(
+                            imageVector = if (onVoltar != null) Icons.AutoMirrored.Outlined.ArrowBack else Icons.Filled.AccountCircle,
+                            contentDescription = if (onVoltar != null) "Voltar" else "Abrir perfil e ajustes",
+                            tint = c.textPrimary,
                         )
-                    },
-                    navigationIcon = {
-                        if (onVoltar != null) {
-                            IconButton(onClick = onVoltar) {
-                                Icon(imageVector = Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Voltar", tint = c.textPrimary)
-                            }
+                    }
+                },
+                actions = {
+                    val escaneando = snapshotDevices.estado == EstadoScanDispositivos.varrendo
+                    IconButton(onClick = onRefresh, enabled = !escaneando) {
+                        if (escaneando) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = c.primary,
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Outlined.Refresh,
+                                contentDescription = "Escanear rede",
+                                tint = c.textPrimary,
+                            )
                         }
-                    },
-                    actions = {
-                        val escaneando = snapshotDevices.estado == EstadoScanDispositivos.varrendo
-                        IconButton(onClick = onRefresh, enabled = !escaneando) {
-                            if (escaneando) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp,
-                                    color = c.primary,
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Outlined.Refresh,
-                                    contentDescription = "Escanear rede",
-                                    tint = c.textPrimary,
-                                )
-                            }
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = c.bgPrimary),
-                )
-                HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
-            }
+                    }
+                    IconButton(onClick = onAbrirMenu) {
+                        Icon(Icons.Filled.AccountCircle, contentDescription = "Abrir perfil e ajustes", tint = c.textPrimary)
+                    }
+                    IconButton(onClick = onAlternarTema) {
+                        Icon(Icons.Outlined.DarkMode, contentDescription = "Alternar tema", tint = c.textPrimary)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = c.bgPrimary),
+            )
         },
     ) { padding ->
         Column(

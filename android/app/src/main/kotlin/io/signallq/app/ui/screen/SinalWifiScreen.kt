@@ -5,16 +5,20 @@ import android.content.Intent
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.provider.Settings
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -39,7 +43,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -50,7 +53,6 @@ import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.component.LkLiveIndicator
-import io.signallq.app.ui.component.LkPillBadge
 import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.SignalBars
 import io.signallq.app.ui.component.SignallQScreenState
@@ -136,8 +138,8 @@ fun SinalWifiScreen(
                 navigationIcon = {
                     IconButton(onClick = onVoltar) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Voltar",
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = "Fechar",
                             tint = c.textPrimary,
                         )
                     }
@@ -238,17 +240,33 @@ private fun SinalWifiConteudoAoVivo(
         modifier =
             Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(LkSpacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(Modifier.height(LkSpacing.lg))
+        Text(
+            text = "Encontre um lugar melhor",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.W600,
+            color = c.textPrimary,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(LkSpacing.xs))
+        Text(
+            text = "Ande pela casa e acompanhe o sinal em tempo real.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = c.textSecondary,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Spacer(Modifier.height(LkSpacing.xxl))
         LkLiveIndicator(label = "Ao vivo", estatico = movimentoReduzido)
         Spacer(Modifier.height(LkSpacing.xl))
 
         // Indicador central -- SignalBars ampliado (graphicsLayer) sem alterar o componente
         // compartilhado, que precisa continuar idêntico em SinalScreen.kt.
         Box(
-            modifier = Modifier.size(width = 96.dp, height = 72.dp),
+            modifier = Modifier.size(LkSpacing.xxxl + LkSpacing.xxxl),
             contentAlignment = Alignment.Center,
         ) {
             Box(modifier = Modifier.graphicsLayer(scaleX = 4f, scaleY = 4f)) {
@@ -263,7 +281,7 @@ private fun SinalWifiConteudoAoVivo(
         // quem entende. Mesmo padrão já usado em MobileDetailCard/SinalMovelSection (#1662).
         Text(
             text = categoria,
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.W700,
             color = cor,
             modifier =
@@ -273,47 +291,72 @@ private fun SinalWifiConteudoAoVivo(
         )
         Spacer(Modifier.height(LkSpacing.xs))
         Text(
-            text = "$rssi dBm",
-            style = MaterialTheme.typography.bodyLarge,
-            color = c.textSecondary,
-        )
-
-        Spacer(Modifier.height(LkSpacing.xs))
-
-        Text(
-            text = uiState.linkSpeedMbps?.let { "$it Mbps" } ?: "—",
-            style = MaterialTheme.typography.bodyLarge,
+            text = "$rssi dBm · atualizando agora",
+            style = MaterialTheme.typography.bodyMedium,
             color = c.textSecondary,
         )
 
         Spacer(Modifier.height(LkSpacing.xxl))
 
         LkSurfaceCard(modifier = Modifier.fillMaxWidth()) {
-            Column {
-                Text(
-                    text = "Padrão Wi-Fi",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = c.textSecondary,
+            Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.base)) {
+                SinalWifiMetricaRow(
+                    rotulo = "Velocidade do link",
+                    valor = uiState.linkSpeedMbps?.let { "$it Mbps" } ?: "Não informado",
+                    c = c,
                 )
-                Spacer(Modifier.height(LkSpacing.xs))
-                Text(
-                    text = uiState.padraoWifi ?: "Não identificado",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.W600,
-                    color = c.textPrimary,
+                SinalWifiMetricaRow(
+                    rotulo = "Padrão",
+                    valor = uiState.padraoWifi ?: "Não identificado",
+                    c = c,
                 )
-                if (uiState.suportaMuMimo == true) {
-                    Spacer(Modifier.height(LkSpacing.sm))
-                    LkPillBadge(
-                        text = "Suporta MU-MIMO",
-                        containerColor = c.successContainer,
-                        contentColor = c.onSuccessContainer,
-                    )
-                }
+                SinalWifiMetricaRow(
+                    rotulo = "Recursos",
+                    valor = recursosWifiLabel(uiState.suportaMuMimo),
+                    c = c,
+                )
             }
         }
+        Spacer(Modifier.height(LkSpacing.xxl))
     }
 }
+
+@Composable
+private fun SinalWifiMetricaRow(
+    rotulo: String,
+    valor: String,
+    c: LkTokens,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .semantics(mergeDescendants = true) {
+                    contentDescription = "$rotulo: $valor"
+                },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = rotulo,
+            style = MaterialTheme.typography.bodyMedium,
+            color = c.textSecondary,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = valor,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.W600,
+            color = c.textPrimary,
+        )
+    }
+}
+
+internal fun recursosWifiLabel(suportaMuMimo: Boolean?): String =
+    when (suportaMuMimo) {
+        true -> "MU-MIMO"
+        false -> "MU-MIMO não suportado"
+        null -> "Não informado"
+    }
 
 /**
  * Issue #1668, decisão de produto (Luiz, 2026-08-19): botão direto que resolve Wi-Fi desligado

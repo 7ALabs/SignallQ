@@ -1,8 +1,6 @@
 package io.signallq.app.ui.screen
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,12 +8,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -27,10 +22,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
@@ -72,7 +64,7 @@ fun TermosDeUsoScreen(onVoltar: () -> Unit) {
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            verticalArrangement = Arrangement.spacedBy(0.dp),
+            verticalArrangement = Arrangement.spacedBy(LkSpacing.base),
         ) {
             item {
                 Column(
@@ -81,34 +73,18 @@ fun TermosDeUsoScreen(onVoltar: () -> Unit) {
                             .fillMaxWidth()
                             .padding(horizontal = LkSpacing.lg)
                             .padding(top = LkSpacing.md, bottom = LkSpacing.xl),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                    horizontalAlignment = Alignment.Start,
                 ) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .size(56.dp)
-                                .clip(CircleShape)
-                                .background(c.primary.copy(alpha = 0.10f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Description,
-                            contentDescription = null,
-                            tint = c.primary,
-                            modifier = Modifier.size(28.dp),
-                        )
-                    }
-                    Spacer(Modifier.height(LkSpacing.md))
                     Text(
-                        text = "Termos de Uso — SignallQ",
-                        fontSize = 17.sp,
+                        text = "Termos de uso",
+                        style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.W600,
                         color = c.textPrimary,
                     )
                     Spacer(Modifier.height(LkSpacing.xs))
                     Text(
                         text = "Última atualização: 28 de junho de 2026",
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = c.textTertiary,
                     )
                 }
@@ -254,7 +230,7 @@ fun TermosDeUsoScreen(onVoltar: () -> Unit) {
             item {
                 Text(
                     text = "7Agents Tecnologia — São Paulo, Brasil",
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     color = c.textTertiary,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = LkSpacing.lg),
                 )
@@ -264,7 +240,7 @@ fun TermosDeUsoScreen(onVoltar: () -> Unit) {
                 Spacer(
                     Modifier
                         .navigationBarsPadding()
-                        .height(24.dp),
+                        .height(LkSpacing.xl),
                 )
             }
         }
@@ -285,16 +261,15 @@ private fun TermosSection(
     ) {
         Text(
             text = titulo,
-            fontSize = 14.sp,
+            style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.W600,
             color = c.textPrimary,
         )
         Spacer(Modifier.height(LkSpacing.xs))
         Text(
             text = corpo,
-            fontSize = 13.sp,
+            style = MaterialTheme.typography.bodyMedium,
             color = c.textSecondary,
-            lineHeight = 19.sp,
         )
     }
 }

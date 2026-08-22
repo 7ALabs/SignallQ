@@ -1,7 +1,9 @@
 ﻿package io.signallq.app.ui.screen
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,10 +14,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -23,16 +27,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.Speed
-import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,10 +47,13 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -54,7 +62,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -75,8 +84,6 @@ import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.feature.history.BlocoUptime
 import io.signallq.app.feature.history.ResumoHistorico
-import io.signallq.app.feature.history.StatusUptime
-import io.signallq.app.feature.history.UptimeNarrativaEngine
 import io.signallq.app.ui.FiltroConexaoHistorico
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
@@ -85,11 +92,9 @@ import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.ads.NativeAdEligibility
 import io.signallq.app.ui.ads.NativeAdLoadState
 import io.signallq.app.ui.ads.rememberNativeAdState
-import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkSheetDivider
 import io.signallq.app.ui.component.LkSheetFrame
 import io.signallq.app.ui.component.LkSheetInfoRow
-import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.Overline
 import io.signallq.app.ui.component.ads.NativeAdCard
 import io.signallq.app.ui.component.ads.NativeAdSource
@@ -109,13 +114,12 @@ private val FiltroConexaoHistorico.label: String
             FiltroConexaoHistorico.MOVEL -> "Rede móvel"
         }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+private enum class OrdenacaoHistorico {
+    MAIS_RECENTES,
+    MAIS_ANTIGAS,
+}
 
-private fun networkIcon(m: MedicaoEntity): ImageVector =
-    when (m.connectionType) {
-        "wifi" -> Icons.Outlined.Wifi
-        else -> Icons.Outlined.Speed
-    }
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 internal fun tipoLabel(m: MedicaoEntity): String =
     when (m.connectionType) {
@@ -161,6 +165,16 @@ private fun formatFullDate(epochMs: Long): String {
     val m = "%02d".format(cal.get(Calendar.MINUTE))
     return "$d/$mo/$y às $h:$m"
 }
+
+private fun textoCompartilhamento(medicao: MedicaoEntity): String =
+    buildString {
+        append("Resultado do teste SignallQ\n")
+        append("${tipoLabel(medicao)} · ${formatFullDate(medicao.timestampEpochMs)}\n")
+        medicao.downloadMbps?.let { append("Download: %.1f Mbps\n".format(it)) }
+        medicao.uploadMbps?.let { append("Upload: %.1f Mbps\n".format(it)) }
+        medicao.latencyMs?.let { append("Latência: %.0f ms\n".format(it)) }
+        medicao.jitterMs?.let { append("Oscilação: %.0f ms\n".format(it)) }
+    }
 
 private fun vereditoLabel(v: String?): String? =
     when (v) {
@@ -276,6 +290,129 @@ private fun FiltrosConexao(
     }
 }
 
+@Composable
+private fun FiltroOperadora(
+    selecionada: String?,
+    operadoras: List<String>,
+    onChange: (String?) -> Unit,
+    c: LkTokens,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
+        Text(
+            text = "Operadora",
+            style = MaterialTheme.typography.labelMedium,
+            color = c.textSecondary,
+        )
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
+            item {
+                FilterChip(
+                    selected = selecionada == null,
+                    onClick = { onChange(null) },
+                    label = { Text("Todas") },
+                    colors =
+                        FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = c.secondaryContainer,
+                            selectedLabelColor = c.onSecondaryContainer,
+                        ),
+                )
+            }
+            items(items = operadoras, key = { it }) { operadora ->
+                FilterChip(
+                    selected = selecionada == operadora,
+                    onClick = { onChange(operadora) },
+                    label = { Text(operadora) },
+                    colors =
+                        FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = c.secondaryContainer,
+                            selectedLabelColor = c.onSecondaryContainer,
+                        ),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FiltroOrdenacao(
+    selecionada: OrdenacaoHistorico,
+    onChange: (OrdenacaoHistorico) -> Unit,
+    c: LkTokens,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs), verticalAlignment = Alignment.CenterVertically) {
+        Text("Ordenar", style = MaterialTheme.typography.labelMedium, color = c.textSecondary)
+        OrdenacaoHistorico.entries.forEach { opcao ->
+            FilterChip(
+                selected = selecionada == opcao,
+                onClick = { onChange(opcao) },
+                label = { Text(if (opcao == OrdenacaoHistorico.MAIS_RECENTES) "Mais recentes" else "Mais antigas") },
+                colors =
+                    FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = c.secondaryContainer,
+                        selectedLabelColor = c.onSecondaryContainer,
+                    ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun HistoricoResumoCard(
+    resumo: ResumoHistorico,
+    c: LkTokens,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = c.surfaceContainer,
+        shape = RoundedCornerShape(LkRadius.card),
+    ) {
+        Column(
+            modifier = Modifier.padding(LkSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+        ) {
+            Text(
+                text = "Resumo das medições",
+                style = MaterialTheme.typography.titleMedium,
+                color = c.textPrimary,
+            )
+            Text(
+                text = "${resumo.totalMedicoes} medições registradas",
+                style = MaterialTheme.typography.bodySmall,
+                color = c.textSecondary,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+            ) {
+                HistoricoResumoMetric(
+                    label = "Download médio",
+                    value = resumo.mediaDownloadMbps5?.let { "%.0f Mbps".format(it) } ?: "—",
+                    c = c,
+                    modifier = Modifier.weight(1f),
+                )
+                HistoricoResumoMetric(
+                    label = "Latência média",
+                    value = resumo.mediaLatenciaMs5?.let { "%.0f ms".format(it) } ?: "—",
+                    c = c,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoricoResumoMetric(
+    label: String,
+    value: String,
+    c: LkTokens,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Text(text = value, style = MaterialTheme.typography.titleSmall, color = c.textPrimary)
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = c.textSecondary)
+    }
+}
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 /**
@@ -304,22 +441,22 @@ fun HistoricoScreen(
     filtroOperadora: String? = null,
     onFiltroOperadoraChange: (String?) -> Unit = {},
     operadorasDisponiveis: List<String> = emptyList(),
-    /** Grid de uptime dos últimos 7 dias (issues #1666/#1520) -- vazio ate o ViewModel calcular,
-     *  nesse caso a secao nao e renderizada (ver [blocosUptime]). */
+    onExcluirMedicao: (String) -> Unit = {},
+    /** Mantido por compatibilidade com o estado do shell; o bloco de 7 dias foi removido da UI. */
     blocosUptime: List<BlocoUptime> = emptyList(),
     /** Toggle remoto (Firebase Remote Config) + gate de consentimento UMP -- issue #555.
      *  Default `false`: nunca mostra anuncio sem sinal explicito de que pode. */
     adsEnabled: Boolean = false,
 ) {
     val c = LocalLkTokens.current
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val narrativaUptime = remember(blocosUptime) { UptimeNarrativaEngine.gerarNarrativa(blocosUptime) }
-    val temDadoUptime = remember(blocosUptime) { blocosUptime.any { it.status != StatusUptime.SEM_DADO } }
-
-    var selectedMedicao by remember { mutableStateOf<MedicaoEntity?>(null) }
     var mostrarExport by remember { mutableStateOf(false) }
     // Issue #555 -- dispensar o anuncio e estado de sessao, nunca persistido.
     var nativeAdDismissedHistorico by remember { mutableStateOf(false) }
+    var modoComparacao by remember { mutableStateOf(false) }
+    var ordenacao by remember { mutableStateOf(OrdenacaoHistorico.MAIS_RECENTES) }
+    val medicoesSelecionadas = remember { mutableStateListOf<String>() }
 
     // Controlled mode: use external state from AppShell/ViewModel
     // Uncontrolled mode: use internal session state
@@ -328,7 +465,6 @@ fun HistoricoScreen(
     val filtroConexaoAtivo = filtroConexao ?: filtroConexaoInterno
     val filtroOperadoraAtivo = if (filtroConexao != null) filtroOperadora else filtroOperadoraInterno
 
-    val sheetDetalheState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val sheetExportState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
@@ -363,15 +499,15 @@ fun HistoricoScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text("Histórico", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
+                    Text("Histórico", style = MaterialTheme.typography.titleLarge, color = c.textPrimary)
                 },
                 navigationIcon = {
                     IconButton(onClick = onAbrirMenu) {
                         Icon(
-                            imageVector = if (LocalAppShellMode.current == AppShellMode.Guided2) Icons.Filled.AccountCircle else Icons.Filled.Menu,
+                            imageVector = Icons.Filled.AccountCircle,
                             contentDescription =
                                 stringResource(
-                                    if (LocalAppShellMode.current == AppShellMode.Guided2) R.string.ajustes_cd_editar_perfil else R.string.appshell_cd_abrir_menu,
+                                    R.string.ajustes_cd_editar_perfil,
                                 ),
                             tint = c.textPrimary,
                         )
@@ -381,10 +517,6 @@ fun HistoricoScreen(
                     IconButton(
                         onClick = {
                             scope.launch {
-                                if (selectedMedicao != null) {
-                                    sheetDetalheState.hide()
-                                    selectedMedicao = null
-                                }
                                 mostrarExport = true
                             }
                         },
@@ -401,13 +533,19 @@ fun HistoricoScreen(
             )
         },
     ) { padding ->
-        val listaParaExibir = historicoFiltrado
-        val filtroAtivo = filtroConexaoAtivo != FiltroTipo.TODOS
+        val listaParaExibir =
+            remember(historicoFiltrado, ordenacao) {
+                when (ordenacao) {
+                    OrdenacaoHistorico.MAIS_RECENTES -> historicoFiltrado.sortedByDescending { it.timestampEpochMs }
+                    OrdenacaoHistorico.MAIS_ANTIGAS -> historicoFiltrado.sortedBy { it.timestampEpochMs }
+                }
+            }
+        val filtroAtivo = filtroConexaoAtivo != FiltroTipo.TODOS || filtroOperadoraAtivo != null
 
         // #1666/#1520: uma tela sem nenhum teste manual mas com dado de monitoramento
         // (fonte="monitor") ainda tem algo relevante para mostrar -- nao cair no estado
         // totalmente vazio so porque a lista de testes manuais esta vazia.
-        if (listaParaExibir.isEmpty() && !filtroAtivo && !temDadoUptime) {
+        if (listaParaExibir.isEmpty() && !filtroAtivo) {
             EmptyHistorico(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 onIniciarTeste = onIniciarTeste,
@@ -424,17 +562,31 @@ fun HistoricoScreen(
                 contentPadding = PaddingValues(horizontal = LkSpacing.lg, vertical = LkSpacing.lg),
                 verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
             ) {
-                if (blocosUptime.isNotEmpty()) {
-                    item(key = "uptime_grid") {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            LkSectionOverline("Estabilidade da conexão · últimos 7 dias")
-                            Spacer(Modifier.height(LkSpacing.sm))
-                            UptimeGridChart(
-                                blocos = blocosUptime,
-                                narrativa = narrativaUptime,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
+                item(key = "historico_intro") {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "Suas análises",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = c.textPrimary,
+                        )
+                    }
+                }
+                if (historicoFiltrado.size > 1) {
+                    item(key = "historico_comparar") {
+                        TextButton(
+                            onClick = {
+                                modoComparacao = !modoComparacao
+                                medicoesSelecionadas.clear()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(if (modoComparacao) "Sair da comparação" else "Comparar medições")
                         }
+                    }
+                }
+                resumoHistorico?.takeIf { it.totalMedicoes > 0 }?.let { resumo ->
+                    item(key = "historico_resumo") {
+                        HistoricoResumoCard(resumo = resumo, c = c)
                     }
                 }
                 if (!nativeAdDismissedHistorico) {
@@ -457,7 +609,11 @@ fun HistoricoScreen(
                     // largura em telas menores, cortando o grupo "Todos | WiFi | Rede Móvel".
                     // Movidos para abaixo do subtítulo, em largura total.
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        LkSectionOverline("Medições recentes")
+                        Text(
+                            text = "Histórico dos testes",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = c.textPrimary,
+                        )
                         Spacer(Modifier.height(LkSpacing.sm))
                         FiltrosConexao(
                             filtroSelecionado = filtroConexaoAtivo,
@@ -471,6 +627,23 @@ fun HistoricoScreen(
                             c = c,
                             compact = true,
                         )
+                        Spacer(Modifier.height(LkSpacing.sm))
+                        FiltroOrdenacao(selecionada = ordenacao, onChange = { ordenacao = it }, c = c)
+                        if (operadorasDisponiveis.isNotEmpty()) {
+                            Spacer(Modifier.height(LkSpacing.sm))
+                            FiltroOperadora(
+                                selecionada = filtroOperadoraAtivo,
+                                operadoras = operadorasDisponiveis,
+                                onChange = { nova ->
+                                    if (filtroConexao != null) {
+                                        onFiltroOperadoraChange(nova)
+                                    } else {
+                                        filtroOperadoraInterno = nova
+                                    }
+                                },
+                                c = c,
+                            )
+                        }
                     }
                 }
                 if (listaParaExibir.isEmpty()) {
@@ -482,34 +655,45 @@ fun HistoricoScreen(
                         )
                     }
                 } else {
-                    items(historicoFiltrado, key = { it.id }) { medicao ->
+                    items(listaParaExibir, key = { it.id }) { medicao ->
                         HistoricoCard(
                             medicao = medicao,
+                            selectionMode = modoComparacao,
+                            selected = medicao.id in medicoesSelecionadas,
                             onClick = {
-                                scope.launch {
-                                    if (mostrarExport) {
-                                        sheetExportState.hide()
-                                        mostrarExport = false
+                                if (modoComparacao) {
+                                    if (medicao.id in medicoesSelecionadas) {
+                                        medicoesSelecionadas.remove(medicao.id)
+                                    } else if (medicoesSelecionadas.size < 2) {
+                                        medicoesSelecionadas.add(medicao.id)
                                     }
-                                    selectedMedicao = medicao
                                 }
                             },
+                            onShare = {
+                                val intent =
+                                    Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, textoCompartilhamento(medicao))
+                                    }
+                                context.startActivity(Intent.createChooser(intent, "Compartilhar resultado"))
+                            },
+                            onDelete = { onExcluirMedicao(medicao.id) },
                         )
+                    }
+                    if (modoComparacao && medicoesSelecionadas.size == 2) {
+                        val selecionadas = listaParaExibir.filter { it.id in medicoesSelecionadas }
+                        if (selecionadas.size == 2) {
+                            item(key = "historico_comparacao_resultado") {
+                                HistoricoComparacaoCard(
+                                    primeira = selecionadas[0],
+                                    segunda = selecionadas[1],
+                                    c = c,
+                                )
+                            }
+                        }
                     }
                 }
             }
-        }
-    }
-
-    val sel = selectedMedicao
-    if (sel != null) {
-        ModalBottomSheet(
-            onDismissRequest = { selectedMedicao = null },
-            sheetState = sheetDetalheState,
-            containerColor = c.bgCard,
-            dragHandle = {},
-        ) {
-            HistoricoDetailSheet(medicao = sel)
         }
     }
 
@@ -591,57 +775,207 @@ private fun corDoTom(
 @Composable
 private fun HistoricoCard(
     medicao: MedicaoEntity,
+    selectionMode: Boolean = false,
+    selected: Boolean = false,
     onClick: () -> Unit,
+    onShare: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     val c = LocalLkTokens.current
-    val dl = medicao.downloadMbps
-    // Issue #1669 (épico #1647, Task 2.0.21): a lista prioriza conclusão/objetivo/data --
-    // a métrica em Mbps deixa de ser o valor dominante e vira detalhe secundário na linha,
-    // o número completo continua disponível na sheet de detalhe (HistoricoDetailSheet).
+    var deslocamento by remember { mutableFloatStateOf(0f) }
+    var expandido by remember { mutableStateOf(false) }
+    // A lista segue a hierarquia do protótipo: intenção, momento e conclusão. Os números
+    // completos continuam disponíveis na sheet de detalhe, sem disputar a leitura principal.
     val conclusao = remember(medicao) { conclusaoDaMedicao(medicao) }
     val corConclusao = corDoTom(conclusao.tom, c)
     val cardDesc =
-        "${conclusao.objetivo}, ${conclusao.conclusao}, ${formatDate(medicao.timestampEpochMs)}, " +
-            (dl?.let { "download ${"%.0f".format(it)} Mbps" } ?: "sem dados de download")
+        "${conclusao.objetivo}, ${formatDate(medicao.timestampEpochMs)}, " +
+            "${conclusao.conclusao}, ${tipoLabel(medicao)}"
 
-    LkSurfaceCard(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .semantics {
-                    role = Role.Button
-                    contentDescription = cardDesc
-                }.clickable(onClick = onClick),
-        outlined = false,
-    ) {
+    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(LkRadius.card))) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(LkSpacing.lg),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+            modifier = Modifier.align(Alignment.CenterEnd).padding(end = LkSpacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
         ) {
-            Icon(networkIcon(medicao), null, tint = c.textSecondary, modifier = Modifier.size(18.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = conclusao.conclusao,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.W600,
-                    color = corConclusao,
-                    maxLines = 1,
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = "${conclusao.objetivo} · ${formatDate(medicao.timestampEpochMs)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.textTertiary,
-                    maxLines = 1,
+            IconButton(
+                onClick = {
+                    deslocamento = 0f
+                    onShare()
+                },
+                modifier = Modifier.semantics { contentDescription = "Compartilhar resultado" },
+            ) {
+                Icon(Icons.Outlined.Share, contentDescription = null, tint = c.primary)
+            }
+            IconButton(
+                onClick = {
+                    deslocamento = 0f
+                    onDelete()
+                },
+                modifier = Modifier.semantics { contentDescription = "Excluir resultado" },
+            ) {
+                Icon(Icons.Outlined.DeleteOutline, contentDescription = null, tint = c.error)
+            }
+        }
+        var cardModifier = Modifier.fillMaxWidth()
+        cardModifier = cardModifier.offset(x = deslocamento.dp)
+        cardModifier = cardModifier.clip(RoundedCornerShape(LkRadius.card))
+        cardModifier = cardModifier.background(if (selectionMode && selected) c.secondaryContainer else c.bgPrimary)
+        cardModifier =
+            cardModifier.pointerInput(medicao.id) {
+                detectHorizontalDragGestures(
+                    onHorizontalDrag = { change, amount ->
+                        change.consume()
+                        deslocamento = (deslocamento + amount).coerceIn(-144f, 0f)
+                    },
+                    onDragEnd = {
+                        deslocamento = if (deslocamento <= -72f) -144f else 0f
+                    },
                 )
             }
+        cardModifier =
+            cardModifier.semantics {
+                role = Role.Button
+                contentDescription = cardDesc
+            }
+        cardModifier =
+            cardModifier.clickable {
+                if (deslocamento != 0f) {
+                    deslocamento = 0f
+                } else if (selectionMode) {
+                    onClick()
+                } else {
+                    expandido = !expandido
+                }
+            }
+        cardModifier = cardModifier.padding(vertical = LkSpacing.md)
+        Column(modifier = cardModifier) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = conclusao.objetivo,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = c.textPrimary,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(LkSpacing.md))
+                Text(
+                    text = formatDate(medicao.timestampEpochMs),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = c.textTertiary,
+                )
+                Spacer(Modifier.width(LkSpacing.xs))
+                Icon(
+                    imageVector = if (expandido) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                    contentDescription = if (expandido) "Recolher detalhes" else "Expandir detalhes",
+                    tint = c.textSecondary,
+                )
+            }
+            Spacer(Modifier.height(LkSpacing.xs))
             Text(
-                text = dl?.let { "${"%.0f".format(it)} Mbps" } ?: "--",
-                style = MaterialTheme.typography.labelMedium,
+                text = "${conclusao.conclusao} · ${tipoLabel(medicao)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = corConclusao,
+                maxLines = 1,
+            )
+            if (expandido) {
+                Spacer(Modifier.height(LkSpacing.md))
+                HistoricoDetalhesInline(medicao = medicao, c = c)
+            }
+            Spacer(Modifier.height(LkSpacing.md))
+            HorizontalDivider(color = c.outlineVariant)
+        }
+    }
+}
+
+@Composable
+private fun HistoricoDetalhesInline(
+    medicao: MedicaoEntity,
+    c: LkTokens,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
+        HistoricoDetalheLinha("Download", medicao.downloadMbps?.let { "%.1f Mbps".format(it) }, c)
+        HistoricoDetalheLinha("Upload", medicao.uploadMbps?.let { "%.1f Mbps".format(it) }, c)
+        HistoricoDetalheLinha("Latência", medicao.latencyMs?.let { "%.0f ms".format(it) }, c)
+        HistoricoDetalheLinha("Oscilação", medicao.jitterMs?.let { "%.0f ms".format(it) }, c)
+        HistoricoDetalheLinha("Conexão", tipoLabel(medicao), c)
+    }
+}
+
+@Composable
+private fun HistoricoDetalheLinha(
+    label: String,
+    value: String?,
+    c: LkTokens,
+) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+        Text(value ?: "—", style = MaterialTheme.typography.bodySmall, color = c.textPrimary)
+    }
+}
+
+@Composable
+private fun HistoricoComparacaoCard(
+    primeira: MedicaoEntity,
+    segunda: MedicaoEntity,
+    c: LkTokens,
+) {
+    val antiga = if (primeira.timestampEpochMs <= segunda.timestampEpochMs) primeira else segunda
+    val recente = if (antiga === primeira) segunda else primeira
+    val mesmaRede = antiga.networkId != null && antiga.networkId == recente.networkId
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = c.surfaceContainer,
+        shape = RoundedCornerShape(LkRadius.card),
+    ) {
+        Column(
+            modifier = Modifier.padding(LkSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+        ) {
+            Text("Comparação", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+            Text(
+                "${formatDate(antiga.timestampEpochMs)} → ${formatDate(recente.timestampEpochMs)}",
+                style = MaterialTheme.typography.bodySmall,
                 color = c.textSecondary,
             )
+            if (!mesmaRede) {
+                Text(
+                    "Não dá para comparar estas medições com segurança: elas não têm a mesma rede identificada.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = c.warning,
+                )
+            } else {
+                HistoricoDeltaLinha("Download", antiga.downloadMbps, recente.downloadMbps, "Mbps", c)
+                HistoricoDeltaLinha("Upload", antiga.uploadMbps, recente.uploadMbps, "Mbps", c)
+                HistoricoDeltaLinha("Latência", antiga.latencyMs, recente.latencyMs, "ms", c)
+                HistoricoDeltaLinha("Oscilação", antiga.jitterMs, recente.jitterMs, "ms", c)
+            }
         }
+    }
+}
+
+@Composable
+private fun HistoricoDeltaLinha(
+    label: String,
+    primeiro: Double?,
+    segundo: Double?,
+    unidade: String,
+    c: LkTokens,
+) {
+    val delta = if (primeiro != null && segundo != null) segundo - primeiro else null
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = c.textPrimary)
+        Text(
+            text = delta?.let { "${if (it >= 0) "+" else ""}${"%.1f".format(it)} $unidade" } ?: "Sem dados",
+            style = MaterialTheme.typography.bodyMedium,
+            color = c.textSecondary,
+        )
     }
 }
 

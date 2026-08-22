@@ -32,6 +32,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.Button
@@ -116,8 +117,8 @@ fun DnsScreen(
                 navigationIcon = {
                     IconButton(onClick = { if (showGuia) showGuia = false else onVoltar() }) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Voltar",
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = "Fechar",
                             tint = c.textPrimary,
                         )
                     }
@@ -165,8 +166,14 @@ private fun DnsMainContent(
     onIniciarBenchmark: () -> Unit,
 ) {
     val isLoading = snapshotDns.estado == EstadoBenchmarkDns.executando
+    val recomendacao = AvaliadorRecomendacaoDns.avaliar(snapshotDns.resultados)
 
-    Text("Comparativo de DNS", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.W700, color = c.textPrimary)
+    Text(
+        text = tituloResumoDns(snapshotDns.resultados.isNotEmpty()),
+        style = MaterialTheme.typography.headlineSmall,
+        fontWeight = FontWeight.W600,
+        color = c.textPrimary,
+    )
     Spacer(Modifier.height(4.dp))
     Text(
         "DNS afeta a abertura de sites, não a velocidade da sua conexão.",
@@ -217,7 +224,6 @@ private fun DnsMainContent(
             // GH#1212 item 8/12/13 — "mais rápido" só quando há vencedor técnico real
             // (fora da margem de empate e com taxa de sucesso mínima), não o menor tempo
             // bruto entre quaisquer dois valores.
-            val recomendacao = AvaliadorRecomendacaoDns.avaliar(snapshotDns.resultados)
             val recomendadoNome = (recomendacao as? RecomendacaoDns.Vencedor)?.resultado?.nomeProvedor
 
             LkSurfaceCard(modifier = Modifier.fillMaxWidth()) {
@@ -278,6 +284,9 @@ private fun DnsMainContent(
     // ── Bloco 4 — Guia colapsável ─────────────────────────────────────────────
     DnsBloco4Guia(c = c, onAbrirGuiaCompleto = onAbrirGuia)
 }
+
+internal fun tituloResumoDns(temResultados: Boolean): String =
+    if (temResultados) "Seu DNS responde bem." else "Compare servidores DNS"
 
 // ─── Bloco 1 — DNS atual com skeleton ─────────────────────────────────────────
 

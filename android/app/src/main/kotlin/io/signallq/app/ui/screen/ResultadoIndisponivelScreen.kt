@@ -1,17 +1,14 @@
 package io.signallq.app.ui.screen
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.HistoryToggleOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -25,7 +22,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -99,65 +95,48 @@ internal fun ResultadoIndisponivelScreen(
                 Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .background(c.bgPrimary)
-                    .padding(LkSpacing.xl)
-                    .padding(top = 64.dp),
+                    .padding(horizontal = LkSpacing.xl),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
-            // Hero
-            androidx.compose.foundation.layout.Box(
-                modifier =
-                    Modifier
-                        .size(96.dp)
-                        .clip(androidx.compose.foundation.shape.CircleShape)
-                        .background(c.surfaceContainerHigh),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = androidx.compose.material.icons.Icons.Outlined.ErrorOutline,
-                    contentDescription = null,
-                    tint = c.error,
-                    modifier = Modifier.size(36.dp),
-                )
-            }
-            androidx.compose.foundation.layout
-                .Spacer(Modifier.height(LkSpacing.xl))
+            Icon(
+                imageVector = Icons.Outlined.HistoryToggleOff,
+                contentDescription = null,
+                tint = c.textTertiary,
+                modifier = Modifier.size(48.dp),
+            )
             Text(
-                text = "Informações não disponíveis",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
+                text = "Este resultado não está mais disponível",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.W600,
                 color = c.textPrimary,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = LkSpacing.lg),
             )
-            androidx.compose.foundation.layout
-                .Spacer(Modifier.height(LkSpacing.sm))
             Text(
-                text = "O SignallQ precisa de condições mínimas (ex: estar no Wi-Fi e com permissão) para exibir este diagnóstico.",
-                style = MaterialTheme.typography.bodyLarge,
+                // Enuncia a CONSEQUÊNCIA, não a causa. A versão anterior afirmava "o aplicativo
+                // foi fechado em segundo plano e..." — o que só é verdade se process death for o
+                // único caminho para chegar aqui, e ninguém provou isso. Afirmar causa com certeza
+                // é o mesmo defeito que esta sessão corrigiu em dois documentos hoje (ressalva 3
+                // de Caio na PR #1718). O tom continua: sem jargão, sem culpar o usuário.
+                text =
+                    "Os detalhes desta medição não ficam guardados depois que o aplicativo é " +
+                        "fechado. Você pode medir de novo a qualquer momento.",
+                style = MaterialTheme.typography.bodyMedium,
                 color = c.textSecondary,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = LkSpacing.sm),
             )
-
-            androidx.compose.foundation.layout
-                .Spacer(Modifier.weight(1f))
-
-            // Actions
             if (onMedirNovamente != null) {
                 Button(
                     onClick = onMedirNovamente,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    shape =
-                        androidx.compose.foundation.shape
-                            .RoundedCornerShape(io.signallq.app.ui.LkRadius.button),
-                    colors =
-                        androidx.compose.material3.ButtonDefaults
-                            .buttonColors(containerColor = c.primary),
+                    shape = RoundedCornerShape(LkRadius.button),
+                    colors = ButtonDefaults.buttonColors(containerColor = c.primary, contentColor = c.onPrimary),
+                    modifier = Modifier.padding(top = LkSpacing.xl),
                 ) {
-                    Text("Tentar novamente", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text("Medir agora")
                 }
             }
-            androidx.compose.foundation.layout
-                .Spacer(Modifier.height(LkSpacing.xl))
         }
     }
 }

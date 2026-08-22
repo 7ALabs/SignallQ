@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -14,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
@@ -225,7 +227,7 @@ class AppShellOverlayRegistryTest {
      * visíveis para o registry sem precisar sincronizar duas listas.
      */
     private fun navigatorComPilha(vararg overlays: AppShellOverlay): AppShellNavigator =
-        AppShellNavigator(initialTab = AppShellRoot.Home.legacyIndex).apply { overlayStack.addAll(overlays) }
+        AppShellNavigator(initialTab = AppShellRoot.Home.index).apply { overlayStack.addAll(overlays) }
 
     /**
      * Wiring padrão do [AppShellOverlayRegistry] para os testes desta classe — os parâmetros que
@@ -312,7 +314,7 @@ class AppShellOverlayRegistryTest {
     // em vez de recuar um passo do roteiro.
     @Test
     fun `back de hardware recua um passo do roteiro guiado antes de fechar o overlay`() {
-        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.legacyIndex)
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.index)
         navigator.open(AppShellOverlay.DiagnosticoGuiado)
         composeRule.setContent {
             AppShellBackHandlers(navigator)
@@ -604,10 +606,31 @@ class AppShellOverlayRegistryTest {
             )
         }
         composeRule.onNodeWithTag("appshell_overlay_detalhes_tecnicos").assertExists()
-        composeRule.onNodeWithText("Detalhes da conexão").assertExists()
+        composeRule.onNodeWithText("Detalhes técnicos").assertExists()
 
         composeRule.onNodeWithContentDescription("Voltar").performClick()
         composeRule.runOnIdle { assertFalse(AppShellOverlay.DetalhesTecnicos in stack) }
+    }
+
+    @Test
+    fun `detalhes tecnicos aciona a geracao de laudo`() {
+        val stack = mutableStateListOf(AppShellOverlay.DetalhesTecnicos)
+        val laudoSolicitado = mutableStateOf(false)
+        composeRule.setContent {
+            AppShellDetalhesTecnicosOverlay(
+                overlayStack = stack,
+                resultadoSpeedtest = resultadoSpeedtestDeTeste(),
+                localizacaoServidor = "São Paulo, SP",
+                localDevice = null,
+                onGerarLaudo = { laudoSolicitado.value = true },
+            )
+        }
+
+        composeRule
+            .onNode(hasText("Gerar laudo") and hasClickAction())
+            .performScrollTo()
+            .performClick()
+        composeRule.runOnIdle { assertTrue(laudoSolicitado.value) }
     }
 
     @Test
@@ -655,10 +678,10 @@ class AppShellOverlayRegistryTest {
                 onIniciarBenchmark = {},
             )
         }
-        composeRule.onNodeWithText("Comparativo de DNS").assertDoesNotExist()
+        composeRule.onNodeWithText("DNS").assertDoesNotExist()
 
         composeRule.runOnIdle { stack.add(AppShellOverlay.Dns) }
-        composeRule.onNodeWithText("Comparativo de DNS").assertExists()
+        composeRule.onNodeWithText("DNS").assertExists()
 
         composeRule.onNodeWithContentDescription("Voltar").performClick()
         composeRule.runOnIdle { assertFalse(AppShellOverlay.Dns in stack) }
@@ -717,7 +740,7 @@ class AppShellOverlayRegistryTest {
         composeRule.setContent {
             RegistryDeTeste(navigator = navigator, resultadoSpeedtest = resultadoSpeedtestDeTeste())
         }
-        composeRule.onNodeWithText("Detalhes da conexão").assertExists()
+        composeRule.onNodeWithText("Detalhes técnicos").assertExists()
     }
 
     @Test
@@ -741,7 +764,7 @@ class AppShellOverlayRegistryTest {
     fun `registry compoe dns quando esta na pilha`() {
         val navigator = navigatorComPilha(AppShellOverlay.Dns)
         composeRule.setContent { RegistryDeTeste(navigator = navigator) }
-        composeRule.onNodeWithText("Comparativo de DNS").assertExists()
+        composeRule.onNodeWithText("DNS").assertExists()
     }
 }
 

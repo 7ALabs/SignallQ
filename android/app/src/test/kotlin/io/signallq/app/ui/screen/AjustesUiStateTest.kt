@@ -10,8 +10,8 @@ import org.junit.Test
  * BUG#1511 (P0) — guarda de regressao: o default de [AjustesModemState.conectarGateway] nunca
  * pode voltar a ser um literal `GatewayConnectionService { _, _, _ -> GatewayConnectionResultado.Sucesso }`
  * (era exatamente esse o mock que a #1511 removeu). O default de producao deve ser sempre
- * [GatewayConnectionServiceIndisponivelPadrao] (core:network), a mesma fonte unica usada por
- * `HomeScreen.conectarGateway` e por `AppShell.kt`.
+ * [GatewayConnectionServiceIndisponivelPadrao] (core:network), a mesma fonte única usada pelo
+ * shell e pelos ajustes.
  */
 class AjustesUiStateTest {
     @Test
@@ -34,7 +34,7 @@ class AjustesUiStateTest {
         }
 
     @Test
-    fun `AjustesModemState conectarGateway default e o mesmo default compartilhado de HomeScreen e AppShell`() {
+    fun `AjustesModemState conectarGateway default e o mesmo default compartilhado pelo shell`() {
         val estado =
             AjustesModemState(
                 modemHost = null,

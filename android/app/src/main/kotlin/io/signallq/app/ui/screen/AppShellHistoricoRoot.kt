@@ -37,6 +37,7 @@ data class AppShellHistoricoState(
     val filtroOperadora: String? = null,
     val onFiltroOperadoraChange: (String?) -> Unit = {},
     val operadorasDisponiveis: List<String> = emptyList(),
+    val onExcluirMedicao: (String) -> Unit = {},
     /** Grid de uptime dos últimos 7 dias (issues #1666/#1520) — vazio até o ViewModel calcular. */
     val blocosUptime: List<BlocoUptime> = emptyList(),
 )
@@ -63,6 +64,7 @@ internal fun AppShellHistoricoRoot(
         filtroOperadora = state.filtroOperadora,
         onFiltroOperadoraChange = state.onFiltroOperadoraChange,
         operadorasDisponiveis = state.operadorasDisponiveis,
+        onExcluirMedicao = state.onExcluirMedicao,
         blocosUptime = state.blocosUptime,
         adsEnabled = adsEnabled,
     )

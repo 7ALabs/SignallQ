@@ -50,7 +50,7 @@ principal, `consumer_speedtest_enabled`, já existia como smoke-test e passou a 
 true`). #1497 (ver seção 9) acrescentou a 11ª entrada, `consumer_diagnostico_shadow_mode_enabled`,
 migrando o último consumidor real do sistema legado SIG-13. NDS-02k (issue #1759) acrescentou a
 12ª entrada, `consumer_diagnostico_nds_live_enabled` — kill switch da chamada viva ao NDS
-(`NdsClient.evaluate`) dentro de `DiagnosticOrchestrator`, `defaultValue: false`, mutuamente
+(`NdsClient.evaluate`) dentro de `DiagnosticOrchestrator`, `defaultValue: true`, mutuamente
 exclusiva com a flag do shadow mode acima (ligada, desliga o shadow mode para o mesmo install).
 Backend/UI do Admin (F2/#1478, F3/#1479) continuam fora do escopo deste documento.
 

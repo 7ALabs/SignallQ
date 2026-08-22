@@ -45,8 +45,7 @@ internal fun AppShellFeatureFlagsState.tabHabilitada(index: Int): Boolean =
     when (index) {
         0 -> homeEnabled
         1 -> speedtestEnabled
-        2 -> wifiEnabled
-        3 -> historyEnabled
+        2 -> historyEnabled
         else -> true
     }
 
@@ -54,21 +53,16 @@ internal fun tabModuleId(index: Int): String? =
     when (index) {
         0 -> ConsumerFeatureModuleIds.HOME
         1 -> ConsumerFeatureModuleIds.SPEEDTEST
-        2 -> ConsumerFeatureModuleIds.WIFI
-        3 -> ConsumerFeatureModuleIds.HISTORY
+        2 -> ConsumerFeatureModuleIds.HISTORY
         else -> null
     }
 
-/** Primeira tab habilitada na ordem de prioridade 1 (Velocidade, padrao de cold start),
- *  0 (Inicio), 2 (Sinal), 3 (Historico) -- usada quando a tab atual perde a flag em
- *  runtime e precisa de um destino seguro. `4` (Ferramentas) e sempre o ultimo recurso
+/** Primeira raiz habilitada na ordem de prioridade 1 (Velocidade), 0 (Início), 2 (Histórico) --
+ *  usada quando a raiz atual perde a flag em runtime e precisa de um destino seguro. `3`
+ *  (Ferramentas) é sempre o último recurso
  *  por nunca ser gateada. */
 internal fun AppShellFeatureFlagsState.primeiraTabHabilitada(): Int =
-    listOf(1, 0, 2, 3).firstOrNull { tabHabilitada(it) } ?: 4
-
-/** Fallback respeita as raízes expostas pelo shell ativo. */
-internal fun AppShellFeatureFlagsState.primeiraTabHabilitada(mode: AppShellMode): Int =
-    mode.roots().firstOrNull { tabHabilitada(it.legacyIndex) }?.legacyIndex ?: AppShellRoot.Tools.legacyIndex
+    listOf(0, 1, 2).firstOrNull { tabHabilitada(it) } ?: 3
 
 /**
  * Bloqueio de uma rota/overlay: registra `feature_blocked_remote` (sem dado pessoal) e

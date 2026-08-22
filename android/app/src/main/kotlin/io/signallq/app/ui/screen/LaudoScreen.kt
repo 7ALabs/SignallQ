@@ -19,8 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,6 +52,7 @@ import io.signallq.app.ui.component.DecisaoDiagnosticoLocal
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkStatusDot
 import io.signallq.app.ui.component.LkSurfaceCard
+import io.signallq.app.ui.component.SignallQButton
 import io.signallq.app.ui.component.corContainer
 import io.signallq.app.ui.component.corConteudo
 import io.signallq.app.ui.component.labelPt
@@ -133,20 +132,12 @@ fun LaudoScreen(
             val data = dataHoraEpochMs?.let { Date(it) } ?: Date()
             SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.of("pt", "BR")).format(data)
         }
-    val headerTitulo =
-        buildString {
-            if (nomeUsuario.isNotBlank()) append("$nomeUsuario · ")
-            if (operadora.isNotBlank()) append(operadora)
-            if (velocidadeContratadaMbps != null && velocidadeContratadaMbps > 0) append(" $velocidadeContratadaMbps Mbps")
-        }.ifBlank { "Diagnóstico de rede" }
-    val headerSub =
-        buildString {
-            ssid?.let { append("SSID $it") }
-            ipLocal?.let {
-                if (isNotEmpty()) append(" · ")
-                append(mascaraIpLocal(it))
-            }
-        }
+    val redeResumo =
+        listOfNotNull(
+            ssid?.takeIf { it.isNotBlank() },
+            ultimaMedicao?.connectionType?.let(::tipoRedeLabelLaudo),
+        ).joinToString(" · ").ifBlank { "Não identificada" }
+    val resultadoResumo = decisao?.veredito ?: "Não disponível"
 
     Scaffold(
         containerColor = c.bgPrimary,
@@ -174,7 +165,7 @@ fun LaudoScreen(
                     ) {
                         if (gerando) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
+                                modifier = Modifier.size(LkSpacing.lg),
                                 color = c.textPrimary,
                                 strokeWidth = 2.dp,
                             )
@@ -211,6 +202,22 @@ fun LaudoScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.lg),
         ) {
+            item {
+                Column {
+                    Text(
+                        "Relatório de diagnóstico",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = c.textPrimary,
+                    )
+                    Spacer(Modifier.height(LkSpacing.xs))
+                    Text(
+                        "Um resumo compartilhável das evidências encontradas nesta conexão.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = c.textSecondary,
+                    )
+                }
+            }
+
             // Banner de status — colorido por severidade da decisão
             if (decisao != null) {
                 item {
@@ -240,7 +247,6 @@ fun LaudoScreen(
                                     fontWeight = FontWeight.W600,
                                     color = textColor,
                                 )
-                                Spacer(Modifier.height(1.dp))
                                 Text(
                                     decisao.titulo,
                                     style = MaterialTheme.typography.titleSmall,
@@ -289,30 +295,14 @@ fun LaudoScreen(
                 }
             }
 
-            // Header
+            // Contexto do relatório: sem valores inferidos; cada linha vem do diagnóstico ou da medição.
             item {
                 Column {
-                    Text(
-                        "RELATÓRIO DE DIAGNÓSTICO · $dataHora",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.W600,
-                        color = c.textTertiary,
-                    )
-                    Spacer(Modifier.height(LkSpacing.xs))
-                    Text(
-                        headerTitulo,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.W700,
-                        color = c.textPrimary,
-                    )
-                    if (headerSub.isNotBlank()) {
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            headerSub,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = c.textTertiary,
-                        )
-                    }
+                    LaudoResumoRow(label = "Rede", value = redeResumo, c = c)
+                    HorizontalDivider(color = c.border, thickness = 0.5.dp)
+                    LaudoResumoRow(label = "Resultado", value = resultadoResumo, c = c)
+                    HorizontalDivider(color = c.border, thickness = 0.5.dp)
+                    LaudoResumoRow(label = "Gerado", value = dataHora, c = c)
                     // #375: sem conexao no momento da consulta — deixa explicito que os
                     // dados exibidos sao de uma medicao anterior, nao uma analise nova.
                     if (!conectado) {
@@ -427,35 +417,14 @@ fun LaudoScreen(
             }
 
             item {
-                Button(
+                SignallQButton(
                     onClick = compartilharLaudo,
-                    enabled = !gerando,
+                    label = "Compartilhar PDF",
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(LkRadius.button),
-                    colors = ButtonDefaults.buttonColors(containerColor = c.primary),
-                    contentPadding = PaddingValues(vertical = 14.dp),
-                ) {
-                    if (gerando) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp,
-                        )
-                        Spacer(Modifier.width(LkSpacing.sm))
-                    } else {
-                        Icon(
-                            imageVector = Icons.Outlined.Share,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(LkSpacing.sm))
-                    }
-                    Text(
-                        "Compartilhar laudo em PDF",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.W600,
-                    )
-                }
+                    enabled = !gerando,
+                    loading = gerando,
+                    leadingIcon = Icons.Outlined.Share,
+                )
             }
         }
     }
@@ -477,6 +446,22 @@ private fun LaudoSection(
 }
 
 @Composable
+private fun LaudoResumoRow(
+    label: String,
+    value: String,
+    c: LkTokens,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = LkSpacing.sm),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
+        Text(value, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+    }
+}
+
+@Composable
 private fun LaudoMetrica(
     label: String,
     valor: String,
@@ -491,7 +476,7 @@ private fun LaudoMetrica(
             style = MaterialTheme.typography.labelMedium,
             color = c.textTertiary,
         )
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(LkSpacing.xs))
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 valor,
@@ -499,12 +484,12 @@ private fun LaudoMetrica(
                 fontWeight = FontWeight.W700,
                 color = c.textPrimary,
             )
-            Spacer(Modifier.width(3.dp))
+            Spacer(Modifier.width(LkSpacing.xs))
             Text(
                 unidade,
                 style = MaterialTheme.typography.labelMedium,
                 color = c.textSecondary,
-                modifier = Modifier.padding(bottom = 2.dp),
+                modifier = Modifier.padding(bottom = LkSpacing.xs),
             )
         }
         if (nota != null) {
@@ -665,12 +650,3 @@ private fun tipoRedeLabelLaudo(connectionType: String): String =
         connectionType.equals("movel", ignoreCase = true) -> "Rede móvel"
         else -> "Não identificado"
     }
-
-/** Mascara o último octeto de um IPv4 para proteger dados sensíveis no laudo.
- * Ex: "192.168.1.100" → "192.168.1.*"
- * IPv6 e formatos não-IPv4 são retornados sem alteração.
- * Input é trimado para lidar com espaços acidentais. */
-private fun mascaraIpLocal(ip: String): String {
-    val partes = ip.trim().split(".")
-    return if (partes.size == 4) "${partes[0]}.${partes[1]}.${partes[2]}.*" else ip.trim()
-}

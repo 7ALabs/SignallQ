@@ -10,7 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.zIndex
 
 /**
- * Overlay "Novidades" do menu lateral e do Perfil (GH#1358) — extraído do corpo de [AppShell]
+ * Overlay "Novidades" do Perfil (GH#1358) — extraído do corpo de [AppShell]
  * pela issue #1695 (épico #1647), entrada de exemplo do [AppShellOverlayRegistry].
  */
 @Composable

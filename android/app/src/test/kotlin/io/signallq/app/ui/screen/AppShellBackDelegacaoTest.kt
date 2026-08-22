@@ -20,13 +20,13 @@ import org.junit.Test
  */
 class AppShellBackDelegacaoTest {
     private fun navigatorComPilha(vararg overlays: AppShellOverlay): AppShellNavigator =
-        AppShellNavigator(initialTab = AppShellRoot.Home.legacyIndex).apply {
+        AppShellNavigator(initialTab = AppShellRoot.Home.index).apply {
             overlays.forEach { open(it) }
         }
 
     @Test
     fun `sem overlay na pilha nao ha o que consumir`() {
-        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.legacyIndex)
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.index)
         assertFalse(navigator.consumirBackDoOverlayTopo())
     }
 
@@ -112,7 +112,7 @@ class AppShellBackDelegacaoTest {
     fun `registro e por raiz de navegacao, seguindo a pilha corrente`() {
         // A pilha do navigator é por raiz. Trocar de raiz muda o topo, e o interceptador do
         // overlay que ficou na outra raiz não pode responder por ela.
-        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.legacyIndex)
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.index)
         navigator.open(AppShellOverlay.DiagnosticoGuiado)
         navigator.registrarBackDoOverlay(AppShellOverlay.DiagnosticoGuiado) { true }
         assertTrue(navigator.consumirBackDoOverlayTopo())

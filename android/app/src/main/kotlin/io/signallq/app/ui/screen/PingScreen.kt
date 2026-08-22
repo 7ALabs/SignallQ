@@ -20,7 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -52,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.signallq.app.R
+import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.feature.dns.DetectorEnderecoIpPrivado
 import io.signallq.app.feature.speedtest.PingExecutor
 import io.signallq.app.feature.speedtest.PingResultado
@@ -60,6 +61,7 @@ import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.component.SignallQScreenState
+import io.signallq.app.ui.component.classificarLatenciaLocal
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -234,8 +236,8 @@ fun PingScreen(
                 navigationIcon = {
                     IconButton(onClick = onVoltar) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Voltar",
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = "Fechar",
                             tint = c.textPrimary,
                         )
                     }
@@ -545,6 +547,11 @@ private fun PingResultadoBloco(
         modifier = Modifier.padding(bottom = LkSpacing.md),
     )
 
+    if (!falhaTotal && !resultado.abortadoPorRede) {
+        PingResultadoHero(resultado = resultado, c = c)
+        Spacer(Modifier.height(LkSpacing.xl))
+    }
+
     Row(
         modifier =
             Modifier
@@ -604,6 +611,53 @@ private fun PingResultadoBloco(
         )
     }
 }
+
+@Composable
+private fun PingResultadoHero(
+    resultado: PingResultado,
+    c: LkTokens,
+) {
+    val veredito = vereditoPing(resultado.latenciaMs, resultado.perdaPercentual)
+    val cor =
+        when (veredito) {
+            "Excelente", "Bom" -> c.success
+            "Regular" -> c.warning
+            else -> c.error
+        }
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+    ) {
+        Text(
+            text = "%.0f ms".format(resultado.latenciaMs),
+            style = MaterialTheme.typography.displaySmall,
+            fontWeight = FontWeight.W600,
+            color = cor,
+        )
+        Text(
+            text = "$veredito · %.0f%% sem resposta".format(resultado.perdaPercentual),
+            style = MaterialTheme.typography.bodyMedium,
+            color = c.textSecondary,
+        )
+    }
+}
+
+internal fun vereditoPing(
+    latenciaMs: Double,
+    perdaPercentual: Double,
+): String =
+    when {
+        perdaPercentual > 0.0 -> "Com perda de dados"
+        else ->
+            when (classificarLatenciaLocal(latenciaMs)) {
+                MetricStatus.excelente -> "Excelente"
+                MetricStatus.bom -> "Bom"
+                MetricStatus.regular -> "Regular"
+                MetricStatus.ruim, MetricStatus.critico -> "Ruim"
+                MetricStatus.inconclusivo -> "Inconclusivo"
+            }
+    }
 
 @Composable
 private fun PingMetricCard(

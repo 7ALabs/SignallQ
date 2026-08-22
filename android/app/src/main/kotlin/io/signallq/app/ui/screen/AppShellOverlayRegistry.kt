@@ -75,13 +75,14 @@ internal fun AppShellOverlayRegistry(
     onAssistAbandono: (AssistAbandonado) -> Unit,
     onPreSelecaoParaDiagnosticoGuiado: (objetivo: ObjetivoDiagnostico?, respostaPasso0: Int?) -> Unit,
     onSolicitarDiagnostico: () -> Long?,
-    // Termos / Novidades / Privacidade — menu lateral (GH#1358).
+    // Termos / Novidades / Privacidade — Perfil (GH#1358).
     appVersion: String,
     onAbrirGerenciarDados: () -> Unit,
     // Detalhes técnicos — pós resultado de velocidade (Feature #550, issue #1475).
     resultadoSpeedtest: ResultadoSpeedtest?,
     localizacaoServidor: String?,
     localDevice: LocalNetworkDeviceSnapshot?,
+    onGerarLaudo: () -> Unit = {},
     // Sinal Wi-Fi — hub Ferramentas (GH#1201).
     temPermissaoLocalizacao: Boolean,
     localizacaoBloqueadaPermanentemente: Boolean,
@@ -113,6 +114,7 @@ internal fun AppShellOverlayRegistry(
         resultadoSpeedtest = resultadoSpeedtest,
         localizacaoServidor = localizacaoServidor,
         localDevice = localDevice,
+        onGerarLaudo = onGerarLaudo,
     )
     AppShellSinalWifiOverlay(
         overlayStack = overlayStack,

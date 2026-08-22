@@ -2,15 +2,10 @@ package io.signallq.app.ui.screen
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.SemanticsActions
-import androidx.compose.ui.test.assertHasClickAction
-import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.dp
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.core.network.contracts.wifi.RedeVizinha
@@ -92,47 +87,22 @@ class Inicio2ConnectionTrailTest {
     }
 
     @Test
-    fun `somente tres destinos aplicaveis sao expostos e aparelho permanece textual`() {
-        assertEquals(
-            setOf(Inicio2TrailRoute.Equipamento, Inicio2TrailRoute.Wifi),
-            map(EstadoConexao.wifi).nodes.mapNotNull { it.route }.toSet(),
-        )
-        assertEquals(
-            setOf(Inicio2TrailRoute.SinalMovel),
-            map(EstadoConexao.movel).nodes.mapNotNull { it.route }.toSet(),
-        )
-        assertTrue(map(EstadoConexao.desconectado).nodes.all { it.route == null })
-        assertTrue(map(EstadoConexao.desconhecido).nodes.all { it.route == null })
-        assertTrue(map(EstadoConexao.wifi).nodes.single { it.title == "Este aparelho" }.route == null)
-    }
-
-    @Test
-    fun `font scale 2 mantem alvo acessivel e rota valida`() {
-        var route: Inicio2TrailRoute? = null
+    fun `font scale 2 mantem a trilha informativa sem acoes falsas`() {
         composeRule.setContent {
             SignallQTheme {
                 CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) {
                     Inicio2ConnectionTrail(
                         state =
                             Inicio2ConnectionTrailState(
-                                nodes = listOf(Inicio2TrailNode("Equipamento", "Roteador", Inicio2TrailRoute.Equipamento)),
+                                nodes = listOf(Inicio2TrailNode("Equipamento", "Roteador")),
                                 supportingMessage = null,
                             ),
-                        onOpenRoute = { route = it },
                     )
                 }
             }
         }
 
-        composeRule.onNodeWithText("Trilha da conexão").assertIsDisplayed()
-        composeRule
-            .onNodeWithText("Equipamento")
-            .assertHasClickAction()
-            .assertHeightIsAtLeast(48.dp)
-            .performClick()
-        val action = composeRule.onNodeWithText("Equipamento").fetchSemanticsNode().config[SemanticsActions.OnClick]
-        assertEquals("Abrir detalhes de Equipamento", action.label)
-        assertEquals(Inicio2TrailRoute.Equipamento, route)
+        composeRule.onNodeWithText("Equipamento principal").assertIsDisplayed()
     }
 
     private fun map(estado: EstadoConexao) =

@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.Dns
@@ -113,19 +112,16 @@ fun FerramentasScreen(
                 title = "Ferramentas",
                 navigationIcon = {
                     IconButton(onClick = onVoltar ?: onAbrirMenu) {
-                        val guided = LocalAppShellMode.current == AppShellMode.Guided2
                         Icon(
                             imageVector =
                                 when {
                                     onVoltar != null -> Icons.AutoMirrored.Filled.ArrowBack
-                                    guided -> Icons.Filled.AccountCircle
-                                    else -> Icons.Filled.Menu
+                                    else -> Icons.Filled.AccountCircle
                                 },
                             contentDescription =
                                 when {
                                     onVoltar != null -> "Voltar"
-                                    guided -> stringResource(R.string.ajustes_cd_editar_perfil)
-                                    else -> stringResource(R.string.appshell_cd_abrir_menu)
+                                    else -> stringResource(R.string.ajustes_cd_editar_perfil)
                                 },
                         )
                     }
@@ -206,15 +202,15 @@ private fun FerramentaDisponibilidade.subtitle(
 
 private fun TipoFerramenta.visual(): FerramentaVisual =
     when (this) {
-        TipoFerramenta.SINAL_CANAIS_MOVEL -> FerramentaVisual("Sinal e canais", "Wi-Fi, canais e rede móvel", Icons.Outlined.SignalCellularAlt)
-        TipoFerramenta.SINAL_WIFI -> FerramentaVisual("Sinal Wi-Fi ao vivo", "Intensidade enquanto você anda pela casa", Icons.Outlined.NetworkWifi)
-        TipoFerramenta.DISPOSITIVOS -> FerramentaVisual("Dispositivos", "Quem está na sua rede", Icons.Outlined.Devices)
-        TipoFerramenta.EQUIPAMENTO_INTERNET -> FerramentaVisual("Equipamento de internet", "Status do modem ou ONT", Icons.Outlined.Router)
-        TipoFerramenta.PING -> FerramentaVisual("Ping", "Tempo de resposta para um endereço", Icons.Outlined.NetworkCheck)
-        TipoFerramenta.DNS -> FerramentaVisual("DNS", "Compare servidores", Icons.Outlined.Dns)
-        TipoFerramenta.LAUDO -> FerramentaVisual("Laudo", "Resumo técnico completo", Icons.Outlined.Description)
-        TipoFerramenta.MONITORAMENTO -> FerramentaVisual("Monitoramento", "Alertas em segundo plano", Icons.Outlined.MonitorHeart)
-        TipoFerramenta.MODO_JOGOS -> FerramentaVisual("Modo gamer", "Teste para jogos específicos", Icons.Outlined.SportsEsports)
+        TipoFerramenta.SINAL_CANAIS_MOVEL -> FerramentaVisual("Wi-Fi e rede móvel", "Veja o sinal e os canais da sua rede", Icons.Outlined.SignalCellularAlt)
+        TipoFerramenta.SINAL_WIFI -> FerramentaVisual("Encontrar um bom lugar", "Ande pela casa acompanhando o sinal Wi-Fi", Icons.Outlined.NetworkWifi)
+        TipoFerramenta.DISPOSITIVOS -> FerramentaVisual("Quem está usando sua rede", "Veja os aparelhos conectados", Icons.Outlined.Devices)
+        TipoFerramenta.EQUIPAMENTO_INTERNET -> FerramentaVisual("Seu equipamento", "Veja o estado do modem ou da ONT", Icons.Outlined.Router)
+        TipoFerramenta.PING -> FerramentaVisual("Tempo de resposta", "Veja se há atraso até um endereço", Icons.Outlined.NetworkCheck)
+        TipoFerramenta.DNS -> FerramentaVisual("Abertura de sites", "Compare servidores que ajudam a encontrar sites", Icons.Outlined.Dns)
+        TipoFerramenta.LAUDO -> FerramentaVisual("Relatório para sua operadora", "Gere um resumo completo da conexão", Icons.Outlined.Description)
+        TipoFerramenta.MONITORAMENTO -> FerramentaVisual("Acompanhar conexão", "Receba alertas quando algo mudar", Icons.Outlined.MonitorHeart)
+        TipoFerramenta.MODO_JOGOS -> FerramentaVisual("Jogos online", "Veja se sua conexão pode causar atrasos", Icons.Outlined.SportsEsports)
     }
 
 @Preview(name = "Ferramentas claro", showBackground = true)

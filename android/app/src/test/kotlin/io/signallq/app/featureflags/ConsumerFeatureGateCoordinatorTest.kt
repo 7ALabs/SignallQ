@@ -47,8 +47,6 @@ class ConsumerFeatureGateCoordinatorTest {
             flagFlow(FeatureFlagKeys.CONSUMER_HISTORY_ENABLED, true)
         every { provider.observe(FeatureFlagKeys.CONSUMER_SETTINGS_ENABLED) } returns
             flagFlow(FeatureFlagKeys.CONSUMER_SETTINGS_ENABLED, true)
-        every { provider.observe(FeatureFlagKeys.CONSUMER_APP_SHELL_GUIDED_2_ENABLED) } returns
-            flagFlow(FeatureFlagKeys.CONSUMER_APP_SHELL_GUIDED_2_ENABLED, false)
         return provider
     }
 

@@ -46,10 +46,8 @@ class ConsumerFeatureGateCoordinator
                 featureFlagProvider.observe(FeatureFlagKeys.CONSUMER_DIAGNOSTICO_ENABLED),
                 featureFlagProvider.observe(FeatureFlagKeys.CONSUMER_HISTORY_ENABLED),
                 featureFlagProvider.observe(FeatureFlagKeys.CONSUMER_SETTINGS_ENABLED),
-                featureFlagProvider.observe(FeatureFlagKeys.CONSUMER_APP_SHELL_GUIDED_2_ENABLED),
             ) { valores ->
                 AppShellFeatureFlagsState(
-                    guidedShell2Enabled = valores[9].raw.asBooleanOrNull() ?: false,
                     homeEnabled = valores[0].raw.asBooleanOrNull() ?: true,
                     speedtestEnabled = valores[1].raw.asBooleanOrNull() ?: true,
                     wifiEnabled = valores[2].raw.asBooleanOrNull() ?: true,

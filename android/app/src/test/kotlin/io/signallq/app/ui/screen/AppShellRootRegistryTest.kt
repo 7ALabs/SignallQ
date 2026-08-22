@@ -35,8 +35,8 @@ import org.robolectric.annotation.Config
  *   PR #1697 (4 de 7 entradas do registro de overlay sem cobertura efetiva).
  *
  * A terceira camada é específica desta issue e não existia no registro de overlays: o slot
- * [AppShellRootRegistry] `naoMigradas`. Ele precisa ser chamado para as 3 raízes ainda inline em
- * `AppShell.kt` e **nunca** para as 2 migradas — um `when` que caísse no slot por engano
+ * [AppShellRootRegistry] `inlineRootContent`. Ele precisa ser chamado para as 2 raízes ainda
+ * inline em `AppShell.kt` e **nunca** para as 2 registradas — um `when` que caísse no slot por engano
  * renderizaria a tela antiga silenciosamente.
  *
  * ## Campo sabidamente NÃO coberto: `AppShellHistoricoRootEntry.adsEnabled`
@@ -100,14 +100,14 @@ class AppShellRootRegistryTest {
         root: AppShellRoot,
         historico: AppShellHistoricoRootEntry = historicoEntry(),
         ferramentas: AppShellFerramentasRootEntry = ferramentasEntry(),
-        naoMigradas: @Composable (AppShellRoot) -> Unit = {},
+        inlineRootContent: @Composable (AppShellRoot) -> Unit = {},
     ) {
         SignallQTheme {
             AppShellRootRegistry(
                 root = root,
                 historico = historico,
                 ferramentas = ferramentas,
-                naoMigradas = naoMigradas,
+                inlineRootContent = inlineRootContent,
             )
         }
     }
@@ -170,15 +170,15 @@ class AppShellRootRegistryTest {
             }
         }
         listOf(
-            "Sinal e canais" to "sinal_canais",
-            "Sinal Wi-Fi ao vivo" to "sinal_wifi",
-            "Dispositivos" to "dispositivos",
-            "Equipamento de internet" to "equipamento",
-            "Ping" to "ping",
-            "DNS" to "dns",
-            "Laudo" to "laudo",
-            "Monitoramento" to "monitoramento",
-            "Modo gamer" to "modo_gamer",
+            "Wi-Fi e rede móvel" to "sinal_canais",
+            "Encontrar um bom lugar" to "sinal_wifi",
+            "Quem está usando sua rede" to "dispositivos",
+            "Seu equipamento" to "equipamento",
+            "Tempo de resposta" to "ping",
+            "Abertura de sites" to "dns",
+            "Relatório para sua operadora" to "laudo",
+            "Acompanhar conexão" to "monitoramento",
+            "Jogos online" to "modo_gamer",
         ).forEach { (rotulo, _) ->
             composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(rotulo))
             composeRule.onNodeWithText(rotulo).performClick()
@@ -227,11 +227,11 @@ class AppShellRootRegistryTest {
                 )
             }
         }
-        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Ping"))
-        composeRule.onNodeWithText("Ping").performClick()
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Tempo de resposta"))
+        composeRule.onNodeWithText("Tempo de resposta").performClick()
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Reconecte-se."))
         composeRule.onNodeWithText("Reconecte-se.").assertExists()
-        composeRule.runOnIdle { assertTrue("Ping offline nao pode ter navegado", abertas.isEmpty()) }
+        composeRule.runOnIdle { assertTrue("Tempo de resposta offline nao pode ter navegado", abertas.isEmpty()) }
     }
 
     // ─── Por registro (a entrada existe dentro do agregador) ────────────────────
@@ -245,7 +245,7 @@ class AppShellRootRegistryTest {
     @Test
     fun `registro compoe ferramentas quando a raiz e Tools`() {
         composeRule.setContent { RegistroDeTeste(root = AppShellRoot.Tools) }
-        composeRule.onNodeWithText("Sinal e canais").assertExists()
+        composeRule.onNodeWithText("Wi-Fi e rede móvel").assertExists()
     }
 
     @Test
@@ -279,8 +279,8 @@ class AppShellRootRegistryTest {
                     ),
             )
         }
-        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Ping"))
-        composeRule.onNodeWithText("Ping").performClick()
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Tempo de resposta"))
+        composeRule.onNodeWithText("Tempo de resposta").performClick()
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Reconecte-se."))
         composeRule.onNodeWithText("Reconecte-se.").assertExists()
     }
@@ -307,8 +307,8 @@ class AppShellRootRegistryTest {
                     ),
             )
         }
-        // Modo Legacy (default do LocalAppShellMode nos testes) => ícone de hambúrguer.
-        composeRule.onNodeWithContentDescription("Abrir menu").performClick()
+        // A jornada única usa Perfil como ação da app bar.
+        composeRule.onNodeWithContentDescription("Editar perfil").performClick()
         composeRule.runOnIdle { assertTrue(abriuMenu) }
     }
 
@@ -328,7 +328,7 @@ class AppShellRootRegistryTest {
                     ),
             )
         }
-        composeRule.onNodeWithContentDescription("Abrir menu").performClick()
+        composeRule.onNodeWithContentDescription("Editar perfil").performClick()
         composeRule.runOnIdle { assertTrue(abriuMenu) }
     }
 
@@ -344,17 +344,17 @@ class AppShellRootRegistryTest {
                 ferramentas = ferramentasEntry(onRegistrarAbertura = { registradas += it.screenName() }),
             )
         }
-        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("DNS"))
-        composeRule.onNodeWithText("DNS").performClick()
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Abertura de sites"))
+        composeRule.onNodeWithText("Abertura de sites").performClick()
         composeRule.runOnIdle { assertEquals(listOf("dns"), registradas) }
     }
 
-    // ─── Slot das raízes ainda não migradas ────────────────────────────────────
+    // ─── Slot das raízes mantidas inline ───────────────────────────────────────
 
     @Test
-    fun `registro delega ao slot exatamente as tres raizes ainda inline no AppShell`() {
+    fun `registro delega ao slot exatamente as duas raizes inline no AppShell`() {
         // Trava os dois lados da fronteira de migração: quem deve cair no slot cai, e a raiz
-        // recebida é a mesma que entrou (um `naoMigradas(AppShellRoot.Home)` fixo passaria
+        // recebida é a mesma que entrou (um `inlineRootContent(AppShellRoot.Home)` fixo passaria
         // despercebido sem a comparação por valor).
         //
         // A raiz é dirigida por estado em vez de um `setContent` por iteração: `ComposeTestRule`
@@ -363,9 +363,9 @@ class AppShellRootRegistryTest {
         var recebida: AppShellRoot? = null
         val raizAtual = mutableStateOf(AppShellRoot.History)
         composeRule.setContent {
-            RegistroDeTeste(root = raizAtual.value, naoMigradas = { recebida = it })
+            RegistroDeTeste(root = raizAtual.value, inlineRootContent = { recebida = it })
         }
-        listOf(AppShellRoot.Home, AppShellRoot.Speed, AppShellRoot.Wifi).forEach { raiz ->
+        listOf(AppShellRoot.Home, AppShellRoot.Speed).forEach { raiz ->
             composeRule.runOnIdle {
                 recebida = null
                 raizAtual.value = raiz
@@ -378,12 +378,12 @@ class AppShellRootRegistryTest {
     @Test
     fun `registro nunca cai no slot para as raizes ja migradas`() {
         // Mutante que este teste mata: mover History ou Tools de volta para o ramo
-        // `naoMigradas` do `when`. O app continuaria funcionando (o slot ainda desenha a tela
+        // `inlineRootContent` do `when`. O app continuaria funcionando (o slot ainda desenha a tela
         // antiga em `AppShell.kt`), mas a migração teria sido revertida em silêncio.
         var recebida: AppShellRoot? = null
         val raizAtual = mutableStateOf(AppShellRoot.Home)
         composeRule.setContent {
-            RegistroDeTeste(root = raizAtual.value, naoMigradas = { recebida = it })
+            RegistroDeTeste(root = raizAtual.value, inlineRootContent = { recebida = it })
         }
         listOf(AppShellRoot.History, AppShellRoot.Tools).forEach { raiz ->
             composeRule.runOnIdle {

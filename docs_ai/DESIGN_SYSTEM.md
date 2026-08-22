@@ -128,9 +128,9 @@ não confundir contexto: numa fase de SpeedTest a cor identifica a *fase*, não 
 | `color.surface.background` | `surface` | `#FFFFFF` | Nível 0 — fundo da tela |
 | `color.surface.card` | `cardSurface` | `#F7F7F8` | Nível 1 — card necessário |
 | `color.surface.card-elevated` | `cardSurfaceElevated` | `#EEEEF0` | Conteúdo interno ou card elevado |
-| `color.surface.container` | `surfaceContainer` | `#F3EEFA` | Nível 1 — conteúdo agrupado |
-| `color.surface.container-high` | `surfaceContainerHigh` | `#ECE5F5` | Nível 2 — interativo/destacado |
-| `color.surface.container-highest` | `surfaceContainerHighest` | `#E6DDF2` | Nível 3 — sobreposto |
+| `color.surface.container` | `surfaceContainer` | `#F1F1F2` | Nível 1 — conteúdo agrupado |
+| `color.surface.container-high` | `surfaceContainerHigh` | `#E8E8EA` | Nível 2 — interativo/destacado |
+| `color.surface.container-highest` | `surfaceContainerHighest` | `#DEDEE1` | Nível 3 — sobreposto |
 | `color.surface.selected` | *(novo, formalizado nesta revisão — ver seção 6)* | `surfaceContainerHigh` + borda `primary`@25–30% | Estado selecionado |
 
 Valores completos (claro/escuro, todos os roles MD3) permanecem na tabela original — ver
@@ -161,16 +161,16 @@ apêndice A ao final desta seção.
 | `secondaryContainer` | `#DCE6FF` |
 | `onSecondaryContainer` | `#001A41` |
 | `surface` | `#FFFFFF` |
-| `surfaceDim` | `#DED8E1` |
+| `surfaceDim` | `#DEDEE1` |
 | `surfaceContainerLowest` | `#FFFFFF` |
-| `surfaceContainerLow` | `#F8F5FB` |
-| `surfaceContainer` | `#F3EEFA` |
-| `surfaceContainerHigh` | `#ECE5F5` |
-| `surfaceContainerHighest` | `#E6DDF2` |
+| `surfaceContainerLow` | `#F7F7F8` |
+| `surfaceContainer` | `#F1F1F2` |
+| `surfaceContainerHigh` | `#E8E8EA` |
+| `surfaceContainerHighest` | `#DEDEE1` |
 | `onSurface` | `#1C1B1F` |
 | `onSurfaceVariant` | `#49454F` |
 | `outline` | `#79747E` |
-| `outlineVariant` | `#CAC4D0` |
+| `outlineVariant` | `#C8C8CD` |
 | `inverseSurface` | `#313033` |
 | `inverseOnSurface` | `#F4EFF4` |
 | `errorContainer` / `onErrorContainer` | `#FFDAD6` / `#410002` |
@@ -352,7 +352,7 @@ do consumer (`LkColors`/`colors_and_type.css`).
 
 | Nível | Papel | Token de superfície | Sombra/borda | Exemplo real no app |
 | --- | --- | --- | --- | --- |
-| **0 — Fundo da tela** | Plano base, não compete com o conteúdo | `surface` / `background` | Nenhuma | Fundo de `HomeScreen`, `SinalScreen` |
+| **0 — Fundo da tela** | Plano base, não compete com o conteúdo | `surface` / `background` | Nenhuma | Fundo de `Inicio2Screen`, `SinalScreen` |
 | **1 — Conteúdo agrupado** | Cards comuns, métricas, listas | `cardSurface` | Sem sombra; **nunca borda** — separação é só pelo tint de superfície | Card de resumo, lista de dispositivos |
 | **2 — Conteúdo interativo/destacado** | Selecionado, recomendação prioritária, controles interativos | `cardSurfaceElevated` ou `surfaceContainerHigh` + `color.surface.selected` | Contraste tonal maior, pode ter borda de destaque suave e sombra discreta | `RecommendationEngineCard` em destaque, rede Wi-Fi conectada |
 | **3 — Sobreposto** | Dialogs, bottom sheets, menus, tooltips | `surfaceContainerHighest` | Sombra ou scrim controlado, contraste suficiente | `LkSheetFrame`, `ConfirmacaoDialog`, `LgpdConsentDialog` |
@@ -533,7 +533,7 @@ não comportem.
 
 ### BottomNav
 
-`NavigationBar` de 5 abas (Início · Velocidade · Sinal · Histórico · Ajustes é overlay, não aba —
+`NavigationBar` de 4 raízes (Início · Velocidade · Histórico · Ferramentas; Perfil é overlay, não raiz —
 ver nota de navegação no `.claude/CLAUDE.md`). Ícone `FILL 1` só no item ativo.
 
 ### Botões (variantes)

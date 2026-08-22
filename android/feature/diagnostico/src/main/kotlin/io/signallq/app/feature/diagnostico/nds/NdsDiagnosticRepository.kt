@@ -5,12 +5,14 @@ import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.core.diagnostico.DiagnosticRunner
+import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.GameReadinessClassifier
 import io.signallq.app.core.diagnostico.UsageProfileClassifier
 import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.NoOpAnalyticsHelper
 import io.signallq.app.core.nds.NdsClient
 import io.signallq.app.core.nds.NdsDiagnosticsOutcome
+import io.signallq.app.core.nds.NdsDiagnosticsResponse
 import io.signallq.app.core.nds.toDiagnosticReport
 import io.signallq.app.core.nds.toNdsDiagnosticsRequest
 import io.signallq.app.feature.diagnostico.BuildConfig
@@ -83,12 +85,23 @@ class NdsDiagnosticRepository(
                             perfisUso = UsageProfileClassifier.classificarTodos(input),
                             gameReadiness = GameReadinessClassifier.classificarTodos(input),
                         )
-                    analyticsHelper.registrarDiagNdsOutcome(
-                        outcome = "success",
-                        fallbackLocalUsado = false,
-                        latenciaMs = latenciaMs,
-                    )
-                    relatorio
+                    if (relatorio.decisao.status == DiagnosticStatus.ok || outcome.response.temEvidenciaAcionavel()) {
+                        analyticsHelper.registrarDiagNdsOutcome(
+                            outcome = "success",
+                            fallbackLocalUsado = false,
+                            latenciaMs = latenciaMs,
+                        )
+                        relatorio
+                    } else {
+                        Timber.w("NdsDiagnosticRepository: resposta sem causa ou proximo passo, usando diagnostico local")
+                        analyticsHelper.registrarDiagNdsOutcome(
+                            outcome = "insufficient_evidence",
+                            fallbackLocalUsado = true,
+                            latenciaMs = latenciaMs,
+                            errorCode = "INSUFFICIENT_EVIDENCE",
+                        )
+                        fallbackLocal(input, enabledAreas)
+                    }
                 } catch (t: Throwable) {
                     Timber.w(t, "NdsDiagnosticRepository: falha ao mapear resposta do NDS, caindo para motor local")
                     analyticsHelper.registrarDiagNdsOutcome(
@@ -135,3 +148,12 @@ class NdsDiagnosticRepository(
         DiagnosticRunner.run(input, enabledAreas, gerarRecomendacoes = RecomendacaoPraticaEngine::recomendar)
             .copy(evaluationSource = DiagnosticEvaluationSource.BUNDLED_LOCAL)
 }
+
+private fun NdsDiagnosticsResponse.temEvidenciaAcionavel(): Boolean =
+    recommendation != null ||
+        results.any { modulo ->
+            modulo.warnings.isNotEmpty() ||
+                modulo.missingInputs.isNotEmpty() ||
+                modulo.cards.isNotEmpty() ||
+                (modulo.result["matched_rules"] as? List<*>)?.isNotEmpty() == true
+        }

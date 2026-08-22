@@ -1,7 +1,5 @@
 package io.signallq.app.ui.screen
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -36,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,6 +60,7 @@ internal fun MovelTab(
     temPermissaoTelefonia: Boolean,
     onSolicitarPermissaoTelefonia: () -> Unit,
     tokens: LkTokens,
+    onAbrirContatoOperadora: (ContatoOperadora?, String?) -> Unit,
     resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity?,
     resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity,
 ) {
@@ -101,6 +99,7 @@ internal fun MovelTab(
                 simsAtivos = simsAtivos,
                 movelSnapshot = movelSnapshot,
                 tokens = c,
+                onAbrirContatoOperadora = onAbrirContatoOperadora,
                 resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
                 resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
             )
@@ -108,6 +107,7 @@ internal fun MovelTab(
             MobileSnapshotCard(
                 snapshot = movelSnapshot,
                 tokens = c,
+                onAbrirContatoOperadora = onAbrirContatoOperadora,
                 resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
                 resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
             )
@@ -120,6 +120,7 @@ private fun ChipsAtivosSection(
     simsAtivos: List<MovelSimSnapshot>,
     movelSnapshot: MovelSnapshot?,
     tokens: LkTokens,
+    onAbrirContatoOperadora: (ContatoOperadora?, String?) -> Unit,
     resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity?,
     resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity,
 ) {
@@ -133,6 +134,7 @@ private fun ChipsAtivosSection(
                 summarySnapshot = movelSnapshot,
                 cardLabel = "Chip ${index + 1}",
                 tokens = tokens,
+                onAbrirContatoOperadora = onAbrirContatoOperadora,
                 resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
                 resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
             )
@@ -146,6 +148,7 @@ private fun SimCard(
     summarySnapshot: MovelSnapshot?,
     cardLabel: String,
     tokens: LkTokens,
+    onAbrirContatoOperadora: (ContatoOperadora?, String?) -> Unit,
     resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity?,
     resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity,
 ) {
@@ -159,7 +162,7 @@ private fun SimCard(
     // troca (ver kdoc de ResolvedOperadoraIdentity: nao carrega contato).
     val operadoraLocal = remember(operadora) { BancoOperadoras.resolverMovel(operadora) }
     // Identidade visual (logo) agora usa a cadeia completa local -> diretorio remoto ->
-    // fallback (GH#965/#970), igual a HomeScreen/DiagnosticoGuiadoScreen — antes, esta aba
+    // fallback (GH#965/#970), igual a Inicio2Screen/DiagnosticoGuiadoScreen — antes, esta aba
     // usava so o catalogo local e caia direto no placeholder generico pra qualquer operadora
     // fora dele, mesmo quando o diretorio remoto teria o logo.
     val identidadeOperadora =
@@ -173,74 +176,35 @@ private fun SimCard(
     // GH#1662 — cabeçalho não expõe mais RSRP em dBm direto (conclusão precede siglas, spec
     // design 2.0 §4.3/4.4); o valor bruto passa a viver em MobileDetalhesTecnicosCard, depois
     // dos cards de conclusão. buildMobileSummary (com o RSRP) continua existindo — é
-    // compartilhado com HomeScreen.kt (GH#1258) e não muda aqui.
+    // compartilhado com Inicio2Screen.kt (GH#1258) e não muda aqui.
     val resumoRede = resumoCabecalhoMovel(dadosSinal, capturaReduzida = false)
     val qualidade = classificarQualidadeSinalMovel(dadosSinal, tokens)
     val tipoConexao = classificarTipoConexaoMovel(dadosSinal, tokens)
     val experiencia = classificarExperienciaMovel(dadosSinal, tokens)
     // GH#1662 — decisão de produto (Luiz, 2026-08-19): operadora não identificada não esconde
     // o botão, cai num fallback genérico (busca) em vez de ficar desabilitado.
-    val suporteUrl = contatoOperadoraUrl(operadoraLocal, operadoraIdentificada)
-    val context = LocalContext.current
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
-        LkSurfaceCard(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
-                    ) {
-                        Text(
-                            text = cardLabel,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.W600,
-                            color = tokens.textSecondary,
-                        )
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
-                    ) {
-                        Text(
-                            text = operadora,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.W600,
-                            color = tokens.textPrimary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false),
-                        )
-                        if (sim.isDefaultData) {
-                            MobileStatusBadge(
-                                label = "EM USO",
-                                color = tokens.success,
-                            )
-                        }
-                    }
-                    Text(
-                        text = resumoRede,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = tokens.textSecondary,
-                    )
-                }
-                identidadeOperadora?.let {
-                    OperadoraBadge(
-                        identidade = it,
-                        size = 48.dp,
-                    )
-                } ?: PlaceholderOperadoraBadge(tokens = tokens)
-            }
-        }
+        Text(
+            text = cardLabel,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.W600,
+            color = tokens.textPrimary,
+        )
+        Text(
+            text = "$operadora · $resumoRede",
+            style = MaterialTheme.typography.bodyLarge,
+            color = tokens.textSecondary,
+        )
+
+        MobileSignalHero(
+            qualidade = qualidade,
+            experiencia = experiencia,
+            tokens = tokens,
+        )
 
         MobileDetailCard(
             icon = Icons.Outlined.SignalCellularAlt,
@@ -269,7 +233,7 @@ private fun SimCard(
         MobileDetalhesTecnicosCard(dadosSinal, tokens)
 
         OutlinedButton(
-            onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(suporteUrl))) },
+            onClick = { onAbrirContatoOperadora(operadoraLocal, operadoraIdentificada) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(LkRadius.button),
         ) {
@@ -284,6 +248,55 @@ private fun SimCard(
     }
 }
 
+@Composable
+private fun MobileSignalHero(
+    qualidade: MobileInsight,
+    experiencia: MobileInsight,
+    tokens: LkTokens,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .size(LkSpacing.xxxl + LkSpacing.xxxl)
+                    .clip(CircleShape)
+                    .background(qualidade.color.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.SignalCellularAlt,
+                contentDescription = null,
+                tint = qualidade.color,
+                modifier = Modifier.size(LkSpacing.xl),
+            )
+        }
+        Text(
+            text = destaqueSinalMovel(qualidade.label),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.W600,
+            color = qualidade.color,
+        )
+        Text(
+            text = experiencia.description,
+            style = MaterialTheme.typography.bodyMedium,
+            color = tokens.textSecondary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
+    }
+}
+
+internal fun destaqueSinalMovel(qualidade: String): String =
+    when (qualidade) {
+        "Excelente", "Bom" -> "Forte"
+        "Regular" -> "Regular"
+        "Ruim" -> "Fraco"
+        else -> qualidade
+    }
+
 // GH#1258 — MobileInsight/DadosSinalMovel/paraDadosSinalMovel/classificarQualidadeSinalMovel/
 // classificarTipoConexaoMovel/classificarExperienciaMovel/piorMetricStatusSinalMovel/
 // radioTechDeTecnologia/buildMobileSummary foram extraidos para SinalMovelClassificacao.kt
@@ -296,7 +309,7 @@ private fun SimCard(
  * RSRP/RSRQ/SINR só devem aparecer "nos detalhes", depois da conclusão — por isso o valor bruto
  * agora só existe em [MobileDetalhesTecnicosCard]. Esta função fica local (não em
  * SinalMovelClassificacao.kt) porque só serve a esta tela — buildMobileSummary continua igual e
- * é o que HomeScreen.kt consome (GH#1258), não mudou aqui.
+ * é o que Inicio2Screen.kt consome (GH#1258), não mudou aqui.
  */
 internal fun resumoCabecalhoMovel(
     dados: DadosSinalMovel,
@@ -533,6 +546,7 @@ private fun PlaceholderOperadoraBadge(tokens: LkTokens) {
 private fun MobileSnapshotCard(
     snapshot: MovelSnapshot,
     tokens: LkTokens,
+    onAbrirContatoOperadora: (ContatoOperadora?, String?) -> Unit,
     resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity?,
     resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity,
 ) {
@@ -558,8 +572,6 @@ private fun MobileSnapshotCard(
     val qualidade = classificarQualidadeSinalMovel(dadosSinal, tokens)
     val tipoConexao = classificarTipoConexaoMovel(dadosSinal, tokens)
     val experiencia = classificarExperienciaMovel(dadosSinal, tokens)
-    val suporteUrl = contatoOperadoraUrl(operadoraLocal, snapshot.operadora)
-    val context = LocalContext.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
@@ -601,6 +613,11 @@ private fun MobileSnapshotCard(
                 } ?: PlaceholderOperadoraBadge(tokens = tokens)
             }
         }
+        MobileSignalHero(
+            qualidade = qualidade,
+            experiencia = experiencia,
+            tokens = tokens,
+        )
         MobileDetailCard(
             icon = Icons.Outlined.SignalCellularAlt,
             title = "Qualidade do sinal",
@@ -628,7 +645,7 @@ private fun MobileSnapshotCard(
         MobileDetalhesTecnicosCard(dadosSinal, tokens)
 
         OutlinedButton(
-            onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(suporteUrl))) },
+            onClick = { onAbrirContatoOperadora(operadoraLocal, snapshot.operadora) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(LkRadius.button),
         ) {

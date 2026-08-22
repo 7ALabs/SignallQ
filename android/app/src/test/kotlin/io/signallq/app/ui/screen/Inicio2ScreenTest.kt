@@ -50,7 +50,7 @@ class Inicio2ScreenTest {
         }
 
         composeRule.onNodeWithText("Sem internet").assertIsDisplayed()
-        composeRule.onNodeWithText("Ainda não analisada").assertIsDisplayed()
+        composeRule.onNodeWithText("Internet lenta").assertIsDisplayed()
         composeRule
             .onNodeWithText("Analisar minha conexão")
             .assertIsDisplayed()
@@ -206,5 +206,44 @@ class Inicio2ScreenTest {
         composeRule.onNodeWithText("Análise interrompida").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Abrir perfil e ajustes").performClick()
         assertEquals(1, profiles)
+    }
+
+    @Test
+    fun `atalhos de problema nao compartilham o mesmo destino`() {
+        var videos = 0
+        var problems = 0
+        composeRule.setContent {
+            SignallQTheme {
+                Inicio2Screen(
+                    uiState = Inicio2UiState(Inicio2Conexao.Wifi, "Casa", Inicio2Analise.SemAnalise),
+                    onAnalisarConexao = {
+                        1L
+                    },
+                    onAbrirPerfil = {},
+                    onAbrirProblemas = { problems++ },
+                    onAbrirVideos = { videos++ },
+                )
+            }
+        }
+
+        val videoAction =
+            composeRule
+                .onNodeWithText("Vídeos ou chamadas travam")
+                .fetchSemanticsNode()
+                .config[SemanticsActions.OnClick]
+                .action
+        val otherProblemAction =
+            composeRule
+                .onNodeWithText("Outro problema")
+                .fetchSemanticsNode()
+                .config[SemanticsActions.OnClick]
+                .action
+        composeRule.runOnIdle {
+            videoAction?.invoke()
+            otherProblemAction?.invoke()
+        }
+
+        assertEquals(1, videos)
+        assertEquals(1, problems)
     }
 }

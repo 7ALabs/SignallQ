@@ -12,7 +12,7 @@ import io.signallq.app.ui.component.classificarSinrLocal
 
 /**
  * GH#1206 — classificacao canonica de sinal movel (qualidade/tipo de conexao/experiencia),
- * consumida por [SinalScreen] (aba Movel) e por `HomeScreen.kt` (card "Rede movel" e "CHIP
+ * consumida por [SinalScreen] (aba Movel) e por `Inicio2Screen.kt` (card "Rede movel" e "CHIP
  * MOVEL" — GH#1258). Extraido de SinalScreen.kt em 2026-07-21 (GH#1258) porque passou a ter
  * 2 consumidores fora do arquivo original; nao move Composables, so as funcoes puras de
  * classificacao (regra de higiene, secao 4.8b).

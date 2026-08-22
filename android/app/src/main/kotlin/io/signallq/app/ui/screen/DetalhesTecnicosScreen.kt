@@ -26,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnapshot
 import io.signallq.app.feature.speedtest.ResultadoSpeedtest
 import io.signallq.app.ui.LkSpacing
@@ -34,10 +33,11 @@ import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LocalDeviceSection
+import io.signallq.app.ui.component.SignallQButton
 import io.signallq.app.ui.component.mapLocalDeviceSectionUiState
 
 /**
- * "Detalhes da conexão" como tela própria — Feature #550, issue #1475. Antes vivia como
+ * "Detalhes técnicos" como tela própria — Feature #550, issue #1475. Antes vivia como
  * accordion dentro da sheet automática "Análise detalhada" (`DiagnosticoDetalhadoSheet`,
  * retirada nesta issue); agora é um dos 3 destinos do resumo pós-teste
  * ([ResultadoVelocidadeScreen]), sem nenhum dado de IA/recomendação — só a leitura
@@ -51,6 +51,7 @@ fun DetalhesTecnicosScreen(
     localizacaoServidor: String?,
     localDevice: LocalNetworkDeviceSnapshot?,
     onVoltar: () -> Unit,
+    onGerarLaudo: () -> Unit,
 ) {
     val c = LocalLkTokens.current
     Scaffold(
@@ -58,7 +59,7 @@ fun DetalhesTecnicosScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text("Detalhes da conexão", style = MaterialTheme.typography.titleLarge, color = c.textPrimary)
+                    Text("Detalhes técnicos", style = MaterialTheme.typography.titleLarge, color = c.textPrimary)
                 },
                 navigationIcon = {
                     IconButton(onClick = onVoltar) {
@@ -78,31 +79,52 @@ fun DetalhesTecnicosScreen(
                     .padding(padding)
                     .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg),
         ) {
-            LkSectionOverline(text = "Sobre este tipo de conexão")
+            Text(
+                text = "Dados medidos",
+                style = MaterialTheme.typography.headlineSmall,
+                color = c.textPrimary,
+            )
+            Spacer(Modifier.height(LkSpacing.xs))
+            Text(
+                text = "Valores brutos para quem precisa investigar ou falar com o suporte.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.textSecondary,
+            )
+
+            Spacer(Modifier.height(LkSpacing.xl))
+            DetalheRow("Download", "%.1f Mbps".format(resultado.downloadMbps), c)
+            HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
+            DetalheRow("Upload", "%.1f Mbps".format(resultado.uploadMbps), c)
+            HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
+            DetalheRow("Latência", "%.0f ms".format(resultado.latenciaMs), c)
+            HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
+            DetalheRow("Jitter", "%.0f ms".format(resultado.jitterMs), c)
+            HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
+            DetalheRow("Falhas estimadas", "%.1f%%".format(resultado.perdaPercentual), c)
+            HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
+            DetalheRow("Servidor", localizacaoServidor ?: "Não informado pelo teste", c)
+
+            Spacer(Modifier.height(LkSpacing.xl))
+            SignallQButton(
+                label = "Gerar laudo",
+                onClick = onGerarLaudo,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(Modifier.height(LkSpacing.xl))
+            LkSectionOverline(text = "Mais detalhes da conexão")
             Spacer(Modifier.height(LkSpacing.xs))
             Text(
                 text = orientacaoPorTipoDeRede(resultado.connectionType, resultado.tecnologia),
                 style = MaterialTheme.typography.bodyMedium,
                 color = c.textSecondary,
-                lineHeight = 20.sp,
             )
-
-            Spacer(Modifier.height(LkSpacing.xl))
-            LkSectionOverline(text = "Dados medidos")
-            Spacer(Modifier.height(LkSpacing.xs))
-            DetalheRow("Lentidão com a rede ocupada", "%.0f ms".format(resultado.bufferbloatMs), c)
+            Spacer(Modifier.height(LkSpacing.lg))
+            DetalheRow("Resposta com a rede ocupada", "%.0f ms".format(resultado.bufferbloatMs), c)
             HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
-            DetalheRow("Maior velocidade de download", "%.1f Mbps".format(resultado.peakDownloadMbps), c)
+            DetalheRow("Resposta durante download", "%.0f ms".format(resultado.latencyDownloadMs), c)
             HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
-            DetalheRow("Maior velocidade de upload", "%.1f Mbps".format(resultado.peakUploadMbps), c)
-            HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
-            DetalheRow("Tempo de resposta durante download", "%.0f ms".format(resultado.latencyDownloadMs), c)
-            HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
-            DetalheRow("Tempo de resposta durante upload", "%.0f ms".format(resultado.latencyUploadMs), c)
-            if (resultado.stabilityScore in 0.0..1.0) {
-                HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
-                DetalheRow("Estabilidade da conexão", "%.0f%%".format(resultado.stabilityScore * 100), c)
-            }
+            DetalheRow("Resposta durante upload", "%.0f ms".format(resultado.latencyUploadMs), c)
             if (resultado.dnsLatencyMs != null) {
                 HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
                 DetalheRow(
@@ -111,10 +133,6 @@ fun DetalhesTecnicosScreen(
                     c = c,
                     sublabel = formatarIdentificacaoServidorDns(resultado.dnsProvider, resultado.dnsResolverIp),
                 )
-            }
-            if (!localizacaoServidor.isNullOrBlank()) {
-                HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
-                DetalheRow("Servidor usado no teste", localizacaoServidor, c)
             }
 
             Spacer(Modifier.height(LkSpacing.xl))
@@ -164,7 +182,7 @@ private fun DetalheRow(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(vertical = 9.dp)
+                .padding(vertical = LkSpacing.sm)
                 // GH#1502 (revisão independente da PR #1515) -- rótulo, identificação
                 // secundária do servidor e valor viram UM anúncio coerente pro TalkBack
                 // (ex.: "Tempo para localizar sites, Servidor DNS: Google DNS, 42 ms"),

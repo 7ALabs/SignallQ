@@ -388,7 +388,7 @@ class DiagnosticoGuiadoScreenTest {
         completarSegundaPerguntaJogos()
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
 
-        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_CANCELAR).performClick()
+        composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_CANCELAR).performScrollTo().performClick()
 
         assertEquals(1, analiseCancelada)
         composeRule.onNodeWithText("Com que frequência isso acontece?").assertIsDisplayed()

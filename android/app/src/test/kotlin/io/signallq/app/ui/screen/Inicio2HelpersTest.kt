@@ -8,7 +8,7 @@ import org.junit.Test
  * Regressão GH#515 — "5G NSA"/"5G SA" (jargão de operadora) não deve aparecer em texto
  * voltado ao usuário leigo fora de telas de detalhe técnico.
  */
-class HomeScreenHelpersTest {
+class Inicio2HelpersTest {
     @Test
     fun `5G NSA simplifica para 5G`() {
         assertEquals("5G", tecnologiaSimplificada("5G NSA"))

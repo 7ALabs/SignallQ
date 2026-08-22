@@ -201,12 +201,18 @@ private fun ModoGamerSelecaoJogoConteudo(
     Column(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg)) {
             Text(
-                text = "Qual jogo você quer analisar?",
+                text = "Como o jogo deve responder?",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.W600,
                 color = c.textPrimary,
             )
             Spacer(Modifier.height(LkSpacing.sm))
+            Text(
+                text = "Escolha um jogo para testar os servidores mais próximos.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.textSecondary,
+            )
+            Spacer(Modifier.height(LkSpacing.md))
             OutlinedTextField(
                 value = busca,
                 onValueChange = onBuscar,

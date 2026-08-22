@@ -86,9 +86,10 @@ fun AiVsMotorExplainer(
     evidencias: List<EvidenciaDiagnostico>,
     analisadorState: AnalisadorState,
     c: LkTokens,
+    sectionTitle: String = "Como identifiquei isso",
 ) {
     Column {
-        LkSectionOverline(text = "Como identifiquei isso")
+        LkSectionOverline(text = sectionTitle)
         Spacer(Modifier.height(LkSpacing.sm))
 
         Column(
@@ -256,12 +257,38 @@ fun RetesteVinculadoSection(
                 Text(text = "Testando novamente…", style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
             }
         is ComparacaoRetesteUiState.Concluido ->
-            Text(
-                text = comparacaoRetesteState.veredito,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.W600,
-                color = c.textPrimary,
-            )
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(LkRadius.card))
+                        .background(c.surfaceContainer)
+                        .padding(LkSpacing.lg),
+            ) {
+                Text(
+                    text = "Resultado da nova verificação",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = c.textSecondary,
+                )
+                Spacer(Modifier.height(LkSpacing.xs))
+                Text(
+                    text = comparacaoRetesteState.veredito,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.W600,
+                    color = c.textPrimary,
+                )
+                Spacer(Modifier.height(LkSpacing.xs))
+                Text(
+                    text =
+                        if (comparacaoRetesteState.comparavel) {
+                            "Comparamos esta verificação com a análise anterior."
+                        } else {
+                            "Não foi possível comparar as duas verificações com segurança."
+                        },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.textSecondary,
+                )
+            }
     }
 }
 

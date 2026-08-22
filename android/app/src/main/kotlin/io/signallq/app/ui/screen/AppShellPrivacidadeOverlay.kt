@@ -18,7 +18,7 @@ import com.google.android.ump.UserMessagingPlatform
 import io.signallq.app.ads.ConsentManager
 
 /**
- * Overlay "Privacidade" do menu lateral e do Perfil — extraído do corpo de [AppShell] pela
+ * Overlay "Privacidade" do Perfil — extraído do corpo de [AppShell] pela
  * issue #1695 (épico #1647), entrada de exemplo do [AppShellOverlayRegistry].
  *
  * [onAbrirGerenciarDados] fecha este overlay e abre a `DadosLocaisSheet` hoisted no AppShell

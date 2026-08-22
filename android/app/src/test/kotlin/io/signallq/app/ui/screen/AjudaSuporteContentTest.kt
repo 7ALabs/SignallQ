@@ -21,11 +21,13 @@ class AjudaSuporteContentTest {
     @Test
     fun `missing mail handler offers copy and announces visible feedback`() {
         var copied: String? = null
+        var abriuLaudo = false
         composeRule.setContent {
             SignallQTheme {
                 AjudaSuporteContent(
                     onAbrirEmail = { false },
                     onCopiarEmail = { copied = it },
+                    onAbrirLaudo = { abriuLaudo = true },
                 )
             }
         }
@@ -36,8 +38,10 @@ class AjudaSuporteContentTest {
             .assertIsDisplayed()
 
         composeRule.onNodeWithText("Copiar endereço").performClick()
+        composeRule.onNodeWithText("Anexar relatório").performClick()
 
         assertEquals(SUPPORT_EMAIL, copied)
+        assertEquals(true, abriuLaudo)
         composeRule.onNodeWithText("Endereço de suporte copiado.").assertIsDisplayed()
     }
 }

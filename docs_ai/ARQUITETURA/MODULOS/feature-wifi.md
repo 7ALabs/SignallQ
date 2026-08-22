@@ -43,7 +43,7 @@ Sem Hilt e sem Compose: o wiring é feito por `FeatureWifiModulo` (factories man
 |---|---|
 | `:app` | `android/app/build.gradle.kts:312` |
 
-No código do `:app`, os tipos do módulo aparecem em `di/AppModule.kt`, `ui/screen/AppShellState.kt`, `ui/screen/HomeScreen.kt`, `ui/screen/SinalWifiSection.kt`, `ui/screen/SinalCanalSection.kt` e `ui/screen/SinalTopologiaHelpers.kt` (issue #1660 extraiu a aba Wi-Fi/Canal do antigo `SinalScreen.kt` monolítico para esses dois arquivos).
+No código do `:app`, os tipos do módulo aparecem em `di/AppModule.kt`, `ui/screen/AppShellState.kt`, `ui/screen/Inicio2Screen.kt`, `ui/screen/SinalWifiSection.kt`, `ui/screen/SinalCanalSection.kt` e `ui/screen/SinalTopologiaHelpers.kt` (issue #1660 extraiu as superfícies Wi-Fi/Canal do antigo `SinalScreen.kt` monolítico para esses arquivos).
 
 ## Componentes principais
 

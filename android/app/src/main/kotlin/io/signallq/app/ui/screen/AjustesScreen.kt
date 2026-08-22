@@ -83,9 +83,12 @@ fun AjustesScreen(
     // pela DadosLocaisSheet abaixo; ver AcaoDadosLocaisEstado.kt.
     dadosLocaisAcaoEstado: AcaoDadosLocaisEstado = AcaoDadosLocaisEstado.Ocioso,
     onConsumirDadosLocaisAcaoEstado: () -> Unit = {},
+    quantidadeHistorico: Int? = null,
+    quantidadeApelidos: Int? = null,
     onAbrirHistorico: () -> Unit,
     onAbrirLaudo: () -> Unit,
     onAbrirPrivacidade: () -> Unit = {},
+    onAbrirTermos: () -> Unit = {},
     onAbrirNovidades: () -> Unit = {},
     onAbrirFibra: () -> Unit = {},
     // GH#936 — Fase 7 MD3 (5f): "Monitoramento passivo" + "Análise avançada" saíram de
@@ -115,7 +118,6 @@ fun AjustesScreen(
     // globais soltas (operadora/estadoUf/cidadeNome/velocidadeContratada*/ispDetectado/
     // ispConfirmado saíram daqui).
     val minhaConexao = provedor.minhaConexao
-    val monitoramentoAtivo = monitoramento.monitoramentoAtivo
     // GH#1099 — modemHost/modemUsername/modemPassword/modemPermanecerConectado/
     // gatewayIpDetectado/conectarGateway/onGatewayConectado removidos daqui: só existiam
     // pra alimentar o showGatewayConnectionSheet órfão abaixo (nunca setado como true em
@@ -178,7 +180,78 @@ fun AjustesScreen(
                     .padding(padding)
                     .background(c.bgPrimary),
         ) {
-            // ── PERFIL ───────────────────────────────────────────────────────────────
+            // Os quatro destinos do protótipo aparecem primeiro, para que a tela responda
+            // à intenção de cuidar da conexão antes das preferências secundárias.
+            item { Spacer(Modifier.height(LkSpacing.md)) }
+            item { SectionHeader("Sua conexão", c) }
+            item {
+                SettingsSectionCard(c = c) {
+                    ValueSettingRow(
+                        c = c,
+                        icon = Icons.Outlined.Router,
+                        label = "Equipamento de internet",
+                        subtitle = "Acesso e informações do roteador",
+                        value = null,
+                        onClick = onAbrirFibra,
+                    )
+                    HorizontalDivider(color = c.border, thickness = 1.dp)
+                    ValueSettingRow(
+                        c = c,
+                        icon = Icons.Outlined.Notifications,
+                        label = "Monitoramento e alertas",
+                        value = null,
+                        onClick = onAbrirMonitoramento,
+                    )
+                }
+            }
+            item { Spacer(Modifier.height(LkSpacing.base)) }
+
+            item { SectionHeader("Dados móveis", c) }
+            item {
+                SettingsSectionCard(c = c) {
+                    ToggleItem(
+                        c = c,
+                        icon = Icons.Outlined.Speed,
+                        label = "Permitir testes pesados",
+                        subtitle =
+                            "Autoriza medições de velocidade quando você estiver usando a rede móvel",
+                        checked = speedtestPermiteHeavyMovel,
+                        onCheckedChange = onSetSpeedtestPermiteHeavyMovel,
+                    )
+                    HorizontalDivider(color = c.border, thickness = 1.dp)
+                    Text(
+                        text = "Uso neste mês: ${formatarMegabytes(speedtestMbConsumidosMes)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.textSecondary,
+                        modifier = Modifier.padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+                    )
+                }
+            }
+            item { Spacer(Modifier.height(LkSpacing.base)) }
+
+            item { SectionHeader("Dados e privacidade", c) }
+            item {
+                SettingsSectionCard(c = c) {
+                    SimpleSettingRow(
+                        c = c,
+                        icon = Icons.Outlined.Lock,
+                        label = "Privacidade",
+                        onClick = onAbrirPrivacidade,
+                    )
+                    HorizontalDivider(color = c.border, thickness = 1.dp)
+                    ValueSettingRow(
+                        c = c,
+                        icon = Icons.Outlined.Delete,
+                        label = "Dados locais",
+                        subtitle = "Histórico, preferências e credenciais",
+                        value = null,
+                        onClick = { showDadosLocaisSheet = true },
+                    )
+                }
+            }
+            item { Spacer(Modifier.height(LkSpacing.base)) }
+
+            // ── PREFERÊNCIAS ADICIONAIS ──────────────────────────────────────────────
             // GH#1358 — hero card com avatar/foto removido: qualquer imagem/foto de perfil
             // fica desabilitada em todo o app. Edição de nome preservada, agora como linha
             // no mesmo padrão visual das demais seções (ValueSettingRow).
@@ -285,7 +358,7 @@ fun AjustesScreen(
                     )
                 }
             }
-            item { Spacer(Modifier.height(16.dp)) }
+            item { Spacer(Modifier.height(LkSpacing.base)) }
 
             item { SectionHeader("Aparência", c) }
             item {
@@ -299,7 +372,7 @@ fun AjustesScreen(
                     )
                 }
             }
-            item { Spacer(Modifier.height(16.dp)) }
+            item { Spacer(Modifier.height(LkSpacing.base)) }
 
             item { SectionHeader("Notificações", c) }
             item {
@@ -314,27 +387,7 @@ fun AjustesScreen(
                     )
                 }
             }
-            item { Spacer(Modifier.height(16.dp)) }
-
-            item { SectionHeader("Dados e privacidade", c) }
-            item {
-                SettingsSectionCard(c = c) {
-                    SimpleSettingRow(
-                        c = c,
-                        icon = Icons.Outlined.Lock,
-                        label = "Privacidade",
-                        onClick = onAbrirPrivacidade,
-                    )
-                    HorizontalDivider(color = c.border, thickness = 1.dp)
-                    SimpleSettingRow(
-                        c = c,
-                        icon = Icons.Outlined.Delete,
-                        label = "Gerenciar dados",
-                        onClick = { showDadosLocaisSheet = true },
-                    )
-                }
-            }
-            item { Spacer(Modifier.height(16.dp)) }
+            item { Spacer(Modifier.height(LkSpacing.base)) }
 
             item { SectionHeader("Sobre", c) }
             item {
@@ -387,6 +440,8 @@ fun AjustesScreen(
             c = c,
             appVersion = appVersion,
             onDismiss = { showSobreSheet = false },
+            onAbrirTermos = onAbrirTermos,
+            onAbrirPrivacidade = onAbrirPrivacidade,
         )
     }
 
@@ -399,6 +454,9 @@ fun AjustesScreen(
             onResetarApp = onResetarApp,
             estado = dadosLocaisAcaoEstado,
             onConsumirEstado = onConsumirDadosLocaisAcaoEstado,
+            quantidadeHistorico = quantidadeHistorico,
+            quantidadeApelidos = quantidadeApelidos,
+            onAbrirHistorico = onAbrirHistorico,
         )
     }
 
@@ -477,6 +535,7 @@ private fun ValueSettingRow(
     c: LkTokens,
     icon: ImageVector,
     label: String,
+    subtitle: String? = null,
     value: String?,
     onClick: () -> Unit,
     isPlaceholder: Boolean = false,
@@ -505,12 +564,20 @@ private fun ValueSettingRow(
             )
         }
         Spacer(Modifier.width(LkSpacing.lg))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = c.textPrimary,
-            modifier = Modifier.weight(1f),
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                color = c.textPrimary,
+            )
+            if (!subtitle.isNullOrBlank()) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.textSecondary,
+                )
+            }
+        }
         if (!value.isNullOrBlank()) {
             Text(
                 text = value,
@@ -536,6 +603,13 @@ private fun temaLabel(valor: String): String =
         "claro" -> "Claro"
         "escuro" -> "Escuro"
         else -> "Sistema"
+    }
+
+private fun formatarMegabytes(valor: Long): String =
+    when {
+        valor < 1024L -> "$valor MB"
+        valor < 1024L * 1024L -> "%.1f GB".format(valor / 1024.0)
+        else -> "%.2f TB".format(valor / (1024.0 * 1024.0))
     }
 
 @Composable

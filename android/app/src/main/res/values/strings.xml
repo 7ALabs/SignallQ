@@ -228,8 +228,7 @@
     <string name="appshell_concluido">Concluído</string>
     <string name="appshell_cd_concluido">Concluído</string>
 
-    <!-- AppShell: menu lateral (GH#1358) -->
-    <string name="appshell_cd_abrir_menu">Abrir menu</string>
+    <!-- AppShell: Perfil (GH#1358) -->
     <string name="appshell_menu_ajustes">Ajustes</string>
     <string name="appshell_menu_ajuda_suporte">Ajuda e suporte</string>
     <string name="appshell_menu_privacidade">Política de privacidade</string>
@@ -381,4 +380,5 @@
     <string name="ajustes_notif_dns_sub">Avisa quando sites e apps demorarem para carregar</string>
     <string name="ajustes_notif_wifi">Sinal Wi-Fi fraco</string>
     <string name="ajustes_notif_wifi_sub">Avisa quando o sinal cair abaixo do ideal</string>
+    <string name="appshell_cd_abrir_perfil">Abrir perfil</string>
 </resources>

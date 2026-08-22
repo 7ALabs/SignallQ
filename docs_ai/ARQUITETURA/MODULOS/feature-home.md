@@ -16,7 +16,7 @@ last_updated: "2026-08-06"
 
 Concentra a única regra de negócio da tela Início que foi extraída para fora do `:app`: decidir **qual** medição é exibida — a da execução atual ou a última medição salva no histórico — nunca uma mistura das duas (`ResolvedorMedicaoHome`). Trabalha sobre uma struct genérica (`MetricasMedicaoHome`), deliberadamente desacoplada dos tipos de `:featureSpeedtest` e de `:coreDatabase`.
 
-Não é dele: renderizar a tela Início (o `HomeScreen.kt` inteiro vive em `:app`), buscar dados, converter entidades do Room, orquestrar speedtest ou navegação. O módulo não tem nenhum Composable, ViewModel, UiState nem Repository.
+Não é dele: renderizar a tela Início (a `Inicio2Screen.kt` vive em `:app`), buscar dados, converter entidades do Room, orquestrar speedtest ou navegação. O módulo não tem nenhum Composable, ViewModel, UiState nem Repository.
 
 ## Dependências
 
@@ -40,7 +40,7 @@ Nenhuma dependência de módulo `:core*` e nenhuma de outra `feature` — é o m
 |---|---|
 | `:app` | `android/app/build.gradle.kts:311` |
 
-No código, o consumo é feito por `android/app/src/main/kotlin/io/signallq/app/kotlin/ui/screen/HomeMedicaoAdapter.kt` (55 linhas — adapta `ResultadoSpeedtest`/`MedicaoEntity` para `MetricasMedicaoHome`) e por `HomeScreen.kt`.
+No código, o consumo é feito por `android/app/src/main/kotlin/io/signallq/app/ui/screen/HomeMedicaoAdapter.kt` (55 linhas — adapta `ResultadoSpeedtest`/`MedicaoEntity` para `MetricasMedicaoHome`) e por `Inicio2Screen.kt`.
 
 ## Componentes principais
 
@@ -57,7 +57,7 @@ Total de Kotlin no módulo: 145 linhas (67 em `src/main`, 78 em `src/test`).
 
 ## Riscos e dívidas
 
-- **Módulo quase vazio versus tela gigante no `:app`.** `HomeScreen.kt` tem **2967 linhas** em `android/app/src/main/kotlin/io/signallq/app/kotlin/ui/screen/HomeScreen.kt`, enquanto `:featureHome` inteiro tem 67 linhas de produção. A feature "Início" não mora no módulo `:featureHome` — mora no `:app`. É a inconsistência arquitetural mais visível deste módulo: o nome promete uma feature, o conteúdo entrega um utilitário.
+- **Módulo quase vazio versus tela no `:app`.** `Inicio2Screen.kt` vive em `:app`, enquanto `:featureHome` inteiro tem 67 linhas de produção. A feature "Início" não mora no módulo `:featureHome` — mora no `:app`; o módulo permanece responsável somente pela regra pura de seleção da medição.
 - **Path físico alinhado ao package `io.signallq.app.*`** — migração de `io/signallq/app/kotlin/` concluída em 2026-08-15 (#1645).
 - **`FeatureHomeModulo` é código morto** (`object` sem membros, 2 linhas). Ou ganha as factories do módulo, ou é removido.
 - **Regra de dependência entre features: respeitada.** O KDoc de `ResolvedorMedicaoHome` documenta explicitamente que a struct genérica existe porque `feature/home → feature/speedtest` é proibido, e a adaptação dos tipos reais foi empurrada para o `:app` (`HomeMedicaoAdapter.kt`). É o exemplo correto do padrão no repositório.

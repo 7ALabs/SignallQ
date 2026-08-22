@@ -169,11 +169,18 @@ internal fun DispositivosLista(
                 }
             }
 
+            item {
+                ResumoDispositivos(
+                    totalDispositivos = dispositivos.size,
+                    c = c,
+                )
+            }
+
             // ── Infraestrutura ─────────────────────────────────────────────
             if (gateways.isNotEmpty()) {
                 item {
                     SectionHeaderRow(
-                        title = "Infraestrutura (${gateways.size})",
+                        title = "Infraestrutura",
                         c = c,
                     )
                 }
@@ -192,7 +199,7 @@ internal fun DispositivosLista(
             // ── Pontos de acesso / nós mesh ───────────────────────────────
             if (aps.isNotEmpty()) {
                 item {
-                    SectionHeaderRow(title = "Pontos de acesso (${aps.size})", c = c)
+                    SectionHeaderRow(title = "Pontos de acesso", c = c)
                 }
                 items(aps) { ap ->
                     ApMeshItem(
@@ -211,7 +218,7 @@ internal fun DispositivosLista(
             if (clientes.isNotEmpty()) {
                 val adIndex = clientes.size / 2
                 item {
-                    SectionHeaderRow(title = "Dispositivos (${clientes.size})", c = c)
+                    SectionHeaderRow(title = "Dispositivos", c = c)
                 }
                 itemsIndexed(clientes) { index, dev ->
                     if (index == adIndex) {
@@ -280,6 +287,43 @@ internal fun DispositivosLista(
         }
     }
 }
+
+@Composable
+private fun ResumoDispositivos(
+    totalDispositivos: Int,
+    c: LkTokens,
+) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = LkSpacing.lg,
+                    top = LkSpacing.xl,
+                    end = LkSpacing.lg,
+                    bottom = LkSpacing.sm,
+                ),
+    ) {
+        Text(
+            text = tituloResumoDispositivos(totalDispositivos),
+            style = MaterialTheme.typography.headlineSmall,
+            color = c.textPrimary,
+        )
+        Spacer(Modifier.height(LkSpacing.xs))
+        Text(
+            text = "A varredura identifica o que está visível para este celular.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = c.textSecondary,
+        )
+    }
+}
+
+internal fun tituloResumoDispositivos(totalDispositivos: Int): String =
+    if (totalDispositivos == 1) {
+        "1 aparelho nesta rede"
+    } else {
+        "$totalDispositivos aparelhos nesta rede"
+    }
 
 // ---------------------------------------------------------------------------
 // Linha de gateway (Roteador / Extensor)
@@ -588,7 +632,12 @@ private fun SectionHeaderRow(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(start = LkSpacing.lg, top = 20.dp, end = LkSpacing.lg, bottom = 8.dp),
+                .padding(
+                    start = LkSpacing.lg,
+                    top = LkSpacing.lg,
+                    end = LkSpacing.lg,
+                    bottom = LkSpacing.sm,
+                ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         LkSectionOverline(title, modifier = Modifier.weight(1f))

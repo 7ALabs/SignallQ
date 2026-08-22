@@ -15,7 +15,7 @@ enum class OrigemMedicaoHome {
  * os campos vindos da MESMA execução". Não importa tipos de `feature/speedtest`
  * (`ResultadoSpeedtest`/`MeasurementStatus`) nem de `core/database` (`MedicaoEntity`)
  * propositalmente: a lei de dependência do repo proíbe `feature/home` → `feature/speedtest`.
- * Quem adapta os tipos reais pra esta struct genérica é o `:app` (`HomeScreen.kt`), que já
+ * Quem adapta os tipos reais pra esta struct genérica é o `:app` (`HomeMedicaoAdapter.kt`), que já
  * depende dos dois módulos.
  *
  * @param utilizavel true quando esta entrada deve ser considerada exibível como resultado —

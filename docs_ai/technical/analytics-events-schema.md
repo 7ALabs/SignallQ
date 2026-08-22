@@ -41,7 +41,7 @@ Pontos de disparo:
 
 ### `screen_view`
 
-Disparo: ao navegar entre as 5 abas do `AppShell`.
+Disparo: ao navegar entre as 4 raízes do `AppShell`.
 
 | Parâmetro | Tipo | Descrição |
 |---|---|---|

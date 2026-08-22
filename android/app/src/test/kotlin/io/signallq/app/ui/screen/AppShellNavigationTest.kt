@@ -5,8 +5,8 @@ import org.junit.Test
 
 class AppShellNavigationTest {
     @Test
-    fun `guided shell starts on Home and exposes four roots`() {
-        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.legacyIndex)
+    fun `jornada unica inicia em Inicio e expoe quatro raizes`() {
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.index)
 
         assertEquals(AppShellRoot.Home, navigator.selectedRoot)
         assertEquals(
@@ -16,18 +16,13 @@ class AppShellNavigationTest {
                 AppShellRoot.History,
                 AppShellRoot.Tools,
             ),
-            AppShellMode.Guided2.roots(),
+            AppShellRoot.entries.toList(),
         )
     }
 
     @Test
-    fun `legacy shell remains available with Wifi root`() {
-        assertEquals(AppShellRoot.entries, AppShellMode.Legacy.roots())
-    }
-
-    @Test
     fun `switching roots preserves each independent overlay stack`() {
-        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.legacyIndex)
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.index)
         navigator.open(AppShellOverlay.SinalWifi)
 
         navigator.select(AppShellRoot.Tools)
@@ -40,7 +35,7 @@ class AppShellNavigationTest {
 
     @Test
     fun `back removes only the top overlay from current root`() {
-        val navigator = AppShellNavigator(initialTab = AppShellRoot.Speed.legacyIndex)
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Speed.index)
         navigator.open(AppShellOverlay.ResultadoVelocidade)
         navigator.open(AppShellOverlay.DetalhesTecnicos)
 
@@ -50,7 +45,7 @@ class AppShellNavigationTest {
 
     @Test
     fun `saver restores selected root and all root stacks`() {
-        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.legacyIndex)
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.index)
         navigator.open(AppShellOverlay.SinalWifi)
         navigator.select(AppShellRoot.Tools)
         navigator.open(AppShellOverlay.Dns)
@@ -65,7 +60,7 @@ class AppShellNavigationTest {
 
     @Test
     fun `duplicate overlay is not pushed twice`() {
-        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.legacyIndex)
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.index)
 
         navigator.open(AppShellOverlay.Perfil)
         navigator.open(AppShellOverlay.Perfil)
@@ -76,7 +71,7 @@ class AppShellNavigationTest {
 
     @Test
     fun `perfil ajustes preserves back stack and restoration`() {
-        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.legacyIndex)
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.index)
         navigator.open(AppShellOverlay.Perfil)
         navigator.open(AppShellOverlay.Ajustes)
 
@@ -91,7 +86,7 @@ class AppShellNavigationTest {
 
     @Test
     fun `sinal canais is a deep restorable route from tools`() {
-        val navigator = AppShellNavigator(initialTab = AppShellRoot.Tools.legacyIndex)
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Tools.index)
         navigator.open(AppShellOverlay.SinalCanais)
 
         val restored = AppShellNavigator.restoreState(AppShellNavigator.saveState(navigator))
@@ -103,7 +98,7 @@ class AppShellNavigationTest {
 
     @Test
     fun `destinos aplicaveis da trilha voltam para Inicio`() {
-        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.legacyIndex)
+        val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.index)
 
         listOf(
             AppShellOverlay.EquipamentoInternet,
@@ -119,23 +114,16 @@ class AppShellNavigationTest {
 
     @Test
     fun `bar visibility follows root overlay and running speedtest contracts`() {
-        assertEquals(true, shouldShowAppShellBottomBar(AppShellMode.Guided2, isAtRoot = true, speedtestRunning = false))
-        assertEquals(false, shouldShowAppShellBottomBar(AppShellMode.Guided2, isAtRoot = false, speedtestRunning = false))
-        assertEquals(false, shouldShowAppShellBottomBar(AppShellMode.Guided2, isAtRoot = true, speedtestRunning = true))
-        assertEquals(true, shouldShowAppShellBottomBar(AppShellMode.Legacy, isAtRoot = false, speedtestRunning = false))
+        assertEquals(true, shouldShowAppShellBottomBar(isAtRoot = true, speedtestRunning = false))
+        assertEquals(false, shouldShowAppShellBottomBar(isAtRoot = false, speedtestRunning = false))
+        assertEquals(false, shouldShowAppShellBottomBar(isAtRoot = true, speedtestRunning = true))
     }
 
     @Test
     fun `screen view mapping remains stable without positional lookup`() {
         assertEquals(
-            listOf("home", "speedtest", "sinal_wifi", "historico", "ferramentas"),
+            listOf("home", "speedtest", "historico", "ferramentas"),
             AppShellRoot.entries.map(AppShellRoot::screenName),
         )
-    }
-
-    @Test
-    fun `rollout flag defaults Legacy and enables Guided2 explicitly`() {
-        assertEquals(AppShellMode.Legacy, AppShellFeatureFlagsState().shellMode)
-        assertEquals(AppShellMode.Guided2, AppShellFeatureFlagsState(guidedShell2Enabled = true).shellMode)
     }
 }

@@ -43,7 +43,7 @@ sealed interface GatewayConnectionResultado {
 
 /**
  * BUG#1511 (P0) — default unico e seguro para parametros/valores de [GatewayConnectionService]
- * em composables e data classes de UI (ex.: `HomeScreen.conectarGateway`,
+ * em composables e data classes de UI (ex.: `AppShell`/`Inicio2Screen`,
  * `AjustesModemState.conectarGateway`). Nunca duplicar o literal
  * `GatewayConnectionService { _, _, _ -> ... }` retornando [GatewayConnectionResultado.Sucesso]
  * como default — isso e exatamente o bug que a #1511 corrigiu. Qualquer caller de producao

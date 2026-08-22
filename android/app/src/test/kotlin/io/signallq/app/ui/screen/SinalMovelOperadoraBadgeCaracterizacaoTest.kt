@@ -36,7 +36,7 @@ import org.robolectric.annotation.Config
  *    nem tentava o catalogo local, nem pra operadora conhecida.
  *  - Este commit (funcional, em cima do anterior): `SinalScreen.kt` passa a usar
  *    `OperadoraDirectoryResolver.resolveIdentity` (local -> diretorio remoto -> fallback,
- *    GH#965/#970, mesmo padrao de `HomeScreen`/`DiagnosticoGuiadoScreen`) nos dois caminhos
+ *    GH#965/#970, mesmo padrao de `Inicio2Screen`/`DiagnosticoGuiadoScreen`) nos dois caminhos
  *    (`SimCard` e `MobileSnapshotCard`). As asercoes abaixo refletem o novo comportamento e
  *    validam o criterio de aceite (operadora ausente do catalogo local mas presente no
  *    diretorio remoto nao trava mais no placeholder estatico).

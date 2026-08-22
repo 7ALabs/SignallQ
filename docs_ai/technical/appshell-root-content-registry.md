@@ -11,11 +11,11 @@ version: "1.0.0"
 # Ponto de extensão de root content do AppShell
 
 - **Status:** ativo
-- **Última validação:** 2026-08-16 (issue #1698, épico #1647 — 2 das 5 raízes migradas)
+- **Última validação:** 2026-08-21 (jornada única — 2 das 4 raízes isoladas no registro)
 - **Fonte de verdade:** este documento para o padrão; o código
   (`android/app/src/main/kotlin/io/signallq/app/ui/screen/AppShellRootRegistry.kt`) é a fonte de
   verdade do comportamento real — se divergirem, o código vence (regra de higiene §3)
-- **Escopo:** módulo `:app`, as 5 raízes (tabs) do `AppShell.kt`. Não cobre overlay (isso é
+- **Escopo:** módulo `:app`, as 4 raízes do `AppShell.kt`. Não cobre overlay (isso é
   [`appshell-overlay-registry.md`](appshell-overlay-registry.md)) nem a navegação em si
   (`AppShellNavigation.kt`, inalterado)
 - **Responsável:** Camilo (cria e mantém), Caio revisa mudanças de arquitetura
@@ -60,8 +60,8 @@ com 10 overlays ainda por migrar — na trajetória atual, o registro viraria el
 ponto de concentração, trocando um monolito por outro.
 
 No registro de raízes, cada raiz contribui com **exatamente um** parâmetro (um `@Stable data class`
-`AppShellXxxRootEntry`). Migrar as 3 raízes restantes leva a assinatura de 4 para 6 parâmetros, não
-para 40.
+`AppShellXxxRootEntry`). Adicionar uma nova raiz registrada acrescenta uma entrada agrupada, não
+campos soltos espalhados pelo shell.
 
 **Isto não é opcional e o linter não protege:** `detekt` tem a regra `LongParameterList` com
 threshold 8, mas `build.maxIssues: 2000` no config torna o gate mudo. O limite é ultrapassado em
@@ -78,15 +78,15 @@ aqui é humana, não automatizada.
    `AppShell.kt` — ver "Saldo real" abaixo. Só funciona quando o dado é estado de ViewModel; quando
    o grupo é feito de callbacks que empilham overlay (caso do hub Ferramentas), a construção é
    inerentemente do shell e fica onde está.
-3. **Mover a entrada** de `naoMigradas` para o `when` de `AppShellRootRegistry`, criando o
+3. **Adicionar uma entrada própria** ao `when` de `AppShellRootRegistry`, criando o
    `AppShellXxxRootEntry` correspondente.
 4. **Escrever as três camadas de teste** (ver abaixo) antes de considerar pronto.
 
-### O slot `naoMigradas`
+### O slot inline
 
-Escapatória temporária que recebe as raízes ainda inline em `AppShell.kt`. Hoje: `Home`, `Speed`,
-`Wifi`. **Encolhe a cada fatia** — quando a última migrar, o parâmetro sai junto com o slot. Raiz
-nova nasce migrada; o slot não é destino de nada novo.
+Slot explícito que recebe Início e Velocidade, raízes que ainda concentram o estado operacional do
+diagnóstico em `AppShell.kt`. Sinal e Wi-Fi são overlays acessados por Ferramentas ou pela trilha
+contextual do Início, não raízes adicionais.
 
 ## Estado migrado nesta issue
 
@@ -95,8 +95,8 @@ nova nasce migrada; o slot não é destino de nada novo.
 | `History` (tab 3) | `AppShellHistoricoRoot.kt` | 7 parâmetros soltos do `AppShell` viraram `AppShellHistoricoState`, construído na `MainActivity` |
 | `Tools` (tab 4) | `AppShellFerramentasRoot.kt` | a regra `resolverDisponibilidadeFerramenta` (~28 linhas, agora função pura) e os 9 callbacks em `AppShellFerramentasAcoes` |
 
-Ainda inline (via slot): `Home` (tem o par `Inicio2Screen`/`HomeScreen` sob `shellMode`), `Speed`,
-`Wifi`. Migrar cada uma é responsabilidade de quem tocar aquela área numa fatia futura.
+Ainda inline (via slot): `Home` (`Inicio2Screen`) e `Speed`. Sinal/Wi-Fi são overlays profundos,
+acessados pelo hub Ferramentas; não são raízes da barra inferior.
 
 ## Saldo real — e por que ele é menor do que parece
 
@@ -136,7 +136,8 @@ barato, sem compor o shell). Nenhuma das duas toca o arquivo central.
 1. **por raiz** — `AppShellXxxRoot` chamado direto: repasse de estado, callbacks e regra;
 2. **por registro** — `AppShellRootRegistry` inteiro: confirma que a entrada daquela raiz existe
    dentro do agregador;
-3. **pelo slot** — `naoMigradas` é chamado para as 3 raízes inline e **nunca** para as 2 migradas
+3. **pelo slot** — `inlineRootContent` é chamado apenas para Início e Velocidade e **nunca** para
+   Histórico e Ferramentas
    (camada que não existe no registro de overlays; pega a reversão silenciosa de uma migração).
 
 A camada 2 existe porque a revisão da PR #1697 provou, por mutação, que sem ela apagar a chamada de

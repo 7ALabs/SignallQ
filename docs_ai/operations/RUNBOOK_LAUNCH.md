@@ -107,7 +107,7 @@ Executar em dispositivo físico com build release assinado:
 - [ ] Tela de ajustes abre e salva preferências
 - [ ] Tela de privacidade abre e carrega conteúdo
 - [ ] Tela de novidades abre e exibe conteúdo
-- [ ] Navegação entre as 5 abas funciona (Início, Velocidade, Sinal, Histórico, Ajustes)
+- [ ] Navegação entre as 4 raízes funciona (Início, Velocidade, Histórico, Ferramentas)
 - [ ] App funciona offline (modo degradado, sem IA)
 - [ ] Crash-free: nenhum crash durante o smoke test
 - [ ] Telemetria: evento `app_open` aparece no Firebase Analytics

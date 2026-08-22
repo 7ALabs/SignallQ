@@ -8,18 +8,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.DeviceHub
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -37,6 +40,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,12 +55,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.signallq.app.R
 import io.signallq.app.core.diagnostico.BandaWifi
 import io.signallq.app.core.diagnostico.NivelCongestionamento
+import io.signallq.app.core.diagnostico.RedeWifiVizinha
+import io.signallq.app.core.diagnostico.WifiChannelDiagnosticEngine
 import io.signallq.app.core.network.WifiLinkSnapshot
 import io.signallq.app.core.network.wifi.EstadoScanWifi
 import io.signallq.app.core.network.wifi.SnapshotScanWifi
@@ -64,6 +69,7 @@ import io.signallq.app.feature.devices.DispositivoRede
 import io.signallq.app.feature.devices.chaveApelido
 import io.signallq.app.feature.wifi.ConfiancaTopologia
 import io.signallq.app.feature.wifi.GrupoRedeWifi
+import io.signallq.app.feature.wifi.RedeClassificada
 import io.signallq.app.feature.wifi.RedeVizinha
 import io.signallq.app.feature.wifi.SegurancaWifi
 import io.signallq.app.feature.wifi.TipoTopologia
@@ -135,72 +141,313 @@ internal fun RedesTab(
     // NetworkDetailSheet (comportamento de sempre). O nó conectado nunca abre MeshApSheet, mesmo
     // quando o motor classifica ele como NO_MESH/SISTEMA_MESH_PROVAVEL sem confirmação de rota —
     // "sua conexão" continua sendo a sua conexão, não um equipamento pra inspecionar.
-    Column(modifier = Modifier.fillMaxWidth()) {
-        filteredRedes.forEachIndexed { index, rede ->
-            val isConnected = rede.bssid == connectedNetwork?.bssid
-            val isConfiavel = confiancaPorBssid[rede.bssid] == io.signallq.app.feature.wifi.ConfiancaTopologia.ALTA
-            val isMesh = topologiaPorBssid[rede.bssid] == io.signallq.app.feature.wifi.TipoTopologia.NO_MESH
-
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable { selectedNetwork = rede }
-                        .padding(vertical = LkSpacing.md),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                val bandaDetail = rede.paraBandaWifi()
-                Icon(
-                    imageVector = Icons.Outlined.Wifi,
-                    contentDescription = null,
-                    tint =
-                        io.signallq.app.ui.component
-                            .signalColor(rede.rssiDbm, bandaDetail, c),
-                    modifier = Modifier.size(24.dp),
-                )
-                Spacer(Modifier.width(LkSpacing.md))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = rede.ssid.orEmpty().ifBlank { "(Rede oculta)" },
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (isConnected) FontWeight.Bold else FontWeight.Normal,
-                        color = c.textPrimary,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (isConnected) {
-                            Text("Conectado", style = MaterialTheme.typography.bodySmall, color = c.primary)
-                            Text(" • ", style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
-                        }
-                        Text("${rede.banda} • Canal ${rede.canal ?: "-"}", style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
-                    }
-                }
-                if (isConfiavel || isMesh) {
-                    androidx.compose.foundation.layout.Box(
-                        modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(io.signallq.app.ui.LkRadius.pill))
-                                .background(c.surfaceContainerHigh)
-                                .padding(horizontal = 6.dp, vertical = 2.dp),
-                    ) {
-                        Text("Mesh", style = MaterialTheme.typography.labelSmall, color = c.textSecondary)
-                    }
-                    Spacer(Modifier.width(LkSpacing.xs))
-                }
-                Icon(
-                    imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = c.textTertiary,
-                    modifier = Modifier.size(20.dp),
+    val onNoOuRedeClick: (RedeVizinha) -> Unit = { rede ->
+        val ehRedeConectada = rede.bssid == connectedNetwork?.bssid
+        val dispositivo =
+            if (ehRedeConectada) {
+                null
+            } else {
+                resolverDispositivoParaNoTopologia(
+                    rede = rede,
+                    tipoTopologia = topologiaPorBssid[rede.bssid],
+                    dispositivosRede = dispositivosRede,
                 )
             }
-            if (index < filteredRedes.lastIndex) {
-                androidx.compose.material3.HorizontalDivider(color = c.outlineVariant)
+        if (dispositivo != null) {
+            selectedDispositivoMesh = dispositivo
+        } else {
+            selectedNetwork = rede
+        }
+    }
+
+    // Nós da mesma rede: conectado na frente + mesmo SSID ordenado por sinal.
+    // GH#1209 item 1 (bug principal) — mesmo SSID sozinho não comprova mesma infraestrutura
+    // (rede de vizinho com nome igual, SSID público/padrão, hotspot falso). Antes desta
+    // correção, qualquer BSSID com o mesmo SSID do conectado entrava aqui direto. Agora só
+    // entra quando o motor de topologia unificado (TopologiaRedeEngine) já classificou o BSSID
+    // com alguma evidência (OUI/banda/SSID) — DESCONHECIDO (sem evidência) fica em "outras
+    // redes", mesmo com SSID idêntico.
+    val grupoNos =
+        remember(filteredRedes, connectedNetwork, topologiaPorBssid) {
+            if (connectedNetwork == null) return@remember emptyList()
+            buildList {
+                add(connectedNetwork)
+                addAll(
+                    filteredRedes
+                        .filter { it.bssid != connectedNetwork.bssid }
+                        .filter { rede ->
+                            rede.ssid != null &&
+                                rede.ssid == connectedNetwork.ssid &&
+                                ehMembroDaEstruturaPropria(topologiaPorBssid[rede.bssid])
+                        }.sortedByDescending { it.rssiDbm },
+                )
             }
         }
-        Spacer(Modifier.height(LkSpacing.xxl))
+
+    // Espectro do canal da rede conectada — mesma logica/engine do Tab Canal, usada
+    // aqui so para o alerta de congestionamento + recomendacao no card/sheet da rede.
+    val espectroConectado =
+        remember(snapshotWifi.redes, connectedNetwork) {
+            val canal = connectedNetwork?.canal ?: return@remember null
+            val redesMesmaBanda = snapshotWifi.redes.filter { it.banda == connectedNetwork.banda }
+            WifiChannelDiagnosticEngine.computarEspectro(
+                redes =
+                    redesMesmaBanda.map {
+                        RedeWifiVizinha(
+                            canal = it.canal,
+                            rssiDbm = it.rssiDbm,
+                            frequenciaMhz = it.frequenciaMhz,
+                            ssid = it.ssid,
+                            bssid = it.bssid,
+                            larguraCanalMhz = it.larguraCanalMhz,
+                        )
+                    },
+                canalAtual = canal,
+                banda = connectedNetwork.banda,
+                seuSSID = connectedNetwork.ssid,
+            )
+        }
+    val dadoCanalConectado =
+        remember(espectroConectado, connectedNetwork) {
+            espectroConectado?.dadosPorCanal?.find { it.canal == connectedNetwork?.canal }
+        }
+    val canalConectadoCongestionado = dadoCanalConectado?.nivel == NivelCongestionamento.congestionado
+    val canalRecomendadoConectado = espectroConectado?.canalRecomendado
+    val dadoCanalRecomendadoConectado =
+        remember(espectroConectado, canalRecomendadoConectado) {
+            espectroConectado?.dadosPorCanal?.find { it.canal == canalRecomendadoConectado }
+        }
+
+    // Redes de outros SSIDs/BSSIDs não correlacionados — classificadas e agrupadas.
+    // GH#1209 — antes excluía qualquer BSSID de mesmo SSID daqui (mesmo sem correlação de
+    // topologia), fazendo uma rede de vizinho homônima sumir da tela inteira. Agora só exclui
+    // quem de fato entrou no grupo "sua conexão" (mesmo critério de [grupoNos]).
+    val otherClassificadas =
+        remember(filteredRedes, connectedNetwork, filteredRedes.size, topologiaPorBssid) {
+            val connSsid = connectedNetwork?.ssid
+            val filtered =
+                filteredRedes
+                    .filter { it.bssid != connectedNetwork?.bssid }
+                    .filter { rede ->
+                        val mesmoSsidDoConectado = connSsid != null && rede.ssid == connSsid
+                        !(mesmoSsidDoConectado && ehMembroDaEstruturaPropria(topologiaPorBssid[rede.bssid]))
+                    }
+
+            // Classificar via motor unificado (TopologiaRedeEngine, Fase 2A/#979); fallback
+            // gracioso para lista vazia
+            val classificadas =
+                runCatching {
+                    classificarComMotorUnificado(
+                        redes = filtered,
+                        connectedBssid = connectedNetwork?.bssid,
+                    )
+                }.getOrElse {
+                    filtered.map { rede ->
+                        RedeClassificada(rede = rede, tipo = TipoTopologia.DESCONHECIDO, confianca = ConfiancaTopologia.BAIXA, motivo = "")
+                    }
+                }
+
+            // GH#1209 item 4 — redes ocultas (SSID nulo) diferentes não são a mesma rede só por
+            // não terem nome; agrupar todas como "[Ocultas]" fabricava uma rede falsa com vários
+            // APs. Cada BSSID oculto vira seu próprio grupo, salvo correlação futura do motor.
+            classificadas
+                .groupBy { it.rede.ssid ?: "[Oculta] ${it.rede.bssid}" }
+                .map { (ssid, redes) ->
+                    GrupoRedeWifi(
+                        ssid = ssid,
+                        redes = redes.sortedByDescending { it.rede.rssiDbm },
+                    )
+                }.sortedByDescending { grupo -> grupo.redes.maxOfOrNull { it.rede.rssiDbm } ?: Int.MIN_VALUE }
+        }
+
+    // Estado para expandir/colapsar SSIDs com múltiplos BSSIDs
+    var expandedSsids by remember { mutableStateOf(setOf<String>()) }
+    var mostrarTodasRedes by remember { mutableStateOf(false) }
+    val redesExibidas = if (mostrarTodasRedes) otherClassificadas else otherClassificadas.take(5)
+
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = LkSpacing.xl),
+        ) {
+            item {
+                SinalContentIntro(
+                    title = "Sua rede Wi-Fi",
+                    description = "A estrutura abaixo é estimada por fabricante, banda e intensidade do sinal.",
+                    modifier = Modifier.padding(horizontal = LkSpacing.lg, vertical = LkSpacing.lg),
+                )
+            }
+            if (snapshotWifi.estado == EstadoScanWifi.erro) {
+                item {
+                    val msg = snapshotWifi.erroMensagem
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(c.error.copy(alpha = 0.1f))
+                            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Outlined.WifiFind, null, tint = c.error, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(LkSpacing.sm))
+                        Text(
+                            msg ?: "Erro ao escanear redes",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = c.error,
+                        )
+                    }
+                }
+            }
+
+            item {
+                BandFilterRow(
+                    selected = selectedBanda,
+                    bands = listOf("Todos", "2.4GHz", "5GHz", "6GHz"),
+                    onSelect = { selectedBanda = it },
+                    modifier = Modifier.padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+                )
+            }
+
+            if (showConnected && connectedNetwork != null) {
+                item {
+                    SectionLabel(
+                        stringResource(R.string.sinal_sua_conexao),
+                        modifier = Modifier.padding(horizontal = LkSpacing.lg),
+                    )
+                    Spacer(Modifier.height(LkSpacing.sm))
+                    Box(
+                        modifier =
+                            Modifier
+                                .padding(horizontal = LkSpacing.lg)
+                                .clip(RoundedCornerShape(LkRadius.card))
+                                .background(c.success.copy(alpha = 0.12f)),
+                    ) {
+                        GrupoRedeTree(
+                            ssid = connectedNetwork.ssid ?: "Rede oculta",
+                            nos = grupoNos,
+                            connectedBssid = connectedNetwork.bssid,
+                            onNoClick = onNoOuRedeClick,
+                            wifiLinkSnapshot = wifiLinkSnapshot,
+                            topologiaPorBssid = topologiaPorBssid,
+                            confiancaPorBssid = confiancaPorBssid,
+                            canalConectadoCongestionado = canalConectadoCongestionado,
+                        )
+                    }
+                    Spacer(Modifier.height(LkSpacing.lg))
+                }
+            } else if (connectedNetwork != null && selectedBanda != "Todos") {
+                item {
+                    SectionLabel(
+                        stringResource(R.string.sinal_sua_conexao),
+                        modifier = Modifier.padding(horizontal = LkSpacing.lg),
+                    )
+                    Spacer(Modifier.height(LkSpacing.sm))
+                    Row(
+                        modifier =
+                            Modifier
+                                .padding(horizontal = LkSpacing.lg)
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(LkRadius.input))
+                                .background(c.bgSecondary)
+                                .border(1.dp, c.border, RoundedCornerShape(LkRadius.input))
+                                .padding(LkSpacing.md),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                    ) {
+                        Icon(
+                            Icons.Outlined.Wifi,
+                            contentDescription = null,
+                            tint = c.textTertiary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Text(
+                            "Conectado em ${connectedNetwork.banda} (${connectedNetwork.ssid})",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = c.textSecondary,
+                        )
+                    }
+                    Spacer(Modifier.height(LkSpacing.lg))
+                }
+            }
+
+            if (otherClassificadas.isNotEmpty()) {
+                item {
+                    SectionLabel(
+                        if (showConnected ||
+                            (connectedNetwork != null && selectedBanda != "Todos")
+                        ) {
+                            "OUTRAS REDES"
+                        } else {
+                            "REDES DISPONÍVEIS"
+                        },
+                        modifier = Modifier.padding(horizontal = LkSpacing.lg),
+                    )
+                    Spacer(Modifier.height(LkSpacing.sm))
+                }
+                items(
+                    items = redesExibidas,
+                    key = { grupo -> grupo.redes.joinToString(separator = "|") { it.rede.bssid } },
+                ) { grupo ->
+                    OtherNetworkGroupItem(
+                        grupo = grupo,
+                        isExpanded = expandedSsids.contains(grupo.ssid),
+                        onToggleExpanded = {
+                            expandedSsids =
+                                if (expandedSsids.contains(grupo.ssid)) {
+                                    expandedSsids - grupo.ssid
+                                } else {
+                                    expandedSsids + grupo.ssid
+                                }
+                        },
+                        onNetworkClick = onNoOuRedeClick,
+                        topologiaPorBssid = topologiaPorBssid,
+                        modifier = Modifier.padding(horizontal = LkSpacing.lg),
+                    )
+                    HorizontalDivider(color = c.border, modifier = Modifier.padding(horizontal = LkSpacing.lg))
+                }
+                if (otherClassificadas.size > 5 && !mostrarTodasRedes) {
+                    item {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { mostrarTodasRedes = true }
+                                    .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                "Mostrar Mais (${otherClassificadas.size - 5})",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = c.primary,
+                            )
+                        }
+                    }
+                }
+            } else if (!isRefreshing) {
+                if (snapshotWifi.redes.isEmpty()) {
+                    item { EmptyStateWifi() }
+                } else if (selectedBanda != "Todos" && filteredRedes.isEmpty()) {
+                    val redesOutrasFaixas = snapshotWifi.redes.filter { it.banda != selectedBanda }
+                    if (redesOutrasFaixas.isNotEmpty()) {
+                        val porFaixa = redesOutrasFaixas.groupBy { it.banda }
+                        item {
+                            EmptyStateBandaVazia(
+                                bandaSelecionada = selectedBanda,
+                                redesPorFaixa = porFaixa,
+                                onTrocarFaixa = { selectedBanda = it },
+                            )
+                        }
+                    } else {
+                        item { EmptyStateWifi() }
+                    }
+                }
+            }
+        }
     }
+
     val net = selectedNetwork
     if (net != null) {
         val ehRedeConectada = net.bssid == connectedNetwork?.bssid
@@ -212,9 +459,9 @@ internal fun RedesTab(
         ) {
             NetworkDetailSheet(
                 rede = net,
-                canalCongestionado = ehRedeConectada && false,
-                canalRecomendado = if (ehRedeConectada) null else null,
-                nivelCanalRecomendado = if (ehRedeConectada) null else null,
+                canalCongestionado = ehRedeConectada && canalConectadoCongestionado,
+                canalRecomendado = if (ehRedeConectada) canalRecomendadoConectado else null,
+                nivelCanalRecomendado = if (ehRedeConectada) dadoCanalRecomendadoConectado?.nivel else null,
             )
         }
     }
@@ -253,6 +500,7 @@ private fun GrupoRedeTree(
     wifiLinkSnapshot: WifiLinkSnapshot? = null,
     topologiaPorBssid: Map<String, TipoTopologia> = emptyMap(),
     confiancaPorBssid: Map<String, ConfiancaTopologia> = emptyMap(),
+    canalConectadoCongestionado: Boolean = false,
 ) {
     val c = LocalLkTokens.current
     // Roteador dual-band único: mesmo OUI e cada banda aparecendo uma só vez
@@ -293,7 +541,6 @@ private fun GrupoRedeTree(
                             Text(
                                 ssid,
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.W600,
                                 color = c.textPrimary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -309,7 +556,6 @@ private fun GrupoRedeTree(
                         Text(
                             ssid,
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.W600,
                             color = c.textPrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -354,7 +600,7 @@ private fun GrupoRedeTree(
                     onClick = { onNoClick(no) },
                     wifiLinkSnapshot = if (isConnected) wifiLinkSnapshot else null,
                     tipoTopologia = tipoDoNo,
-                    canalCongestionado = isConnected && false,
+                    canalCongestionado = isConnected && canalConectadoCongestionado,
                 )
             }
 
@@ -379,6 +625,13 @@ private fun NoTreeItem(
 ) {
     val c = LocalLkTokens.current
     val lineColor = c.border
+    val bandaVizinha = rede.paraBandaWifi()
+    val rssiEfetivo = if (isConnected) (wifiLinkSnapshot?.rssiDbm ?: rede.rssiDbm) else rede.rssiDbm
+    val descricaoAcessivel =
+        buildString {
+            append("$label, ${rede.banda}, sinal ${signalQuality(rssiEfetivo, bandaVizinha)}")
+            if (canalCongestionado) append(", canal congestionado")
+        }
 
     Row(
         modifier =
@@ -401,20 +654,19 @@ private fun NoTreeItem(
             modifier =
                 Modifier
                     .weight(1f)
-                    .padding(top = 4.dp, bottom = 4.dp, end = LkSpacing.sm)
+                    .padding(top = LkSpacing.xs, bottom = LkSpacing.xs, end = LkSpacing.sm)
                     .clip(RoundedCornerShape(8.dp))
                     .background(if (isConnected) c.primary.copy(alpha = 0.12f) else Color.Transparent)
                     .minimumInteractiveComponentSize()
+                    .semantics(mergeDescendants = true) { contentDescription = descricaoAcessivel }
                     .clickable(onClick = onClick)
                     .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            val bandaVizinha = rede.paraBandaWifi()
             // GH#1209 item 5 — pro nó conectado, prioriza o RSSI ao vivo (WifiInfo/
             // WifiLinkSnapshot) sobre o valor do ScanResult, que pode estar atrasado. Nunca
             // mistura RSSI de outro BSSID — só usa o snapshot quando ESTE nó é o conectado
             // (o chamador já garante isso, passando wifiLinkSnapshot=null pra nós não conectados).
-            val rssiEfetivo = if (isConnected) (wifiLinkSnapshot?.rssiDbm ?: rede.rssiDbm) else rede.rssiDbm
             Icon(
                 imageVector = if (isConnected) Icons.Outlined.Router else Icons.Outlined.Wifi,
                 contentDescription = null,
@@ -427,7 +679,6 @@ private fun NoTreeItem(
                     Text(
                         label,
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.W600,
                         color = if (isConnected) c.primary else c.textPrimary,
                     )
                     if (isConnected) {
@@ -459,12 +710,10 @@ private fun NoTreeItem(
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(rede.banda, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
-                    Text("  ·  ", style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
                     Text(
-                        signalQuality(rssiEfetivo, bandaVizinha),
+                        "${rede.banda} · ${signalQuality(rssiEfetivo, bandaVizinha)}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = signalColor(rssiEfetivo, bandaVizinha, c),
+                        color = c.textSecondary,
                     )
                 }
                 if (wifiLinkSnapshot != null) {
@@ -511,13 +760,20 @@ private fun OtherNetworkGroupItem(
             // Single BSSID: sem chevron, click abre detalhe direto
             val redeClass = grupo.redes[0]
             val rede = redeClass.rede
+            val descricaoAcessivel =
+                buildString {
+                    append(if (isOculta) "Rede oculta" else (rede.ssid ?: "Rede oculta"))
+                    append(", ${rede.banda}, sinal ${signalQuality(rede.rssiDbm, rede.paraBandaWifi())}")
+                    append(if (rede.seguranca == SegurancaWifi.aberta) ", rede aberta" else ", rede protegida")
+                }
             Row(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .minimumInteractiveComponentSize()
+                        .semantics(mergeDescendants = true) { contentDescription = descricaoAcessivel }
                         .clickable { onNetworkClick(rede) }
-                        .padding(vertical = 12.dp),
+                        .padding(vertical = LkSpacing.md),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Outlined.Wifi, null, tint = c.textSecondary, modifier = Modifier.size(22.dp))
@@ -526,7 +782,7 @@ private fun OtherNetworkGroupItem(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             if (isOculta) "Rede oculta" else (rede.ssid ?: "Rede oculta"),
-                            fontWeight = FontWeight.W500,
+                            style = MaterialTheme.typography.titleSmall,
                             color = c.textPrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -544,15 +800,11 @@ private fun OtherNetworkGroupItem(
                         }
                     }
                     val bandaSingle = rede.paraBandaWifi()
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(rede.banda, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
-                        Text("  ·  ", style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
-                        Text(
-                            signalQuality(rede.rssiDbm, bandaSingle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = signalColor(rede.rssiDbm, bandaSingle, c),
-                        )
-                    }
+                    Text(
+                        "${rede.banda} · ${signalQuality(rede.rssiDbm, bandaSingle)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.textSecondary,
+                    )
                 }
                 Spacer(Modifier.width(LkSpacing.sm))
                 Icon(
@@ -566,17 +818,21 @@ private fun OtherNetworkGroupItem(
             }
         } else {
             // Multi-BSSID: cabeçalho com chevron expansível
+            val melhorRedeGrupo = grupo.redes.maxByOrNull { it.rede.rssiDbm }?.rede
+            val banda = grupo.redes.map { it.rede }.bandaCombinadaLabel()
+            val nomeGrupo = if (isOculta) "Redes ocultas" else grupo.ssid
+            val descricaoAcessivel =
+                "$nomeGrupo, ${grupo.redes.size} pontos de acesso, $banda, " +
+                    "sinal ${signalQuality(melhorRedeGrupo?.rssiDbm ?: 0, melhorRedeGrupo?.paraBandaWifi() ?: BandaWifi.desconhecida)}. " +
+                    if (isExpanded) "Recolher grupo" else "Expandir grupo"
             Row(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .minimumInteractiveComponentSize()
-                        .semantics {
-                            val nomeGrupo = if (isOculta) "Redes ocultas" else grupo.ssid
-                            contentDescription =
-                                if (isExpanded) "Recolher redes do grupo $nomeGrupo" else "Expandir redes do grupo $nomeGrupo"
-                        }.clickable { onToggleExpanded() }
-                        .padding(vertical = 12.dp),
+                        .semantics(mergeDescendants = true) { contentDescription = descricaoAcessivel }
+                        .clickable { onToggleExpanded() }
+                        .padding(vertical = LkSpacing.md),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Outlined.Wifi, null, tint = c.textSecondary, modifier = Modifier.size(22.dp))
@@ -584,29 +840,17 @@ private fun OtherNetworkGroupItem(
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            if (isOculta) "Redes ocultas" else grupo.ssid,
-                            fontWeight = FontWeight.W500,
+                            "${if (isOculta) "Redes ocultas" else grupo.ssid} · ${grupo.redes.size}",
+                            style = MaterialTheme.typography.titleSmall,
                             color = c.textPrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false),
                         )
-                        Spacer(Modifier.width(LkSpacing.xs))
-                        Text(
-                            "· ${grupo.redes.size}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = c.textTertiary,
-                        )
                     }
-                    val bestSignal =
-                        grupo.redes
-                            .maxByOrNull { it.rede.rssiDbm }
-                            ?.rede
-                            ?.rssiDbm ?: 0
                     // GH#1209 item 7 — antes mostrava só a banda de UM BSSID do grupo (2,4GHz
                     // se existisse, senão qualquer outra), mesmo quando o grupo tinha várias
                     // bandas presentes (ex.: roteador dual/tri-band). Agora combina todas.
-                    val banda = grupo.redes.map { it.rede }.bandaCombinadaLabel()
                     Text(banda, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
                 }
                 Spacer(Modifier.width(LkSpacing.sm))
@@ -617,7 +861,6 @@ private fun OtherNetworkGroupItem(
                     modifier = Modifier.size(24.dp),
                 )
                 Spacer(Modifier.width(LkSpacing.sm))
-                val melhorRedeGrupo = grupo.redes.maxByOrNull { it.rede.rssiDbm }?.rede
                 SignalBars(
                     rssiDbm = grupo.redes.maxOfOrNull { it.rede.rssiDbm } ?: 0,
                     banda = melhorRedeGrupo?.paraBandaWifi() ?: BandaWifi.desconhecida,
@@ -659,8 +902,12 @@ private fun EmptyStateWifi() {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Outlined.WifiFind, null, tint = c.textTertiary, modifier = Modifier.size(48.dp))
             Spacer(Modifier.height(LkSpacing.md))
-            Text("Nenhuma rede encontrada", color = c.textSecondary, fontWeight = FontWeight.W500)
-            Text("Puxe para atualizar", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Normal, color = c.textTertiary)
+            Text(
+                "Nenhuma rede encontrada",
+                style = MaterialTheme.typography.titleSmall,
+                color = c.textSecondary,
+            )
+            Text("Puxe para atualizar", style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
         }
     }
 }
@@ -687,14 +934,13 @@ private fun EmptyStateBandaVazia(
             Spacer(Modifier.height(LkSpacing.md))
             Text(
                 stringResource(R.string.sinal_sem_redes_nesta_faixa, bandaSelecionada),
+                style = MaterialTheme.typography.titleSmall,
                 color = c.textSecondary,
-                fontWeight = FontWeight.W500,
             )
             Spacer(Modifier.height(LkSpacing.xs))
             Text(
                 subtitulo,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Normal,
+                style = MaterialTheme.typography.bodySmall,
                 color = c.textTertiary,
             )
             Spacer(Modifier.height(LkSpacing.md))
@@ -705,13 +951,12 @@ private fun EmptyStateBandaVazia(
                         .background(c.primary.copy(alpha = 0.12f))
                         .minimumInteractiveComponentSize()
                         .clickable { onTrocarFaixa(targetBanda) }
-                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                        .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     stringResource(R.string.sinal_trocar_faixa),
                     style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.W600,
                     color = c.primary,
                 )
             }
@@ -747,7 +992,6 @@ private fun NetworkDetailSheet(
             Text(
                 ssid ?: "Rede oculta",
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.W700,
                 color = c.textPrimary,
             )
         }
@@ -804,7 +1048,6 @@ private fun NetworkDetailSheet(
                         Text(
                             "Canal congestionado",
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.W600,
                             color = c.onWarningContainer,
                         )
                         Text(
@@ -843,7 +1086,6 @@ private fun NetworkDetailSheet(
                             Text(
                                 "Troque de canal",
                                 style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.W600,
                                 color = c.primary,
                             )
                             Text(

@@ -23,7 +23,7 @@ last_updated: "2026-08-19"
 
 | Fato | Valor | Fonte |
 |---|---|---|
-| versionName / versionCode | **0.31.0** / **72** | `android/gradle/libs.versions.toml` |
+| versionName / versionCode | **0.33.0** / **74** | `android/gradle/libs.versions.toml` |
 | compileSdk / minSdk / targetSdk | 37 / 24 / 36 | `android/gradle/libs.versions.toml` |
 | Compose BOM · Room · Hilt | 2026.06.01 · 2.8.4 · 2.60.1 | `android/gradle/libs.versions.toml` |
 | Módulos Gradle | **20** | `android/settings.gradle.kts` |
@@ -149,7 +149,7 @@ Consequência direta: as features viraram bibliotecas de motor e vocabulário, e
 
 | Arquivo | Linhas |
 |---|---:|
-| `HomeScreen.kt` | 2967 |
+| `Inicio2Screen.kt` | 302 |
 | `MainViewModel.kt` | 2438 |
 | `SinalCanalSection.kt` | 1215 |
 | `DispositivosScreen.kt` | 1380 |
@@ -193,7 +193,7 @@ Contratos em `../CONTRATOS/openapi/`.
 
 | Risco | Evidência | Efeito |
 |---|---|---|
-| UI monolítica em `:app` | 6 arquivos acima de 800 linhas, `HomeScreen.kt` com 2967 | Features anêmicas; mudança visual exige tocar arquivo gigante |
+| UI monolítica em `:app` | arquivos grandes concentrados em `MainViewModel`, `AppShell` e seções de rede | Features anêmicas; mudança visual exige tocar arquivos centrais |
 | Feature→feature | 0 violações conhecidas (§2) — única confirmada (`:featureDiagnostico`→`:featureSpeedtest`) resolvida em GH#1682 | Sem efeito hoje; reavaliar se `grep -rn 'project(":feature'` em `feature/*/build.gradle.kts` encontrar dependência entre `:feature*` |
 | Três mecanismos de feature flag | `:core:featureflags` + `FeatureFlagProvider` legado em `:coreNetwork` + Firebase Remote Config | Colisão de nome e ambiguidade sobre qual vence |
 | Dois motores de PDF | `:featureHistory` usa `PdfDocument` e HTML→WebView via `:core:relatorio` | Manutenção dupla |

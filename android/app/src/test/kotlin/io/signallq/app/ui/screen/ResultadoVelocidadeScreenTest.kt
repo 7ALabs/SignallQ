@@ -146,4 +146,19 @@ class ResultadoVelocidadeScreenTest {
         assertTrue(mensagem.isNotBlank())
         assertTrue(mensagem.contains("compartilhar", ignoreCase = true))
     }
+
+    @Test
+    fun `integridade avisa quando a rede mudou durante o teste`() {
+        val mensagem = mensagemIntegridadeResultado("download_redeMudou")
+
+        assertTrue(mensagem.contains("conexão caiu ou mudou"))
+        assertTrue(mensagem.contains("Tente novamente"))
+    }
+
+    @Test
+    fun `integridade avisa sobre interferencia de aplicativos quando nao houve troca de rede`() {
+        val mensagem = mensagemIntegridadeResultado("upload")
+
+        assertEquals("Outros aplicativos podem ter afetado o resultado.", mensagem)
+    }
 }

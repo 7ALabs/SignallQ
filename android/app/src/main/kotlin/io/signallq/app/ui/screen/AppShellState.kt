@@ -186,7 +186,6 @@ data class AppShellAdsState(
  */
 @Stable
 data class AppShellFeatureFlagsState(
-    val guidedShell2Enabled: Boolean = false,
     val homeEnabled: Boolean = true,
     val speedtestEnabled: Boolean = true,
     val wifiEnabled: Boolean = true,
@@ -202,9 +201,6 @@ data class AppShellFeatureFlagsState(
     val onFeatureBlocked: (moduleId: String) -> Unit = {},
 )
 
-internal val AppShellFeatureFlagsState.shellMode: AppShellMode
-    get() = if (guidedShell2Enabled) AppShellMode.Guided2 else AppShellMode.Legacy
-
 /**
  * Cadeia de resolução de identidade e contato de operadora (GH#970): nível 1 local e síncrono
  * (catálogo embutido, sem I/O) e a cadeia completa suspensa (local → diretório remoto do worker
@@ -215,7 +211,7 @@ internal val AppShellFeatureFlagsState.shellMode: AppShellMode
  * default — que agora vivem aqui, ao lado do tipo que descrevem, e não no meio da lista de
  * parâmetros do arquivo central.
  *
- * Consumido por `DiagnosticoGuiadoScreen` (via `AppShellDiagnosticoGuiadoEntry`), `HomeScreen` e
+ * Consumido por `DiagnosticoGuiadoScreen` (via `AppShellDiagnosticoGuiadoEntry`), `Inicio2Screen` e
  * `SinalScreen`. A instância real é montada na `MainActivity` a partir do
  * `OperadoraDirectoryResolver` injetado por Hilt — o [AppShell] só repassa, nunca resolve nada.
  */

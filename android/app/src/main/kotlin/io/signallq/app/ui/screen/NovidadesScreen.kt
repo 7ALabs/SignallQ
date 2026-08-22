@@ -133,7 +133,7 @@ fun NovidadesScreen(
                         }
                     },
                     actions = {
-                        Spacer(Modifier.width(40.dp))
+                        Spacer(Modifier.width(LkSpacing.xxxl))
                     },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = c.bgPrimary),
                 )
@@ -171,8 +171,26 @@ fun NovidadesScreen(
             else -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(padding),
-                    verticalArrangement = Arrangement.spacedBy(0.dp),
+                    verticalArrangement = Arrangement.spacedBy(LkSpacing.base),
                 ) {
+                    item {
+                        Column(
+                            modifier = Modifier.padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+                            verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+                        ) {
+                            Text(
+                                text = "Novidades do SignallQ",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.W600,
+                                color = c.textPrimary,
+                            )
+                            Text(
+                                text = "Acompanhe as melhorias mais recentes do aplicativo.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = c.textSecondary,
+                            )
+                        }
+                    }
                     items(itens) { item ->
                         NovidadeRow(item = item, c = c)
                         HorizontalDivider(
@@ -181,7 +199,7 @@ fun NovidadesScreen(
                             modifier = Modifier.padding(horizontal = LkSpacing.lg),
                         )
                     }
-                    item { Spacer(Modifier.navigationBarsPadding().height(24.dp)) }
+                    item { Spacer(Modifier.navigationBarsPadding().height(LkSpacing.xl)) }
                 }
             }
         }
@@ -213,7 +231,7 @@ private fun NovidadeRow(
                 Modifier
                     .clip(RoundedCornerShape(LkRadius.pill))
                     .background(badgeCor.copy(alpha = 0.14f))
-                    .padding(horizontal = LkSpacing.sm, vertical = 2.dp),
+                    .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
         ) {
             Text(
                 text = badgeLabel,
@@ -230,7 +248,7 @@ private fun NovidadeRow(
                 fontWeight = FontWeight.W600,
                 color = c.textPrimary,
             )
-            Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(LkSpacing.xs))
             Text(
                 text = item.descricao,
                 style = MaterialTheme.typography.bodySmall,

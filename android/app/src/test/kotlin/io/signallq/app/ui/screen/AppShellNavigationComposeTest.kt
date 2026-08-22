@@ -30,7 +30,7 @@ class AppShellNavigationComposeTest {
         val restoration = StateRestorationTester(composeRule)
         lateinit var navigator: AppShellNavigator
         restoration.setContent {
-            navigator = rememberAppShellNavigator(AppShellMode.Guided2)
+            navigator = rememberAppShellNavigator()
             Text(navigator.selectedRoot.name)
         }
         composeRule.runOnIdle {
@@ -50,7 +50,7 @@ class AppShellNavigationComposeTest {
     fun `system back pops overlay then History returns Home`() {
         lateinit var navigator: AppShellNavigator
         composeRule.setContent {
-            navigator = rememberAppShellNavigator(AppShellMode.Guided2)
+            navigator = rememberAppShellNavigator()
             AppShellBackHandlers(navigator)
             Text(navigator.selectedRoot.name + navigator.overlayStack.joinToString())
         }
@@ -66,12 +66,11 @@ class AppShellNavigationComposeTest {
     }
 
     @Test
-    fun `bottom bar exposes mode roots and respects feature flags`() {
+    fun `barra inferior expoe as raizes unicas e respeita feature flags`() {
         composeRule.setContent {
             CompositionLocalProvider(LocalLkTokens provides lightTokens()) {
                 AppShellBottomBar(
                     c = lightTokens(),
-                    mode = AppShellMode.Guided2,
                     selectedTab = 0,
                     featureFlags = AppShellFeatureFlagsState(historyEnabled = false),
                     onRootSelected = {},
@@ -99,7 +98,7 @@ class AppShellNavigationComposeTest {
     fun `back real com interceptador que consome nao desempilha o overlay`() {
         lateinit var navigator: AppShellNavigator
         composeRule.setContent {
-            navigator = rememberAppShellNavigator(AppShellMode.Guided2)
+            navigator = rememberAppShellNavigator()
             AppShellBackHandlers(navigator)
             RegistrarBackDoOverlay(navigator, AppShellOverlay.DiagnosticoGuiado) { true }
             Text(navigator.selectedRoot.name + navigator.overlayStack.joinToString())
@@ -119,7 +118,7 @@ class AppShellNavigationComposeTest {
         // um interceptador que sempre consumisse prenderia o usuário dentro do overlay.
         lateinit var navigator: AppShellNavigator
         composeRule.setContent {
-            navigator = rememberAppShellNavigator(AppShellMode.Guided2)
+            navigator = rememberAppShellNavigator()
             AppShellBackHandlers(navigator)
             RegistrarBackDoOverlay(navigator, AppShellOverlay.DiagnosticoGuiado) { false }
             Text(navigator.selectedRoot.name + navigator.overlayStack.joinToString())
@@ -138,7 +137,7 @@ class AppShellNavigationComposeTest {
         // conseguir registrar, o Perfil nunca fecha e o usuário fica preso.
         lateinit var navigator: AppShellNavigator
         composeRule.setContent {
-            navigator = rememberAppShellNavigator(AppShellMode.Guided2)
+            navigator = rememberAppShellNavigator()
             AppShellBackHandlers(navigator)
             RegistrarBackDoOverlay(navigator, AppShellOverlay.DiagnosticoGuiado) { true }
             Text(navigator.selectedRoot.name + navigator.overlayStack.joinToString())
@@ -162,7 +161,7 @@ class AppShellNavigationComposeTest {
         // `DisposableEffect`, que é o mecanismo que impede o vazamento no mapa.
         lateinit var navigator: AppShellNavigator
         composeRule.setContent {
-            navigator = rememberAppShellNavigator(AppShellMode.Guided2)
+            navigator = rememberAppShellNavigator()
             AppShellBackHandlers(navigator)
             RegistrarBackDoOverlay(navigator, AppShellOverlay.DiagnosticoGuiado) { true }
             Text(navigator.selectedRoot.name + navigator.overlayStack.joinToString())
@@ -194,7 +193,7 @@ class AppShellNavigationComposeTest {
         // asserção aqui é sobre o mapa, não sobre a pilha.
         lateinit var navigator: AppShellNavigator
         composeRule.setContent {
-            navigator = rememberAppShellNavigator(AppShellMode.Guided2)
+            navigator = rememberAppShellNavigator()
             AppShellBackHandlers(navigator)
             RegistrarBackDoOverlay(navigator, AppShellOverlay.DiagnosticoGuiado) { true }
             Text(navigator.selectedRoot.name + navigator.overlayStack.joinToString())
@@ -219,7 +218,7 @@ class AppShellNavigationComposeTest {
         // recompõe e desregistra.
         lateinit var navigator: AppShellNavigator
         composeRule.setContent {
-            navigator = rememberAppShellNavigator(AppShellMode.Guided2)
+            navigator = rememberAppShellNavigator()
             AppShellBackHandlers(navigator)
             RegistrarBackDoOverlay(navigator, AppShellOverlay.DiagnosticoGuiado) { true }
             Text(navigator.selectedRoot.name + navigator.overlayStack.joinToString())
@@ -243,7 +242,7 @@ class AppShellNavigationComposeTest {
         lateinit var navigator: AppShellNavigator
         var passosRestantes by mutableIntStateOf(2)
         composeRule.setContent {
-            navigator = rememberAppShellNavigator(AppShellMode.Guided2)
+            navigator = rememberAppShellNavigator()
             AppShellBackHandlers(navigator)
             // `passosCapturados` é lido NA COMPOSIÇÃO e é inerte — a lambda captura um Int, não
             // o `MutableIntState`. Isso é o que faz o teste medir o que promete. Com

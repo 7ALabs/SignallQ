@@ -77,14 +77,14 @@ internal fun MonitoramentoSheet(
                     .navigationBarsPadding(),
         ) {
             Text(
-                text = "Diagnóstico avançado",
+                text = "Acompanhe a conexão ao longo do dia",
                 style = MaterialTheme.typography.headlineSmall,
                 color = c.textPrimary,
                 fontWeight = FontWeight.W700,
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "Recursos que aprofundam a análise da sua rede",
+                text = "O SignallQ faz verificações leves em segundo plano e avisa quando encontra uma mudança importante.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = c.textSecondary,
             )

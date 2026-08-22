@@ -143,7 +143,13 @@ internal fun DeviceDetailSheet(
                         style = MaterialTheme.typography.headlineSmall,
                         color = c.textPrimary,
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(LkSpacing.xs))
+                    Text(
+                        text = listOfNotNull(fabricante, "identificada nesta rede").joinToString(" · "),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = c.textSecondary,
+                    )
+                    Spacer(Modifier.height(LkSpacing.sm))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         LkStatusDot(color = c.success)
                         Spacer(Modifier.width(LkSpacing.xs))
@@ -202,7 +208,7 @@ internal fun DeviceDetailSheet(
         }
         if (mac != null) {
             item {
-                LkListRow(c = c, title = "MAC", trailing = {
+                LkListRow(c = c, title = "Endereço físico", trailing = {
                     Text(mascaraMac(mac), style = MaterialTheme.typography.labelSmall, color = c.textSecondary)
                 })
             }

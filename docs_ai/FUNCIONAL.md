@@ -82,27 +82,23 @@ de overlays independente por raiz, salva por `rememberSaveable`; `AppShell.kt` f
 das telas e callbacks existentes. O estado restaurado sobrevive à recriação do processo sem mover
 regras de negócio ou ViewModels para a shell.
 
-### 4.1 Barra inferior — Jornada 2.0 e fallback legado
+### 4.1 Barra inferior — jornada única
 
-`AppShellBottomBar.kt` implementa os dois conjuntos reversíveis. A flag canônica
-`consumer_app_shell_guided_2_enabled` seleciona o modo; seu default local é `false`, portanto o
-fallback offline seguro é `Legacy`. Quando ativado via configuração já persistida pelo provider,
-`Guided2` expõe quatro raízes e abre em Início. O modo legado mantém cinco abas e cold start em
-Velocidade, sem depender de rede para rollback.
+`AppShellBottomBar.kt` implementa uma única navegação com quatro raízes. O aplicativo sempre abre em
+`Inicio2Screen`; não existe flag, fallback ou segunda barra de navegação.
 
-| Índice compatível | Rótulo | Tela | Jornada 2.0 |
+| Índice compatível | Rótulo | Tela | Jornada única |
 |---|---|---|---|
-| 0 | Início | `Inicio2Screen` no shell guiado; `HomeScreen` no fallback Legacy | cold start |
+| 0 | Início | `Inicio2Screen` | cold start |
 | 1 | Velocidade | `SpeedTestScreen` | raiz |
-| 2 | Sinal | `SinalScreen` | somente fallback legado; no 2.0, Wi-Fi é fluxo profundo |
-| 3 | Histórico | `HistoricoScreen` | raiz; back volta para Início |
-| 4 | Ferramentas | `FerramentasScreen` | raiz; nunca bloqueada por feature flag |
+| 2 | Histórico | `HistoricoScreen` | raiz; back volta para Início |
+| 3 | Ferramentas | `FerramentasScreen` | raiz; nunca bloqueada por feature flag |
 
-Na Jornada 2.0, a barra fica oculta em qualquer overlay e durante a execução do speedtest. Trocar de
-raiz preserva a pilha da raiz anterior; Voltar desempilha apenas a raiz atual. Perfil é acessado
-pela ação da app bar nas quatro raízes. O drawer e a aba Sinal permanecem alcançáveis no fallback
-legado. Os nomes de analytics existentes (`home`, `speedtest`, `sinal_wifi`, `historico` e
-`ferramentas`) foram preservados.
+Na jornada única, a barra fica oculta em qualquer overlay e durante a execução do speedtest. Trocar de
+raiz preserva a pilha da raiz anterior; Voltar desempilha apenas a raiz atual. Ajustes, que contém
+a edição do Perfil, é acessado pela ação da app bar nas quatro raízes. Sinal, Wi-Fi e canais continuam disponíveis por Ferramentas
+e pelos atalhos contextuais da Início. Os nomes de analytics das superfícies mantidas foram
+preservados (`home`, `speedtest`, `historico` e `ferramentas`).
 
 ### 4.2 Overlays
 
@@ -112,7 +108,7 @@ Lista exata de `AppShellOverlay` (`AppShellNavigation.kt`) — 18 valores, todos
 |---|---|---|
 | `Laudo` | `LaudoScreen` | Ferramentas; Ajustes; CTA "Executar diagnóstico" no Equipamento de internet |
 | `Ping` | `PingScreen` | Ferramentas; SpeedTestScreen |
-| `Privacidade` | `PrivacidadeScreen` | Perfil; menu lateral legado; Ajustes |
+| `Privacidade` | `PrivacidadeScreen` | Perfil; Ajustes |
 | `Novidades` | `NovidadesScreen` | Perfil; Ajustes |
 | `ResultadoVelocidade` | `ResultadoVelocidadeScreen` | automático ao concluir um teste (`AppShell.kt:615-630`); link "Ver resultado" em Velocidade |
 | `Fibra` | `EquipamentoInternetScreen` | nó do gateway na Início; linha do roteador em Ajustes (`onAbrirGatewayDetalhe`, `AppShell.kt:483-488`) |
@@ -120,11 +116,11 @@ Lista exata de `AppShellOverlay` (`AppShellNavigation.kt`) — 18 valores, todos
 | `EquipamentoInternet` | `EquipamentoInternetScreen` | Ferramentas (card "Equipamento de internet") |
 | `Ferramentas` | `FerramentasScreen` | apenas o card contextual do diagnóstico guiado (`onAbrirFerramentaSugeridaOverlay`, `AppShell.kt:475-478`) — a aba 4 usa a tela direto, sem passar por este overlay |
 | `Dns` | `DnsScreen` | Ferramentas; SpeedTestScreen |
-| `Perfil` | `PerfilScreen` | ação de perfil na app bar 2.0; menu lateral e entradas legadas equivalentes |
-| `Ajustes` | `AjustesScreen` | Perfil; preserva conexão, monitoramento e dados locais existentes |
+| `Perfil` | — | não é um overlay separado; a edição fica dentro de Ajustes |
+| `Ajustes` | `AjustesScreen` | ação de perfil na app bar das quatro raízes; preserva conexão, monitoramento e dados locais existentes |
 | `SinalCanais` | `SinalScreen` | Ferramentas; Wi-Fi, canais e rede móvel em fluxo profundo 2.0 |
 | `SinalWifi` | `SinalWifiScreen` | Ferramentas |
-| `Termos` | `TermosDeUsoScreen` | menu lateral |
+| `Termos` | `TermosDeUsoScreen` | Perfil; Sobre o SignallQ |
 | `DiagnosticoGuiado` | `DiagnosticoGuiadoScreen` | CTA "Descobrir o que está acontecendo" no resultado do teste. Desde a #1704 o fluxo **não exige medição anterior**: sem resultado disponível ele abre na escolha do sintoma e mede sozinho na rota `Analise` (§8.5 da spec 2.0) antes de concluir. Desde a #1705 a conclusão distingue os 5 valores de `MeasurementStatus` — parcial, contaminado, inconclusivo e cancelado têm explicação própria e ação concreta, em vez de um banner único sem saída. Desde a #1707 (Task 2.0.09e) a conclusão também mostra o rótulo de confiança em texto ("confiança alta/média/baixa", §14.4 — nunca número) e, quando a IA recomenda reteste (`AiAcaoRecomendada.tipo == "reteste"`), o CTA "Testar novamente" **vinculado** à mesma análise (§8.8): dispara uma medição nova de verdade e resolve em "Melhorou"/"Não mudou"/"Piorou"/"Comparação inconclusiva" (§14.6) — nunca "recomeçar do zero" (isso é outro CTA, em `ResultadoVelocidadeScreen`), nunca compara redes diferentes com aviso |
 | `DetalhesTecnicos` | `DetalhesTecnicosScreen` | CTA "Ver detalhes da conexão" no resultado do teste |
 | `ModoGamer` | `ModoGamerScreen` | 3 entradas: card "Modo Jogos" em Ferramentas, CTA no resultado do teste, botão no resultado do diagnóstico guiado (objetivo "Jogos atrasam ou travam") |
@@ -143,32 +139,25 @@ Notas de comportamento:
 - Uma tela **existe no diretório mas não é roteada**: `MinhaConexaoScreen.kt` — seu conteúdo é
   consumido como bottom sheet dentro de `AjustesScreen`, não como destino próprio.
 
-### 4.3 Menu lateral (fallback legado)
+### 4.3 Acesso ao perfil
 
-`AppNavigationDrawerContent`, aberto pelo hambúrguer nas cinco telas quando `shellMode = Legacy`.
-Cinco itens fixos mais a versão do app: **Ajustes** (`AppShellOverlay.Perfil`, que mantém Ajustes
-como primeiro destino), **Ajuda e
-suporte** (`SimpleInfoSheet` com `suporte@signallq.com`, `AppShell.kt:1371-1379`), **Privacidade**
-(`Overlay.Privacidade`), **Termos de uso** (`Overlay.Termos`) e **Sobre o SignallQ**
-(`SobreSheet`). A navegação inferior não é duplicada aqui.
+Não há menu lateral concorrente nem uma tela intermediária de Perfil. A ação da app bar abre
+diretamente Ajustes, onde a edição do nome fica na seção **Perfil**, junto das demais configurações.
 
-### 4.3.1 Perfil 2.0
+### 4.3.1 Perfil
 
-`PerfilScreen` é o centro administrativo, sem conta, autenticação, foto ou avatar remoto. Reúne
-**Ajustes**, **Privacidade**, **Novidades**, **Ajuda e suporte**, **Termos de uso** e **Sobre o
-SignallQ**, além da versão real de `BuildConfig`. Ajustes continua sendo a tela existente, agora em
-overlay próprio, para não duplicar nem mover regras de conexão, monitoramento, dados locais ou
-ações destrutivas. Voltar fecha primeiro o destino interno e depois Perfil; a pilha é restaurável.
+O Perfil é uma seção de Ajustes, sem conta, autenticação, foto ou avatar remoto. A tela reúne a
+edição do nome e as demais configurações do aplicativo no mesmo padrão visual de lista e cartões.
+Privacidade, Novidades, Ajuda e suporte, Termos de uso e Sobre o SignallQ continuam como destinos
+internos de Ajustes. A pilha não cria uma etapa intermediária de Perfil.
 Ajuda tenta abrir o cliente de e-mail por `mailto:` e mantém endereço/copiar como fallback quando
 não existe handler. Consentimento AdMob e exclusão/reset permanecem nas superfícies legadas
 responsáveis e não foram redesenhados nesta fatia.
 
-### 4.3.2 Início 2.0
+### 4.3.2 Início
 
-Quando a flag canônica `consumer_app_shell_guided_2_enabled` está ativa, a raiz Início usa
-`Inicio2Screen`; com o default local `false`, `HomeScreen` permanece como fallback Legacy completo.
-A troca não cria estado paralelo: `Inicio2UiStateMapper` adapta `SnapshotRede`,
-`SnapshotDiagnostico` e a medição escolhida pelo mesmo `resolverMedicaoHome` usado pela Home antiga.
+`Inicio2Screen` é a única Home. `Inicio2UiStateMapper` adapta `SnapshotRede`,
+`SnapshotDiagnostico` e a medição escolhida para a experiência de diagnóstico.
 
 A composição 2.0 mostra conexão Wi-Fi, móvel, Ethernet, offline ou ainda sendo identificada; estado
 sem análise, último estado conhecido em memória, medição persistida explicitamente tratada como
@@ -185,7 +174,7 @@ persiste geração em recriação do produtor. Assim, recomposição e veredito 
 bloqueiam a próxima sessão.
 O `Job` proprietário também registra cleanup idempotente: cancelamento antes do primeiro dispatch
 publica `cancelado` e libera apenas a mesma reserva, sem afetar uma geração posterior.
-Ainda no modo Guided2, a Início projeta trilhas próprias para Wi-Fi, rede móvel, Ethernet, offline
+Na jornada única, a Início projeta trilhas próprias para Wi-Fi, rede móvel, Ethernet, offline
 e transporte ainda desconhecido a partir de `SnapshotRede`. Apenas a trilha Wi-Fi consulta
 `SnapshotScanWifi` e o `TopologiaRedeEngine`; scan anterior nunca produz mesh fora desse transporte.
 O nó mesh só aparece para `NO_MESH` com confiança `ALTA`, sem conflito **e** com confirmação
@@ -194,7 +183,7 @@ independente de roteador central; SSID igual, BSSID único com OUI de fabricante
 durante scan, em erro ou offline a trilha permanece parcial e textual. Equipamento, Wi-Fi e sinal
 móvel reutilizam overlays canônicos somente quando aplicáveis. Como não existe detalhe dedicado do
 aparelho local, “Este aparelho” permanece textual nesta fatia em vez de abrir a lista geral da LAN.
-No Guided2, o CTA principal abre o **SignallQ Assist**, um fluxo guiado — não chat e não IA — que
+O CTA principal abre o **SignallQ Assist**, um fluxo guiado — não chat e não IA — que
 reutiliza os sete `ObjetivoDiagnostico` e oferece também a escolha neutra de verificar a conexão.
 O Assist só apresenta pergunta contextual quando a resposta é consumida pelo motor atual: conexão
 usada para jogos ou melhora ao desligar o Wi-Fi. As demais situações seguem direto para a análise,
@@ -205,27 +194,27 @@ para o "plano existente": se o usuário depois abrir o diagnóstico guiado pós-
 com o que foi respondido no Assist — a pessoa não escolhe o mesmo objetivo nem responde a mesma
 pergunta duas vezes, e a resposta muda de fato as dimensões/ações do
 `DiagnosticoGuiadoEngine` para Jogos com lag e Wi-Fi vs. operadora. Essa pré-seleção expira ao
-testar de novo ou voltar ao início. O Legacy mantém seu diagnóstico guiado existente sem o Assist.
+testar de novo ou voltar ao início.
 Não há grade técnica, catálogo de ferramentas, diagnóstico completo nem placement AdMob na Início.
 A issue #1601 continua responsável pelo acesso direto ao resultado persistido exato; esta fatia
 somente apresenta sua existência sem duplicar essa navegação.
 
 ### 4.4 Hub de Ferramentas
 
-`FerramentasScreen.kt`. A Jornada 2.0 apresenta os nove destinos de `CatalogoFerramentas.todos`
+`FerramentasScreen.kt`. A jornada única apresenta os nove destinos de `CatalogoFerramentas.todos`
 como lista aberta, em um toque, sem grid ou catálogo visual concorrente:
 
 | Card | Descrição exibida | Destino |
 |---|---|---|
-| Sinal e canais | "Wi-Fi, canais e rede móvel" | `SinalScreen` em `Overlay.SinalCanais` |
-| Sinal Wi-Fi ao vivo | "Intensidade enquanto você anda pela casa" | `SinalWifiScreen` |
-| Dispositivos | "Quem está na sua rede" | `DispositivosScreen` |
-| Equipamento de internet | "Status do modem/ONT da operadora" | `EquipamentoInternetScreen` |
-| Ping | "Teste de latência para um endereço" | `PingScreen` |
-| DNS | "Compare servidores e troque o seu" | `DnsScreen` |
-| Laudo | "Laudo técnico completo da sua conexão" | `LaudoScreen` |
-| Monitoramento | "Análise avançada e alertas em segundo plano" | `MonitoramentoSheet` |
-| Modo Jogos | "Teste sua conexão para 21 jogos, em qualquer dispositivo" | `ModoGamerScreen` |
+| Wi-Fi e rede móvel | "Veja o sinal e os canais da sua rede" | `SinalScreen` em `Overlay.SinalCanais` |
+| Encontrar um bom lugar | "Ande pela casa acompanhando o sinal Wi-Fi" | `SinalWifiScreen` |
+| Quem está usando sua rede | "Veja os aparelhos conectados" | `DispositivosScreen` |
+| Seu equipamento | "Veja o estado do modem ou da ONT" | `EquipamentoInternetScreen` |
+| Tempo de resposta | "Veja se há atraso até um endereço" | `PingScreen` |
+| Abertura de sites | "Compare servidores que ajudam a encontrar sites" | `DnsScreen` |
+| Relatório para sua operadora | "Gere um resumo completo da conexão" | `LaudoScreen` |
+| Acompanhar conexão | "Receba alertas quando algo mudar" | `MonitoramentoSheet` |
+| Jogos online | "Veja se sua conexão pode causar atrasos" | `ModoGamerScreen` |
 
 Quando o usuário chega ao hub pelo card contextual do diagnóstico guiado, a ferramenta apontada
 recebe o prefixo textual "Recomendado para você" — que é limpo ao sair da tela, nunca fica
@@ -235,8 +224,7 @@ informa reconexão como próximo passo; ferramentas ocultas são filtradas antes
 UI, semântica, foco ou callback. Uma abertura permitida registra exatamente um `screen_view` pela
 taxonomia existente (os dois destinos de sinal usam o nome canônico `sinal_wifi`); remoto, offline
 e oculto não registram abertura. Nenhuma dessas condições produz affordance inerte. O modo
-Legacy continua usando a mesma lista e callbacks. O placement nativo de Jogos não foi movido nem
-migrado nesta fatia.
+O placement nativo de Jogos permanece no mesmo destino funcional.
 
 ### 4.5 Sheets modais fora da pilha
 
@@ -349,7 +337,7 @@ de bloquear: `MonitorTelephonyImpl` emite um snapshot com só a operadora (via A
 `TelephonyManager` que não exigem a permissão), a aba mostra um banner explicando o que falta e por
 quê, com atalho para conceder a permissão — e só cai no estado vazio de bloqueio quando não há
 literalmente nenhum dado (sem SIM, emulador). Dados de sinal móvel mais crus (ASU, roaming, MCC/MNC)
-seguem também na `CellularInfoSheet` da Início (`HomeScreen.kt`).
+seguem também na `CellularInfoSheet` da Início.
 
 ### 5.3 Wi-Fi (redes e canais)
 
@@ -465,7 +453,7 @@ mecanismo que já existia na versão em sheet, agora também coberto por teste d
 **Tela:** `DnsScreen` (overlay via Ferramentas ou Velocidade). Já operava como tela cheia roteada
 desde GH#933 (Fase 4) e já liderava com significado ("DNS afeta a abertura de sites, não a
 velocidade da sua conexão") antes da issue #1665 — revisada como parte da Task 2.0.17 e já
-conforme aos critérios da Jornada 2.0, sem mudança de código necessária. DNS não tem um "destino"
+conforme aos critérios da jornada única, sem mudança de código necessária. DNS não tem um "destino"
 customizável análogo ao do Ping: a ferramenta compara resolvedores DNS conhecidos, não testa um
 host escolhido pelo usuário — por isso não ganhou a mesma opção avançada.
 
@@ -592,24 +580,21 @@ e linhas condicionais: tipo de rede, aviso de resultado contaminado, bufferbloat
 streaming/games/vídeo chamada, gargalo identificado, e o texto do diagnóstico com selo "Gerado por
 IA" ou "Diagnóstico local".
 
-**Pendente (fora desta fatia):** comparação entre duas medições (rota
-`session-detail → comparison`) e recusa de comparar condições incompatíveis (ex. Wi-Fi vs. 4G) —
-decisão de produto do Luiz (#1669, comentário de 2026-08-19) exige a recusa quando implementada.
-Adiado deliberadamente para reduzir o risco desta PR (mexe em apresentação de dado persistido, não
-em schema); acompanhar em issue de continuação referenciando #1669.
+**Comparação:** o botão "Comparar medições" permite selecionar duas linhas e exibe a diferença de
+download, upload, latência e oscilação da medição mais antiga para a mais recente. A comparação só
+é exibida quando as duas medições têm o mesmo `networkId`; em redes diferentes ou sem identificação
+de rede, o app explica por que não pode comparar, sem inventar equivalência.
 
-**Filtro:** um só na UI — pills Todos / Wi-Fi / Rede móvel. As medições sintéticas do monitoramento
-em segundo plano são excluídas da lista de testes reais.
+**Filtro:** a UI oferece pills Todos / Wi-Fi / Rede móvel e, quando há dados, uma segunda linha de
+filtro por operadora. As medições sintéticas do monitoramento em segundo plano são excluídas da
+lista de testes reais.
 
 **Exportação:** ícone no TopBar (desabilitado com lista vazia) abre a
 `ExportHistoricoBottomSheet` — período (7 dias, padrão / 30 dias / Tudo) e formato (CSV, padrão /
 PDF). O arquivo é gerado no cache e compartilhado via FileProvider. O que é exportado é sempre a
 lista já filtrada, recortada pelo período.
 
-**Divergências reais no código:** o parâmetro `resumoHistorico` é declarado
-(`HistoricoScreen.kt:297`) mas nunca usado — **não existe seção de resumo/médias na tela**. O filtro
-por operadora existe na lógica (`HistoricoScreen.kt:302-304`) mas **não tem nenhum controle
-renderizado** para escolhê-lo.
+O resumo de medições exibe total registrado, download médio e latência média das últimas medições.
 
 ### 5.9 Monitoramento em segundo plano
 
@@ -654,7 +639,7 @@ com cooldown de 1 h.
 
 ### 5.10 Ajustes
 
-**Tela:** `AjustesScreen`, aberta como overlay pelo menu lateral. Não é mais uma aba.
+**Tela:** `AjustesScreen`, aberta como overlay pelo Perfil. Não é uma raiz da navegação.
 
 Seis seções: **Perfil** (nome, via `PerfilEditSheet` — o seletor de foto foi removido do app);
 **Minha conexão** (operadora, plano contratado em Mbps down/up, cidade/UF, todas abrindo a mesma
@@ -729,25 +714,20 @@ usado pela entrada direta (hub Ferramentas) — um único fluxo, dois pontos de 
 
 ### 5.12 Início (visão consolidada)
 
-**Tela:** `HomeScreen` (aba 0). Não é um domínio próprio — é a vitrine que costura os outros.
+**Tela:** `Inicio2Screen` (aba 0). Não é um domínio próprio — é a vitrine que costura os outros.
 
-Cinco blocos: o **"CAMINHO DA SUA INTERNET"**, uma trilha de três nós ligados por conectores
-animados (seu aparelho → roteador ou operadora → provedor), com rodapé de veredito em três estados;
-um **banner de CGNAT** quando detectado; o card **"MEDIÇÕES"** com o último resultado e o CTA "Medir
-velocidade"; o card de **sinal Wi-Fi** (só em Wi-Fi); e o card **"CHIP MÓVEL"** com uma linha por
-SIM ativo.
+O topo apresenta o estado da conexão, o veredito humano, uma explicação curta e o CTA **"Analisar minha
+conexão"**. Em seguida, a tela mostra uma trilha horizontal de até cinco nós (Internet, equipamento
+principal, mesh quando confirmado, Wi-Fi e este aparelho), como contexto visual não interativo. A lista
+de problemas oferece os atalhos "Vídeos ou chamadas travam" e "Outro problema" com destinos distintos:
+o primeiro inicia a análise e o segundo abre a lista de problemas.
 
-Cada nó da trilha abre uma sheet de detalhe: seu aparelho (`DeviceInfoSheet`), roteador
-(`GatewayInfoSheet`, com tipo detectado, sinal, banda, canal, segurança), provedor
-(`InternetInfoSheet`, com IP público, DNS privado e servidores DNS). Tocar no nó do roteador sem
-sessão válida abre a sheet de credenciais.
+Os detalhes de aparelho, roteador e provedor continuam acessíveis pelos fluxos próprios de
+Ferramentas e Ajustes; a trilha da Início não promete uma ação quando o nó é tocado.
 
-**Divergência real no código:** o **banner Anatel não é exibido**. O composable `AnatelBanner`
-existe (`HomeScreen.kt:628`) e recebe os parâmetros encadeados desde o ViewModel
-(`AppShell.kt:743`), mas **nunca é chamado** — é código morto. O mesmo vale para outros
-composables declarados e nunca invocados no arquivo (`BufferbloatCard`, `SignalQualitySheet`,
-entre outros). `MobileSignalCard`, `CardMovelDualSim` e `SimChipCompact` estavam nessa lista e
-foram removidos em #1261 (2026-08-06).
+O aviso regulatório da Anatel não ocupa a tela inicial. A Início mantém foco no diagnóstico e nos
+próximos passos; informações regulatórias permanecem disponíveis nos contextos de resultado e
+configuração quando aplicáveis.
 
 ---
 
@@ -835,13 +815,10 @@ conectados — e recomenda o painel do roteador em vez de inventar o dado.
 
 **Dispositivos só em Wi-Fi.** A tela de dispositivos conectados não opera em rede móvel nem offline.
 
-**Funcionalidades parcialmente entregues (código presente, UI ausente):**
+**Funcionalidades ainda parcialmente entregues:**
 
-- Banner Anatel — composable existe, nunca é chamado (`HomeScreen.kt:628`).
-- Resumo/médias no Histórico — parâmetro recebido, nunca usado (`HistoricoScreen.kt:297`).
-- Filtro por operadora no Histórico — lógica presente, sem controle na UI (`HistoricoScreen.kt:302-304`).
-- Monitoramento e preferência de dados móveis dentro de Ajustes — estados recebidos, sem linha
-  renderizada (`AjustesScreen.kt:90-99`).
+- Comparação livre entre duas medições no Histórico — o fluxo de comparação existente é o reteste
+  vinculado do diagnóstico guiado; a lista do Histórico ainda não oferece seleção de duas medições.
 - `MinhaConexaoScreen.kt` — arquivo de tela não roteado por `AppShell.kt`; o conteúdo vive como
   sheet dentro de Ajustes.
 

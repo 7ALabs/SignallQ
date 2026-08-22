@@ -10,7 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.zIndex
 
 /**
- * Overlay "Termos de uso" do menu lateral (GH#1358) — extraído do corpo de [AppShell] pela
+ * Overlay "Termos de uso" do Perfil (GH#1358) — extraído do corpo de [AppShell] pela
  * issue #1695 (épico #1647), como uma das entradas de exemplo do [AppShellOverlayRegistry].
  * Reusa `TermosDeUsoScreen`, o mesmo composable já usado pelo Onboarding
  * (`OnboardingOverlay.TERMOS`), sem duplicar conteúdo legal.

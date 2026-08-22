@@ -208,7 +208,7 @@ speedtest_concluido`.
 
 ### Funil contextual do SignallQ Assist — implementado (#1656)
 
-O Guided2 registra no Firebase `diagnostico_objetivo_selecionado` (`objetivo`, `origem`,
+O Assist da jornada única registra no Firebase `diagnostico_objetivo_selecionado` (`objetivo`, `origem`,
 `retomada`), `diagnostico_pergunta_respondida` (`objetivo`, `pergunta_id`, `resposta_id`,
 `retomada`) e `diagnostico_guiado_abandonado` (`etapa`, `objetivo` opcional, `retomavel`). Todos os
 valores são IDs fechados e tipados. SSID, BSSID, IP, localização, texto livre e identificadores de

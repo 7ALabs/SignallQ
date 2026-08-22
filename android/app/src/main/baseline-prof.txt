@@ -3,7 +3,6 @@ Lio/signallq/app/MainActivity;
 Lio/signallq/app/MainViewModel;
 Lio/signallq/app/navigation/AppNavGraph;
 Lio/signallq/app/ui/screen/AppShell;
-Lio/signallq/app/ui/screen/HomeScreen;
 Lio/signallq/app/ui/screen/OnboardingScreen;
 Lio/signallq/app/ui/screen/SpeedTestScreen;
 Lio/signallq/app/ui/screen/VelocidadeScreen;

@@ -160,10 +160,18 @@ class EquipamentoInternetScreenLayoutTest {
         }
         composeRule.waitForIdle()
 
+        composeRule.onNodeWithText("Roteador principal").assertExists()
+        composeRule
+            .onNodeWithText(
+                "As informações disponíveis dependem do modelo e do acesso permitido.",
+            ).assertExists()
+
         // Regressão do bug #6: grid 2x2 antigo sumiu do card de status, saúde
         // óptica virou linha absorvida ("Sinal óptico: <veredito>"), sem a pill
         // solta de antes ("Sinal óptico bom", sem dois pontos).
-        composeRule.onNodeWithText("Sinal óptico:", substring = true).assertExists()
+        composeRule
+            .onNodeWithText("Sinal óptico:", substring = true)
+            .assertExists()
 
         // Par 2-col Disponibilidade: Fibra e Wi-Fi renderizam em cards próprios,
         // os dois com "Disponível" (a fixture habilita as duas capacidades).

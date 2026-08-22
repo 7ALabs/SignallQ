@@ -8,7 +8,7 @@ import org.junit.Test
 /**
  * BUG#1511 (P0) — guarda de regressao: nenhum caminho de producao pode voltar a injetar um
  * [GatewayConnectionService] que retorne [GatewayConnectionResultado.Sucesso] por padrao, sem
- * autenticacao real comprovada. Ver `AppShell.kt`, `HomeScreen.kt` (parametro `conectarGateway`)
+ * autenticação real comprovada. Ver `AppShell.kt`/`Inicio2Screen.kt` (parâmetro `conectarGateway`)
  * e `AjustesUiState.kt` (`AjustesModemState.conectarGateway`) — todos os defaults de producao
  * devem apontar para [GatewayConnectionServiceIndisponivelPadrao], nunca duplicar um literal
  * `GatewayConnectionResultado.Sucesso`.

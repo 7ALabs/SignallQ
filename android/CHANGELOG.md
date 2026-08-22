@@ -11,6 +11,18 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ## [Unreleased]
 
+## [0.34.0] — 2026-08-22
+
+### Alterado
+- **Diagnóstico mais útil**: o resultado passou a priorizar a causa provável, as evidências encontradas e o próximo passo, sem exibir um score isolado que não orienta a decisão.
+- **Integração com o NDS**: análises remotas sem evidência acionável retornam ao diagnóstico local, evitando conclusões genéricas.
+- **Dispositivos conectados**: tela alinhada ao padrão de navegação e cabeçalho do aplicativo.
+- **Navegação e interface**: ajustes de consistência visual, textos e estados das telas redesenhadas.
+
+### Corrigido
+- Resultados insuficientes do NDS deixam de apresentar uma recomendação vazia ou genérica.
+- O estado “regular” não é mais apresentado como sinal positivo no resultado da análise.
+
 ## [0.32.0] — 2026-08-21
 
 ### Adicionado

@@ -41,7 +41,7 @@ Linka em preparação (`foundation-linka/`, ver seção própria abaixo). Perím
 | [POSICIONAMENTO_PRODUTO.md](POSICIONAMENTO_PRODUTO.md) | ✅ diretriz de produto aprovada para Android e Web/PWA |
 | [TECNICO.md](TECNICO.md) | ✅ reescrito do código · inventário gerado |
 | [ARQUITETURA/README.md](ARQUITETURA/README.md) | ✅ reescrito do código · inventário gerado |
-| [FUNCIONAL.md](FUNCIONAL.md) | ✅ reescrito do código · 5 abas, 16 overlays, 77 citações de código |
+| [FUNCIONAL.md](FUNCIONAL.md) | ✅ reescrito do código · 4 raízes, 16 overlays, 77 citações de código |
 | [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | ✅ tokens conferidos 1 a 1 em `SignallQTheme.kt` |
 | [RELEASES.md](RELEASES.md) | não regenerado — histórico de releases, sai do git |
 | [plano-execucao-consumer-consolidado-2026-08-05.md](plano-execucao-consumer-consolidado-2026-08-05.md) | plano ativo, 42 issues |

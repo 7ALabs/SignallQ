@@ -22,8 +22,8 @@ version: "1.4.0"
 - **Fonte de verdade:** este documento para o padrão; o código
   (`android/app/src/main/kotlin/io/signallq/app/ui/screen/AppShellOverlayRegistry.kt`) é a fonte
   de verdade do comportamento real — se divergirem, o código vence (regra de higiene §3).
-- **Escopo:** módulo `:app`, telas overlay empilhadas pelo `AppShell.kt` (Jornada 2.0, épico
-  #1647). Não cobre a navegação entre as 4-5 raízes (tabs) nem o mecanismo de push/pop em si
+- **Escopo:** módulo `:app`, telas overlay empilhadas pelo `AppShell.kt` (jornada única, épico
+  #1647). Não cobre a navegação entre as 4 raízes nem o mecanismo de push/pop em si
   (isso é `AppShellNavigation.kt`, inalterado por esta issue).
 - **Responsável:** Camilo (cria e mantém), Caio revisa mudanças de arquitetura.
 
@@ -55,7 +55,7 @@ acima devolveram a `AppShell.kt`:
 |---|---|---|
 | 2.0.04 Perfil | +44 | bloco de overlay `Ajustes` + wiring + helper `abrirEmailSuporte` |
 | 2.0.05 Ferramentas | +67 | lambda `disponibilidadeFerramenta` (~30 linhas de regra de negócio) + 1 bloco de overlay |
-| 2.0.06 Início | +62/−43 | **100% wiring de root content** (`Inicio2Screen`/`HomeScreen`) — zero overlay |
+| Início | wiring de root content (`Inicio2Screen`) — zero overlay |
 | 2.0.07 Trilha | +13 | **100% wiring** (`connectionTrail`, `onAbrirTrailRoute`) — zero overlay |
 | 2.0.08 Assist | +40 | estado hoisted (`assistObjetivoPreSelecionado` + 4 resets) + call site |
 
@@ -73,7 +73,7 @@ não mais overlays — é de lá que vieram os outros ~85%. Ver
 revisão da PR #1697 e sequenciada antes da Task 2.0.09 (#1657).
 
 **Atualização (2026-08-16, #1698 entregue):** o registro irmão para root content existe —
-[`appshell-root-content-registry.md`](appshell-root-content-registry.md), com 2 das 5 raízes
+[`appshell-root-content-registry.md`](appshell-root-content-registry.md), com 2 das 4 raízes
 migradas. Ele também resolveu a decisão pendente que a ressalva 3 de Caio deixou para este
 arquivo: **grupo por entrada, nunca campos soltos**. `AppShellOverlayRegistry` continua com os 17
 parâmetros soltos de hoje; quem migrar o próximo overlay deve convertê-lo ao mesmo formato

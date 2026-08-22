@@ -251,6 +251,11 @@ internal fun GatewayConnectionSheetContent(
             fontWeight = FontWeight.W700,
             color = c.textPrimary,
         )
+        Text(
+            text = "Use os dados de acesso fornecidos pela operadora. Eles ficam protegidos neste aparelho.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = c.textSecondary,
+        )
 
         OutlinedTextField(
             value = ipInput,

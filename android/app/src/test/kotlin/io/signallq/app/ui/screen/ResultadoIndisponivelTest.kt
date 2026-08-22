@@ -186,7 +186,7 @@ class ResultadoIndisponivelTest {
         }
         composeRule.onNodeWithTag("appshell_overlay_detalhes_tecnicos").assertExists()
         composeRule.onNodeWithText(titulo).assertDoesNotExist()
-        composeRule.onNodeWithText("Detalhes da conexão").assertExists()
+        composeRule.onNodeWithText("Detalhes técnicos").assertExists()
     }
 
     @Test
@@ -209,7 +209,7 @@ class ResultadoIndisponivelTest {
                 )
             }
         }
-        composeRule.onNodeWithText("Detalhes da conexão").assertExists()
+        composeRule.onNodeWithText("Detalhes técnicos").assertExists()
 
         composeRule.runOnIdle { resultado.value = null }
 

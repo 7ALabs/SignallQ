@@ -114,6 +114,15 @@ class NdsDiagnosticRepositoryTest {
     }
 
     @Test
+    fun `NDS retorna regular sem causa nem recomendacao - usa resultado local acionavel`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(successBody(veredicto = "regular", score = 50)))
+
+        val report = repository().evaluate(snapshotSaudavelInput())
+
+        assertEquals(DiagnosticEvaluationSource.BUNDLED_LOCAL, report.evaluationSource)
+    }
+
+    @Test
     fun `NDS respondendo 401 (KnownError) - cai para motor local sem excecao`() = runTest {
         server.enqueue(
             MockResponse().setResponseCode(401)

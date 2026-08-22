@@ -65,6 +65,9 @@ interface MedicaoDao {
     @Query("DELETE FROM medicao")
     suspend fun deletarTodos()
 
+    @Query("DELETE FROM medicao WHERE id = :id")
+    suspend fun deletarPorId(id: String)
+
     @Query(
         "UPDATE medicao SET diagnosticoTexto = :texto, diagnosticoOrigem = :origem, " +
             "diagnosticoProblemas = :problemas WHERE id = :id",

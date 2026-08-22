@@ -18,6 +18,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -110,16 +111,51 @@ internal fun SobreSheet(
     c: LkTokens,
     appVersion: String,
     onDismiss: () -> Unit,
+    onAbrirTermos: () -> Unit = {},
+    onAbrirPrivacidade: () -> Unit = {},
 ) {
     SimpleInfoSheet(
         c = c,
         titulo = "Sobre o SignallQ",
         onDismiss = onDismiss,
     ) {
+        Column(
+            modifier = Modifier.padding(horizontal = LkSpacing.lg),
+            verticalArrangement =
+                androidx.compose.foundation.layout.Arrangement
+                    .spacedBy(LkSpacing.xs),
+        ) {
+            Text(
+                text = "SignallQ",
+                style = MaterialTheme.typography.titleLarge,
+                color = c.textPrimary,
+            )
+            Text(
+                text = "Diagnóstico de conectividade em linguagem clara.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.textSecondary,
+            )
+        }
+        Spacer(Modifier.height(LkSpacing.md))
         InfoRow(c, "Versão", "v$appVersion")
         HorizontalDivider(color = c.border, thickness = 1.dp)
-        InfoRow(c, "Desenvolvido por", "Equipe SignallQ")
+        InfoRow(c, "Plataforma", "Android")
         HorizontalDivider(color = c.border, thickness = 1.dp)
-        InfoRow(c, "Suporte", "suporte@signallq.com")
+        InfoRow(c, "Marca", "Buildea Labs")
+        Spacer(Modifier.height(LkSpacing.sm))
+        TextButton(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = {
+                onDismiss()
+                onAbrirTermos()
+            },
+        ) { Text("Termos de uso") }
+        TextButton(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = {
+                onDismiss()
+                onAbrirPrivacidade()
+            },
+        ) { Text("Política de privacidade") }
     }
 }

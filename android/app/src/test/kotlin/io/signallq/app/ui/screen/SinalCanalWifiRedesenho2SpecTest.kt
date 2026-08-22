@@ -1,5 +1,6 @@
 package io.signallq.app.ui.screen
 
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -97,6 +98,64 @@ class SinalCanalWifiRedesenho2SpecTest {
         // exatamente o cenário que antes disparava o aviso de incerteza (temNoAmbiguo = true,
         // ver SinalScreenMeshApSheetRoutingTest, mesmo fixture).
         composeRule.onNodeWithText("Estrutura estimada por fabricante/sinal — sem confirmação de rota de rede").assertDoesNotExist()
+    }
+
+    @Test
+    fun `aba Wi-Fi preserva lista rolavel para todas as redes detectadas`() {
+        render()
+        composeRule.waitForIdle()
+
+        composeRule.onAllNodes(hasScrollAction()).onFirst().assertExists()
+    }
+
+    @Test
+    fun `aba Canal orienta a iniciar o scan quando ainda nao ha dados`() {
+        composeRule.setContent {
+            SignallQTheme {
+                SinalScreen(
+                    snapshotWifi =
+                        SnapshotScanWifi(
+                            estado = EstadoScanWifi.idle,
+                            redes = emptyList(),
+                            erroMensagem = null,
+                        ),
+                    connectedNetwork = null,
+                    estadoConexao = EstadoConexao.wifi,
+                    onRefresh = {},
+                    onVoltar = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Canal").performClick()
+        composeRule
+            .onNode(hasText("Escanear redes") and hasClickAction())
+            .assertExists()
+        composeRule.onNodeWithText("Toque para analisar os canais Wi-Fi próximos").assertExists()
+    }
+
+    @Test
+    fun `aba Canal oferece retentativa quando o scan falha sem dado anterior`() {
+        composeRule.setContent {
+            SignallQTheme {
+                SinalScreen(
+                    snapshotWifi =
+                        SnapshotScanWifi(
+                            estado = EstadoScanWifi.erro,
+                            redes = emptyList(),
+                            erroMensagem = "erroScanWifi",
+                        ),
+                    connectedNetwork = null,
+                    estadoConexao = EstadoConexao.wifi,
+                    onRefresh = {},
+                    onVoltar = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Canal").performClick()
+        composeRule.onNodeWithText("Não foi possível escanear as redes. Tente novamente.").assertExists()
+        composeRule.onNodeWithText("Tentar novamente").assertExists()
     }
 
     @Test

@@ -26,7 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -53,7 +53,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.signallq.app.R
 import io.signallq.app.ads.AdSlot
 import io.signallq.app.ads.AdUnitIds
@@ -172,10 +171,10 @@ fun SpeedTestScreen(
                 navigationIcon = {
                     IconButton(onClick = onAbrirMenu) {
                         Icon(
-                            imageVector = if (LocalAppShellMode.current == AppShellMode.Guided2) Icons.Filled.AccountCircle else Icons.Filled.Menu,
+                            imageVector = Icons.Filled.AccountCircle,
                             contentDescription =
                                 stringResource(
-                                    if (LocalAppShellMode.current == AppShellMode.Guided2) R.string.ajustes_cd_editar_perfil else R.string.appshell_cd_abrir_menu,
+                                    R.string.ajustes_cd_editar_perfil,
                                 ),
                             tint = c.textPrimary,
                         )
@@ -249,6 +248,22 @@ private fun ConteudoSpeedTest(
     ) {
         Spacer(Modifier.height(LkSpacing.xl))
 
+        if (estadoIdle) {
+            Text(
+                text = "Medir a conexão",
+                style = MaterialTheme.typography.headlineSmall,
+                color = c.textPrimary,
+            )
+            Spacer(Modifier.height(LkSpacing.sm))
+            Text(
+                text = "A medição é uma evidência do diagnóstico — não apenas um número.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = c.textSecondary,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(LkSpacing.lg))
+        }
+
         BlocoCirculoSpeedTest(
             snapshotSpeedtest = snapshotSpeedtest,
             snapshotRede = snapshotRede,
@@ -260,6 +275,27 @@ private fun ConteudoSpeedTest(
             estadoIdle = estadoIdle,
             c = c,
         )
+
+        if (estadoIdle) {
+            Spacer(Modifier.height(LkSpacing.lg))
+            LkSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Info,
+                        contentDescription = null,
+                        tint = c.warning,
+                    )
+                    Text(
+                        text = "Feche downloads e mantenha este aparelho no mesmo lugar durante a medição.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = c.textSecondary,
+                    )
+                }
+            }
+        }
 
         if (temResultado) {
             Spacer(Modifier.height(LkSpacing.lg))
@@ -442,7 +478,7 @@ private fun SpeedTestCircle(
 ) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier.size(230.dp),
+        modifier = Modifier.size(180.dp),
     ) {
         when (estado) {
             EstadoExecucaoSpeedtest.idle -> {
@@ -506,13 +542,13 @@ private fun IdleCircle(
         Box(
             modifier =
                 Modifier
-                    .size(250.dp)
+                    .size(180.dp)
                     .background(corBotao.copy(alpha = if (habilitado) glowAlpha else glowAlpha * 0.5f), CircleShape),
         )
         Box(
             modifier =
                 Modifier
-                    .size(230.dp)
+                    .size(164.dp)
                     .scale(if (habilitado) scale else 1f)
                     .clip(CircleShape)
                     .background(corBotao)
@@ -526,8 +562,7 @@ private fun IdleCircle(
             Text(
                 text = "Iniciar teste",
                 color = LkColors.signallQTextOnDark,
-                style = MaterialTheme.typography.titleLarge.copy(fontSize = 26.sp),
-                fontWeight = FontWeight.W600,
+                style = MaterialTheme.typography.titleLarge,
             )
         }
     }

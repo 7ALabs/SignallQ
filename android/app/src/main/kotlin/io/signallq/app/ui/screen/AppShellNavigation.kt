@@ -11,17 +11,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.staticCompositionLocalOf
-
-/** Permite validar a Jornada 2.0 sem remover a navegação legada. */
-enum class AppShellMode {
-    Legacy,
-    Guided2,
-}
-
-internal val LocalAppShellMode = staticCompositionLocalOf { AppShellMode.Legacy }
-
-internal fun AppShellMode.usaInicio2(): Boolean = this == AppShellMode.Guided2
 
 internal enum class AppShellOverlay {
     Laudo,
@@ -46,46 +35,32 @@ internal enum class AppShellOverlay {
 }
 
 internal enum class AppShellRoot(
-    val legacyIndex: Int,
+    val index: Int,
 ) {
     Home(0),
     Speed(1),
-    Wifi(2),
-    History(3),
-    Tools(4),
+    History(2),
+    Tools(3),
     ;
 
     companion object {
-        fun fromLegacyIndex(index: Int): AppShellRoot = entries.firstOrNull { it.legacyIndex == index } ?: Tools
+        fun fromIndex(index: Int): AppShellRoot = entries.firstOrNull { it.index == index } ?: Tools
     }
 }
-
-internal fun AppShellMode.roots(): List<AppShellRoot> =
-    when (this) {
-        AppShellMode.Legacy -> AppShellRoot.entries
-        AppShellMode.Guided2 ->
-            listOf(
-                AppShellRoot.Home,
-                AppShellRoot.Speed,
-                AppShellRoot.History,
-                AppShellRoot.Tools,
-            )
-    }
 
 internal fun AppShellRoot.screenName(): String =
     when (this) {
         AppShellRoot.Home -> "home"
         AppShellRoot.Speed -> "speedtest"
-        AppShellRoot.Wifi -> "sinal_wifi"
         AppShellRoot.History -> "historico"
         AppShellRoot.Tools -> "ferramentas"
     }
 
 internal fun shouldShowAppShellBottomBar(
-    mode: AppShellMode,
     isAtRoot: Boolean,
     speedtestRunning: Boolean,
-): Boolean = !speedtestRunning && (mode == AppShellMode.Legacy || isAtRoot)
+): Boolean =
+    !speedtestRunning && isAtRoot
 
 @Composable
 internal fun AppShellBackHandlers(
@@ -181,7 +156,7 @@ internal class AppShellNavigator internal constructor(
         }
 
     val selectedRoot: AppShellRoot
-        get() = AppShellRoot.fromLegacyIndex(selectedTab)
+        get() = AppShellRoot.fromIndex(selectedTab)
 
     val overlayStack: MutableList<AppShellOverlay>
         get() = stacks.getValue(selectedRoot)
@@ -190,7 +165,7 @@ internal class AppShellNavigator internal constructor(
         get() = overlayStack.isEmpty()
 
     fun select(root: AppShellRoot) {
-        selectedTab = root.legacyIndex
+        selectedTab = root.index
     }
 
     fun open(overlay: AppShellOverlay) {
@@ -294,13 +269,9 @@ internal class AppShellNavigator internal constructor(
 }
 
 @Composable
-internal fun rememberAppShellNavigator(mode: AppShellMode): AppShellNavigator =
-    rememberSaveable(mode, saver = AppShellNavigator.Saver) {
+internal fun rememberAppShellNavigator(): AppShellNavigator =
+    rememberSaveable(saver = AppShellNavigator.Saver) {
         AppShellNavigator(
-            initialTab =
-                when (mode) {
-                    AppShellMode.Legacy -> AppShellRoot.Speed.legacyIndex
-                    AppShellMode.Guided2 -> AppShellRoot.Home.legacyIndex
-                },
+            initialTab = AppShellRoot.Home.index,
         )
     }

@@ -26,10 +26,10 @@ package io.signallq.app.core.featureflags
  * viva ao NDS (`NdsClient.evaluate`, via `NdsDiagnosticRepository`) como fonte do
  * `DiagnosticOrchestrator`, no lugar do shadow mode acima -- mutuamente exclusivos
  * (flag ligada desliga o shadow mode automaticamente, ver kdoc de
- * `DiagnosticOrchestrator.executarProtegido`). Default `false` preserva o motor
- * local (`DiagnosticRunner`) como autoritativo; `androidImplemented=true` mas
- * NINGUEM ligado ainda -- ligar em producao exige aprovacao explicita do Luiz
- * (regra do repo), fora do escopo desta fatia.
+ * `DiagnosticOrchestrator.executarProtegido`). O catálogo local usa default `true`:
+ * o NDS é tentado como fonte principal e o motor local assume automaticamente quando
+ * a chamada falha. O Remote Config continua podendo desligar a chamada sem publicar
+ * outra versão do app.
  */
 object FeatureFlagKeys {
     val CONSUMER_SPEEDTEST_ENABLED = FeatureFlagKey("consumer_speedtest_enabled")
@@ -44,7 +44,6 @@ object FeatureFlagKeys {
     val CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED = FeatureFlagKey("consumer_diagnostico_nds_live_enabled")
     val CONSUMER_HISTORY_ENABLED = FeatureFlagKey("consumer_history_enabled")
     val CONSUMER_SETTINGS_ENABLED = FeatureFlagKey("consumer_settings_enabled")
-    val CONSUMER_APP_SHELL_GUIDED_2_ENABLED = FeatureFlagKey("consumer_app_shell_guided_2_enabled")
 
     /** Todas as constantes declaradas aqui -- usado pelo teste de paridade catalogo/codigo. */
     val ALL: List<FeatureFlagKey> =
@@ -61,7 +60,6 @@ object FeatureFlagKeys {
             CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED,
             CONSUMER_HISTORY_ENABLED,
             CONSUMER_SETTINGS_ENABLED,
-            CONSUMER_APP_SHELL_GUIDED_2_ENABLED,
         )
 
     /** Os 9 modulos feature do Consumer instrumentados por F4/#1480, na ordem do
