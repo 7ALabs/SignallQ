@@ -77,7 +77,7 @@ agora porque a NDS-02k depende diretamente dela para os dois mappers novos.
 |---|---|
 | `NdsClient.kt` | `suspend fun evaluate(NdsDiagnosticsRequest): NdsDiagnosticsOutcome` — `POST /v1/diagnostics/evaluate` com `Authorization: Bearer`. Nunca lança exceção ao chamador |
 | `NdsClientFactory.kt` | Fábrica de conveniência que monta `NdsClient` a partir de `BuildConfig.NDS_BASE_URL`/`NDS_API_TOKEN` |
-| `NdsDiagnosticsRequest.kt` | Request tipado (`NdsAppInfo`, `NdsConnectionInfo`, `NdsWifiInfo`, `NdsWifiScanInfo`, `NdsSpeedInfo`, `NdsDnsInfo`, `NdsFiberInfo`) + `toJson()` interno — cada bloco opcional é omitido do payload quando `null` |
+| `NdsDiagnosticsRequest.kt` | Request tipado (`NdsAppInfo`, `NdsConnectionInfo`, `NdsWifiInfo`, `NdsWifiScanInfo`, `NdsSpeedInfo`, `NdsQualityInfo`, `NdsDnsInfo`, `NdsGatewayInfo`, `NdsFiberInfo`) + `toJson()` interno — cada bloco opcional é omitido do payload quando `null` |
 | `NdsDiagnosticsResponse.kt` | Resposta tipada (`NdsDiagnosticsResponse`, `NdsNextBestAction`, `NdsModuleResult`, `NdsTrace`) + `NdsResponseParser` tolerante. `recommendation` é objeto tipado e `steps` decompõe a ação única; `NdsModuleResult.result`/`cards` continuam como `Map`/`List` genéricos para manter extensibilidade |
 | `NdsModuleResults.kt` | Decoders tipados para os 3 módulos confirmados no ADR-017: `asScoring()`, `asAi()`, `asWifiDiagnostics()` — cada um devolve `null` se o `module` não bater ou faltar campo obrigatório |
 | `NdsDiagnosticsOutcome.kt` | `sealed class` do resultado: `Success`, `KnownError` (dois shapes — flat `{error,message}` confirmado no ADR-017, e o envelope canônico `{error:{code,message,retryable},request_id}` do PR#12/NDS, ainda em draft) e `UnknownError` (5xx/timeout/corpo não-JSON — nenhum dos dois shapes bateu, tratado defensivamente) |
@@ -85,7 +85,7 @@ agora porque a NDS-02k depende diretamente dela para os dois mappers novos.
 | `NdsProfileCapabilitiesMapper.kt` (NDS-02a/#1747) | `ndsCapabilities()`/`ndsProfile()` — regra `profile`/`capabilities` do payload |
 | `NdsWifiScanMapper.kt` (NDS-02a/#1747) | `mapWifiScanToNds()` — traduz `ChannelScore` (`:coreNetwork`) para o bloco `wifiScan` |
 | `NdsSeverityParser.kt` (NDS-02a/#1747, NDS-02k/#1759) | `parseNdsVeredicto()` (`veredicto` → `MetricStatus`) e `MetricStatus.toDiagnosticStatus()` (segundo salto, `MetricStatus` → `DiagnosticStatus` do `core/diagnostico`) |
-| `NdsDiagnosticsRequestMapper.kt` (NDS-02k/#1759) | `DiagnosticInput.toNdsDiagnosticsRequest()` — ponte pura para o payload real de `evaluate()`; documenta os gaps conhecidos (`wifiScan`, `dns.hijacked`) |
+| `NdsDiagnosticsRequestMapper.kt` (NDS-02k/#1759) | `DiagnosticInput.toNdsDiagnosticsRequest()` — ponte pura para o payload real de `evaluate()`; envia qualidade em `quality`, DNS em `dns.latencyMs` e dados do gateway em `gateway`, e documenta os gaps conhecidos (`wifiScan`, `dns.hijacked`) |
 | `NdsDiagnosticsResponseMapper.kt` (NDS-02k/#1759) | `NdsDiagnosticsResponse.toDiagnosticReport()` — ponte pura de volta para o `DiagnosticReport` que a UI já lê via `SnapshotDiagnostico` |
 
 ## Autenticação (ver ADR-017)

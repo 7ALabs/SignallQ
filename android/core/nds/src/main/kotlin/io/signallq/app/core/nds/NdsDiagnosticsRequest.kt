@@ -37,10 +37,23 @@ data class NdsSpeedInfo(
     val packetLossPercent: Double? = null,
 )
 
+data class NdsQualityInfo(
+    val latencyMs: Double? = null,
+    val jitterMs: Double? = null,
+    val packetLossPercent: Double? = null,
+    val loadedLatencyMs: Double? = null,
+    val bufferbloatMs: Double? = null,
+)
+
 data class NdsDnsInfo(
     val primary: String? = null,
     val responseTimeMs: Int? = null,
     val hijacked: Boolean? = null,
+)
+
+data class NdsGatewayInfo(
+    val rttGatewayMs: Int? = null,
+    val connectedDevices: Int? = null,
 )
 
 data class NdsFiberInfo(
@@ -59,8 +72,9 @@ data class NdsDiagnosticContext(
 
 /**
  * Payload de `POST /v1/diagnostics/evaluate` — schema completo documentado no
- * ADR-017. Cada bloco (`connection`, `wifi`, `wifiScan`, `speed`, `dns`,
- * `fiber`) e opcional: quando `null`, o campo e OMITIDO do JSON — o NDS trata
+ * ADR-017. Cada bloco (`connection`, `wifi`, `wifiScan`, `speed`, `quality`,
+ * `dns`, `gateway`, `fiber`) e opcional: quando `null`, o campo e OMITIDO do
+ * JSON — o NDS trata
  * ausencia de bloco como "sem dado disponivel", nunca como zero/vazio.
  *
  * Nomes de chave JSON seguem exatamente o exemplo do ADR-017 (mistura
@@ -77,7 +91,9 @@ data class NdsDiagnosticsRequest(
     val wifi: NdsWifiInfo? = null,
     val wifiScan: NdsWifiScanInfo? = null,
     val speed: NdsSpeedInfo? = null,
+    val quality: NdsQualityInfo? = null,
     val dns: NdsDnsInfo? = null,
+    val gateway: NdsGatewayInfo? = null,
     val fiber: NdsFiberInfo? = null,
     val context: NdsDiagnosticContext? = null,
 ) {
@@ -147,13 +163,34 @@ data class NdsDiagnosticsRequest(
                 },
             )
         }
+        quality?.let { q ->
+            root.put(
+                "quality",
+                JSONObject().apply {
+                    q.latencyMs?.let { put("latencyMs", it) }
+                    q.jitterMs?.let { put("jitterMs", it) }
+                    q.packetLossPercent?.let { put("packetLossPercent", it) }
+                    q.loadedLatencyMs?.let { put("loadedLatencyMs", it) }
+                    q.bufferbloatMs?.let { put("bufferbloatMs", it) }
+                },
+            )
+        }
         dns?.let { d ->
             root.put(
                 "dns",
                 JSONObject().apply {
                     d.primary?.let { put("primary", it) }
-                    d.responseTimeMs?.let { put("responseTime_ms", it) }
+                    d.responseTimeMs?.let { put("latencyMs", it) }
                     d.hijacked?.let { put("hijacked", it) }
+                },
+            )
+        }
+        gateway?.let { g ->
+            root.put(
+                "gateway",
+                JSONObject().apply {
+                    g.rttGatewayMs?.let { put("rttGatewayMs", it) }
+                    g.connectedDevices?.let { put("connectedDevices", it) }
                 },
             )
         }

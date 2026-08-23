@@ -34,7 +34,9 @@ class NdsDiagnosticsRequestMapperTest {
         assertNull(request.wifi)
         assertNull(request.wifiScan)
         assertNull(request.speed)
+        assertNull(request.quality)
         assertNull(request.dns)
+        assertNull(request.gateway)
         assertNull(request.fiber)
     }
 
@@ -101,7 +103,10 @@ class NdsDiagnosticsRequestMapperTest {
                 latencyMs = 12.0,
                 jitterMs = 2.0,
                 perdaPercentual = 0.5,
+                bufferbloatMs = 65.0,
+                rttGatewayMs = 4,
             ),
+            wifi = WifiDiagnosticInput(rssiDbm = -55, linkSpeedMbps = 433, frequenciaMhz = 5180, dispositivosNaRede = 6),
         )
 
         val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
@@ -111,6 +116,13 @@ class NdsDiagnosticsRequestMapperTest {
         assertEquals(300.0, request.speed?.downloadMbps)
         assertEquals(150.0, request.speed?.uploadMbps)
         assertEquals(0.5, request.speed?.packetLossPercent)
+        assertEquals(12.0, request.quality?.latencyMs)
+        assertEquals(2.0, request.quality?.jitterMs)
+        assertEquals(0.5, request.quality?.packetLossPercent)
+        assertEquals(77.0, request.quality?.loadedLatencyMs)
+        assertEquals(65.0, request.quality?.bufferbloatMs)
+        assertEquals(4, request.gateway?.rttGatewayMs)
+        assertEquals(6, request.gateway?.connectedDevices)
     }
 
     @Test

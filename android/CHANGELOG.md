@@ -9,6 +9,12 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ---
 
+## [0.35.3] — 2026-08-23
+
+### Corrigido
+- O Assist agora envia as medições de qualidade, DNS e gateway no formato esperado pelo diagnóstico remoto.
+- A tela deixa de apresentar como ausentes medições que já foram coletadas pelo aplicativo.
+
 ## [0.35.2] — 2026-08-23
 
 ### Alterado
