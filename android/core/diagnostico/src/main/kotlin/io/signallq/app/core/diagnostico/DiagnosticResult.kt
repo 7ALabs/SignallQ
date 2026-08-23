@@ -18,4 +18,8 @@ data class DiagnosticResult(
     val categoriaOrigem: String? = null,
     /** Passos imperativos da mesma ação única recomendada pelo NDS. */
     val recomendacaoPassos: List<String> = emptyList(),
+    /** Identificador da ação determinística remota, quando houver. */
+    val recomendacaoId: String? = null,
+    /** Achados que sustentam a ação determinística remota. */
+    val sourceFindingIds: List<String> = emptyList(),
 )

@@ -85,23 +85,16 @@ class NdsDiagnosticRepository(
                             perfisUso = UsageProfileClassifier.classificarTodos(input),
                             gameReadiness = GameReadinessClassifier.classificarTodos(input),
                         )
-                    if (relatorio.decisao.status == DiagnosticStatus.ok || outcome.response.temEvidenciaAcionavel()) {
-                        analyticsHelper.registrarDiagNdsOutcome(
-                            outcome = "success",
-                            fallbackLocalUsado = false,
-                            latenciaMs = latenciaMs,
-                        )
-                        relatorio
-                    } else {
-                        Timber.w("NdsDiagnosticRepository: resposta sem causa ou proximo passo, usando diagnostico local")
-                        analyticsHelper.registrarDiagNdsOutcome(
-                            outcome = "insufficient_evidence",
-                            fallbackLocalUsado = true,
-                            latenciaMs = latenciaMs,
-                            errorCode = "INSUFFICIENT_EVIDENCE",
-                        )
-                        fallbackLocal(input, enabledAreas)
-                    }
+                    analyticsHelper.registrarDiagNdsOutcome(
+                        outcome = if (relatorio.decisao.status == DiagnosticStatus.inconclusive) {
+                            "remote_inconclusive"
+                        } else {
+                            "success"
+                        },
+                        fallbackLocalUsado = false,
+                        latenciaMs = latenciaMs,
+                    )
+                    relatorio
                 } catch (t: Throwable) {
                     Timber.w(t, "NdsDiagnosticRepository: falha ao mapear resposta do NDS, caindo para motor local")
                     analyticsHelper.registrarDiagNdsOutcome(
@@ -148,12 +141,3 @@ class NdsDiagnosticRepository(
         DiagnosticRunner.run(input, enabledAreas, gerarRecomendacoes = RecomendacaoPraticaEngine::recomendar)
             .copy(evaluationSource = DiagnosticEvaluationSource.BUNDLED_LOCAL)
 }
-
-private fun NdsDiagnosticsResponse.temEvidenciaAcionavel(): Boolean =
-    recommendation != null ||
-        results.any { modulo ->
-            modulo.warnings.isNotEmpty() ||
-                modulo.missingInputs.isNotEmpty() ||
-                modulo.cards.isNotEmpty() ||
-                (modulo.result["matched_rules"] as? List<*>)?.isNotEmpty() == true
-        }

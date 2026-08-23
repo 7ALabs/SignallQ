@@ -68,6 +68,11 @@ data class DiagnosticReport(
      *  (ver [DiagnosticRulesVersion]). Sempre [DiagnosticRulesVersion.CURRENT] quando gerado
      *  por [DiagnosticRunner.run] (motor local, autoritativo) — nunca varia por tela. */
     val rulesVersion: String = DiagnosticRulesVersion.CURRENT,
+    /** Cards e módulos remotos preservados para consumidores que ainda não têm um seam próprio. */
+    val evidenciasRemotas: List<DiagnosticResult> = emptyList(),
+    val modulosRemotos: Map<String, Map<String, Any?>> = emptyMap(),
+    val avisosRemotos: Map<String, List<String>> = emptyMap(),
+    val context: DiagnosticContext? = null,
 ) {
     private val todos: List<DiagnosticResult>
         get() =

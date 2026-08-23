@@ -114,12 +114,14 @@ class NdsDiagnosticRepositoryTest {
     }
 
     @Test
-    fun `NDS retorna regular sem causa nem recomendacao - usa resultado local acionavel`() = runTest {
+    fun `NDS retorna regular sem causa nem recomendacao - preserva resposta remota`() = runTest {
         server.enqueue(MockResponse().setResponseCode(200).setBody(successBody(veredicto = "regular", score = 50)))
 
         val report = repository().evaluate(snapshotSaudavelInput())
 
-        assertEquals(DiagnosticEvaluationSource.BUNDLED_LOCAL, report.evaluationSource)
+        assertEquals(DiagnosticEvaluationSource.REMOTE, report.evaluationSource)
+        assertEquals("nds:regular", report.decisao.id)
+        assertEquals(io.signallq.app.core.diagnostico.DiagnosticStatus.info, report.decisao.status)
     }
 
     @Test

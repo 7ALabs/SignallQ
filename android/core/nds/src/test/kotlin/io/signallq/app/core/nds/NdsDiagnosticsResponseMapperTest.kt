@@ -215,4 +215,46 @@ class NdsDiagnosticsResponseMapperTest {
         assertNull(report.scoreEngineResultado)
         assertEquals(DiagnosticStatus.inconclusive, report.decisao.status)
     }
+
+    @Test
+    fun `cards remotos chegam ao DiagnosticReport e acao preserva ids e passos`() {
+        val response = responseComScoringEAi(
+            recommendation = NdsNextBestAction(
+                id = "retest_near_router",
+                type = "diagnostic",
+                title = "Repita perto do roteador",
+                description = "Repita a medição perto do roteador.",
+                sourceFindingIds = listOf("wifi_signal_critical"),
+                steps = listOf("Aproxime-se do roteador.", "Repita a medição."),
+            ),
+        ).copy(
+            results = responseComScoringEAi().results + NdsModuleResult(
+                module = "diagnostics.extended",
+                moduleVersion = "1.0.0",
+                requestId = "req-1",
+                warnings = listOf("gateway ausente"),
+                missingInputs = listOf("gateway.rtt"),
+                result = emptyMap(),
+                cards = listOf(
+                    mapOf(
+                        "id" to "wifi_signal_critical",
+                        "titulo" to "Sinal Wi-Fi fraco",
+                        "status" to "critical",
+                        "evidencia" to "-84 dBm",
+                        "mensagemUsuario" to "O sinal está fraco.",
+                        "categoria" to "wifi",
+                    ),
+                ),
+            ),
+        )
+
+        val report = response.toDiagnosticReport(DiagnosticInput(executionId = "exec-1"), 0L)
+
+        assertEquals(listOf("wifi_signal_critical"), report.wifiResultados.map { it.id })
+        assertEquals(listOf("wifi_signal_critical"), report.evidenciasRemotas.map { it.id })
+        assertEquals("retest_near_router", report.decisao.recomendacaoId)
+        assertEquals(listOf("wifi_signal_critical"), report.decisao.sourceFindingIds)
+        assertEquals(listOf("Aproxime-se do roteador.", "Repita a medição."), report.decisao.recomendacaoPassos)
+        assertEquals(listOf("gateway.rtt"), report.dadosAusentes)
+    }
 }

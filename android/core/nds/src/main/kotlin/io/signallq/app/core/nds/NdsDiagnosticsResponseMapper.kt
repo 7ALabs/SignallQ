@@ -14,16 +14,9 @@ import io.signallq.app.core.diagnostico.ScoreResult
  * [io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository.evaluate],
  * nao preenchidos aqui).
  *
- * ## Por que a maioria das listas de [DiagnosticReport] fica vazia
- * O NDS devolve, por avaliacao: UM `veredicto`/`score` (modulo `scoring`),
- * `matched_rules` SEM texto/status (modulo `diagnostics.wifi`), UMA explicacao
- * (modulo `ai`). [DiagnosticReport] tem 8 listas por dominio
- * (`wifiResultados`/`internetResultados`/...) que o motor LOCAL preenche com um
- * `DiagnosticResult` por metrica avaliada — o NDS nao devolve esse nivel de
- * granularidade (sem status/titulo/mensagem por metrica), entao nao ha como
- * construir um `DiagnosticResult` honesto por item. Ficam vazias por design; o
- * veredicto real desta avaliacao mora inteiro em [DiagnosticReport.decisao].
- * Gap documentado no inventario da issue #1759 — nao e bug desta fatia.
+ * Cards NDS são convertidos em [DiagnosticResult] e chegam às listas por domínio e
+ * [DiagnosticReport.evidenciasRemotas]. Módulos sem decoder tipado permanecem em
+ * [DiagnosticReport.modulosRemotos], sem impedir a avaliação.
  *
  * ## `scoreEngineResultado`
  * Usa o `score` numerico (0-100) que o modulo `scoring` de fato devolve, com
@@ -47,6 +40,7 @@ fun NdsDiagnosticsResponse.toDiagnosticReport(
     val status = parseNdsVeredicto(scoring?.veredicto).toDiagnosticStatus()
     val dadosAusentes = results.flatMap { it.missingInputs }.distinct()
     val recomendacao = recommendation?.description ?: recommendationText
+    val cards = results.flatMap { modulo -> modulo.cards.map { it.toDiagnosticResult(modulo.module) } }
 
     val decisao = DiagnosticResult(
         id = "nds:${scoring?.veredicto ?: "inconclusivo"}",
@@ -58,26 +52,28 @@ fun NdsDiagnosticsResponse.toDiagnosticReport(
             ?: "Diagnóstico concluído.",
         recomendacao = recomendacao,
         recomendacaoPassos = recommendation?.steps.orEmpty(),
+        recomendacaoId = recommendation?.id,
+        sourceFindingIds = recommendation?.sourceFindingIds.orEmpty(),
         categoria = "nds",
         podeConcluir = status != DiagnosticStatus.inconclusive,
         categoriaOrigem = null,
     )
 
     return DiagnosticReport(
-        wifiResultados = emptyList(),
-        internetResultados = emptyList(),
+        wifiResultados = cards.filter { it.categoria == "wifi" },
+        internetResultados = cards.filter { it.categoria == "internet" || it.categoria == "connection" },
         mobileResultados = emptyList(),
-        fibraResultados = emptyList(),
-        dnsResultados = emptyList(),
+        fibraResultados = cards.filter { it.categoria == "fibra" },
+        dnsResultados = cards.filter { it.categoria == "dns" },
         historicoResultados = emptyList(),
         wifiCanalResultados = emptyList(),
         redeResultados = emptyList(),
         decisao = decisao,
-        achadosSecundarios = emptyList(),
+        achadosSecundarios = cards,
         hipotesesDescartadas = emptyList(),
         dadosAusentes = dadosAusentes,
         limitacoesEquipamentoLocal = emptyList(),
-        recomendacoes = emptyList(),
+        recomendacoes = if (recommendation == null) emptyList() else listOf(decisao),
         perfisUsoSpeedtest = input.internet?.qualidadeUso,
         scoreEngineResultado = scoring?.let {
             ScoreResult(score = it.score, dimensoesUsadas = emptyList(), dadosAusentes = dadosAusentes)
@@ -86,5 +82,33 @@ fun NdsDiagnosticsResponse.toDiagnosticReport(
         gameReadiness = emptyList(),
         geradoEmMs = geradoEmMs,
         executionId = input.executionId,
+        evidenciasRemotas = cards,
+        modulosRemotos = results.associate { it.module to it.result },
+        avisosRemotos = results.associate { it.module to it.warnings },
+        context = input.context,
+    )
+}
+
+private fun Map<String, Any?>.string(key: String): String? = this[key] as? String
+
+private fun Map<String, Any?>.boolean(key: String): Boolean = this[key] as? Boolean ?: false
+
+private fun Map<String, Any?>.toDiagnosticResult(module: String): DiagnosticResult {
+    val status = runCatching { DiagnosticStatus.valueOf(string("status") ?: "inconclusive") }
+        .getOrDefault(DiagnosticStatus.inconclusive)
+    val id = string("id") ?: "$module:card"
+    val title = string("titulo") ?: string("title") ?: id
+    val evidence = string("evidence") ?: string("evidencia")
+    val message = string("mensagemUsuario") ?: string("message") ?: evidence ?: "Evidência recebida do NDS."
+    return DiagnosticResult(
+        id = id,
+        titulo = title,
+        status = status,
+        evidencia = evidence,
+        mensagemUsuario = message,
+        recomendacao = null,
+        categoria = string("categoria") ?: module,
+        podeConcluir = boolean("podeConcluir") || status != DiagnosticStatus.inconclusive,
+        categoriaOrigem = string("categoriaOrigem") ?: string("category"),
     )
 }
