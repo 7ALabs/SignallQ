@@ -8,6 +8,9 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -197,7 +200,7 @@ class DiagnosticoGuiadoScreenTest {
             input = inputJogosComWifiFraco(),
         )
 
-        completarSegundaPerguntaJogos()
+        completarSegundaPerguntaJogos(respostaConexao = "Cabo de rede")
 
         composeRule.onNodeWithText("Força do sinal Wi-Fi").assertDoesNotExist()
     }
@@ -212,7 +215,7 @@ class DiagnosticoGuiadoScreenTest {
 
         completarSegundaPerguntaJogos()
 
-        composeRule.onNodeWithText("Força do sinal Wi-Fi").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Força do sinal Wi-Fi").onFirst().assertIsDisplayed()
     }
 
     // ---------------------------------------------------------------------------------------
@@ -264,7 +267,7 @@ class DiagnosticoGuiadoScreenTest {
 
         assertEquals(0, analiseIniciada)
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertDoesNotExist()
-        composeRule.onNodeWithText("Força do sinal Wi-Fi").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Força do sinal Wi-Fi").onFirst().assertIsDisplayed()
     }
 
     // GH#1707 (Task 2.0.09e, parte 2/2) — CTA "Testar novamente" vinculado (spec §8.8): só
@@ -433,7 +436,7 @@ class DiagnosticoGuiadoScreenTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertDoesNotExist()
-        composeRule.onNodeWithText("Força do sinal Wi-Fi").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Força do sinal Wi-Fi").onFirst().assertIsDisplayed()
     }
 
     @Test
@@ -551,9 +554,9 @@ class DiagnosticoGuiadoScreenTest {
 
     /** Avança da primeira pergunta (já pré-preenchida pelo Assist) até o resultado,
      *  respondendo a segunda pergunta do roteiro de Jogos com lag normalmente. */
-    private fun completarSegundaPerguntaJogos() {
+    private fun completarSegundaPerguntaJogos(respostaConexao: String = "Wi-Fi") {
         composeRule.onNodeWithText("Em qual conexão você joga?").assertIsDisplayed()
-        composeRule.onNodeWithText("Wi-Fi").performClick()
+        composeRule.onNodeWithText(respostaConexao).performClick()
         composeRule.onNodeWithText("Com que frequência isso acontece?").assertIsDisplayed()
         composeRule.onNodeWithText("Quase sempre").performClick()
     }
@@ -654,7 +657,11 @@ class DiagnosticoGuiadoScreenTest {
         // A continuidade entrou como cabecalho do conteudo que rola, entao a evidencia desceu para
         // fora da janela. Rolar ate ela e obrigatorio: sem isso o assert falharia por posicao, nao
         // por ausencia - a mesma armadilha do bloqueio B1 da PR #1709.
-        composeRule.onNodeWithText("Força do sinal Wi-Fi").performScrollTo().assertIsDisplayed()
+        composeRule
+            .onAllNodesWithText("Força do sinal Wi-Fi")
+            .onFirst()
+            .performScrollTo()
+            .assertIsDisplayed()
     }
 
     // BLOQUEIO B3 do parecer. `PARTIAL` vindo do 429 tem o download derrubado pelo NOSSO rate
@@ -693,7 +700,7 @@ class DiagnosticoGuiadoScreenTest {
         medirEConcluirCom(MeasurementStatus.COMPLETE, input = inputJogosComWifiFraco())
 
         composeRule.onNodeWithTag(TAG_CONTINUIDADE_MEDICAO).assertDoesNotExist()
-        composeRule.onNodeWithText("Força do sinal Wi-Fi").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Força do sinal Wi-Fi").onFirst().assertIsDisplayed()
     }
 
     // BLOQUEIO B1 do parecer. Os dois blocos eram filhos-raiz do slot do `Scaffold`, que posiciona
@@ -717,7 +724,7 @@ class DiagnosticoGuiadoScreenTest {
         medirEConcluirCom(MeasurementStatus.PARTIAL, input = inputJogosComWifiFraco())
 
         val antes = composeRule.onNodeWithTag(TAG_CONTINUIDADE_MEDICAO).getBoundsInRoot().top
-        composeRule.onNodeWithText("Força do sinal Wi-Fi").performScrollTo()
+        composeRule.onAllNodesWithText("Força do sinal Wi-Fi").onLast().performScrollTo()
         val depois = composeRule.onNodeWithTag(TAG_CONTINUIDADE_MEDICAO).getBoundsInRoot().top
 
         assertTrue(

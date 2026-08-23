@@ -57,7 +57,7 @@ class DiagnosticoGuiadoEstadoTest {
         // Mutante: `estado.objetivo?.ordinal?.toString()`. Ordinal quebra em silêncio quando
         // alguém reordena ou acrescenta um objetivo no enum — a análise salva antes da
         // atualização volta apontando para OUTRO problema, sem erro nenhum.
-        assertEquals("JOGOS_COM_LAG", salvar(DiagnosticoGuiadoEstado(objetivo = jogos))[0])
+        assertEquals("JOGOS_COM_LAG", salvar(DiagnosticoGuiadoEstado(objetivo = jogos))[2])
     }
 
     @Test
