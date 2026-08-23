@@ -109,14 +109,10 @@ class DiagnosticoGuiadoScreenTest {
         composeRule.onNodeWithText("Vamos descobrir o que está acontecendo").assertDoesNotExist()
     }
 
-    // Mutante que este teste mata: repassar `voltarUmPasso` (a versão Unit, que chama `onVoltar()`
-    // sozinha quando não há mais o que recuar) em vez de `tentarRecuar` para `onBackHandlerReady`.
-    // Sobreviveria a todos os testes de UI acima, porque nenhum deles aciona o hardware back --
-    // e produziria `onVoltar()` disparando por baixo dos panos toda vez que o back do Android
-    // chegasse ao início do roteiro, quando quem deveria decidir "fechar o overlay" é o
-    // `AppShellNavigator` (via `RegistrarBackDoOverlay`/`consumirBackDoOverlayTopo`), não a tela.
+    // O Assist não trata perguntas como uma pilha de navegação. Tanto o hardware back quanto a
+    // seta da AppBar saem imediatamente da jornada; o navigator remove o overlay.
     @Test
-    fun `onBackHandlerReady recebe tentarRecuar, nunca aciona onVoltar por conta propria`() {
+    fun `voltar do Assist fecha a jornada sem recuar perguntas`() {
         lateinit var backHandler: () -> Boolean
         var onVoltarChamado = 0
         composeRule.setContent {
@@ -156,19 +152,11 @@ class DiagnosticoGuiadoScreenTest {
         composeRule.onNodeWithText("Wi-Fi").performClick()
         composeRule.onNodeWithText("Com que frequência isso acontece?").assertIsDisplayed()
 
-        // Passo 1 -> passo 0: há o que recuar, consome o evento.
-        composeRule.runOnIdle { assertTrue("deveria consumir o back e recuar um passo", backHandler()) }
-        composeRule.onNodeWithText("Em qual conexão você joga?").assertIsDisplayed()
+        composeRule.runOnIdle { assertFalse("o back deve liberar o pop do overlay", backHandler()) }
+        assertEquals("o callback do shell decide a saída", 0, onVoltarChamado)
 
-        // Passo 0 com objetivo escolhido -> reset para a lista de objetivos: ainda consome.
-        composeRule.runOnIdle { assertTrue(backHandler()) }
-        composeRule.onNodeWithText("Vamos descobrir o que está acontecendo").assertIsDisplayed()
-
-        // Sem objetivo e sem pilha: nada mais para recuar DENTRO do fluxo -- devolve `false` e
-        // quem decide fechar o overlay é quem registrou o interceptador, não esta função.
-        composeRule.runOnIdle { assertFalse("nada mais para recuar internamente", backHandler()) }
-
-        assertEquals("tentarRecuar nunca aciona onVoltar por conta própria", 0, onVoltarChamado)
+        composeRule.onNodeWithContentDescription("Voltar").performClick()
+        assertEquals("a seta fecha a jornada diretamente", 1, onVoltarChamado)
     }
 
     @Test

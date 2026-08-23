@@ -4,18 +4,15 @@ description: "Como plugar overlay novo no AppShell.kt quase sempre sem editar o 
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-20"
-version: "1.4.0"
+last_updated: "2026-08-23"
+version: "1.5.0"
 ---
 
 # Ponto de extensão de overlays do AppShell
 
 - **Status:** ativo
-- **Última validação:** 2026-08-20 (issue #1720, épico #1647 — a delegação de back descrita na
-  seção "Delegação de back ao overlay do topo" estava especificada e testada com `onBack` fake,
-  mas sem NENHUM consumidor de produção: `DiagnosticoGuiadoScreen.kt` continuava com
-  `BackHandler(onBack = ::voltarUmPasso)` local, que sequestrava o back antes de
-  `AppShellBackHandlers` rodar. #1720 ligou os dois — ver subseção "Ligação de produção".)
+- **Última validação:** 2026-08-23 (ajuste do Assist — a seta e o back do Android agora fecham
+  imediatamente o overlay, sem percorrer as perguntas; ver subseção "Ligação de produção".)
 - **Última validação anterior:** 2026-08-16 (issue #1695, épico #1647 — correções pós-revisão de
   Caio na PR #1697: números reais de onde vieram as linhas, remoção da promessa indevida sobre
   rota, migração do `Dns`)
@@ -193,8 +190,8 @@ já oferece "Tentar de novo". Sem isso a rota exibia "Estou medindo sua conexão
 
 ## Delegação de back ao overlay do topo (issue #1704)
 
-Um overlay que contém **fluxo interno de vários passos** — o diagnóstico guiado 2.0 é o primeiro —
-precisa recuar um passo antes de sair inteiro da pilha. `AppShellNavigator` tem um mapa de
+Um overlay que contém **fluxo interno de vários passos** pode registrar sua política de back antes
+de sair inteiro da pilha. `AppShellNavigator` tem um mapa de
 interceptadores por overlay, consultado por `AppShellBackHandlers` **antes** do `pop`:
 
 ```kotlin
@@ -204,8 +201,11 @@ navigator.pop()?.let(onOverlayRemoved)
 
 O overlay registra o seu com `RegistrarBackDoOverlay(navigator, overlay) { ... }`, chamado no nível
 do `AppShellXxxOverlay` — **fora** do conteúdo do `AnimatedVisibility`, senão o desregistro fica
-preso à animação de saída. `onBack` devolve `true` (consumi, recuei um passo) ou `false` (acabou, o
-overlay pode sair).
+preso à animação de saída. `onBack` devolve `true` quando o fluxo consome o evento internamente ou
+`false` quando o overlay deve sair.
+O Assist deliberadamente devolve sempre `false`: respostas anteriores não são uma
+segunda pilha de navegação, então tanto a seta quanto o gesto/botão de voltar fecham a jornada
+imediatamente e retornam à tela anterior.
 
 **Não é um segundo motor de navegação:** segue havendo um dispatcher, uma pilha de overlays e um
 dono do back. O overlay não empilha nada — só responde "consumi" ou "não consumi". Sem interceptador
@@ -214,13 +214,9 @@ registrado, ou com `false`, o back é idêntico ao anterior à issue.
 ### Ligação de produção (issue #1720)
 
 A especificação acima descreve o mecanismo genérico — e ele já tinha teste (`onBack` fake, em
-`AppShellNavigationComposeTest`/`AppShellBackDelegacaoTest`) desde a #1704. O que faltava, achado
-pela revisão de Caio na PR #1719 (issue #1720): **nenhum overlay real chamava
-`RegistrarBackDoOverlay`**. `DiagnosticoGuiadoScreen.kt` continuava com
-`BackHandler(onBack = ::voltarUmPasso)` registrado dentro da própria tela — e como o
-`OnBackPressedDispatcher` do Android é LIFO, esse `BackHandler` local (composto por último, porque
-é filho) sequestrava o back **antes** de `AppShellBackHandlers` sequer rodar. O mecanismo inteiro
-era código morto (regra de higiene §11).
+`AppShellNavigationComposeTest`/`AppShellBackDelegacaoTest`) desde a #1704. A ligação de produção
+fica no `AppShellDiagnosticoGuiadoOverlay`: a tela informa a política de saída via
+`onBackHandlerReady`, e o overlay registra essa política no navigator antes do `pop`.
 
 A dificuldade de ligar de verdade: `RegistrarBackDoOverlay` precisa ficar **fora** do
 `AnimatedVisibility` (ver "A guarda `estaNoTopo` não é redundância" abaixo), mas o `estado` do
@@ -232,9 +228,10 @@ quebraria a tela como unidade testável sozinha (886 linhas de teste em
 `DiagnosticoGuiadoScreenTest.kt` dependem dela gerenciar o próprio estado).
 
 A ponte escolhida: um novo parâmetro `onBackHandlerReady: (onBack: () -> Boolean) -> Unit` em
-`DiagnosticoGuiadoScreen`, chamado por um `SideEffect` a cada composição bem-sucedida com a
-função de recuo **atual** da tela (`tentarRecuar`, que devolve `true`/`false` no mesmo contrato de
-`onBack`). `AppShellDiagnosticoGuiadoOverlay` guarda essa função numa `var backHandler by
+`DiagnosticoGuiadoScreen`, chamado por um `SideEffect` a cada composição bem-sucedida com a política
+de saída da tela (`false`, porque o Assist fecha imediatamente). A tela não usa o voltar para
+percorrer perguntas.
+`AppShellDiagnosticoGuiadoOverlay` guarda essa função numa `var backHandler by
 remember { ... }` FORA do `AnimatedVisibility`, e chama
 `RegistrarBackDoOverlay(navigator, AppShellOverlay.DiagnosticoGuiado) { backHandler() }` ao lado
 dele — a leitura indireta via `remember` é o que resolve o problema de posição na árvore de

@@ -174,8 +174,8 @@ fun DiagnosticoGuiadoScreen(
     comparacaoRetesteState: ComparacaoRetesteUiState = ComparacaoRetesteUiState.Ausente,
     /**
      * Ponte para `RegistrarBackDoOverlay` — issue #1720. Chamado a cada composição bem-sucedida
-     * com a função de back **atual** desta tela (equivalente ao que era `BackHandler(onBack =
-     * ::voltarUmPasso)` antes desta issue). Quem registra de fato é o overlay que hospeda esta
+     * com o comportamento de saída desta tela. O Assist não usa o voltar para navegar entre
+     * perguntas: ele devolve `false` para o navigator fechar o overlay imediatamente. Quem registra de fato é o overlay que hospeda esta
      * tela ([AppShellDiagnosticoGuiadoOverlay]) — fora do conteúdo do `AnimatedVisibility`, para o
      * desregistro não ficar preso à animação de saída (ver KDoc de `RegistrarBackDoOverlay`).
      *
@@ -364,13 +364,10 @@ fun DiagnosticoGuiadoScreen(
         if (!tentarRecuar()) onVoltar()
     }
 
-    // GH#1720 — substitui o `BackHandler` local: quem registra de fato é
-    // `AppShellDiagnosticoGuiadoOverlay`, via `RegistrarBackDoOverlay`. Repassa `tentarRecuar`
-    // (não `voltarUmPasso`): o `false` precisa chegar intacto ao navigator para ele decidir fechar
-    // o overlay — se repassássemos `voltarUmPasso`, o `false` seria engolido pelo `onVoltar()`
-    // interno e o navigator NUNCA veria o overlay pedindo para sair. Ver KDoc de
-    // [onBackHandlerReady].
-    SideEffect { onBackHandlerReady(::tentarRecuar) }
+    // GH#1720 — o voltar do Assist fecha a jornada inteira. As perguntas são respostas da mesma
+    // jornada, não uma pilha de navegação para o usuário percorrer com o botão voltar.
+    // `false` chega intacto ao navigator para ele remover o overlay do topo.
+    SideEffect { onBackHandlerReady { false } }
 
     Scaffold(
         containerColor = c.bgPrimary,
@@ -394,7 +391,7 @@ fun DiagnosticoGuiadoScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = ::voltarUmPasso) {
+                    IconButton(onClick = onVoltar) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar", tint = c.textPrimary)
                     }
                 },
