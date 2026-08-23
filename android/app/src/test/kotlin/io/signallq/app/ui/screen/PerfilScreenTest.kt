@@ -5,10 +5,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -34,7 +32,6 @@ class PerfilScreenTest {
     @Test
     fun `perfil exposes administrative destinations without account affordance at font scale 2`() {
         val opened = mutableListOf<String>()
-        val temasSelecionados = mutableListOf<String>()
         composeRule.setContent {
             SignallQTheme {
                 CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) {
@@ -42,7 +39,7 @@ class PerfilScreenTest {
                         appVersion = "9.8.7",
                         temaSelecionado = ThemePreference.LIGHT.chaveDataStore,
                         onVoltar = { opened += "voltar" },
-                        onDefinirTemaSelecionado = { temasSelecionados += it },
+                        onDefinirTemaSelecionado = {},
                         onAbrirAjustes = { opened += "ajustes" },
                         onAbrirPrivacidade = { opened += "privacidade" },
                         onAbrirNovidades = { opened += "novidades" },
@@ -59,8 +56,7 @@ class PerfilScreenTest {
             .assertHasClickAction()
             .assertHeightIsAtLeast(48.dp)
             .performClick()
-        composeRule.onNodeWithText("Tema escuro").assertIsDisplayed()
-        composeRule.onNode(isToggleable()).assertIsOff().performClick()
+        composeRule.onNodeWithText("Tema escuro").assertDoesNotExist()
         composeRule.onNodeWithText("Privacidade").performClick()
         composeRule.onNodeWithText("Novidades").performClick()
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Ajuda e suporte"))
@@ -72,7 +68,6 @@ class PerfilScreenTest {
         composeRule.onNodeWithContentDescription("Voltar").assertHasClickAction().performClick()
 
         assertEquals(listOf("ajustes", "privacidade", "novidades", "ajuda", "termos", "sobre", "voltar"), opened)
-        assertEquals(listOf(ThemePreference.DARK.chaveDataStore), temasSelecionados)
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Versão 9.8.7"))
         composeRule.onNodeWithText("Versão 9.8.7").assertIsDisplayed()
         composeRule.onNodeWithText("Entrar").assertDoesNotExist()

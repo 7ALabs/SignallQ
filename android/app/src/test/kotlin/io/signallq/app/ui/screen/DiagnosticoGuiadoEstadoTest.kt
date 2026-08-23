@@ -57,7 +57,7 @@ class DiagnosticoGuiadoEstadoTest {
         // Mutante: `estado.objetivo?.ordinal?.toString()`. Ordinal quebra em silêncio quando
         // alguém reordena ou acrescenta um objetivo no enum — a análise salva antes da
         // atualização volta apontando para OUTRO problema, sem erro nenhum.
-        assertEquals("JOGOS_COM_LAG", salvar(DiagnosticoGuiadoEstado(objetivo = jogos))[0])
+        assertEquals("JOGOS_COM_LAG", salvar(DiagnosticoGuiadoEstado(objetivo = jogos))[2])
     }
 
     @Test
@@ -183,7 +183,7 @@ class DiagnosticoGuiadoEstadoTest {
     fun `voltar uma pergunta com o roteiro respondido preserva a jornada`() {
         // O teste que faltava desde a primeira rodada, e que pegou a regressão do B5.
         //
-        // O botão Continuar é `enabled = respostaSelecionada != null`
+        // A resposta selecionada é preservada ao voltar para uma pergunta anterior.
         // (DiagnosticoGuiadoScreen.kt:478), então o usuário só chega ao último passo tendo
         // respondido — e voltar PRESERVA as respostas de propósito
         // (`respostas.getOrNull(passo)` re-seleciona a anterior).

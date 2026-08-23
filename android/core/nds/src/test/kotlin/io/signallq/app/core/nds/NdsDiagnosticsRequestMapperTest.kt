@@ -2,6 +2,7 @@ package io.signallq.app.core.nds
 
 import io.signallq.app.core.diagnostico.ConnectionType
 import io.signallq.app.core.diagnostico.DiagnosticInput
+import io.signallq.app.core.diagnostico.DiagnosticContext
 import io.signallq.app.core.diagnostico.DnsDiagnosticInput
 import io.signallq.app.core.diagnostico.FibraDiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
@@ -149,5 +150,22 @@ class NdsDiagnosticsRequestMapperTest {
         assertEquals("ETHERNET", DiagnosticInput(connectionType = ConnectionType.ethernet).toNdsDiagnosticsRequest("1.0.0").connection?.type)
         assertEquals("DISCONNECTED", DiagnosticInput(connectionType = ConnectionType.desconectado).toNdsDiagnosticsRequest("1.0.0").connection?.type)
         assertEquals("UNKNOWN", DiagnosticInput(connectionType = ConnectionType.desconhecido).toNdsDiagnosticsRequest("1.0.0").connection?.type)
+    }
+
+    @Test
+    fun `contexto guiado preserva objetivo e respostas estruturadas sem relato inventado`() {
+        val request = DiagnosticInput(
+            executionId = "exec-context",
+            context = DiagnosticContext(
+                objective = "JOGOS_COM_LAG",
+                answers = mapOf("pergunta_0" to "resposta_1"),
+            ),
+        ).toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals("gamer", request.profile)
+        assertTrue(request.capabilities.contains("usage_profiles"))
+        assertNull(request.context?.reportedProblem)
+        assertEquals("JOGOS_COM_LAG", request.context?.objective)
+        assertEquals(mapOf("pergunta_0" to "resposta_1"), request.context?.answers)
     }
 }

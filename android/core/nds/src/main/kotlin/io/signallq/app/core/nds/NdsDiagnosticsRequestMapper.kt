@@ -81,8 +81,13 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
     return NdsDiagnosticsRequest(
         requestId = executionId.ifBlank { UUID.randomUUID().toString() },
         app = NdsAppInfo(id = NDS_APP_ID, version = appVersion),
-        profile = ndsProfile(perfilGamer),
-        capabilities = ndsCapabilities(wifi = wifiInfo, fiber = fiberInfo),
+        profile = ndsProfile(perfilGamer, this.context?.objective),
+        capabilities = ndsCapabilities(wifi = wifiInfo, fiber = fiberInfo) +
+            listOfNotNull(
+                "usage_profiles".takeIf {
+                    this.context?.objective in setOf("JOGOS_COM_LAG", "VIDEOS_TRAVAM", "CHAMADAS_CONGELAM", "SITES_DEMORAM")
+                },
+            ),
         connection = NdsConnectionInfo(
             type = ndsConnectionType(connectionType),
             ssid = wifi?.ssid,
@@ -93,7 +98,24 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
         speed = speedInfo,
         dns = dnsInfo,
         fiber = fiberInfo,
+        context = this.context?.let { context ->
+            NdsDiagnosticContext(
+                reportedProblem = context.reportedProblem,
+                objective = context.objective,
+                symptoms = context.symptoms,
+                answers = context.answers,
+            )
+        },
     )
+}
+
+private fun ndsProfile(perfilGamer: Boolean, objective: String?): String? = when {
+    perfilGamer -> "gamer"
+    objective == "JOGOS_COM_LAG" -> "gamer"
+    objective == "VIDEOS_TRAVAM" -> "streaming"
+    objective == "CHAMADAS_CONGELAM" -> "video_call"
+    objective == "SITES_DEMORAM" -> "navigation"
+    else -> null
 }
 
 private fun ndsBandaWifi(banda: BandaWifi): String? = when (banda) {

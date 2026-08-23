@@ -17,7 +17,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
 import io.signallq.app.core.diagnostico.DiagnosticInput
+import io.signallq.app.core.diagnostico.DiagnosticRunner
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
@@ -200,7 +202,9 @@ class AppShellOverlayRegistryTest {
         // `onIrParaHome` limpa o estado do Assist e navega para a raiz.
         acoes =
             AppShellDiagnosticoGuiadoAcoes(
-                onAvaliarAssist = { error("não usado neste teste") },
+                onAvaliarAssist = { input ->
+                    DiagnosticRunner.run(input).copy(evaluationSource = DiagnosticEvaluationSource.REMOTE)
+                },
                 onAnalisarProblema = { disparos += "analisarProblema" },
                 onResetarAnalisador = { disparos += "resetarAnalisador" },
                 onVoltar = { disparos += "voltar" },
@@ -325,7 +329,7 @@ class AppShellOverlayRegistryTest {
             )
         }
 
-        composeRule.onNodeWithText("Continuar").performClick()
+        composeRule.onNodeWithText("Wi-Fi").performClick()
         composeRule.onNodeWithText("Com que frequência isso acontece?").assertIsDisplayed()
 
         composeRule.runOnIdle { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
@@ -409,9 +413,8 @@ class AppShellOverlayRegistryTest {
             )
         }
 
-        composeRule.onNodeWithText("Continuar").performClick()
+        composeRule.onNodeWithText("Wi-Fi").performClick()
         composeRule.onNodeWithText("Quase sempre").performClick()
-        composeRule.onNodeWithText("Ver o que identifiquei").performClick()
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
 
         estadoAnalise = EstadoAnaliseGuiada.Concluida
@@ -451,9 +454,8 @@ class AppShellOverlayRegistryTest {
             )
         }
 
-        composeRule.onNodeWithText("Continuar").performClick()
+        composeRule.onNodeWithText("Wi-Fi").performClick()
         composeRule.onNodeWithText("Quase sempre").performClick()
-        composeRule.onNodeWithText("Ver o que identifiquei").performClick()
 
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
         // GH#1706 — `planoIniciado` entrou na lista: o evento do funil dispara junto, e isso é

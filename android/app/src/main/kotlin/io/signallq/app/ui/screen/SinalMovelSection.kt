@@ -188,17 +188,28 @@ private fun SimCard(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
-        Text(
-            text = cardLabel,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.W600,
-            color = tokens.textPrimary,
-        )
-        Text(
-            text = "$operadora · $resumoRede",
-            style = MaterialTheme.typography.bodyLarge,
-            color = tokens.textSecondary,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+        ) {
+            identidadeOperadora?.let {
+                OperadoraBadge(identidade = it, size = 48.dp)
+            } ?: PlaceholderOperadoraBadge(tokens = tokens)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = cardLabel,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.W600,
+                    color = tokens.textPrimary,
+                )
+                Text(
+                    text = "$operadora · $resumoRede",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = tokens.textSecondary,
+                )
+            }
+        }
 
         MobileSignalHero(
             qualidade = qualidade,

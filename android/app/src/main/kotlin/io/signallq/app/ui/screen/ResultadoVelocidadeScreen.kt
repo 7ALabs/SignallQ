@@ -185,9 +185,6 @@ fun ResultadoVelocidadeScreen(
     // de LaudoScreen.compartilharLaudo).
     var erroCompartilhamento by remember { mutableStateOf<String?>(null) }
     var metricasDetalhadasAbertas by remember { mutableStateOf(false) }
-    // Issue #555 -- dispensar o anuncio e estado de sessao (some ate o proximo resultado
-    // recompor a tela do zero); nunca persistido, nunca conta como feedback de recomendacao.
-    var nativeAdDismissedResultado by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -526,23 +523,17 @@ fun ResultadoVelocidadeScreen(
 
                 if (!metricasDetalhadasAbertas) {
                     Spacer(Modifier.height(LkSpacing.sm))
-                    if (!nativeAdDismissedResultado) {
-                        // GH#1659a — contrato tipado (Ineligible/Loading/Fill/NoFill/
-                        // RecoverableError/Offline) no lugar do rememberNativeAd() antigo, que
-                        // colapsava tudo isso num único NativeAd? nulo. NativeAdCard continua
-                        // só aceitando NativeAd?, então só o Fill vira anúncio de fato.
-                        val nativeAdState by rememberNativeAdState(
-                            adUnitId = AdUnitIds.para(AdSlot.RESULTADO),
-                            contentSignal = NativeAdContentSignal.forSlot(AdSlot.RESULTADO),
-                            eligibility = eligibilidadeAnuncioResultado(adsEnabled),
-                        )
-                        val nativeAd = (nativeAdState as? NativeAdLoadState.Fill)?.ad
-                        NativeAdCard(
-                            nativeAd = nativeAd,
-                            source = NativeAdSource.ADMOB,
-                            onDismiss = { nativeAdDismissedResultado = true },
-                        )
-                    }
+                    // GH#1659a — contrato tipado (Ineligible/Loading/Fill/NoFill/
+                    // RecoverableError/Offline) no lugar do rememberNativeAd() antigo, que
+                    // colapsava tudo isso num único NativeAd? nulo. NativeAdCard continua
+                    // só aceitando NativeAd?, então só o Fill vira anúncio de fato.
+                    val nativeAdState by rememberNativeAdState(
+                        adUnitId = AdUnitIds.para(AdSlot.RESULTADO),
+                        contentSignal = NativeAdContentSignal.forSlot(AdSlot.RESULTADO),
+                        eligibility = eligibilidadeAnuncioResultado(adsEnabled),
+                    )
+                    val nativeAd = (nativeAdState as? NativeAdLoadState.Fill)?.ad
+                    NativeAdCard(nativeAd = nativeAd, source = NativeAdSource.ADMOB)
                 }
 
                 Spacer(Modifier.height(LkSpacing.xl))

@@ -310,6 +310,23 @@ class DiagnosticOrchestratorTest {
     }
 
     @Test
+    fun `Assist usa NDS remoto mesmo com flag global desligada`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(ndsSuccessBody()))
+        val ndsClient = NdsClient(baseUrl = server.url("/").toString(), apiToken = "t", client = OkHttpClient())
+        val ndsRepo = NdsDiagnosticRepository(ndsClient = ndsClient)
+        val orchestrator = DiagnosticOrchestrator(
+            ndsDiagnosticRepository = ndsRepo,
+            featureFlagProvider = FakeFeatureFlagProvider(enabled = false),
+        )
+
+        val report = orchestrator.avaliarAssist(snapshotSaudavelInput())
+
+        assertEquals(DiagnosticEvaluationSource.REMOTE, report.evaluationSource)
+        assertEquals("nds:excelente", report.decisao.id)
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test
     fun `flag nds_live ligada - usa NdsDiagnosticRepository em vez do shadow mode do worker antigo`() = runTest {
         server.enqueue(MockResponse().setResponseCode(200).setBody(ndsSuccessBody()))
         val ndsClient = NdsClient(baseUrl = server.url("/").toString(), apiToken = "t", client = OkHttpClient())

@@ -135,6 +135,14 @@ data class SpeedtestQualityInput(
     val severidadeBufferbloat: String? = null,
 )
 
+/** Contexto fechado informado pelo usuário para a avaliação remota. Não contém PII. */
+data class DiagnosticContext(
+    val reportedProblem: String? = null,
+    val objective: String? = null,
+    val symptoms: List<String> = emptyList(),
+    val answers: Map<String, String> = emptyMap(),
+)
+
 enum class ConnectionType { wifi, mobile, ethernet, desconectado, desconhecido }
 
 enum class RouterType { roteador, mesh, extensor, desconhecido }
@@ -183,4 +191,6 @@ data class DiagnosticInput(
      *  que ainda não propagam (nenhum comportamento de classificação muda por causa
      *  deste campo; ele só viaja até [DiagnosticReport.executionId]). */
     val executionId: String = "",
+    /** Contexto estruturado da jornada guiada, associado à mesma execução. */
+    val context: DiagnosticContext? = null,
 )

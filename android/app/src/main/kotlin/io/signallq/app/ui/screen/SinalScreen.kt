@@ -16,13 +16,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.outlined.WifiFind
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,7 +29,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -45,14 +43,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
-import io.signallq.app.R
 import io.signallq.app.core.diagnostico.NivelCongestionamento
 import io.signallq.app.core.diagnostico.RedeWifiVizinha
 import io.signallq.app.core.diagnostico.WifiChannelDiagnosticEngine
@@ -173,7 +169,7 @@ fun SinalScreen(
     Scaffold(
         containerColor = c.bgPrimary,
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = {
                     Text(
                         text =
@@ -188,23 +184,18 @@ fun SinalScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = if (exibirBotaoVoltar) onVoltar else onAbrirMenu) {
-                        Icon(
-                            imageVector = if (exibirBotaoVoltar) Icons.Filled.Close else Icons.Filled.Menu,
-                            contentDescription = if (exibirBotaoVoltar) "Fechar" else stringResource(R.string.appshell_cd_abrir_perfil),
-                            tint = c.textPrimary,
-                        )
+                    if (exibirBotaoVoltar) {
+                        IconButton(onClick = onVoltar) {
+                            Icon(Icons.Filled.Close, contentDescription = "Fechar", tint = c.textPrimary)
+                        }
                     }
                 },
                 actions = {
                     IconButton(onClick = onAbrirMenu) {
-                        Icon(Icons.Filled.AccountCircle, contentDescription = "Abrir perfil e ajustes", tint = c.textPrimary)
-                    }
-                    IconButton(onClick = onAlternarTema) {
-                        Icon(Icons.Outlined.DarkMode, contentDescription = "Alternar tema", tint = c.textPrimary)
+                        Icon(Icons.Filled.MoreVert, contentDescription = "Abrir ajustes", tint = c.textPrimary)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = c.bgPrimary),
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = c.bgPrimary),
             )
         },
     ) { padding ->

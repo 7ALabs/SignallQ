@@ -230,8 +230,9 @@ class SinalMovelPermissaoReduzidaCaracterizacaoTest {
 
         composeRule.onNodeWithText("Chip 1").assertExists()
         composeRule.onNodeWithText("Chip 2").assertExists()
-        composeRule.onNodeWithText("EM USO").assertExists()
-        composeRule.onNodeWithText("Vivo").assertExists()
-        composeRule.onNodeWithText("TIM").assertExists()
+        composeRule.onNodeWithText("Vivo · 4G").assertExists()
+        composeRule.onNodeWithText("TIM · 3G").assertExists()
+        composeRule.onNodeWithText("-85 dBm").assertExists()
+        composeRule.onNodeWithText("-100 dBm").assertExists()
     }
 }

@@ -43,7 +43,7 @@ private val adminIngestKey: String =
 // Publicacao na Play Console (gradle-play-publisher).
 // Service account JSON lida de key.properties (playServiceAccountFile) ou env
 // PLAY_SERVICE_ACCOUNT_JSON_FILE. NUNCA commitar o arquivo de credencial.
-// Trilha configuravel via -PplayTrack=... (default: alpha = teste fechado).
+// Trilha configuravel via -PplayTrack=... (default: internal = teste interno).
 play {
     val serviceAccountPath =
         (keyProperties["playServiceAccountFile"] as String?)
@@ -51,7 +51,7 @@ play {
     if (serviceAccountPath != null) {
         serviceAccountCredentials.set(rootProject.file(serviceAccountPath))
     }
-    track.set(providers.gradleProperty("playTrack").orElse("alpha").get())
+    track.set(providers.gradleProperty("playTrack").orElse("internal").get())
     defaultToAppBundles.set(true)
 }
 
@@ -72,7 +72,7 @@ play {
 // binario identico): qualquer trilha != production usa Ad Unit ID de teste. Efeito colateral aceito
 // e documentado: "internal" tambem mostra anuncio de teste enquanto isso durar — trilha sem
 // testador externo, so o Luiz valida (ver comentario em release.yml), sem impacto de produto real.
-val playTrackAtual = providers.gradleProperty("playTrack").orElse("alpha").get()
+val playTrackAtual = providers.gradleProperty("playTrack").orElse("internal").get()
 val usarAdsDeTesteEmRelease = (playTrackAtual != "production").toString()
 
 android {

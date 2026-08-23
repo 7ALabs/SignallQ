@@ -50,6 +50,13 @@ data class NdsFiberInfo(
     val voltageV: Double? = null,
 )
 
+data class NdsDiagnosticContext(
+    val reportedProblem: String? = null,
+    val objective: String? = null,
+    val symptoms: List<String> = emptyList(),
+    val answers: Map<String, String> = emptyMap(),
+)
+
 /**
  * Payload de `POST /v1/diagnostics/evaluate` — schema completo documentado no
  * ADR-017. Cada bloco (`connection`, `wifi`, `wifiScan`, `speed`, `dns`,
@@ -72,6 +79,7 @@ data class NdsDiagnosticsRequest(
     val speed: NdsSpeedInfo? = null,
     val dns: NdsDnsInfo? = null,
     val fiber: NdsFiberInfo? = null,
+    val context: NdsDiagnosticContext? = null,
 ) {
     internal fun toJson(): JSONObject {
         val root = JSONObject()
@@ -84,6 +92,14 @@ data class NdsDiagnosticsRequest(
             },
         )
         root.put("locale", locale)
+        context?.let { c ->
+            root.put("context", JSONObject().apply {
+                c.reportedProblem?.takeIf(String::isNotBlank)?.let { put("reported_problem", it) }
+                c.objective?.takeIf(String::isNotBlank)?.let { put("objective", it) }
+                if (c.symptoms.isNotEmpty()) put("symptoms", JSONArray(c.symptoms))
+                if (c.answers.isNotEmpty()) put("answers", JSONObject(c.answers))
+            })
+        }
         profile?.let { root.put("profile", it) }
         if (capabilities.isNotEmpty()) {
             root.put("capabilities", JSONArray(capabilities))

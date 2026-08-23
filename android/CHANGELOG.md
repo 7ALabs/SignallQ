@@ -9,7 +9,18 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ---
 
-## [Unreleased]
+## [0.35.0] — 2026-08-23
+
+### Adicionado
+- **Assist conectado ao diagnóstico remoto**: a jornada agora envia o objetivo e as respostas estruturadas para receber uma análise contextualizada.
+- **Reteste orientado**: a recomendação remota mantém sua ação, seus passos e a comparação do resultado antes e depois.
+
+### Alterado
+- O diagnóstico preserva evidências, recomendações, avisos e informações adicionais devolvidas pelo serviço de diagnóstico.
+- Respostas remotas inconclusivas continuam sendo apresentadas como inconclusivas; somente falhas de comunicação ou de formato usam o diagnóstico local de segurança.
+
+### Corrigido
+- O resultado do Assist não perde cards, identificadores de achados ou passos da recomendação ao converter a resposta remota.
 
 ## [0.34.0] — 2026-08-22
 

@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import io.signallq.app.core.diagnostico.PerguntaFechada
-import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 
@@ -38,7 +36,6 @@ internal fun DiagnosticoGuiadoPerguntaFechadaSection(
     total: Int,
     respostaSelecionada: Int?,
     onEscolher: (Int) -> Unit,
-    onAvancar: () -> Unit,
     c: LkTokens,
 ) {
     Column(modifier.fillMaxSize().background(c.bgPrimary)) {
@@ -67,9 +64,6 @@ internal fun DiagnosticoGuiadoPerguntaFechadaSection(
                     Text(opcao, style = MaterialTheme.typography.bodyMedium, color = c.textPrimary)
                 }
             }
-        }
-        Button(onClick = onAvancar, enabled = respostaSelecionada != null, modifier = Modifier.fillMaxWidth().padding(LkSpacing.xl), shape = RoundedCornerShape(LkRadius.button)) {
-            Text(if (passo < total - 1) "Continuar" else "Ver o que identifiquei")
         }
     }
 }

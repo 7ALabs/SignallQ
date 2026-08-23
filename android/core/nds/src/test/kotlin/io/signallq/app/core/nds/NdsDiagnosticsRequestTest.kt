@@ -91,4 +91,21 @@ class NdsDiagnosticsRequestTest {
         assertEquals("scoring", capabilities.getString(0))
         assertEquals("ai", capabilities.getString(1))
     }
+
+    @Test
+    fun `toJson serializa contexto sem PII e omite relato nulo`() {
+        val request = NdsDiagnosticsRequest(
+            requestId = "req-context",
+            app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+            context = NdsDiagnosticContext(
+                objective = "SITES_DEMORAM",
+                answers = mapOf("pergunta_0" to "resposta_2"),
+            ),
+        )
+
+        val context = request.toJson().getJSONObject("context")
+        assertFalse(context.has("reported_problem"))
+        assertEquals("SITES_DEMORAM", context.getString("objective"))
+        assertEquals("resposta_2", context.getJSONObject("answers").getString("pergunta_0"))
+    }
 }

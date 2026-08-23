@@ -98,7 +98,7 @@ interface AnalyticsHelper {
      * Nunca inclui SSID/IP/MAC nem qualquer dado pessoal.
      */
     fun registrarDiagNdsOutcome(
-        /** `"success"` | `"known_error"` | `"unknown_error"`. */
+        /** `"success"` | `"remote_inconclusive"` | `"known_error"` | `"unknown_error"`. */
         outcome: String,
         fallbackLocalUsado: Boolean,
         latenciaMs: Long,
