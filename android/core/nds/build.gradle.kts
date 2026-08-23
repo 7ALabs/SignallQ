@@ -9,9 +9,9 @@ plugins {
 // Lido de local.properties em dev (NUNCA commitado — arquivo esta no .gitignore),
 // ou da variavel de ambiente NDS_API_TOKEN em CI/release. O valor real deve ser
 // preenchido manualmente por quem tiver o token (Luiz ou delegado explicito) —
-// nunca escrito em nenhum arquivo versionado deste repositorio. Placeholder vazio
-// nao quebra o build: requests reais sem token recebem 401 do NDS, com shape
-// conhecido ({"error","message"}) tratado defensivamente por NdsClient.
+// nunca escrito em nenhum arquivo versionado deste repositorio. Em debug/testes, o placeholder
+// vazio preserva builds locais sem acesso ao NDS. Em qualquer tarefa de release, a ausência do
+// token interrompe o build para não distribuir um APK/AAB que sempre falhará ao abrir o Assist.
 //
 // Para preencher localmente, adicione a `android/local.properties` (arquivo
 // gitignorado, nao versionado):
@@ -25,6 +25,16 @@ private val ndsApiToken: String =
     localProperties.getProperty("NDS_API_TOKEN")
         ?: System.getenv("NDS_API_TOKEN")
         ?: ""
+
+private val releaseTaskRequested =
+    gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
+
+if (releaseTaskRequested && ndsApiToken.isBlank()) {
+    throw GradleException(
+        "NDS_API_TOKEN ausente: configure android/local.properties ou a secret " +
+            "NDS_API_TOKEN antes de gerar um build de release.",
+    )
+}
 
 android {
     namespace = "io.signallq.app.core.nds"

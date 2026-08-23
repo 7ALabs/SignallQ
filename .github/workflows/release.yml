@@ -63,11 +63,13 @@ jobs:
         run: cd android && ./gradlew :app:assembleRelease --no-build-cache --no-daemon -PplayTrack=${{ vars.PLAY_TRACK || 'internal' }}
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
+          NDS_API_TOKEN: ${{ secrets.NDS_API_TOKEN }}
 
       - name: Build AAB release
         run: cd android && ./gradlew :app:bundleRelease --no-build-cache --no-daemon -PplayTrack=${{ vars.PLAY_TRACK || 'internal' }}
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
+          NDS_API_TOKEN: ${{ secrets.NDS_API_TOKEN }}
 
       - name: Renomear artefatos
         run: |
@@ -80,6 +82,7 @@ jobs:
         run: cd android && ./gradlew :app:uploadCrashlyticsMappingFileRelease --no-daemon -PplayTrack=${{ vars.PLAY_TRACK || 'internal' }}
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
+          NDS_API_TOKEN: ${{ secrets.NDS_API_TOKEN }}
 
       - name: Ler release notes públicas
         id: notas
@@ -115,3 +118,4 @@ jobs:
         env:
           ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
+          NDS_API_TOKEN: ${{ secrets.NDS_API_TOKEN }}
