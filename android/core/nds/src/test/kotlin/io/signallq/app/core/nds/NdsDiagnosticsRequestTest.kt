@@ -25,12 +25,14 @@ class NdsDiagnosticsRequestTest {
         assertFalse(json.has("wifi"))
         assertFalse(json.has("wifiScan"))
         assertFalse(json.has("speed"))
+        assertFalse(json.has("quality"))
         assertFalse(json.has("dns"))
+        assertFalse(json.has("gateway"))
         assertFalse(json.has("fiber"))
     }
 
     @Test
-    fun `toJson usa exatamente as chaves do schema do ADR-017 para speed, dns e fiber`() {
+    fun `toJson usa o formato canonico do NDS para qualidade, dns e gateway`() {
         val request =
             NdsDiagnosticsRequest(
                 requestId = "req-2",
@@ -43,7 +45,16 @@ class NdsDiagnosticsRequestTest {
                         uploadMbps = 150.0,
                         packetLossPercent = 2.0,
                     ),
+                quality =
+                    NdsQualityInfo(
+                        latencyMs = 151.0,
+                        jitterMs = 40.0,
+                        packetLossPercent = 2.0,
+                        loadedLatencyMs = 251.0,
+                        bufferbloatMs = 100.0,
+                    ),
                 dns = NdsDnsInfo(primary = "8.8.8.8", responseTimeMs = 35, hijacked = false),
+                gateway = NdsGatewayInfo(rttGatewayMs = 4, connectedDevices = 6),
                 fiber =
                     NdsFiberInfo(
                         rxPowerDbm = -22.0,
@@ -62,10 +73,21 @@ class NdsDiagnosticsRequestTest {
         assertEquals(150.0, speed.getDouble("upload_mbps"), 0.001)
         assertEquals(2.0, speed.getDouble("packet_loss_percent"), 0.001)
 
+        val quality = json.getJSONObject("quality")
+        assertEquals(151.0, quality.getDouble("latencyMs"), 0.001)
+        assertEquals(40.0, quality.getDouble("jitterMs"), 0.001)
+        assertEquals(2.0, quality.getDouble("packetLossPercent"), 0.001)
+        assertEquals(251.0, quality.getDouble("loadedLatencyMs"), 0.001)
+        assertEquals(100.0, quality.getDouble("bufferbloatMs"), 0.001)
+
         val dns = json.getJSONObject("dns")
         assertEquals("8.8.8.8", dns.getString("primary"))
-        assertEquals(35, dns.getInt("responseTime_ms"))
+        assertEquals(35, dns.getInt("latencyMs"))
         assertFalse(dns.getBoolean("hijacked"))
+
+        val gateway = json.getJSONObject("gateway")
+        assertEquals(4, gateway.getInt("rttGatewayMs"))
+        assertEquals(6, gateway.getInt("connectedDevices"))
 
         val fiber = json.getJSONObject("fiber")
         assertEquals(-22.0, fiber.getDouble("rxPower_dbm"), 0.001)

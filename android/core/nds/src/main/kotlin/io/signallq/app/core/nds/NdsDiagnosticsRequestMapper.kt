@@ -71,12 +71,32 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
             packetLossPercent = it.perdaPercentual,
         )
     }
+    val qualityInfo = internet?.let {
+        val loadedLatencyMs =
+            it.latencyMs?.let { latency -> it.bufferbloatMs?.let { bufferbloat -> latency + bufferbloat } }
+        NdsQualityInfo(
+            latencyMs = it.latencyMs,
+            jitterMs = it.jitterMs,
+            packetLossPercent = it.perdaPercentual,
+            loadedLatencyMs = loadedLatencyMs,
+            bufferbloatMs = it.bufferbloatMs,
+        )
+    }
     val dnsInfo = dns?.let {
         NdsDnsInfo(
             primary = it.currentDnsIp,
             responseTimeMs = it.currentDnsLatencyMs,
         )
     }
+    val gatewayInfo =
+        if (internet?.rttGatewayMs != null || wifi?.dispositivosNaRede != null) {
+            NdsGatewayInfo(
+                rttGatewayMs = internet?.rttGatewayMs,
+                connectedDevices = wifi?.dispositivosNaRede,
+            )
+        } else {
+            null
+        }
 
     return NdsDiagnosticsRequest(
         requestId = executionId.ifBlank { UUID.randomUUID().toString() },
@@ -96,7 +116,9 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
         wifi = wifiInfo,
         wifiScan = null,
         speed = speedInfo,
+        quality = qualityInfo,
         dns = dnsInfo,
+        gateway = gatewayInfo,
         fiber = fiberInfo,
         context = this.context?.let { context ->
             NdsDiagnosticContext(
