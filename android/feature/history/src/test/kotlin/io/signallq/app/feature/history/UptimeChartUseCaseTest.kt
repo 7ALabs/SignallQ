@@ -48,6 +48,8 @@ private class FakeMedicaoDao(
 
     override suspend fun deletarTodos() = Unit
 
+    override suspend fun deletarPorId(id: String) = Unit
+
     override suspend fun atualizarDiagnostico(id: String, texto: String?, origem: String?, problemas: String?) = Unit
 
     override suspend fun atualizarScore(id: String, score: Double) = Unit
