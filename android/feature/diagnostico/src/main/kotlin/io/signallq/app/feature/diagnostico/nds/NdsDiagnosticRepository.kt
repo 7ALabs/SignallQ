@@ -60,6 +60,18 @@ class NdsDiagnosticRepository(
     private val ndsClient: NdsClient,
     private val analyticsHelper: AnalyticsHelper = NoOpAnalyticsHelper,
 ) {
+    /**
+     * Caminho exclusivo do Assist: NDS remoto é obrigatório e falhas não podem virar um
+     * diagnóstico local silencioso. A UI traduz [NdsAssistEvaluationException] para o estado
+     * de erro recuperável do Assist.
+     */
+    suspend fun evaluateForAssist(input: DiagnosticInput): DiagnosticReport =
+        evaluate(
+            input = input,
+            enabledAreas = DiagnosticArea.entries.toSet(),
+            fallbackLocalOnError = false,
+        )
+
     suspend fun evaluate(
         input: DiagnosticInput,
         enabledAreas: Set<DiagnosticArea> = DiagnosticArea.entries.toSet(),
@@ -69,6 +81,13 @@ class NdsDiagnosticRepository(
         // diagnostico atual roda dentro do Modo Gamer. Default `false` preserva o
         // comportamento atual; quem chamar de dentro do Modo Gamer deve passar `true`.
         perfilGamer: Boolean = false,
+    ): DiagnosticReport = evaluate(input, enabledAreas, perfilGamer, fallbackLocalOnError = true)
+
+    private suspend fun evaluate(
+        input: DiagnosticInput,
+        enabledAreas: Set<DiagnosticArea>,
+        perfilGamer: Boolean = false,
+        fallbackLocalOnError: Boolean,
     ): DiagnosticReport {
         val startedAtMs = System.currentTimeMillis()
         val request = input.toNdsDiagnosticsRequest(appVersion = BuildConfig.APP_VERSION, perfilGamer = perfilGamer)
@@ -96,6 +115,14 @@ class NdsDiagnosticRepository(
                     )
                     relatorio
                 } catch (t: Throwable) {
+                    if (!fallbackLocalOnError) {
+                        analyticsHelper.registrarDiagNdsOutcome(
+                            outcome = "unknown_error",
+                            fallbackLocalUsado = false,
+                            latenciaMs = latenciaMs,
+                        )
+                        throw NdsAssistEvaluationException("falha ao interpretar resposta remota do NDS", t)
+                    }
                     Timber.w(t, "NdsDiagnosticRepository: falha ao mapear resposta do NDS, caindo para motor local")
                     analyticsHelper.registrarDiagNdsOutcome(
                         outcome = "unknown_error",
@@ -111,6 +138,17 @@ class NdsDiagnosticRepository(
                     "NdsDiagnosticRepository: KnownError statusCode=${outcome.statusCode} " +
                         "error=${outcome.error} message=${outcome.message}",
                 )
+                if (!fallbackLocalOnError) {
+                    analyticsHelper.registrarDiagNdsOutcome(
+                        outcome = "known_error",
+                        fallbackLocalUsado = false,
+                        latenciaMs = latenciaMs,
+                        errorCode = outcome.code ?: outcome.error,
+                    )
+                    throw NdsAssistEvaluationException(
+                        "NDS recusou a avaliação (${outcome.statusCode})",
+                    )
+                }
                 analyticsHelper.registrarDiagNdsOutcome(
                     outcome = "known_error",
                     fallbackLocalUsado = true,
@@ -125,6 +163,14 @@ class NdsDiagnosticRepository(
                     outcome.cause,
                     "NdsDiagnosticRepository: UnknownError statusCode=${outcome.statusCode}",
                 )
+                if (!fallbackLocalOnError) {
+                    analyticsHelper.registrarDiagNdsOutcome(
+                        outcome = "unknown_error",
+                        fallbackLocalUsado = false,
+                        latenciaMs = latenciaMs,
+                    )
+                    throw NdsAssistEvaluationException("NDS indisponível", outcome.cause)
+                }
                 analyticsHelper.registrarDiagNdsOutcome(
                     outcome = "unknown_error",
                     fallbackLocalUsado = true,
@@ -141,3 +187,5 @@ class NdsDiagnosticRepository(
         DiagnosticRunner.run(input, enabledAreas, gerarRecomendacoes = RecomendacaoPraticaEngine::recomendar)
             .copy(evaluationSource = DiagnosticEvaluationSource.BUNDLED_LOCAL)
 }
+
+class NdsAssistEvaluationException(message: String, cause: Throwable? = null) : IllegalStateException(message, cause)

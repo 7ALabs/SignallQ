@@ -53,17 +53,14 @@ class DiagnosticOrchestrator(
     private val featureFlagProvider: FeatureFlagProvider = DisabledFeatureFlagProvider,
 ) {
 
-    /**
-     * Avaliação do SignallQ Assist sem alterar o snapshot do fluxo legado.
-     * A flag controla o backend usado também neste caminho: NDS live ligado,
-     * shadow/local legado desligado.
+    /** Avaliação do SignallQ Assist pelo caminho NDS remoto dedicado.
+     *
+     * O Assist não participa do rollout global do diagnóstico nem do shadow mode:
+     * sucesso precisa ser uma resposta NDS REMOTE; qualquer indisponibilidade é
+     * propagada para a UI exibir erro explícito, sem inventar resultado local.
      */
     suspend fun avaliarAssist(input: DiagnosticInput): DiagnosticReport =
-        if (featureFlagProvider.isEnabled(FeatureFlagKeys.CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED)) {
-            ndsDiagnosticRepository.evaluate(input)
-        } else {
-            remoteDiagnosticRepository.evaluateShadow(input)
-        }
+        ndsDiagnosticRepository.evaluateForAssist(input)
 
     private val mutableSnapshotFlow = MutableStateFlow(
         SnapshotDiagnostico(

@@ -8,6 +8,7 @@ import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.NoOpAnalyticsHelper
 import io.signallq.app.core.nds.NdsClient
+import org.junit.Assert.assertThrows
 import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
@@ -96,6 +97,15 @@ class NdsDiagnosticRepositoryTest {
     }
 
     @Test
+    fun `Assist com NDS respondendo com sucesso - relatorio vem REMOTE`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(successBody()))
+
+        val report = repository().evaluateForAssist(snapshotSaudavelInput())
+
+        assertEquals(DiagnosticEvaluationSource.REMOTE, report.evaluationSource)
+    }
+
+    @Test
     fun `NDS respondendo com sucesso - dispara telemetria de outcome success`() = runTest {
         server.enqueue(MockResponse().setResponseCode(200).setBody(successBody()))
         var outcomeRegistrado: String? = null
@@ -139,6 +149,18 @@ class NdsDiagnosticRepositoryTest {
     }
 
     @Test
+    fun `Assist com NDS respondendo 401 - propaga erro sem fallback local`() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(401)
+                .setBody("""{"error":"Unauthorized","message":"Missing or invalid Bearer token."}"""),
+        )
+
+        assertThrows(NdsAssistEvaluationException::class.java) {
+            kotlinx.coroutines.runBlocking { repository().evaluateForAssist(snapshotSaudavelInput()) }
+        }
+    }
+
+    @Test
     fun `NDS respondendo 401 - dispara telemetria known_error com fallback usado`() = runTest {
         server.enqueue(
             MockResponse().setResponseCode(401)
@@ -170,6 +192,17 @@ class NdsDiagnosticRepositoryTest {
 
         assertEquals(DiagnosticEvaluationSource.BUNDLED_LOCAL, report.evaluationSource)
         assertNotNull(report.decisao)
+    }
+
+    @Test
+    fun `Assist com NDS fora do ar - propaga erro explicito sem fallback local`() = runTest {
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+
+        assertThrows(NdsAssistEvaluationException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                repository(client = quickTimeoutClient()).evaluateForAssist(snapshotSaudavelInput())
+            }
+        }
     }
 
     @Test
