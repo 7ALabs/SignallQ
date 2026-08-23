@@ -145,12 +145,12 @@ internal fun Inicio2ConnectionTrail(
     val c = io.signallq.app.ui.LocalLkTokens.current
     val nodes = state.nodes.take(5)
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(LkSpacing.md)) {
-        Box(modifier = Modifier.fillMaxWidth().height(132.dp)) {
+        Box(modifier = Modifier.fillMaxWidth().height(96.dp)) {
             Canvas(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
+                        .height(40.dp)
                         .align(Alignment.TopCenter),
             ) {
                 val nodeCount = nodes.size
@@ -161,12 +161,12 @@ internal fun Inicio2ConnectionTrail(
                         color = c.outlineVariant,
                         start =
                             androidx.compose.ui.geometry.Offset(
-                                currentCenter + 28.dp.toPx(),
+                                currentCenter + 20.dp.toPx(),
                                 size.height / 2,
                             ),
                         end =
                             androidx.compose.ui.geometry.Offset(
-                                nextCenter - 28.dp.toPx(),
+                                nextCenter - 20.dp.toPx(),
                                 size.height / 2,
                             ),
                         strokeWidth = 2.dp.toPx(),
@@ -215,19 +215,19 @@ private fun Inicio2TrailItem(
             else -> Icons.Outlined.Wifi
         }
     Column(
-        modifier = modifier.padding(horizontal = 2.dp),
+        modifier = modifier.padding(horizontal = LkSpacing.xs),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
     ) {
         Box(
-            modifier = Modifier.size(56.dp),
+            modifier = Modifier.size(LkSpacing.xxl),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(icon, contentDescription = null, tint = color.textSecondary, modifier = Modifier.size(28.dp))
+            Icon(icon, contentDescription = null, tint = color.textSecondary, modifier = Modifier.size(LkSpacing.lg))
         }
         Text(
             text = displayTitle,
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.labelSmall,
             color = color.textPrimary,
             maxLines = 2,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,

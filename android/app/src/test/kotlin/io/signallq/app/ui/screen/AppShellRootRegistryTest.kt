@@ -308,7 +308,7 @@ class AppShellRootRegistryTest {
             )
         }
         // A jornada única usa Perfil como ação da app bar.
-        composeRule.onNodeWithContentDescription("Editar perfil").performClick()
+        composeRule.onNodeWithContentDescription("Abrir ajustes").performClick()
         composeRule.runOnIdle { assertTrue(abriuMenu) }
     }
 
@@ -328,7 +328,7 @@ class AppShellRootRegistryTest {
                     ),
             )
         }
-        composeRule.onNodeWithContentDescription("Editar perfil").performClick()
+        composeRule.onNodeWithContentDescription("Abrir ajustes").performClick()
         composeRule.runOnIdle { assertTrue(abriuMenu) }
     }
 

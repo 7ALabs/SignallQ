@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -17,7 +17,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -66,7 +65,7 @@ fun DispositivosScreen(
     Scaffold(
         containerColor = c.bgPrimary,
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = {
                     Text(
                         "Dispositivos",
@@ -76,12 +75,10 @@ fun DispositivosScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onVoltar ?: onAbrirMenu) {
-                        Icon(
-                            imageVector = if (onVoltar != null) Icons.AutoMirrored.Outlined.ArrowBack else Icons.Filled.AccountCircle,
-                            contentDescription = if (onVoltar != null) "Voltar" else "Abrir perfil e ajustes",
-                            tint = c.textPrimary,
-                        )
+                    if (onVoltar != null) {
+                        IconButton(onClick = onVoltar) {
+                            Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Voltar", tint = c.textPrimary)
+                        }
                     }
                 },
                 actions = {
@@ -102,13 +99,10 @@ fun DispositivosScreen(
                         }
                     }
                     IconButton(onClick = onAbrirMenu) {
-                        Icon(Icons.Filled.AccountCircle, contentDescription = "Abrir perfil e ajustes", tint = c.textPrimary)
-                    }
-                    IconButton(onClick = onAlternarTema) {
-                        Icon(Icons.Outlined.DarkMode, contentDescription = "Alternar tema", tint = c.textPrimary)
+                        Icon(Icons.Filled.MoreVert, contentDescription = "Abrir ajustes", tint = c.textPrimary)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = c.bgPrimary),
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = c.bgPrimary),
             )
         },
     ) { padding ->

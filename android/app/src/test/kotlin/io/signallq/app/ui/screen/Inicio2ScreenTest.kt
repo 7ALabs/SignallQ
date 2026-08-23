@@ -204,7 +204,7 @@ class Inicio2ScreenTest {
             }
         }
         composeRule.onNodeWithText("Análise interrompida").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Abrir perfil e ajustes").performClick()
+        composeRule.onNodeWithContentDescription("Abrir ajustes").performClick()
         assertEquals(1, profiles)
     }
 

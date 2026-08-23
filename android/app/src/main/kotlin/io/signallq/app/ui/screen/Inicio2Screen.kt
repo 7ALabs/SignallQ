@@ -16,9 +16,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.Icon
@@ -78,10 +77,7 @@ internal fun Inicio2Screen(
                 title = "Início",
                 actions = {
                     IconButton(onClick = onAbrirPerfil) {
-                        Icon(Icons.Filled.AccountCircle, contentDescription = "Abrir perfil e ajustes")
-                    }
-                    IconButton(onClick = onAlternarTema) {
-                        Icon(Icons.Outlined.DarkMode, contentDescription = "Alternar tema")
+                        Icon(Icons.Filled.MoreVert, contentDescription = "Abrir ajustes")
                     }
                 },
             )
@@ -95,17 +91,25 @@ internal fun Inicio2Screen(
                     .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.xxl),
         ) {
+            connectionTrail?.let {
+                Column(
+                    modifier = Modifier.padding(horizontal = LkSpacing.lg),
+                    verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                ) {
+                    Text(
+                        text = "Caminho da rede",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = c.textPrimary,
+                    )
+                    Inicio2ConnectionTrail(state = it)
+                }
+            }
             Inicio2Hero(
                 uiState = uiState,
                 loading = uiState.analise is Inicio2Analise.Carregando || geracaoSolicitada != null,
+                mostrarConexao = connectionTrail == null,
                 onIniciarDiagnostico = iniciarDiagnostico,
             )
-            connectionTrail?.let {
-                Inicio2ConnectionTrail(
-                    state = it,
-                    modifier = Modifier.padding(horizontal = LkSpacing.lg),
-                )
-            }
             Column(
                 modifier = Modifier.padding(horizontal = LkSpacing.lg),
                 verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
@@ -125,6 +129,7 @@ internal fun Inicio2Screen(
 private fun Inicio2Hero(
     uiState: Inicio2UiState,
     loading: Boolean,
+    mostrarConexao: Boolean,
     onIniciarDiagnostico: () -> Unit,
 ) {
     val c = LocalLkTokens.current
@@ -175,10 +180,12 @@ private fun Inicio2Hero(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(connectionIcon, contentDescription = null, tint = c.textSecondary, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(LkSpacing.sm))
-            Text(connectionLabel, style = MaterialTheme.typography.labelLarge, color = c.textSecondary)
+        if (mostrarConexao) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(connectionIcon, contentDescription = null, tint = c.textSecondary, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(LkSpacing.sm))
+                Text(connectionLabel, style = MaterialTheme.typography.labelLarge, color = c.textSecondary)
+            }
         }
         Box(
             modifier =

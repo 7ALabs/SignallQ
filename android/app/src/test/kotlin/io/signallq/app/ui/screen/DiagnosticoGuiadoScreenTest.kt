@@ -5,8 +5,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -96,7 +94,7 @@ class DiagnosticoGuiadoScreenTest {
 
         // Avança da pergunta 0 (pré-preenchida pelo Assist) para a pergunta 1 do roteiro.
         composeRule.onNodeWithText("Em qual conexão você joga?").assertIsDisplayed()
-        composeRule.onNodeWithText("Continuar").performClick()
+        composeRule.onNodeWithText("Wi-Fi").performClick()
         composeRule.onNodeWithText("Com que frequência isso acontece?").assertIsDisplayed()
 
         restorationTester.emulateSavedInstanceStateRestore()
@@ -152,7 +150,7 @@ class DiagnosticoGuiadoScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Continuar").performClick()
+        composeRule.onNodeWithText("Wi-Fi").performClick()
         composeRule.onNodeWithText("Com que frequência isso acontece?").assertIsDisplayed()
 
         // Passo 1 -> passo 0: há o que recuar, consome o evento.
@@ -179,8 +177,8 @@ class DiagnosticoGuiadoScreenTest {
 
         // Pula direto pro roteiro do objetivo escolhido no Assist — não pede de novo.
         composeRule.onNodeWithText("Em qual conexão você joga?").assertIsDisplayed()
-        // Resposta do Assist já preenchida: o usuário só confirma, não responde de novo.
-        composeRule.onNodeWithText("Continuar").assertIsEnabled()
+        // Resposta do Assist já preenchida: a opção continua visível para o usuário confirmar.
+        composeRule.onNodeWithText("Cabo de rede").assertIsDisplayed()
     }
 
     @Test
@@ -188,7 +186,7 @@ class DiagnosticoGuiadoScreenTest {
         setContent(objetivoPreSelecionado = ObjetivoDiagnostico.SITES_DEMORAM)
 
         composeRule.onNodeWithText("Isso acontece em quais sites?").assertIsDisplayed()
-        composeRule.onNodeWithText("Continuar").assertIsNotEnabled()
+        composeRule.onNodeWithText("Continuar").assertDoesNotExist()
     }
 
     @Test
@@ -555,10 +553,9 @@ class DiagnosticoGuiadoScreenTest {
      *  respondendo a segunda pergunta do roteiro de Jogos com lag normalmente. */
     private fun completarSegundaPerguntaJogos() {
         composeRule.onNodeWithText("Em qual conexão você joga?").assertIsDisplayed()
-        composeRule.onNodeWithText("Continuar").assertIsEnabled().performClick()
+        composeRule.onNodeWithText("Wi-Fi").performClick()
         composeRule.onNodeWithText("Com que frequência isso acontece?").assertIsDisplayed()
         composeRule.onNodeWithText("Quase sempre").performClick()
-        composeRule.onNodeWithText("Ver o que identifiquei").performClick()
     }
 
     /** Mesmos valores do caso `jogos com lag fica critica com latencia alta` em

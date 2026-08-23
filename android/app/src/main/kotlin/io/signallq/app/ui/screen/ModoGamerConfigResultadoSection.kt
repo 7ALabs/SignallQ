@@ -293,10 +293,6 @@ internal fun ModoGamerResultadoConteudo(
     val c = LocalLkTokens.current
     val resultado = etapa.resultado
     val fallback = etapa.selecaoJogo is SelecaoJogoModoGamer.ForaDoCatalogo
-    // Issue #1489 -- dispensar o anuncio e estado de sessao (some ate o proximo resultado
-    // recompor a tela do zero); nunca persistido, nunca conta como feedback de recomendacao.
-    // Mesmo padrao de ResultadoVelocidadeScreen/JogosScreen (issue #555).
-    var nativeAdDismissedModoGamer by remember { mutableStateOf(false) }
 
     Column(
         modifier =
@@ -373,20 +369,14 @@ internal fun ModoGamerResultadoConteudo(
             ModoGamerNatUdpRow(natUdp = etapa.natUdp)
         }
 
-        if (!nativeAdDismissedModoGamer) {
-            Spacer(Modifier.height(LkSpacing.lg))
-            val nativeAdState by rememberNativeAdState(
-                adUnitId = AdUnitIds.para(AdSlot.JOGOS),
-                contentSignal = NativeAdContentSignal.forSlot(AdSlot.JOGOS),
-                eligibility = eligibilidadeAnuncioModoGamer(adsEnabled),
-            )
-            val nativeAd = (nativeAdState as? NativeAdLoadState.Fill)?.ad
-            NativeAdCard(
-                nativeAd = nativeAd,
-                source = NativeAdSource.ADMOB,
-                onDismiss = { nativeAdDismissedModoGamer = true },
-            )
-        }
+        Spacer(Modifier.height(LkSpacing.lg))
+        val nativeAdState by rememberNativeAdState(
+            adUnitId = AdUnitIds.para(AdSlot.JOGOS),
+            contentSignal = NativeAdContentSignal.forSlot(AdSlot.JOGOS),
+            eligibility = eligibilidadeAnuncioModoGamer(adsEnabled),
+        )
+        val nativeAd = (nativeAdState as? NativeAdLoadState.Fill)?.ad
+        NativeAdCard(nativeAd = nativeAd, source = NativeAdSource.ADMOB)
 
         Spacer(Modifier.height(LkSpacing.lg))
         Row(

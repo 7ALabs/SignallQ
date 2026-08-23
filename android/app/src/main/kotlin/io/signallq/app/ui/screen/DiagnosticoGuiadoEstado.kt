@@ -105,9 +105,9 @@ data class DiagnosticoGuiadoEstado(
      * **no instante em que o usuário responde** e **não sobrevive ao back** — que é justamente o
      * que esta issue existe para modelar.
      *
-     * O que faltava olhar é `DiagnosticoGuiadoScreen.kt:478`: o botão Continuar é
-     * `enabled = respostaSelecionada != null`. O avanço é gated pela resposta, então o usuário
-     * chega ao passo 1 com uma resposta, responde, fica com duas, e voltar o devolve ao passo 0
+     * O que faltava olhar é a resposta selecionada na pergunta. O avanço acontece no próprio
+     * clique da opção, então o usuário chega ao passo 1 com uma resposta, responde, fica com duas,
+     * e voltar o devolve ao passo 0
      * **preservando as duas** — comportamento desejado (`respostas.getOrNull(passo)` re-seleciona
      * a anterior). Com o bound cruzado, `recuar()` produzia estado incoerente a partir de estado
      * coerente, e `saneado()` apagava a jornada inteira se o processo morresse ali. Regressão

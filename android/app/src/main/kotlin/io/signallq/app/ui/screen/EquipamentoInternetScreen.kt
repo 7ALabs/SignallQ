@@ -27,6 +27,7 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -35,7 +36,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -154,15 +154,14 @@ fun EquipamentoInternetScreen(
         topBar = {
             // GH#1079: migrado de Column/Row cru para TopAppBar real do M3 -- o layout
             // manual nao aplicava inset de status bar/notch (`.statusBarsPadding()`),
-            // diferente das outras 14 telas do app que ja usam TopAppBar/
-            // CenterAlignedTopAppBar reais.
+            // diferente das outras telas do app que já usam CenterAlignedTopAppBar reais.
             Column(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .background(c.bgPrimary),
             ) {
-                TopAppBar(
+                CenterAlignedTopAppBar(
                     title = {
                         Column {
                             Text(
@@ -192,7 +191,7 @@ fun EquipamentoInternetScreen(
                             Icon(Icons.Outlined.Refresh, contentDescription = "Atualizar", tint = c.textPrimary)
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = c.bgPrimary),
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = c.bgPrimary),
                 )
                 HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
             }

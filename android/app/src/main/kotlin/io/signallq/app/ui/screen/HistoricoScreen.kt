@@ -26,14 +26,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Button
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -42,12 +42,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -65,7 +67,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -74,7 +75,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.signallq.app.R
 import io.signallq.app.ads.AdSlot
 import io.signallq.app.ads.AdUnitIds
 import io.signallq.app.ads.NativeAdContentSignal
@@ -452,9 +452,10 @@ fun HistoricoScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var mostrarExport by remember { mutableStateOf(false) }
+    var mostrarFiltros by remember { mutableStateOf(false) }
     // Issue #555 -- dispensar o anuncio e estado de sessao, nunca persistido.
-    var nativeAdDismissedHistorico by remember { mutableStateOf(false) }
     var modoComparacao by remember { mutableStateOf(false) }
+    var mostrarComparacao by remember { mutableStateOf(false) }
     var ordenacao by remember { mutableStateOf(OrdenacaoHistorico.MAIS_RECENTES) }
     val medicoesSelecionadas = remember { mutableStateListOf<String>() }
 
@@ -466,6 +467,7 @@ fun HistoricoScreen(
     val filtroOperadoraAtivo = if (filtroConexao != null) filtroOperadora else filtroOperadoraInterno
 
     val sheetExportState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetFiltrosState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
 
@@ -497,23 +499,14 @@ fun HistoricoScreen(
         containerColor = c.bgPrimary,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            CenterAlignedTopAppBar(
+            TopAppBar(
                 title = {
                     Text("Histórico", style = MaterialTheme.typography.titleLarge, color = c.textPrimary)
                 },
-                navigationIcon = {
-                    IconButton(onClick = onAbrirMenu) {
-                        Icon(
-                            imageVector = Icons.Filled.AccountCircle,
-                            contentDescription =
-                                stringResource(
-                                    R.string.ajustes_cd_editar_perfil,
-                                ),
-                            tint = c.textPrimary,
-                        )
-                    }
-                },
                 actions = {
+                    IconButton(onClick = onAbrirMenu) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "Abrir ajustes", tint = c.textPrimary)
+                    }
                     IconButton(
                         onClick = {
                             scope.launch {
@@ -529,7 +522,7 @@ fun HistoricoScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = c.bgPrimary),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = c.bgPrimary),
             )
         },
     ) { padding ->
@@ -573,14 +566,64 @@ fun HistoricoScreen(
                 }
                 if (historicoFiltrado.size > 1) {
                     item(key = "historico_comparar") {
-                        TextButton(
-                            onClick = {
-                                modoComparacao = !modoComparacao
-                                medicoesSelecionadas.clear()
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(if (modoComparacao) "Sair da comparação" else "Comparar medições")
+                        if (!modoComparacao) {
+                            OutlinedButton(
+                                onClick = {
+                                    modoComparacao = true
+                                    mostrarComparacao = false
+                                    medicoesSelecionadas.clear()
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("Comparar medições")
+                            }
+                        } else {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = c.surfaceContainer,
+                                shape = RoundedCornerShape(LkRadius.card),
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(LkSpacing.md),
+                                    verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                                ) {
+                                    Text(
+                                        "Compare duas medições",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = c.textPrimary,
+                                    )
+                                    Text(
+                                        when (medicoesSelecionadas.size) {
+                                            0 -> "Toque em duas medições para selecioná-las."
+                                            1 -> "Selecione mais uma medição para continuar."
+                                            else -> "Duas medições selecionadas."
+                                        },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = c.textSecondary,
+                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                                    ) {
+                                        TextButton(
+                                            onClick = {
+                                                modoComparacao = false
+                                                mostrarComparacao = false
+                                                medicoesSelecionadas.clear()
+                                            },
+                                        ) {
+                                            Text("Cancelar")
+                                        }
+                                        Button(
+                                            onClick = { mostrarComparacao = true },
+                                            enabled = medicoesSelecionadas.size == 2,
+                                            modifier = Modifier.weight(1f),
+                                        ) {
+                                            Text("Comparar selecionadas")
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -589,59 +632,31 @@ fun HistoricoScreen(
                         HistoricoResumoCard(resumo = resumo, c = c)
                     }
                 }
-                if (!nativeAdDismissedHistorico) {
-                    item(key = "native_ad_historico") {
-                        val nativeAdState by rememberNativeAdState(
-                            adUnitId = AdUnitIds.para(AdSlot.HISTORICO),
-                            contentSignal = NativeAdContentSignal.forSlot(AdSlot.HISTORICO),
-                            eligibility = eligibilidadeAnuncioHistorico(adsEnabled),
-                        )
-                        val nativeAd = (nativeAdState as? NativeAdLoadState.Fill)?.ad
-                        NativeAdCard(
-                            nativeAd = nativeAd,
-                            source = NativeAdSource.ADMOB,
-                            onDismiss = { nativeAdDismissedHistorico = true },
-                        )
-                    }
+                item(key = "native_ad_historico") {
+                    val nativeAdState by rememberNativeAdState(
+                        adUnitId = AdUnitIds.para(AdSlot.HISTORICO),
+                        contentSignal = NativeAdContentSignal.forSlot(AdSlot.HISTORICO),
+                        eligibility = eligibilidadeAnuncioHistorico(adsEnabled),
+                    )
+                    val nativeAd = (nativeAdState as? NativeAdLoadState.Fill)?.ad
+                    NativeAdCard(nativeAd = nativeAd, source = NativeAdSource.ADMOB)
                 }
                 item(key = "medicoes_header") {
-                    // GH: filtros ficavam na mesma Row do overline (SpaceBetween) e estouravam a
-                    // largura em telas menores, cortando o grupo "Todos | WiFi | Rede Móvel".
-                    // Movidos para abaixo do subtítulo, em largura total.
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "Histórico dos testes",
+                            text = "Medições",
                             style = MaterialTheme.typography.titleMedium,
                             color = c.textPrimary,
                         )
                         Spacer(Modifier.height(LkSpacing.sm))
-                        FiltrosConexao(
-                            filtroSelecionado = filtroConexaoAtivo,
-                            onFiltroChange = { novo ->
-                                if (filtroConexao != null) {
-                                    onFiltroConexaoChange(novo)
-                                } else {
-                                    filtroConexaoInterno = novo
-                                }
-                            },
-                            c = c,
-                            compact = true,
-                        )
-                        Spacer(Modifier.height(LkSpacing.sm))
-                        FiltroOrdenacao(selecionada = ordenacao, onChange = { ordenacao = it }, c = c)
-                        if (operadorasDisponiveis.isNotEmpty()) {
-                            Spacer(Modifier.height(LkSpacing.sm))
-                            FiltroOperadora(
-                                selecionada = filtroOperadoraAtivo,
-                                operadoras = operadorasDisponiveis,
-                                onChange = { nova ->
-                                    if (filtroConexao != null) {
-                                        onFiltroOperadoraChange(nova)
-                                    } else {
-                                        filtroOperadoraInterno = nova
-                                    }
-                                },
-                                c = c,
+                        OutlinedButton(
+                            onClick = { mostrarFiltros = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(Icons.Outlined.FilterList, contentDescription = null)
+                            Spacer(Modifier.width(LkSpacing.sm))
+                            Text(
+                                if (filtroAtivo) "Filtros aplicados" else "Filtrar e ordenar",
                             )
                         }
                     }
@@ -680,7 +695,7 @@ fun HistoricoScreen(
                             onDelete = { onExcluirMedicao(medicao.id) },
                         )
                     }
-                    if (modoComparacao && medicoesSelecionadas.size == 2) {
+                    if (modoComparacao && mostrarComparacao && medicoesSelecionadas.size == 2) {
                         val selecionadas = listaParaExibir.filter { it.id in medicoesSelecionadas }
                         if (selecionadas.size == 2) {
                             item(key = "historico_comparacao_resultado") {
@@ -692,6 +707,59 @@ fun HistoricoScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+
+    if (mostrarFiltros) {
+        ModalBottomSheet(
+            onDismissRequest = { mostrarFiltros = false },
+            sheetState = sheetFiltrosState,
+            containerColor = c.bgCard,
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(LkSpacing.lg),
+            ) {
+                Text("Filtrar histórico", style = MaterialTheme.typography.titleLarge, color = c.textPrimary)
+                Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
+                    Text("Tipo de conexão", style = MaterialTheme.typography.labelLarge, color = c.textSecondary)
+                    FiltrosConexao(
+                        filtroSelecionado = filtroConexaoAtivo,
+                        onFiltroChange = { novo ->
+                            if (filtroConexao != null) {
+                                onFiltroConexaoChange(novo)
+                            } else {
+                                filtroConexaoInterno = novo
+                            }
+                        },
+                        c = c,
+                    )
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
+                    Text("Ordenação", style = MaterialTheme.typography.labelLarge, color = c.textSecondary)
+                    FiltroOrdenacao(selecionada = ordenacao, onChange = { ordenacao = it }, c = c)
+                }
+                if (operadorasDisponiveis.isNotEmpty()) {
+                    FiltroOperadora(
+                        selecionada = filtroOperadoraAtivo,
+                        operadoras = operadorasDisponiveis,
+                        onChange = { nova ->
+                            if (filtroConexao != null) {
+                                onFiltroOperadoraChange(nova)
+                            } else {
+                                filtroOperadoraInterno = nova
+                            }
+                        },
+                        c = c,
+                    )
+                }
+                Button(
+                    onClick = { mostrarFiltros = false },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Aplicar")
                 }
             }
         }
@@ -744,7 +812,7 @@ private fun EmptyHistorico(
                 if (filtroAtivo) {
                     "Não há medições para o filtro selecionado.\nTente selecionar outro tipo de conexão."
                 } else {
-                    "Os resultados dos testes de velocidade\naparecerão aqui."
+                    "As medições do diagnóstico\naparecerão aqui."
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = c.textSecondary,
@@ -752,7 +820,7 @@ private fun EmptyHistorico(
             )
             Spacer(Modifier.height(LkSpacing.lg))
             Button(onClick = onIniciarTeste) {
-                Text(if (filtroAtivo) "Medir agora" else "Fazer primeiro teste")
+                Text(if (filtroAtivo) "Medir agora" else "Fazer primeira medição")
             }
         }
     }
@@ -784,8 +852,8 @@ private fun HistoricoCard(
     val c = LocalLkTokens.current
     var deslocamento by remember { mutableFloatStateOf(0f) }
     var expandido by remember { mutableStateOf(false) }
-    // A lista segue a hierarquia do protótipo: intenção, momento e conclusão. Os números
-    // completos continuam disponíveis na sheet de detalhe, sem disputar a leitura principal.
+    // A lista prioriza o padrão reconhecível de histórico: tipo, data/horário e métricas principais.
+    // O toque ainda expande os detalhes complementares sem abrir outra tela.
     val conclusao = remember(medicao) { conclusaoDaMedicao(medicao) }
     val corConclusao = corDoTom(conclusao.tom, c)
     val cardDesc =
@@ -855,7 +923,7 @@ private fun HistoricoCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = conclusao.objetivo,
+                    text = tipoLabel(medicao),
                     style = MaterialTheme.typography.titleMedium,
                     color = c.textPrimary,
                     maxLines = 1,
@@ -863,31 +931,63 @@ private fun HistoricoCard(
                 )
                 Spacer(Modifier.width(LkSpacing.md))
                 Text(
-                    text = formatDate(medicao.timestampEpochMs),
+                    text = formatFullDate(medicao.timestampEpochMs),
                     style = MaterialTheme.typography.labelMedium,
                     color = c.textTertiary,
-                )
-                Spacer(Modifier.width(LkSpacing.xs))
-                Icon(
-                    imageVector = if (expandido) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                    contentDescription = if (expandido) "Recolher detalhes" else "Expandir detalhes",
-                    tint = c.textSecondary,
                 )
             }
             Spacer(Modifier.height(LkSpacing.xs))
             Text(
-                text = "${conclusao.conclusao} · ${tipoLabel(medicao)}",
-                style = MaterialTheme.typography.bodyMedium,
+                text = conclusao.conclusao,
+                style = MaterialTheme.typography.bodySmall,
                 color = corConclusao,
                 maxLines = 1,
             )
+            Spacer(Modifier.height(LkSpacing.md))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                HistoricoResumoMetrica("Download", medicao.downloadMbps?.let { "%.1f Mbps".format(it) }, c)
+                HistoricoResumoMetrica("Upload", medicao.uploadMbps?.let { "%.1f Mbps".format(it) }, c)
+                HistoricoResumoMetrica("Latência", medicao.latencyMs?.let { "%.0f ms".format(it) }, c)
+            }
             if (expandido) {
                 Spacer(Modifier.height(LkSpacing.md))
                 HistoricoDetalhesInline(medicao = medicao, c = c)
             }
             Spacer(Modifier.height(LkSpacing.md))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    if (expandido) "Ocultar detalhes" else "Ver detalhes",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = c.primary,
+                )
+                Spacer(Modifier.width(LkSpacing.xs))
+                Icon(
+                    imageVector = if (expandido) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                    contentDescription = null,
+                    tint = c.primary,
+                )
+            }
             HorizontalDivider(color = c.outlineVariant)
         }
+    }
+}
+
+@Composable
+private fun HistoricoResumoMetrica(
+    label: String,
+    value: String?,
+    c: LkTokens,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = c.textSecondary)
+        Text(value ?: "—", style = MaterialTheme.typography.titleSmall, color = c.textPrimary)
     }
 }
 

@@ -16,10 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
@@ -62,7 +58,6 @@ import io.signallq.app.ui.ads.buildRoleComposeView
 fun NativeAdCard(
     nativeAd: NativeAd?,
     source: NativeAdSource,
-    onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (nativeAd == null) return
@@ -83,18 +78,10 @@ fun NativeAdCard(
         Column {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 AdBadge(source = source)
-                IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
-                    Icon(
-                        imageVector = Icons.Outlined.Close,
-                        contentDescription = "Fechar anúncio",
-                        tint = c.textTertiary,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
             }
 
             Spacer(Modifier.height(LkSpacing.sm))

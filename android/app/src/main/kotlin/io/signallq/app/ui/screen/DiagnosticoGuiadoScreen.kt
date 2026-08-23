@@ -18,9 +18,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.MonitorHeart
@@ -61,6 +60,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.signallq.app.core.diagnostico.DiagnosticContext
 import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.DiagnosticReport
@@ -231,6 +231,19 @@ fun DiagnosticoGuiadoScreen(
 
     // GH#1706 — o plano só existe depois de haver objetivo; antes disso não há o que verificar.
     val plano = objetivo?.let { montarPlano(it, contextoDoPlano, respostas) }
+    val contextoNds =
+        remember(objetivo, respostas) {
+            objetivo?.let { objetivoAtual ->
+                DiagnosticContext(
+                    objective = objetivoAtual.name,
+                    answers =
+                        respostas
+                            .mapIndexedNotNull { index, answer ->
+                                answer?.let { "pergunta_$index" to "resposta_$it" }
+                            }.toMap(),
+                )
+            }
+        }
 
     // Correlaciona os eventos desta jornada. `rememberSaveable` para o id sobreviver à recriação
     // da tela — trocar de id no meio quebraria a correlação, que é a única coisa que ele faz.
@@ -310,7 +323,7 @@ fun DiagnosticoGuiadoScreen(
 
     LaunchedEffect(estado.rotaAtual, input, estadoChamadaNds) {
         if (estado.rotaAtual != DiagnosticoGuiadoRota.Processando || estadoChamadaNds != EstadoChamadaNds.EmCurso) return@LaunchedEffect
-        val inputAtual = input ?: return@LaunchedEffect
+        val inputAtual = input?.copy(context = contextoNds) ?: return@LaunchedEffect
         val relatorio = runCatching { onAvaliarAssist?.invoke(inputAtual) }.getOrNull()
         if (relatorio?.evaluationSource == DiagnosticEvaluationSource.REMOTE) {
             estadoChamadaNds = EstadoChamadaNds.Sucesso(relatorio)
@@ -377,10 +390,7 @@ fun DiagnosticoGuiadoScreen(
                 },
                 actions = {
                     IconButton(onClick = onAbrirPerfil) {
-                        Icon(Icons.Outlined.AccountCircle, contentDescription = "Abrir ajustes", tint = c.textPrimary)
-                    }
-                    IconButton(onClick = onAlternarTema) {
-                        Icon(Icons.Outlined.DarkMode, contentDescription = "Alternar tema", tint = c.textPrimary)
+                        Icon(Icons.Filled.MoreVert, contentDescription = "Abrir ajustes", tint = c.textPrimary)
                     }
                 },
                 navigationIcon = {
@@ -488,7 +498,9 @@ fun DiagnosticoGuiadoScreen(
                     resolveOperadoraContatoRemoto = resolveOperadoraContatoRemoto,
                     onIniciarModoGamer = onIniciarModoGamer,
                     onAbrirFerramentaSugerida = onAbrirFerramentaSugerida,
-                    onTestarNovamenteVinculado = { onTestarNovamenteVinculado(analiseId, "") },
+                    onTestarNovamenteVinculado = {
+                        onTestarNovamenteVinculado(analiseId, relatorioAssist?.decisao?.recomendacaoId.orEmpty())
+                    },
                     comparacaoRetesteState = comparacaoRetesteState,
                     c = c,
                 )
@@ -504,6 +516,35 @@ fun DiagnosticoGuiadoScreen(
             else -> {
                 val perguntas = remember(objetivoAtual) { PerguntasDiagnosticoGuiado.perguntas(objetivoAtual) }
                 val pergunta = perguntas[passo]
+
+                fun avançarApósResposta(respostasAtualizadas: List<Int?>) {
+                    estado =
+                        when {
+                            passo < perguntas.size - 1 ->
+                                estado.copy(
+                                    passo = passo + 1,
+                                    respostas = respostasAtualizadas,
+                                )
+                            // GH#1704 — o fim do roteiro leva à análise (§8.5), não direto à
+                            // conclusão. Só pula a medição quando já existe resultado utilizável,
+                            // que é o caminho de quem entrou aqui vindo da tela de Resultado.
+                            podeConcluirSemMedir -> {
+                                if (onAvaliarAssist == null) {
+                                    estado.copy(respostas = respostasAtualizadas).irPara(DiagnosticoGuiadoRota.Resultado)
+                                } else {
+                                    estado.copy(respostas = respostasAtualizadas).irPara(DiagnosticoGuiadoRota.Processando)
+                                }
+                            }
+                            else -> {
+                                analise.onIniciar()
+                                estado.copy(respostas = respostasAtualizadas).irPara(DiagnosticoGuiadoRota.Analise)
+                            }
+                        }
+                    if (passo == perguntas.size - 1 && podeConcluirSemMedir && onAvaliarAssist != null) {
+                        estadoChamadaNds = EstadoChamadaNds.EmCurso
+                    }
+                }
+
                 DiagnosticoGuiadoPerguntaFechadaSection(
                     modifier = Modifier.padding(padding),
                     pergunta = pergunta,
@@ -511,34 +552,12 @@ fun DiagnosticoGuiadoScreen(
                     total = perguntas.size,
                     respostaSelecionada = respostas.getOrNull(passo),
                     onEscolher = { opcaoIndex ->
-                        estado =
-                            estado.copy(
-                                respostas =
-                                    respostas.toMutableList().apply {
-                                        while (size <= passo) add(null)
-                                        this[passo] = opcaoIndex
-                                    },
-                            )
-                    },
-                    onAvancar = {
-                        when {
-                            passo < perguntas.size - 1 -> estado = estado.copy(passo = passo + 1)
-                            // GH#1704 — o fim do roteiro leva à análise (§8.5), não direto à
-                            // conclusão. Só pula a medição quando já existe resultado utilizável,
-                            // que é o caminho de quem entrou aqui vindo da tela de Resultado.
-                            podeConcluirSemMedir -> {
-                                if (onAvaliarAssist == null) {
-                                    estado = estado.irPara(DiagnosticoGuiadoRota.Resultado)
-                                } else {
-                                    estado = estado.irPara(DiagnosticoGuiadoRota.Processando)
-                                    estadoChamadaNds = EstadoChamadaNds.EmCurso
-                                }
+                        val respostasAtualizadas =
+                            respostas.toMutableList().apply {
+                                while (size <= passo) add(null)
+                                this[passo] = opcaoIndex
                             }
-                            else -> {
-                                estado = estado.irPara(DiagnosticoGuiadoRota.Analise)
-                                analise.onIniciar()
-                            }
-                        }
+                        avançarApósResposta(respostasAtualizadas)
                     },
                     c = c,
                 )
