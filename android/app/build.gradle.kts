@@ -43,7 +43,7 @@ private val adminIngestKey: String =
 // Publicacao na Play Console (gradle-play-publisher).
 // Service account JSON lida de key.properties (playServiceAccountFile) ou env
 // PLAY_SERVICE_ACCOUNT_JSON_FILE. NUNCA commitar o arquivo de credencial.
-// Trilha configuravel via -PplayTrack=... (default: internal = teste interno).
+// Trilha configuravel via -PplayTrack=... (o workflow de beta fixa beta).
 play {
     val serviceAccountPath =
         (keyProperties["playServiceAccountFile"] as String?)
@@ -74,6 +74,10 @@ play {
 // testador externo, so o Luiz valida (ver comentario em release.yml), sem impacto de produto real.
 val playTrackAtual = providers.gradleProperty("playTrack").orElse("internal").get()
 val usarAdsDeTesteEmRelease = (playTrackAtual != "production").toString()
+// O bloqueio de monetizacao e independente dos IDs de teste/producao. A beta atual deve ser
+// publicada sem solicitar anuncios, mesmo que o Remote Config contenha alguma chave ativa.
+// Para uma futura release monetizada, usar explicitamente -PadsEnabled=true.
+val adsHabilitadosNoBuild = providers.gradleProperty("adsEnabled").orElse("false").get().toBoolean()
 
 android {
     namespace = "io.signallq.app"
@@ -142,6 +146,7 @@ android {
             }
             // Ver AdUnitIds.kt — debug sempre usa Ad Unit ID de teste (independe de -PplayTrack).
             buildConfigField("Boolean", "USE_TEST_ADS", "true")
+            buildConfigField("Boolean", "ADS_ENABLED", "true")
             // ─── MVP — ativos em debug E release ──────────────────────
             buildConfigField("Boolean", "FEATURE_SPEEDTEST", "true")
             buildConfigField("Boolean", "FEATURE_DIAGNOSTICO_LOCAL", "true")
@@ -201,6 +206,7 @@ android {
             // != "production" (internal/alpha, hoje binario identico via promocao) usa Ad Unit ID
             // de teste; production usa o real.
             buildConfigField("Boolean", "USE_TEST_ADS", usarAdsDeTesteEmRelease)
+            buildConfigField("Boolean", "ADS_ENABLED", adsHabilitadosNoBuild.toString())
             // ─── ATIVO NO RELEASE ─────────────────────────────────────────
             // MVP core
             buildConfigField("Boolean", "FEATURE_SPEEDTEST", "true")

@@ -108,8 +108,11 @@ class SignallQApplication :
         featureFlagManager.inicializar(applicationScope)
 
         // Toggle remoto de anuncios nativos (issue #555) via Firebase Remote Config.
-        // Nao bloqueia o startup — fallback local e "desligado" ate o fetch completar.
-        adsFlagsManager.inicializar(applicationScope)
+        // O bloqueio de build permite publicar uma trilha sem anuncios, independentemente
+        // de valores eventualmente ativos no Remote Config.
+        if (BuildConfig.ADS_ENABLED) {
+            adsFlagsManager.inicializar(applicationScope)
+        }
 
         // Fundacao de feature flags do Consumer (GH#1477, Epico #1347). Nao bloqueia o
         // startup — defaults locais do catalogo ja ficam disponiveis desde a construcao

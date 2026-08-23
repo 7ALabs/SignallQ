@@ -9,6 +9,12 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ---
 
+## [1.0.0] — 2026-08-23
+
+### Alterado
+- Primeira versão beta pública do SignallQ, com a jornada de diagnóstico orientada por causa provável, evidências e próximo passo.
+- Anúncios permanecem desligados nesta versão.
+
 ## [0.35.3] — 2026-08-23
 
 ### Corrigido
