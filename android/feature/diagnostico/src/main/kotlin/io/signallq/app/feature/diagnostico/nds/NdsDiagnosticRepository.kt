@@ -23,25 +23,21 @@ import timber.log.Timber
  * Ponte de producao entre [DiagnosticOrchestrator][io.signallq.app.feature.diagnostico.DiagnosticOrchestrator]
  * e o Network Diagnostics Service — NDS-02k (issue #1759, item 6 do escopo).
  *
- * ## Estrategia: remoto-primeiro, fallback total (estilo `evaluate()`, NAO `evaluateShadow()`)
- * Mesmo espirito de
- * [io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository.evaluate] — decisao
- * explicita registrada no inventario da issue #1759, secao 3c: o `DiagnosticRunner` local e rede
- * de seguranca (qualquer falha cai para ele, sem diferenca visivel de UI), NAO um segundo motor
- * autoritativo rodando em paralelo so para comparacao (isso duplicaria o problema que o shadow
- * mode antigo ja tem hoje — 2 chamadas remotas por diagnostico).
+ * ## Estratégias separadas
+ * `evaluate()` é o caminho legado remoto-primeiro com fallback total para o `DiagnosticRunner`
+ * local, sem diferença visível de UI. `evaluateForAssist()` é o caminho remoto dedicado do
+ * Assist: o NDS é obrigatório e qualquer erro é propagado como [NdsAssistEvaluationException],
+ * para a UI exibir erro recuperável em vez de inventar um resultado local.
  *
- * ## Quando este repository e chamado
- * Só quando `consumer_diagnostico_nds_live_enabled` está ligada — ver
- * `DiagnosticOrchestrator.executarProtegido`. Com a flag desligada (default, todo ambiente hoje),
- * este repository nunca é instanciado com tráfego real: a instância default do Hilt existe, mas
- * `evaluate()` nunca é chamado.
+ * ## Quando este repository é chamado
+ * `evaluate()` só é usado pelo diagnóstico legado quando
+ * `consumer_diagnostico_nds_live_enabled` está ligada. `evaluateForAssist()` ignora essa flag
+ * global de propósito e é usado sempre que o usuário entra no Assist.
  *
- * ## Fallback nunca lança exceção
- * [NdsClient.evaluate] já nunca lança exceção (todo erro vira [NdsDiagnosticsOutcome]); o único
- * ponto de risco adicional aqui é o mapeamento da resposta de sucesso
- * ([io.signallq.app.core.nds.toDiagnosticReport]) — também protegido com `try/catch`, caindo para
- * o motor local em qualquer falha de mapeamento (corpo válido mas inesperado).
+ * ## Tratamento de falhas
+ * [NdsClient.evaluate] não lança exceção de rede (todo erro vira [NdsDiagnosticsOutcome]). O
+ * caminho legado converte esses estados para fallback local; o caminho Assist os converte para
+ * [NdsAssistEvaluationException]. O mapeamento da resposta remota também segue essa distinção.
  *
  * ## `profile="gamer"` (issue #1762)
  * O campo `profile` do payload NDS existe desde NDS-02a/#1747 e a regra `profile`/
