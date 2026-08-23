@@ -9,6 +9,12 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ---
 
+## [0.35.1] — 2026-08-23
+
+### Corrigido
+- O botão de voltar do Assist agora retorna diretamente para a tela de Início, sem percorrer perguntas anteriores.
+- A tela de Início não exibe mais o título adicional acima da trilha da conexão.
+
 ## [0.35.0] — 2026-08-23
 
 ### Adicionado

@@ -1,1 +1,1 @@
-O Assist agora entende melhor o motivo escolhido e as respostas da jornada para explicar o que está acontecendo e indicar o próximo passo. O resultado preserva as evidências e os passos da recomendação, mantém respostas inconclusivas honestas e permite retestar a mesma situação para verificar se houve melhora.
+O botão de voltar do Assist retorna diretamente para o Início, sem percorrer perguntas anteriores. A tela inicial também ficou mais limpa, sem o título adicional acima da trilha da conexão.
