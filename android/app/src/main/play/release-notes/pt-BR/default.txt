@@ -1,1 +1,1 @@
-O botão de voltar do Assist retorna diretamente para o Início, sem percorrer perguntas anteriores. A tela inicial também ficou mais limpa, sem o título adicional acima da trilha da conexão.
+O Assist agora explica o problema encontrado, mostra o que você pode fazer e evita garantias ou termos técnicos. Dados incompletos também são apresentados com clareza.

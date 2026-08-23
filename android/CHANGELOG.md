@@ -9,6 +9,16 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ---
 
+## [0.35.2] — 2026-08-23
+
+### Alterado
+- O Assist agora explica o impacto encontrado e mostra ações práticas para melhorar a conexão.
+- A análise apresenta os dados ausentes em linguagem simples e ajusta a confiança quando necessário.
+
+### Corrigido
+- O resultado do Assist não exibe mais garantias, contradições ou nomes técnicos internos.
+- A recomendação remota passa por validação para impedir textos inseguros ou incompreensíveis.
+
 ## [0.35.1] — 2026-08-23
 
 ### Corrigido

@@ -44,6 +44,7 @@ import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.DiagnosticoGuiadoEngine
+import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.diagnostico.ResultadoDiagnosticoGuiado
 import io.signallq.app.core.recommendation.RecommendationDecision
 import io.signallq.app.core.recommendation.RecommendationFeedbackType
@@ -55,6 +56,135 @@ import io.signallq.app.ui.ResolvedOperadoraIdentity
 import io.signallq.app.ui.component.AiVsMotorExplainer
 import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.RetesteVinculadoSection
+
+private val MISSING_INPUT_LABELS =
+    mapOf(
+        "dns.latencyMs" to "resposta do DNS",
+        "dns_latency_ms" to "resposta do DNS",
+        "quality.latencyMs" to "latência",
+        "latency_ms" to "latência",
+        "quality.jitterMs" to "variação da conexão",
+        "jitter_ms" to "variação da conexão",
+        "quality.packetLossPercent" to "perda de pacotes",
+        "packet_loss_percent" to "perda de pacotes",
+        "quality.loadedLatencyMs" to "resposta sob carga",
+        "loaded_latency_ms" to "resposta sob carga",
+        "quality.bufferbloatMs" to "atraso com a rede ocupada",
+        "bufferbloat_ms" to "atraso com a rede ocupada",
+        "gateway.rttMs" to "resposta do roteador",
+        "gateway_rtt_ms" to "resposta do roteador",
+        "gateway.connectedDevices" to "dispositivos conectados",
+        "connected_devices" to "dispositivos conectados",
+        "wifi.rssiDbm" to "força do Wi-Fi",
+        "wifi_rssi_dbm" to "força do Wi-Fi",
+        "wifi.band" to "banda do Wi-Fi",
+        "wifi_band" to "banda do Wi-Fi",
+        "speed.downloadMbps" to "download",
+        "download_mbps" to "download",
+        "speed.uploadMbps" to "upload",
+        "upload_mbps" to "upload",
+    )
+
+internal fun tituloAssistSeguro(
+    objetivo: ObjetivoDiagnostico,
+    status: DiagnosticStatus,
+): String =
+    when (status) {
+        DiagnosticStatus.ok -> "Sua conexão está funcionando bem"
+        DiagnosticStatus.info ->
+            when (objetivo) {
+                ObjetivoDiagnostico.JOGOS_COM_LAG -> "Sua conexão funciona, mas pode apresentar atraso durante o jogo"
+                else -> "Sua conexão funciona, mas pode oscilar em alguns momentos"
+            }
+        DiagnosticStatus.attention -> "Sua conexão apresenta sinais de instabilidade"
+        DiagnosticStatus.critical -> "Sua conexão apresenta um problema que precisa de atenção"
+        DiagnosticStatus.inconclusive -> "Ainda não há dados suficientes para concluir"
+    }
+
+private fun resumoStatusAssist(status: DiagnosticStatus): String =
+    when (status) {
+        DiagnosticStatus.ok -> "Nenhum problema importante foi encontrado nas medições."
+        DiagnosticStatus.info -> "Há um ponto da conexão que merece atenção."
+        DiagnosticStatus.attention -> "Encontramos sinais de instabilidade que podem afetar o uso."
+        DiagnosticStatus.critical -> "Encontramos um problema que pode prejudicar sua experiência."
+        DiagnosticStatus.inconclusive -> "É preciso fazer uma nova medição para concluir."
+    }
+
+internal fun mensagemAssistSegura(
+    objetivo: ObjetivoDiagnostico,
+    status: DiagnosticStatus,
+    atrasoSobCarga: Double?,
+    latenciaLivre: Double?,
+): String {
+    val aumentoSobCarga =
+        if (atrasoSobCarga != null && latenciaLivre != null) {
+            (atrasoSobCarga - latenciaLivre).coerceAtLeast(0.0)
+        } else {
+            null
+        }
+    if (
+        objetivo == ObjetivoDiagnostico.JOGOS_COM_LAG &&
+        aumentoSobCarga != null &&
+        aumentoSobCarga >= 30.0
+    ) {
+        return "A resposta aumentou %.0f ms quando a rede ficou ocupada. Isso pode causar atraso perceptível durante as partidas.".format(aumentoSobCarga)
+    }
+    return when (objetivo) {
+        ObjetivoDiagnostico.JOGOS_COM_LAG ->
+            when (status) {
+                DiagnosticStatus.ok -> "As medições de resposta e estabilidade estão dentro do esperado para jogos online."
+                DiagnosticStatus.info -> "A conexão funciona, mas pode oscilar ou apresentar atraso em momentos de disputa."
+                DiagnosticStatus.attention, DiagnosticStatus.critical -> "As medições indicam instabilidade que pode causar atrasos ou travadas durante as partidas."
+                DiagnosticStatus.inconclusive -> "Não foi possível medir dados suficientes para avaliar a experiência durante o jogo."
+            }
+        ObjetivoDiagnostico.VIDEOS_TRAVAM -> "A conexão pode perder qualidade quando há tráfego simultâneo, especialmente durante o streaming."
+        ObjetivoDiagnostico.INTERNET_CAI_OSCILA -> "As medições indicam que a conexão pode oscilar ou perder estabilidade em alguns momentos."
+        ObjetivoDiagnostico.CHAMADAS_CONGELAM -> "A variação da conexão pode causar cortes no áudio ou congelamentos durante chamadas."
+        ObjetivoDiagnostico.SITES_DEMORAM -> "A resposta da rede pode atrasar a abertura de sites e aplicativos."
+        ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA -> "A velocidade medida pode estar abaixo do esperado para o seu plano ou para o uso atual."
+        ObjetivoDiagnostico.WIFI_VS_OPERADORA -> "As medições ajudam a separar um problema no Wi-Fi de um problema no caminho até a operadora."
+    }
+}
+
+internal fun passosAssistSeguro(
+    resultado: ResultadoDiagnosticoGuiado,
+    recomendacaoNds: List<String>,
+    atrasoSobCarga: Double?,
+    latenciaLivre: Double?,
+): List<String> {
+    if (recomendacaoNds.isNotEmpty()) return recomendacaoNds.take(3)
+    if (resultado.acoes.isNotEmpty()) return resultado.acoes.take(3)
+    val aumentoSobCarga =
+        if (atrasoSobCarga != null && latenciaLivre != null) atrasoSobCarga - latenciaLivre else 0.0
+    return if (aumentoSobCarga >= 30.0) {
+        listOf(
+            "Pause downloads, uploads e sincronizações enquanto joga.",
+            "Repita a medição com a rede livre para confirmar a melhora.",
+        )
+    } else {
+        emptyList()
+    }
+}
+
+internal fun dadosAusentesEmLinguagemHumana(dadosAusentes: List<String>): String {
+    val labels =
+        dadosAusentes.map { MISSING_INPUT_LABELS[it] ?: "outras medições avançadas" }.distinct()
+    return "Algumas medições avançadas não estavam disponíveis: ${labels.joinToString(", ")}."
+}
+
+internal fun confiancaAssist(report: DiagnosticReport): String {
+    val confiancaBase =
+        when {
+            report.confianca >= 0.8 -> "alta"
+            report.confianca >= 0.5 -> "média"
+            else -> "baixa"
+        }
+    return if (confiancaBase == "alta" && report.dadosAusentes.isNotEmpty()) {
+        "média"
+    } else {
+        confiancaBase
+    }
+}
 
 /**
  * Diagnóstico guiado por objetivo — Feature #550, issue #1475. 7 objetivos fechados,
@@ -102,16 +232,29 @@ internal fun DiagnosticoGuiadoResultadoSection(
 ) {
     val decisao = diagnosticReport?.decisao
     val status = decisao?.status ?: resultado.status
-    val titulo = decisao?.titulo ?: resultado.mensagemMotor
-    val mensagem = decisao?.mensagemUsuario ?: resultado.mensagemMotor
+    val veioDoNds = diagnosticReport?.evaluationSource == DiagnosticEvaluationSource.REMOTE
     val evidencia =
         decisao?.evidencia
             ?: resultado.evidencias.firstOrNull()?.let { "${it.label}: ${it.valorExibido}." }
             ?: "A análise não encontrou dados suficientes para concluir."
-    val veioDoNds = diagnosticReport?.evaluationSource == DiagnosticEvaluationSource.REMOTE
     val internet = input?.internet
     val latenciaLivre = internet?.latencyMs
     val atrasoSobCarga = internet?.latencyMs?.let { it + (internet.bufferbloatMs ?: 0.0) }
+    val titulo =
+        if (veioDoNds) tituloAssistSeguro(resultado.objetivo, status) else decisao?.titulo ?: resultado.mensagemMotor
+    val mensagem =
+        if (veioDoNds) {
+            mensagemAssistSegura(resultado.objetivo, status, atrasoSobCarga, latenciaLivre)
+        } else {
+            decisao?.mensagemUsuario ?: resultado.mensagemMotor
+        }
+    val passosRecomendacao =
+        passosAssistSeguro(
+            resultado = resultado,
+            recomendacaoNds = diagnosticReport?.decisao?.recomendacaoPassos.orEmpty(),
+            atrasoSobCarga = atrasoSobCarga,
+            latenciaLivre = latenciaLivre,
+        )
     val ferramentaSugerida = remember(resultado.objetivo) { resultado.objetivo.ferramentaSugerida() }
     var detalhesAbertos by remember { mutableStateOf(false) }
 
@@ -178,7 +321,7 @@ internal fun DiagnosticoGuiadoResultadoSection(
         if (veioDoNds) {
             Spacer(Modifier.height(LkSpacing.sm))
             Text(
-                text = "Análise feita pelo NDS",
+                text = "Baseado nas medições da sua rede",
                 style = MaterialTheme.typography.bodySmall,
                 color = c.textSecondary,
             )
@@ -187,19 +330,13 @@ internal fun DiagnosticoGuiadoResultadoSection(
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Icon(
                 imageVector = Icons.Outlined.CheckCircle,
-                contentDescription = null,
+                contentDescription = "Resumo do diagnóstico",
                 tint = c.textSecondary,
                 modifier = Modifier.size(24.dp),
             )
             Spacer(Modifier.width(LkSpacing.md))
             Text(
-                when (status) {
-                    DiagnosticStatus.ok -> "Sua conexão está funcionando bem"
-                    DiagnosticStatus.info -> "Sua conexão funciona, mas há espaço para melhorar"
-                    DiagnosticStatus.attention -> "Encontramos sinais de instabilidade"
-                    DiagnosticStatus.critical -> "Encontramos um problema que precisa de atenção"
-                    DiagnosticStatus.inconclusive -> "Ainda não há dados suficientes para concluir"
-                },
+                resumoStatusAssist(status),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = c.textPrimary,
@@ -208,13 +345,7 @@ internal fun DiagnosticoGuiadoResultadoSection(
         diagnosticReport?.let { report ->
             Spacer(Modifier.height(LkSpacing.sm))
             Text(
-                text = "Confiança ${if (report.confianca >= 0.8) {
-                    "alta"
-                } else if (report.confianca >= 0.5) {
-                    "média"
-                } else {
-                    "baixa"
-                }}",
+                text = "Confiança ${confiancaAssist(report)}",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = c.textSecondary,
@@ -252,25 +383,25 @@ internal fun DiagnosticoGuiadoResultadoSection(
                 diagnosticReport?.dadosAusentes?.takeIf { it.isNotEmpty() }?.let { dadosAusentes ->
                     Spacer(Modifier.height(LkSpacing.md))
                     Text(
-                        text = "O que faltou para refinar",
+                        text = "Sobre esta análise",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = c.textPrimary,
                     )
                     Spacer(Modifier.height(LkSpacing.xs))
                     Text(
-                        text = dadosAusentes.joinToString(", ") { it.replace('.', ' ') },
+                        text = dadosAusentesEmLinguagemHumana(dadosAusentes),
                         style = MaterialTheme.typography.bodySmall,
                         color = c.textSecondary,
                     )
                 }
             }
         }
-        diagnosticReport?.decisao?.recomendacaoPassos?.takeIf { veioDoNds && it.isNotEmpty() }?.let { steps ->
+        passosRecomendacao.takeIf { it.isNotEmpty() }?.let { steps ->
             Spacer(Modifier.height(LkSpacing.lg))
             LkSurfaceCard(modifier = Modifier.fillMaxWidth(), outlined = false) {
                 Column(Modifier.padding(LkSpacing.lg)) {
-                    Text("Como resolver", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = c.textPrimary)
+                    Text("O que você pode fazer", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = c.textPrimary)
                     Spacer(Modifier.height(LkSpacing.sm))
                     steps.forEachIndexed { index, step ->
                         Text("${index + 1}. $step", style = MaterialTheme.typography.bodyLarge, color = c.textSecondary)
@@ -313,7 +444,7 @@ internal fun DiagnosticoGuiadoResultadoSection(
             )
             Icon(
                 imageVector = Icons.Outlined.ExpandMore,
-                contentDescription = null,
+                contentDescription = if (detalhesAbertos) "Ocultar detalhes técnicos" else "Mostrar detalhes técnicos",
                 tint = c.textSecondary,
                 modifier = Modifier.rotate(if (detalhesAbertos) 180f else 0f),
             )
@@ -334,7 +465,7 @@ internal fun DiagnosticoGuiadoResultadoSection(
             Text("Ver como melhorar", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         }
         TextButton(onClick = onEscolherOutraSituacao, modifier = Modifier.fillMaxWidth()) {
-            Text("Ver resultado inconclusivo", style = MaterialTheme.typography.bodyLarge, color = c.primary)
+            Text("Escolher outra situação", style = MaterialTheme.typography.bodyLarge, color = c.primary)
         }
         Spacer(Modifier.height(LkSpacing.xl))
     }
