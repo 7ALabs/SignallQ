@@ -50,7 +50,8 @@ class SinalScreenOfflineBannerTest {
         // claro que os recursos locais continuam disponíveis, em vez de esvaziar a tela.
         composeRule.onNodeWithText("Você está offline").assertExists()
         // O conteúdo local (scan de Wi-Fi já coletado) continua acessível abaixo do banner.
-        composeRule.onNodeWithText("Nenhuma rede encontrada").assertExists()
+        composeRule.onNodeWithText("Sua rede Wi-Fi").assertExists()
+        composeRule.onNodeWithText("Todos").assertExists()
     }
 
     @Test

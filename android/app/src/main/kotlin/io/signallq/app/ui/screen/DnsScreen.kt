@@ -32,7 +32,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.Button
@@ -117,8 +116,8 @@ fun DnsScreen(
                 navigationIcon = {
                     IconButton(onClick = { if (showGuia) showGuia = false else onVoltar() }) {
                         Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = "Fechar",
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                            contentDescription = "Voltar",
                             tint = c.textPrimary,
                         )
                     }

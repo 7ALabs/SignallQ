@@ -129,7 +129,7 @@ class AppShellRootRegistryTest {
         }
         composeRule.onNodeWithText("Histórico").assertExists()
         // Lista vazia + filtro TODOS = estado vazio inicial.
-        composeRule.onNodeWithText("Fazer primeiro teste").performClick()
+        composeRule.onNodeWithText("Fazer primeira medição").performClick()
         composeRule.runOnIdle { assertTrue(iniciou) }
     }
 
@@ -258,7 +258,7 @@ class AppShellRootRegistryTest {
                 historico = historicoEntry(onIniciarTeste = { iniciou = true }),
             )
         }
-        composeRule.onNodeWithText("Fazer primeiro teste").performClick()
+        composeRule.onNodeWithText("Fazer primeira medição").performClick()
         composeRule.runOnIdle { assertTrue(iniciou) }
     }
 
