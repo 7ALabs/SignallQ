@@ -19,17 +19,17 @@ O `.gitignore` já bloqueia `play-service-account*.json` e `key.properties`.
 
 ## Publicar
 
-Trilha default: `alpha` (teste fechado). Override com `-PplayTrack=`.
+Trilha default: `internal` (teste interno). Override com `-PplayTrack=`.
 
 ```
 # clean build do AAB assinado
 ./android/gradlew.bat clean bundleRelease --no-build-cache
 
-# enviar para teste fechado (alpha)
-./android/gradlew.bat :app:publishReleaseBundle
-
-# outra trilha
+# enviar para teste interno (internal)
 ./android/gradlew.bat :app:publishReleaseBundle -PplayTrack=internal
+
+# promover/publicar explicitamente em outra trilha
+./android/gradlew.bat :app:publishReleaseBundle -PplayTrack=alpha
 ```
 
 Versão publicada vem de `libs.versions.toml` (`versionCode` / `versionName`).
