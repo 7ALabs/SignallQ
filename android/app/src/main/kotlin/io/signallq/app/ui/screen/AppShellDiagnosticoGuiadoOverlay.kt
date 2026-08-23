@@ -114,11 +114,10 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
     val dados = entry.dados
 
     // issue #1720 — ponte entre o `RegistrarBackDoOverlay` (que precisa viver FORA do
-    // `AnimatedVisibility`, ver KDoc dele em `AppShellNavigation.kt`) e o `voltarUmPasso` interno
-    // de `DiagnosticoGuiadoScreen` (que só existe DENTRO do conteúdo, porque é lá que mora o
-    // `estado`). `backHandler` é preenchido a cada composição da tela via `onBackHandlerReady` e
-    // consultado por `consumirBackDoOverlayTopo()` através da lambda abaixo — nunca lido
-    // diretamente por composição, então não precisa disparar recomposição sozinho.
+    // `AnimatedVisibility`, ver KDoc dele em `AppShellNavigation.kt`) e o comportamento de saída
+    // de `DiagnosticoGuiadoScreen` (que só existe DENTRO do conteúdo). `backHandler` é preenchido
+    // a cada composição via `onBackHandlerReady` e consultado por
+    // `consumirBackDoOverlayTopo()` através da lambda abaixo.
     var backHandler by remember { mutableStateOf<() -> Boolean>({ false }) }
     RegistrarBackDoOverlay(navigator, AppShellOverlay.DiagnosticoGuiado) { backHandler() }
 

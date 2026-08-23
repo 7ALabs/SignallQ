@@ -96,11 +96,6 @@ internal fun Inicio2Screen(
                     modifier = Modifier.padding(horizontal = LkSpacing.lg),
                     verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
                 ) {
-                    Text(
-                        text = "Caminho da rede",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = c.textPrimary,
-                    )
                     Inicio2ConnectionTrail(state = it)
                 }
             }

@@ -32,6 +32,26 @@ class Inicio2ScreenTest {
     val composeRule = createComposeRule()
 
     @Test
+    fun `trilha de conexao nao exibe titulo adicional`() {
+        composeRule.setContent {
+            SignallQTheme {
+                Inicio2Screen(
+                    uiState = Inicio2UiState(Inicio2Conexao.Wifi, "Casa", Inicio2Analise.SemAnalise),
+                    onAnalisarConexao = { null },
+                    onAbrirPerfil = {},
+                    connectionTrail =
+                        Inicio2ConnectionTrailState(
+                            nodes = listOf(Inicio2TrailNode("Internet", "Conectada")),
+                            supportingMessage = null,
+                        ),
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Caminho da rede").assertDoesNotExist()
+    }
+
+    @Test
     fun `offline em font scale 2 mostra contexto e um CTA acessivel disparado uma vez`() {
         var analyses = 0
         composeRule.setContent {

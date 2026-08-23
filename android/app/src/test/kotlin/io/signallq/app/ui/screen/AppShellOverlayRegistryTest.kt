@@ -308,12 +308,9 @@ class AppShellOverlayRegistryTest {
     // `navigator` exatamente para poder chamar `RegistrarBackDoOverlay`. Os testes acima (e os de
     // `AppShellNavigationComposeTest`/`AppShellBackDelegacaoTest`) já provam o mecanismo genérico
     // com `onBack` fake; este prova a fiação de PRODUÇÃO ponta a ponta — `AppShellBackHandlers`
-    // (o `BackHandler` real, via `onBackPressedDispatcher`) até o `estado.recuar()` de
-    // `DiagnosticoGuiadoScreen`. Mutante que este teste mata: religar `BackHandler(::voltarUmPasso)`
-    // direto na tela (o defeito original da #1720) — o overlay sairia da pilha no primeiro back
-    // em vez de recuar um passo do roteiro.
+    // (o `BackHandler` real, via `onBackPressedDispatcher`) até o fechamento do overlay guiado.
     @Test
-    fun `back de hardware recua um passo do roteiro guiado antes de fechar o overlay`() {
+    fun `back de hardware fecha imediatamente o overlay guiado`() {
         val navigator = AppShellNavigator(initialTab = AppShellRoot.Home.index)
         navigator.open(AppShellOverlay.DiagnosticoGuiado)
         composeRule.setContent {
@@ -334,18 +331,8 @@ class AppShellOverlayRegistryTest {
 
         composeRule.runOnIdle { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
 
-        // Recuou um passo dentro do roteiro -- o overlay CONTINUA na pilha, não foi um pop().
-        composeRule.onNodeWithText("Em qual conexão você joga?").assertIsDisplayed()
-        assertTrue(AppShellOverlay.DiagnosticoGuiado in navigator.overlayStack)
-
-        // Objetivo já escolhido, passo 0: mais um back reseta pra lista de objetivos -- ainda
-        // dentro do fluxo, overlay continua aberto.
-        composeRule.runOnIdle { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
-        composeRule.onNodeWithText("Vamos descobrir o que está acontecendo").assertIsDisplayed()
-        assertTrue(AppShellOverlay.DiagnosticoGuiado in navigator.overlayStack)
-
-        // Nada mais para recuar dentro do fluxo: agora sim o back cai no `pop()` do navigator e
-        // fecha o overlay inteiro.
+        // O Assist não usa o hardware back para percorrer respostas; o primeiro back já libera o
+        // `pop()` do navigator.
         composeRule.runOnIdle { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
         composeRule.runOnIdle { assertFalse(AppShellOverlay.DiagnosticoGuiado in navigator.overlayStack) }
     }

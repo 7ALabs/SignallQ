@@ -76,6 +76,7 @@ jobs:
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
+          NDS_API_TOKEN: ${{ secrets.NDS_API_TOKEN }}
 
       - name: Build e distribuir (debug)
         if: ${{ inputs.buildType == 'debug' }}
@@ -83,6 +84,7 @@ jobs:
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
+          NDS_API_TOKEN: ${{ secrets.NDS_API_TOKEN }}
 
       - name: Resumo
         run: echo "Distribuido SignallQ ${{ steps.versao.outputs.name }} (build ${{ steps.versao.outputs.code }}) — ${{ inputs.buildType }} — via Firebase App Distribution"
