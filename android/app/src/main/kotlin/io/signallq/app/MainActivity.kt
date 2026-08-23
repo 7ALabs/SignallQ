@@ -30,6 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.ads.MobileAds
 import dagger.hilt.android.AndroidEntryPoint
+import io.signallq.app.ads.AdsFlags
 import io.signallq.app.ads.AdsFlagsManager
 import io.signallq.app.ads.ConsentManager
 import io.signallq.app.core.network.AnalyticsHelper
@@ -137,10 +138,12 @@ class MainActivity : ComponentActivity() {
         // Issue #555 -- gate de consentimento UMP antes de qualquer AdRequest, mesmo
         // so contextual. MobileAds.initialize so roda depois do consentimento resolvido
         // (ordem recomendada pelo proprio guia UMP+AdMob do Google).
-        ConsentManager.atualizarEMostrarSeNecessario(this) { podeRequisitar ->
-            podeRequisitarAnuncio = podeRequisitar
-            if (podeRequisitar) {
-                MobileAds.initialize(this) {}
+        if (BuildConfig.ADS_ENABLED) {
+            ConsentManager.atualizarEMostrarSeNecessario(this) { podeRequisitar ->
+                podeRequisitarAnuncio = podeRequisitar
+                if (podeRequisitar) {
+                    MobileAds.initialize(this) {}
+                }
             }
         }
         val estadoConexaoInicial = viewModel.monitorRede.snapshotFlow.value.estadoConexao
@@ -465,8 +468,8 @@ class MainActivity : ComponentActivity() {
                                 ),
                             ads =
                                 io.signallq.app.ui.screen.AppShellAdsState(
-                                    flags = adsFlags,
-                                    podeRequisitarAnuncio = podeRequisitarAnuncio,
+                                    flags = if (BuildConfig.ADS_ENABLED) adsFlags else AdsFlags.DESLIGADO,
+                                    podeRequisitarAnuncio = BuildConfig.ADS_ENABLED && podeRequisitarAnuncio,
                                 ),
                             featureFlags = featureFlagsState,
                             snapshotDns = snapshotDns,
