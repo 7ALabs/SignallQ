@@ -19,14 +19,14 @@ O `.gitignore` já bloqueia `play-service-account*.json` e `key.properties`.
 
 ## Publicar
 
-Trilha default: `internal` (teste interno). Override com `-PplayTrack=`.
+Trilha default: `alpha` (teste fechado). Override com `-PplayTrack=`.
 
 ```
 # clean build do AAB assinado
 ./android/gradlew.bat clean bundleRelease --no-build-cache
 
-# enviar para teste interno (internal)
-./android/gradlew.bat :app:publishReleaseBundle -PplayTrack=internal
+# enviar para teste alpha
+./android/gradlew.bat :app:publishReleaseBundle -PplayTrack=alpha
 
 # promover/publicar explicitamente em outra trilha
 ./android/gradlew.bat :app:publishReleaseBundle -PplayTrack=alpha
@@ -37,21 +37,17 @@ Subir o `versionCode` antes de cada envio — a Play rejeita code repetido.
 
 ## Fluxo real de CI (release.yml + promote-release.yml)
 
-O fluxo acima é o manual/local. Em CI, `release.yml` sempre builda e publica primeiro na trilha
-`internal` (`-PplayTrack=internal`, mesmo valor em todos os steps de build/publish/mapping do
-job). Promoção para `alpha` é um passo manual separado (workflow `promote-release.yml`,
-`workflow_dispatch`), que usa `promoteReleaseArtifact` — reaproveita o **mesmo AAB já assinado**,
-sem rebuild nem reassinatura. `beta`/`production` seguem bloqueadas por guardrail explícito até
-decisão do Luiz.
+O fluxo acima é o manual/local. Em CI, `release.yml` builda e publica diretamente na trilha
+`alpha` (`-PplayTrack=alpha`, mesmo valor em todos os steps de build/publish/mapping do job).
+`beta`/`production` seguem bloqueadas por guardrail explícito até decisão do Luiz.
 
 ## Ad Unit ID de teste vs real (issue #1330)
 
 `AdUnitIds.para(slot)` (`app/.../ads/AdUnitIds.kt`) resolve para o Ad Unit ID de teste público do
 Google quando `BuildConfig.USE_TEST_ADS == true` — sempre em build `debug`, e em build `release`
 quando `-PplayTrack` for qualquer trilha diferente de `production` (ver `app/build.gradle.kts`).
-Como `internal` e `alpha` compartilham o mesmo binário (promoção sem rebuild, ver seção acima),
-não é possível diferenciar as duas sem quebrar essa garantia — as duas mostram anúncio de teste
-enquanto a conta AdMob estiver em revisão. Só `production` (build/publish dedicado, ainda
+O binário publicado nessa trilha mostra anúncio de teste enquanto a conta AdMob estiver em revisão.
+Só `production` (build/publish dedicado, ainda
 bloqueado por guardrail) usa o Ad Unit ID real.
 
 ## Release notes públicas

@@ -670,6 +670,18 @@ fun HistoricoScreen(
                         )
                     }
                 } else {
+                    if (modoComparacao && mostrarComparacao && medicoesSelecionadas.size == 2) {
+                        val selecionadas = listaParaExibir.filter { it.id in medicoesSelecionadas }
+                        if (selecionadas.size == 2) {
+                            item(key = "historico_comparacao_resultado") {
+                                HistoricoComparacaoCard(
+                                    primeira = selecionadas[0],
+                                    segunda = selecionadas[1],
+                                    c = c,
+                                )
+                            }
+                        }
+                    }
                     items(listaParaExibir, key = { it.id }) { medicao ->
                         HistoricoCard(
                             medicao = medicao,
@@ -694,18 +706,6 @@ fun HistoricoScreen(
                             },
                             onDelete = { onExcluirMedicao(medicao.id) },
                         )
-                    }
-                    if (modoComparacao && mostrarComparacao && medicoesSelecionadas.size == 2) {
-                        val selecionadas = listaParaExibir.filter { it.id in medicoesSelecionadas }
-                        if (selecionadas.size == 2) {
-                            item(key = "historico_comparacao_resultado") {
-                                HistoricoComparacaoCard(
-                                    primeira = selecionadas[0],
-                                    segunda = selecionadas[1],
-                                    c = c,
-                                )
-                            }
-                        }
                     }
                 }
             }
@@ -1023,8 +1023,7 @@ private fun HistoricoComparacaoCard(
     segunda: MedicaoEntity,
     c: LkTokens,
 ) {
-    val antiga = if (primeira.timestampEpochMs <= segunda.timestampEpochMs) primeira else segunda
-    val recente = if (antiga === primeira) segunda else primeira
+    val (antiga, recente) = ordenarMedicoesParaComparacao(primeira, segunda)
     val mesmaRede = antiga.networkId != null && antiga.networkId == recente.networkId
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -1056,6 +1055,16 @@ private fun HistoricoComparacaoCard(
         }
     }
 }
+
+internal fun ordenarMedicoesParaComparacao(
+    primeira: MedicaoEntity,
+    segunda: MedicaoEntity,
+): Pair<MedicaoEntity, MedicaoEntity> =
+    if (primeira.timestampEpochMs <= segunda.timestampEpochMs) {
+        primeira to segunda
+    } else {
+        segunda to primeira
+    }
 
 @Composable
 private fun HistoricoDeltaLinha(

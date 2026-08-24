@@ -4,7 +4,7 @@ description: "Runbook do processo de release do SignallQ Android — build, depl
 type: "runbook"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-15"
+last_updated: "2026-08-23"
 ---
 
 # Release Process
@@ -28,7 +28,7 @@ This document outlines the process for releasing new versions of the SignallQ An
 > permanecem: repo `7ALabs/SignallQ`, worker `linka-ai-diagnosis-worker`.
 > Historico autoritativo de versoes Android: `android/CHANGELOG.md`.
 
-## Processo Canônico do Projeto (atualizado 2026-07-17)
+## Processo Canônico do Projeto (atualizado 2026-08-23)
 
 Dois canais, os dois via **GitHub Actions** — não mais comando local manual. Regra única
 para os dois: **nunca subir um build (debug ou release) sem incrementar `versionCode`** em
@@ -49,13 +49,8 @@ CI headless nem via agente — configurado com `gh secret set FIREBASE_TOKEN --r
 1. Bump de versão (`libs.versions.toml`, `CHANGELOG.md`, `docs_ai/RELEASES.md`) — escopo
    real desde a última versão **realmente publicada** (ver `VERSIONING.md`).
 2. `git tag vX.Y.Z && git push origin vX.Y.Z` — dispara `.github/workflows/release.yml`:
-   build, assinatura, GitHub Release, e publica direto na trilha **`internal`** (teste
-   interno, sem review do Google, só o Luiz valida).
-3. Depois de validado, `.github/workflows/promote-release.yml` (`workflow_dispatch` manual)
-   promove o MESMO AAB de `internal` pra `alpha` (`gradlew promoteReleaseArtifact`) — sem
-   rebuild, sem reassinar (padrão recomendado pelo Google: testar um binário, promover o
-   mesmo binário entre trilhas).
-4. **Guardrail técnico**: `promote-release.yml` só aceita `internal`/`alpha` como destino.
+   build, assinatura, GitHub Release, e publica diretamente na trilha **`alpha`**.
+3. **Guardrail técnico**: `promote-release.yml` só aceita `internal`/`alpha` como destino.
    Beta e produção ainda não estão liberados — qualquer tentativa nessas trilhas falha o
    workflow e exige decisão explícita do Luiz.
 
@@ -149,4 +144,3 @@ Se uma flag foi ativada mas a feature não está 100% pronta, desativar imediata
 - Reverter `buildConfigField` para `"false"`
 - Incrementar versão (hotfix)
 - Rebuild e redeploy
-

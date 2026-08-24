@@ -60,13 +60,13 @@ jobs:
       # publicado na Play divergiria do artefato ja anexado ao GitHub Release e do mapping.txt
       # ja enviado ao Crashlytics.
       - name: Build APK release
-        run: cd android && ./gradlew :app:assembleRelease --no-build-cache --no-daemon -PplayTrack=beta -PadsEnabled=false
+        run: cd android && ./gradlew :app:assembleRelease --no-build-cache --no-daemon -PplayTrack=alpha -PadsEnabled=false
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
           NDS_API_TOKEN: ${{ secrets.NDS_API_TOKEN }}
 
       - name: Build AAB release
-        run: cd android && ./gradlew :app:bundleRelease --no-build-cache --no-daemon -PplayTrack=beta -PadsEnabled=false
+        run: cd android && ./gradlew :app:bundleRelease --no-build-cache --no-daemon -PplayTrack=alpha -PadsEnabled=false
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
           NDS_API_TOKEN: ${{ secrets.NDS_API_TOKEN }}
@@ -79,7 +79,7 @@ jobs:
              android/app/build/outputs/apk/release/signallq-${{ steps.versao.outputs.name }}.apk
 
       - name: Upload mapping.txt para Crashlytics
-        run: cd android && ./gradlew :app:uploadCrashlyticsMappingFileRelease --no-daemon -PplayTrack=beta -PadsEnabled=false
+        run: cd android && ./gradlew :app:uploadCrashlyticsMappingFileRelease --no-daemon -PplayTrack=alpha -PadsEnabled=false
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
           NDS_API_TOKEN: ${{ secrets.NDS_API_TOKEN }}
@@ -108,12 +108,12 @@ jobs:
             android/app/build/outputs/bundle/release/signallq-*.aab
             android/app/build/outputs/apk/release/signallq-*.apk
 
-      # Publica o AAB assinado diretamente na trilha beta da Play Console.
-      # Esta versao beta e compilada com anuncios desligados (-PadsEnabled=false).
+      # Publica o AAB assinado diretamente na trilha alpha da Play Console.
+      # Esta versao alpha e compilada com anuncios desligados (-PadsEnabled=false).
       # Requer o app criado na Play e um primeiro upload manual na trilha (a API nao cria o app do zero).
       # Roda por ultimo: uma falha aqui nao invalida o GitHub Release nem os artefatos ja gerados.
       - name: Publicar na Play Console
-        run: cd android && ./gradlew :app:publishReleaseBundle --no-daemon -PplayTrack=beta -PadsEnabled=false
+        run: cd android && ./gradlew :app:publishReleaseBundle --no-daemon -PplayTrack=alpha -PadsEnabled=false
         env:
           ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}

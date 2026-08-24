@@ -1,1 +1,2 @@
 O Assist agora envia corretamente as medições de qualidade, DNS e gateway, evitando informar que dados já medidos estão ausentes.
+Corrigidos o acesso ao Assist e a comparação de duas medições no histórico.

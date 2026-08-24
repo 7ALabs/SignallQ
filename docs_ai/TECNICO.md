@@ -22,7 +22,7 @@ last_updated: "2026-08-19"
 
 | Fato | Valor | Fonte |
 |---|---|---|
-| versionName / versionCode | **1.0.0** / **80** | `android/gradle/libs.versions.toml` |
+| versionName / versionCode | **1.0.1** / **81** | `android/gradle/libs.versions.toml` |
 | compileSdk / minSdk / targetSdk | 37 / 24 / 36 | `android/gradle/libs.versions.toml` |
 | Compose BOM · Room · Hilt | 2026.06.01 · 2.8.4 · 2.60.1 | `android/gradle/libs.versions.toml` |
 | Módulos Gradle | **20** | `android/settings.gradle.kts` |

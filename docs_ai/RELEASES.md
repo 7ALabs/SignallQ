@@ -4,7 +4,7 @@ description: "Releases publicados, com versão, data e escopo"
 type: "referência"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-23"
 ---
 
 # Histórico de Releases — SignallQ Android
@@ -17,6 +17,14 @@ last_updated: "2026-08-06"
 > `io.veloo.app` em 2026-06-28; o caminho físico do código do `:app` continua
 > `io/veloo/app/kotlin/`). Demais identificadores técnicos permanecem por compatibilidade
 > de infra — repo `gmmattey/linka-android`, worker `linka-ai-diagnosis-worker`.
+
+## v1.0.1 (versionCode 81) — 2026-08-23
+
+- Assist remoto corrigido com rotação da credencial do NDS; avaliação validada em produção.
+- Comparação de duas medições reposicionada para aparecer imediatamente após a confirmação.
+- Publicação configurada diretamente na trilha `alpha`.
+
+**Publicação:** workflow `release.yml`, trilha alpha do Play Console
 
 ---
 

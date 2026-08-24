@@ -7,6 +7,12 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 > Histórico de marca: Linka (até 0.14.x) → Veloo (0.15.0) → **SignallQ** (0.16.0+).
 > Identificadores técnicos (`io.signallq.app`, repo `linka-android`) permanecem por compatibilidade.
 
+## [1.0.1] — 2026-08-23
+
+### Corrigido
+- O Assist volta a acessar o diagnóstico remoto com a credencial atualizada do serviço.
+- A comparação de duas medições agora aparece imediatamente após tocar em “Comparar selecionadas”.
+
 ---
 
 ## [1.0.0] — 2026-08-23

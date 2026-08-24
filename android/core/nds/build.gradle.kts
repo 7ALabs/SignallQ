@@ -22,8 +22,8 @@ private val localProperties =
         if (localPropertiesFile.exists()) load(localPropertiesFile.inputStream())
     }
 private val ndsApiToken: String =
-    localProperties.getProperty("NDS_API_TOKEN")
-        ?: System.getenv("NDS_API_TOKEN")
+    System.getenv("NDS_API_TOKEN")
+        ?: localProperties.getProperty("NDS_API_TOKEN")
         ?: ""
 
 private val releaseTaskRequested =
