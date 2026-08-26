@@ -240,6 +240,22 @@ class DiagnosticoGuiadoEngineTest {
         assertTrue(r.evidencias.none { it.label == "Ao usar a rede móvel" })
     }
 
+    @Test
+    fun `wifi vs operadora aponta rede movel quando teste foi feito em rede movel e melhora ao trocar pro wifi`() {
+        val r = DiagnosticoGuiadoEngine.avaliar(
+            ObjetivoDiagnostico.WIFI_VS_OPERADORA,
+            listOf(0), // "Sim, melhora muito"
+            DiagnosticInput(
+                connectionType = ConnectionType.mobile,
+                internet = internet(),
+                mobile = MobileDiagnosticInput(signalStrengthDbm = -95),
+            ),
+        )
+        assertEquals(DiagnosticStatus.critical, r.status)
+        assertTrue(r.evidencias.any { it.label == "Ao usar o Wi-Fi" })
+        assertTrue(r.acoes.none { it.contains("roteador", ignoreCase = true) || it.contains("canal Wi-Fi", ignoreCase = true) })
+    }
+
     // ── Perguntas: 7 objetivos, roteiro sempre fechado (sem texto livre) ─────
 
     @Test
@@ -251,5 +267,23 @@ class DiagnosticoGuiadoEngineTest {
                 assertTrue("pergunta '${pergunta.texto}' com menos de 2 opcoes", pergunta.opcoes.size >= 2)
             }
         }
+    }
+
+    @Test
+    fun `roteiro de velocidade nao chega em rede movel nao cita roteador ou wifi`() {
+        val perguntas = PerguntasDiagnosticoGuiado.perguntas(ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA, ConnectionType.mobile)
+        perguntas.forEach { pergunta ->
+            assertTrue(
+                "pergunta '${pergunta.texto}' cita Wi-Fi/roteador mesmo com teste em rede móvel",
+                pergunta.opcoes.none { it.contains("Wi-Fi", ignoreCase = true) || it.contains("roteador", ignoreCase = true) },
+            )
+        }
+    }
+
+    @Test
+    fun `roteiro de wifi vs operadora em rede movel pergunta sobre trocar para o wifi`() {
+        val perguntas = PerguntasDiagnosticoGuiado.perguntas(ObjetivoDiagnostico.WIFI_VS_OPERADORA, ConnectionType.mobile)
+        assertTrue(perguntas.first().texto.contains("Wi-Fi"))
+        assertTrue(!perguntas.first().texto.contains("desliga o Wi-Fi"))
     }
 }

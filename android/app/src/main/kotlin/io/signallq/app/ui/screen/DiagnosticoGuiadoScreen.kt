@@ -511,7 +511,10 @@ fun DiagnosticoGuiadoScreen(
                     plano = plano,
                 )
             else -> {
-                val perguntas = remember(objetivoAtual) { PerguntasDiagnosticoGuiado.perguntas(objetivoAtual) }
+                val perguntas =
+                    remember(objetivoAtual, input?.connectionType) {
+                        PerguntasDiagnosticoGuiado.perguntas(objetivoAtual, input?.connectionType)
+                    }
                 val pergunta = perguntas[passo]
 
                 fun avançarApósResposta(respostasAtualizadas: List<Int?>) {

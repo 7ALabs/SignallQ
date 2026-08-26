@@ -248,6 +248,7 @@ object DiagnosticoGuiadoEngine {
         @Suppress("UNUSED_PARAMETER") respostas: List<Int>,
         input: DiagnosticInput?,
     ): ResultadoDiagnosticoGuiado {
+        val emRedeMovel = input?.connectionType == ConnectionType.mobile
         val internet = input?.internet
         val download = internet?.downloadMbps
         val contratado = input?.velocidadeContratadaMbps
@@ -277,6 +278,11 @@ object DiagnosticoGuiadoEngine {
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) {
                     emptyList()
+                } else if (emRedeMovel) {
+                    listOf(
+                        "Repita o teste em outro local, se possível com mais sinal da operadora",
+                        "Se o resultado persistir, contate a operadora com este resultado",
+                    )
                 } else {
                     listOf(
                         "Repita o teste conectado por cabo de rede",
@@ -293,6 +299,7 @@ object DiagnosticoGuiadoEngine {
         input: DiagnosticInput?,
     ): ResultadoDiagnosticoGuiado {
         val melhoraDesligandoWifi = respostas.getOrNull(0)
+        val emRedeMovel = input?.connectionType == ConnectionType.mobile
         val dims = mutableListOf<Dimensao>()
 
         when (input?.connectionType) {
@@ -317,15 +324,15 @@ object DiagnosticoGuiadoEngine {
         // IA é que não pode inventar causa sem evidência.
         val statusAutoRelato =
             when (melhoraDesligandoWifi) {
-                0 -> MetricStatus.ruim // "Sim, melhora muito" -> problema tende a ser Wi-Fi
+                0 -> MetricStatus.ruim // "Sim, melhora muito" -> problema tende a ser da conexão ativa
                 1 -> MetricStatus.regular // "Sim, um pouco"
-                2 -> MetricStatus.bom // "Não muda nada" -> problema tende a ser fora do Wi-Fi
+                2 -> MetricStatus.bom // "Não muda nada" -> problema tende a ser fora da conexão ativa
                 else -> null // "Ainda não testei" -> sem evidência adicional
             }
         if (statusAutoRelato != null) {
             dims += Dimensao(
-                melhoraDesligandoWifi.rotuloRelatoMelhoraSemWifi(),
-                melhoraDesligandoWifi.valorRelatoMelhoraSemWifi(),
+                melhoraDesligandoWifi.rotuloRelatoTrocaDeConexao(emRedeMovel),
+                melhoraDesligandoWifi.valorRelatoTrocaDeConexao(),
                 statusAutoRelato,
             )
         }
@@ -333,14 +340,28 @@ object DiagnosticoGuiadoEngine {
         return montarResultado(
             objetivo = ObjetivoDiagnostico.WIFI_VS_OPERADORA,
             dims = dims,
-            mensagens = MensagensStatus(
-                ok = "O sinal da conexão atual está dentro do esperado. O problema não parece estar entre o roteador e os dispositivos.",
-                atencao = "O sinal está um pouco abaixo do ideal. Vale testar por cabo ou reposicionar o roteador antes de acionar a operadora.",
-                critica = "Problema parece estar entre roteador e dispositivos, não na internet contratada.",
-            ),
+            mensagens =
+                if (emRedeMovel) {
+                    MensagensStatus(
+                        ok = "O sinal da conexão atual está dentro do esperado. O problema não parece estar na rede móvel.",
+                        atencao = "O sinal está um pouco abaixo do ideal. Vale testar em outro local ou pelo Wi-Fi antes de acionar a operadora.",
+                        critica = "Problema parece estar na rede móvel, não no restante do caminho até a internet.",
+                    )
+                } else {
+                    MensagensStatus(
+                        ok = "O sinal da conexão atual está dentro do esperado. O problema não parece estar entre o roteador e os dispositivos.",
+                        atencao = "O sinal está um pouco abaixo do ideal. Vale testar por cabo ou reposicionar o roteador antes de acionar a operadora.",
+                        critica = "Problema parece estar entre roteador e dispositivos, não na internet contratada.",
+                    )
+                },
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) {
                     emptyList()
+                } else if (emRedeMovel) {
+                    listOf(
+                        "Teste em outro local ou aguarde a cobertura da operadora melhorar",
+                        "Se possível, compare o resultado pelo Wi-Fi",
+                    )
                 } else {
                     listOf(
                         "Reposicione o roteador ou troque o canal Wi-Fi",
@@ -351,10 +372,15 @@ object DiagnosticoGuiadoEngine {
         )
     }
 
-    private fun Int?.rotuloRelatoMelhoraSemWifi(): String =
-        if (this == null) "Comparação com a rede móvel" else "Ao usar a rede móvel"
+    private fun Int?.rotuloRelatoTrocaDeConexao(emRedeMovel: Boolean): String =
+        when {
+            this == null && emRedeMovel -> "Comparação com o Wi-Fi"
+            this == null -> "Comparação com a rede móvel"
+            emRedeMovel -> "Ao usar o Wi-Fi"
+            else -> "Ao usar a rede móvel"
+        }
 
-    private fun Int?.valorRelatoMelhoraSemWifi(): String =
+    private fun Int?.valorRelatoTrocaDeConexao(): String =
         when (this) {
             0 -> "melhora muito"
             1 -> "melhora um pouco"
