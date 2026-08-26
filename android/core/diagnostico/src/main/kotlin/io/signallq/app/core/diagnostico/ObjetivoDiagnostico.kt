@@ -60,7 +60,20 @@ data class PerguntaFechada(
  */
 object PerguntasDiagnosticoGuiado {
 
-    fun perguntas(objetivo: ObjetivoDiagnostico): List<PerguntaFechada> =
+    /**
+     * @param tipoConexao tipo de conexão do teste mais recente
+     * ([DiagnosticInput.connectionType]). Usado só pelos roteiros que citam a conexão
+     * ativa ([ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA] e
+     * [ObjetivoDiagnostico.WIFI_VS_OPERADORA]), para não perguntar sobre
+     * roteador/canal Wi-Fi quando o teste foi feito em rede móvel — bug relatado:
+     * roteiro sempre citava Wi-Fi mesmo com o teste em rede móvel. `null` (ou
+     * qualquer valor diferente de [ConnectionType.mobile]) mantém a copy histórica
+     * voltada a Wi-Fi/cabo.
+     */
+    fun perguntas(
+        objetivo: ObjetivoDiagnostico,
+        tipoConexao: ConnectionType? = null,
+    ): List<PerguntaFechada> =
         when (objetivo) {
             ObjetivoDiagnostico.INTERNET_CAI_OSCILA ->
                 listOf(
@@ -157,26 +170,49 @@ object PerguntasDiagnosticoGuiado {
                         texto = "Você já comparou com outro teste?",
                         opcoes = listOf("Testei apenas no SignallQ", "Comparei com outro aplicativo ou site"),
                     ),
-                    PerguntaFechada(
-                        texto = "Como você fez este teste?",
-                        opcoes =
-                            listOf(
-                                "Com um cabo de rede",
-                                "Perto do roteador, pelo Wi-Fi",
-                                "Longe do roteador, pelo Wi-Fi",
-                            ),
-                    ),
+                    perguntaComoFezOTeste(tipoConexao),
                 )
             ObjetivoDiagnostico.WIFI_VS_OPERADORA ->
                 listOf(
-                    PerguntaFechada(
-                        texto = "A internet melhora quando você desliga o Wi-Fi e usa a rede móvel?",
-                        opcoes = listOf("Sim, melhora muito", "Sim, um pouco", "Não muda nada", "Ainda não testei"),
-                    ),
+                    perguntaMelhoraTrocandoConexao(tipoConexao),
                     PerguntaFechada(
                         texto = "Outros aparelhos também apresentam esse problema?",
                         opcoes = listOf("Sim, todos", "Só alguns", "Não, só este aparelho"),
                     ),
                 )
         }
+
+    private fun perguntaComoFezOTeste(tipoConexao: ConnectionType?): PerguntaFechada =
+        if (tipoConexao == ConnectionType.mobile) {
+            PerguntaFechada(
+                texto = "Como você fez este teste?",
+                opcoes =
+                    listOf(
+                        "Do lado de fora, com boa cobertura",
+                        "Dentro de casa ou de um prédio",
+                        "Em movimento (carro, ônibus etc.)",
+                    ),
+            )
+        } else {
+            PerguntaFechada(
+                texto = "Como você fez este teste?",
+                opcoes =
+                    listOf(
+                        "Com um cabo de rede",
+                        "Perto do roteador, pelo Wi-Fi",
+                        "Longe do roteador, pelo Wi-Fi",
+                    ),
+            )
+        }
+
+    private fun perguntaMelhoraTrocandoConexao(tipoConexao: ConnectionType?): PerguntaFechada =
+        PerguntaFechada(
+            texto =
+                if (tipoConexao == ConnectionType.mobile) {
+                    "A internet melhora quando você troca os dados móveis pelo Wi-Fi?"
+                } else {
+                    "A internet melhora quando você desliga o Wi-Fi e usa a rede móvel?"
+                },
+            opcoes = listOf("Sim, melhora muito", "Sim, um pouco", "Não muda nada", "Ainda não testei"),
+        )
 }
