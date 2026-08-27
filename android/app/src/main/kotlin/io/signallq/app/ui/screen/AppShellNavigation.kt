@@ -20,6 +20,7 @@ internal enum class AppShellOverlay {
     ResultadoVelocidade,
     Fibra,
     Dispositivos,
+    EquipamentoConectar,
     EquipamentoInternet,
     Ferramentas,
     Dns,

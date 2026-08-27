@@ -492,11 +492,44 @@ fun AppShell(
     // Stub Fase 1 (#930) reaproveitado pela Fase 4 — mesma engine/estado do "Fibra" já usado
     // pelo nó do gateway na Home, so que empilhando Overlay.EquipamentoInternet (nome
     // definitivo, ver TODO da Fase 5/#934 mais abaixo).
+    //
+    // GH#1806 — sem nenhum endereço salvo ainda, empilha Overlay.EquipamentoConectar em vez de
+    // ir direto para a leitura técnica: mostra o que foi detectado na rede, o catálogo de
+    // modelos compatíveis e o formulário de conexão antes de qualquer tentativa de leitura.
+    // Com endereço já salvo, o comportamento não muda — vai direto para EquipamentoInternet.
     val onAbrirEquipamentoInternetOverlay: () -> Unit = {
         if (bloquearRota(featureFlags.fibraEnabled, ConsumerFeatureModuleIds.FIBRA)) {
-            onReconectarFibra(modemHost ?: "", modemUsername, modemPassword)
-            if (Overlay.EquipamentoInternet !in overlayStack) overlayStack.add(Overlay.EquipamentoInternet)
+            if (modemHost.isNullOrBlank()) {
+                if (Overlay.EquipamentoConectar !in overlayStack) overlayStack.add(Overlay.EquipamentoConectar)
+            } else {
+                onReconectarFibra(modemHost, modemUsername, modemPassword)
+                if (Overlay.EquipamentoInternet !in overlayStack) overlayStack.add(Overlay.EquipamentoInternet)
+            }
         }
+    }
+
+    // GH#1806 — chamado quando GatewayConnectionSheet conecta com sucesso a partir da etapa
+    // EquipamentoConectar: persiste a credencial, reconecta e troca o overlay pela leitura
+    // técnica de verdade. Distinto de onGatewayConectado (esse vai para Overlay.Fibra, o
+    // destino do nó do gateway na Home) porque aqui a origem é o hub Ferramentas.
+    val onGatewayConectadoDoEquipamento: (
+        ip: String,
+        usuario: String,
+        senha: String,
+        lembrarSenha: Boolean,
+        manterConectado: Boolean,
+    ) -> Unit = { ip, usuario, senha, lembrarSenha, manterConectado ->
+        onRegistrarConexaoGateway(ip, usuario, senha, lembrarSenha, manterConectado, bssidAtual)
+        onReconectarFibra(ip, usuario, senha)
+        overlayStack.remove(Overlay.EquipamentoConectar)
+        if (Overlay.EquipamentoInternet !in overlayStack) overlayStack.add(Overlay.EquipamentoInternet)
+    }
+
+    // GH#1806 — "Pular por enquanto" na etapa EquipamentoConectar: segue para a leitura técnica
+    // sem credencial nenhuma, que já sabe lidar com acesso indisponível/somente identificação.
+    val onPularConexaoEquipamento: () -> Unit = {
+        overlayStack.remove(Overlay.EquipamentoConectar)
+        if (Overlay.EquipamentoInternet !in overlayStack) overlayStack.add(Overlay.EquipamentoInternet)
     }
     // GH#1031 — "Ver detalhes do Wi-Fi" na EquipamentoInternetScreen: aba Sinal é o único
     // lugar do app com detalhe real de Wi-Fi (RSSI, banda, varredura) — fecha o(s) overlay(s)
@@ -1010,6 +1043,7 @@ fun AppShell(
                 onVerDispositivos = onAbrirDispositivosOverlay,
                 onExecutarDiagnostico = onAbrirLaudoOverlay,
                 onVerDetalhesWifi = onVerDetalhesWifiDoEquipamento,
+                onAbrirMenu = onAbrirMenuDaRaiz,
             )
         }
 
@@ -1038,6 +1072,25 @@ fun AppShell(
             )
         }
 
+        // GH#1806 — etapa de conexão aberta a partir do hub Ferramentas quando ainda não há
+        // endereço salvo (ver onAbrirEquipamentoInternetOverlay). Mesmo GatewayConnectionSheet e
+        // GatewayCompatibleModelsSheetContent do resto do app, hospedados dentro da tela.
+        AnimatedVisibility(
+            visible = Overlay.EquipamentoConectar in overlayStack,
+            modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.EquipamentoConectar, overlayStack)),
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+        ) {
+            EquipamentoConectarScreen(
+                enderecoDetectado = gatewayIpDetectado,
+                conectar = gatewayConnectionServiceIndisponivel,
+                onVoltar = { overlayStack.remove(Overlay.EquipamentoConectar) },
+                onAbrirMenu = onAbrirMenuDaRaiz,
+                onConectado = onGatewayConectadoDoEquipamento,
+                onPular = onPularConexaoEquipamento,
+            )
+        }
+
         // GH#934 — Fase 5 MD3: EquipamentoInternetScreen real, composta por capacidade
         // (engine plugável Nokia, unico provider real hoje — ver decisao #1 do plano).
         AnimatedVisibility(
@@ -1060,6 +1113,7 @@ fun AppShell(
                 onVerDispositivos = onAbrirDispositivosOverlay,
                 onExecutarDiagnostico = onAbrirLaudoOverlay,
                 onVerDetalhesWifi = onVerDetalhesWifiDoEquipamento,
+                onAbrirMenu = onAbrirMenuDaRaiz,
             )
         }
 
