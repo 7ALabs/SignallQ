@@ -58,20 +58,19 @@ play {
 // Issue #1330 (continuacao) — mesma property -PplayTrack acima, agora tambem lida em tempo de
 // build (nao so na task de publish) para decidir Ad Unit ID real vs teste em AdUnitIds.kt.
 //
-// Por que nao amarrar isso so na trilha "alpha": o pipeline real (release.yml + promote-release.yml)
-// publica sempre primeiro em "internal" e promove pra "alpha" via `promoteReleaseArtifact`, que
-// reusa o MESMO AAB assinado sem rebuild ("sem rebuild nem reassinatura", comentario do proprio
-// promote-release.yml) — e exatamente a garantia que valida o binario de internal antes dele
-// chegar em alpha. Alpha nunca e recompilada isoladamente, entao uma condicao que so disparasse
-// em "-PplayTrack=alpha" nunca seria exercida de verdade por esse pipeline. A trilha "production"
-// e a unica bloqueada por guardrail explicito ate decisao do Luiz (ver promote-release.yml) e,
-// quando existir, sera um build/publish dedicado e deliberado — nao uma promocao do binario de
-// internal/alpha.
+// Atualizado na PR #1805 (bloqueio B3 do parecer de Caio) — o pipeline real MUDOU em
+// 1555e92b (2026-08-23): release.yml publica direto em "beta" a cada tag, nao mais
+// "internal" -> promocao pra "alpha". promote-release.yml so aceita internal/alpha como
+// origem, e nenhum caminho ativo publica nessas trilhas hoje — na pratica ele nao promove
+// nada. "Production" nao tem mais guardrail tecnico bloqueando: release.yml ganhou
+// workflow_dispatch com inputs explicitos (playTrack/adsEnabled) especificamente pra isso
+// (ver comentario no `on:` de release.yml) — a barreira e o disparo manual deliberado em si,
+// mais o guardrail que rejeita adsEnabled=true fora de playTrack=production, nao mais uma
+// trilha bloqueada por exit 1.
 //
-// Por isso o corte e "production" vs "tudo que nao e production ainda" (internal/alpha, hoje
-// binario identico): qualquer trilha != production usa Ad Unit ID de teste. Efeito colateral aceito
-// e documentado: "internal" tambem mostra anuncio de teste enquanto isso durar — trilha sem
-// testador externo, so o Luiz valida (ver comentario em release.yml), sem impacto de produto real.
+// Por isso o corte continua sendo "production" vs "tudo que nao e production": qualquer
+// trilha != production usa Ad Unit ID de teste, mesmo com -PadsEnabled=true (o guardrail do
+// disparo manual ja impede essa combinacao antes de chegar aqui).
 val playTrackAtual = providers.gradleProperty("playTrack").orElse("internal").get()
 val usarAdsDeTesteEmRelease = (playTrackAtual != "production").toString()
 // O bloqueio de monetizacao e independente dos IDs de teste/producao. A beta atual deve ser

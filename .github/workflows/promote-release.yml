@@ -5,8 +5,11 @@ name: Promote Release Track
 # promover o mesmo binario entre trilhas).
 #
 # Fluxo real (atualizado 2026-08-23, commit 1555e92b): release.yml ja publica direto em
-# 'beta' a cada tag (nao mais 'internal' -- este workflow so seria usado hoje pra mover o
-# MESMO AAB de 'beta' pra 'internal'/'alpha' se precisasse, nao o caminho principal).
+# 'beta' a cada tag (nao mais 'internal'). Bloqueio B1 do parecer de Caio na PR #1805:
+# 'fromTrack' abaixo so aceita 'internal'/'alpha' como origem, e nada no pipeline atual
+# publica nessas trilhas -- ou seja, este workflow esta efetivamente sem artefato pra
+# promover hoje. Mantido documentado (nao removido) caso volte a existir um fluxo
+# internal/alpha no futuro; nao tratar como caminho ativo enquanto isso nao acontecer.
 #
 # Producao continua bloqueada abaixo de proposito, e por um motivo tecnico alem da decisao
 # de negocio: promover o MESMO binario nao ativa anuncios reais. USE_TEST_ADS/ADS_ENABLED

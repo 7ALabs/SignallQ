@@ -33,6 +33,14 @@ jobs:
   build-release:
     runs-on: ubuntu-latest
 
+    # Bloqueio B4 do parecer de Caio (PR #1805): valores resolvidos uma unica vez aqui, em vez de
+    # repetir a mesma expressao -PplayTrack=... -PadsEnabled=... nos 4 comandos Gradle abaixo —
+    # a duplicacao era exatamente o vetor de drift que o comentario do step de build ja alertava
+    # (AAB publicado divergindo do artefato do GitHub Release / mapping do Crashlytics).
+    env:
+      PLAY_TRACK: ${{ inputs.playTrack || 'beta' }}
+      ADS_ENABLED_BUILD: ${{ inputs.adsEnabled || false }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -62,6 +70,18 @@ jobs:
       - name: Permissao gradlew
         run: chmod +x android/gradlew
 
+      # Escala com o Luiz na PR #1805: disparo manual com playTrack != production e
+      # adsEnabled=true compilaria USE_TEST_ADS=true + ADS_ENABLED=true — anuncio de TESTE do
+      # Google servido pra usuario real de beta/internal/alpha, sem receita e com cara de app
+      # quebrado. Bloqueado aqui, antes de qualquer build caro rodar.
+      - name: Guardrail — adsEnabled só é permitido com playTrack=production
+        run: |
+          if [ "$ADS_ENABLED_BUILD" = "true" ] && [ "$PLAY_TRACK" != "production" ]; then
+            echo "::error::adsEnabled=true só é permitido com playTrack=production (trilha atual: $PLAY_TRACK) — isso serviria Ad Unit ID de TESTE do Google para usuários reais dessa trilha."
+            exit 1
+          fi
+          echo "Build resolvido: playTrack=$PLAY_TRACK adsEnabled=$ADS_ENABLED_BUILD"
+
       - name: Extrair versao
         id: versao
         run: |
@@ -84,13 +104,13 @@ jobs:
       # inputs.playTrack/inputs.adsEnabled so existem em disparo manual (workflow_dispatch);
       # push de tag normal cai no fallback beta/false -- comportamento automatico inalterado.
       - name: Build APK release
-        run: cd android && ./gradlew :app:assembleRelease --no-build-cache --no-daemon -PplayTrack=${{ inputs.playTrack || 'beta' }} -PadsEnabled=${{ inputs.adsEnabled || false }}
+        run: cd android && ./gradlew :app:assembleRelease --no-build-cache --no-daemon -PplayTrack=$PLAY_TRACK -PadsEnabled=$ADS_ENABLED_BUILD
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
           NDS_API_TOKEN: ${{ secrets.NDS_API_TOKEN }}
 
       - name: Build AAB release
-        run: cd android && ./gradlew :app:bundleRelease --no-build-cache --no-daemon -PplayTrack=${{ inputs.playTrack || 'beta' }} -PadsEnabled=${{ inputs.adsEnabled || false }}
+        run: cd android && ./gradlew :app:bundleRelease --no-build-cache --no-daemon -PplayTrack=$PLAY_TRACK -PadsEnabled=$ADS_ENABLED_BUILD
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
           NDS_API_TOKEN: ${{ secrets.NDS_API_TOKEN }}
@@ -103,7 +123,7 @@ jobs:
              android/app/build/outputs/apk/release/signallq-${{ steps.versao.outputs.name }}.apk
 
       - name: Upload mapping.txt para Crashlytics
-        run: cd android && ./gradlew :app:uploadCrashlyticsMappingFileRelease --no-daemon -PplayTrack=${{ inputs.playTrack || 'beta' }} -PadsEnabled=${{ inputs.adsEnabled || false }}
+        run: cd android && ./gradlew :app:uploadCrashlyticsMappingFileRelease --no-daemon -PplayTrack=$PLAY_TRACK -PadsEnabled=$ADS_ENABLED_BUILD
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
           NDS_API_TOKEN: ${{ secrets.NDS_API_TOKEN }}
@@ -143,7 +163,7 @@ jobs:
       # Requer o app criado na Play e um primeiro upload manual na trilha (a API nao cria o app do zero).
       # Roda por ultimo: uma falha aqui nao invalida o GitHub Release nem os artefatos ja gerados.
       - name: Publicar na Play Console
-        run: cd android && ./gradlew :app:publishReleaseBundle --no-daemon -PplayTrack=${{ inputs.playTrack || 'beta' }} -PadsEnabled=${{ inputs.adsEnabled || false }}
+        run: cd android && ./gradlew :app:publishReleaseBundle --no-daemon -PplayTrack=$PLAY_TRACK -PadsEnabled=$ADS_ENABLED_BUILD
         env:
           ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
