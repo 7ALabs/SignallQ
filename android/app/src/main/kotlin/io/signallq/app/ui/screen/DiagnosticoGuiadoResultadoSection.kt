@@ -2,6 +2,7 @@ package io.signallq.app.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -54,8 +56,14 @@ import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.ResolvedOperadoraContact
 import io.signallq.app.ui.ResolvedOperadoraIdentity
 import io.signallq.app.ui.component.AiVsMotorExplainer
+import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.RetesteVinculadoSection
+import io.signallq.app.ui.component.corContainer
+import io.signallq.app.ui.component.corConteudo
+import io.signallq.app.ui.component.corSemantica
+import io.signallq.app.ui.component.icone
+import io.signallq.app.ui.component.labelPt
 
 private val MISSING_INPUT_LABELS =
     mapOf(
@@ -275,23 +283,42 @@ internal fun DiagnosticoGuiadoResultadoSection(
                 Text(evidenciaLocal.label, style = MaterialTheme.typography.bodyMedium, color = c.textPrimary)
             }
         }
-        Box(
-            modifier =
-                Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .background(c.warning.copy(alpha = 0.16f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            val positivo = status == DiagnosticStatus.ok
-            Icon(
-                imageVector = if (positivo) Icons.Outlined.CheckCircle else Icons.Outlined.Warning,
-                contentDescription = null,
-                tint = if (positivo) c.success else c.warning,
-                modifier = Modifier.size(40.dp),
-            )
+        if (veioDoNds) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = status.icone(),
+                    contentDescription = null,
+                    tint = status.corSemantica(c),
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(LkSpacing.xs))
+                Text(
+                    text = status.labelPt().uppercase(),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = status.corSemantica(c),
+                )
+            }
+            Spacer(Modifier.height(LkSpacing.md))
+        } else {
+            Box(
+                modifier =
+                    Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(c.warning.copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                val positivo = status == DiagnosticStatus.ok
+                Icon(
+                    imageVector = if (positivo) Icons.Outlined.CheckCircle else Icons.Outlined.Warning,
+                    contentDescription = null,
+                    tint = if (positivo) c.success else c.warning,
+                    modifier = Modifier.size(40.dp),
+                )
+            }
+            Spacer(Modifier.height(LkSpacing.xl))
         }
-        Spacer(Modifier.height(LkSpacing.xl))
         Text(
             text = titulo,
             style = MaterialTheme.typography.headlineSmall,
@@ -300,6 +327,10 @@ internal fun DiagnosticoGuiadoResultadoSection(
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(LkSpacing.md))
+        if (veioDoNds) {
+            LkSectionOverline(text = "O que isso significa para você")
+            Spacer(Modifier.height(LkSpacing.sm))
+        }
         Text(
             text = mensagem,
             style = MaterialTheme.typography.bodyLarge,
@@ -326,21 +357,23 @@ internal fun DiagnosticoGuiadoResultadoSection(
                 color = c.textSecondary,
             )
         }
-        Spacer(Modifier.height(LkSpacing.lg))
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Icon(
-                imageVector = Icons.Outlined.CheckCircle,
-                contentDescription = "Resumo do diagnóstico",
-                tint = c.textSecondary,
-                modifier = Modifier.size(24.dp),
-            )
-            Spacer(Modifier.width(LkSpacing.md))
-            Text(
-                resumoStatusAssist(status),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = c.textPrimary,
-            )
+        if (!veioDoNds) {
+            Spacer(Modifier.height(LkSpacing.lg))
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Icon(
+                    imageVector = Icons.Outlined.CheckCircle,
+                    contentDescription = "Resumo do diagnóstico",
+                    tint = c.textSecondary,
+                    modifier = Modifier.size(24.dp),
+                )
+                Spacer(Modifier.width(LkSpacing.md))
+                Text(
+                    resumoStatusAssist(status),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = c.textPrimary,
+                )
+            }
         }
         diagnosticReport?.let { report ->
             Spacer(Modifier.height(LkSpacing.sm))
@@ -399,18 +432,50 @@ internal fun DiagnosticoGuiadoResultadoSection(
         }
         passosRecomendacao.takeIf { it.isNotEmpty() }?.let { steps ->
             Spacer(Modifier.height(LkSpacing.lg))
-            LkSurfaceCard(modifier = Modifier.fillMaxWidth(), outlined = false) {
-                Column(Modifier.padding(LkSpacing.lg)) {
-                    Text("O que você pode fazer", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = c.textPrimary)
-                    Spacer(Modifier.height(LkSpacing.sm))
-                    steps.forEachIndexed { index, step ->
-                        Text("${index + 1}. $step", style = MaterialTheme.typography.bodyLarge, color = c.textSecondary)
-                        if (index < steps.lastIndex) Spacer(Modifier.height(LkSpacing.xs))
+            if (veioDoNds) {
+                LkSectionOverline(text = if (steps.size > 1) "Próximos passos" else "Próximo passo")
+                Spacer(Modifier.height(LkSpacing.sm))
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(LkRadius.card))
+                            .background(status.corContainer(c))
+                            .padding(LkSpacing.lg),
+                    horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.TaskAlt,
+                        contentDescription = null,
+                        tint = status.corConteudo(c),
+                        modifier = Modifier.size(22.dp),
+                    )
+                    Column {
+                        steps.forEachIndexed { index, step ->
+                            Text(
+                                text = if (steps.size > 1) "${index + 1}. $step" else step,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = status.corConteudo(c),
+                            )
+                            if (index < steps.lastIndex) Spacer(Modifier.height(LkSpacing.xs))
+                        }
+                    }
+                }
+            } else {
+                LkSurfaceCard(modifier = Modifier.fillMaxWidth(), outlined = false) {
+                    Column(Modifier.padding(LkSpacing.lg)) {
+                        Text("O que você pode fazer", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = c.textPrimary)
+                        Spacer(Modifier.height(LkSpacing.sm))
+                        steps.forEachIndexed { index, step ->
+                            Text("${index + 1}. $step", style = MaterialTheme.typography.bodyLarge, color = c.textSecondary)
+                            if (index < steps.lastIndex) Spacer(Modifier.height(LkSpacing.xs))
+                        }
                     }
                 }
             }
         }
-        if (resultado.evidencias.size > 1) {
+        if (resultado.evidencias.size > 1 && !veioDoNds) {
             Column(modifier = Modifier.fillMaxWidth().padding(top = LkSpacing.md)) {
                 resultado.evidencias.drop(1).forEach { evidenciaSecundaria ->
                     Text(

@@ -20,6 +20,7 @@ import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.core.diagnostico.DiagnosticRunner
+import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
@@ -27,6 +28,7 @@ import io.signallq.app.core.network.DiagnosticoPlanoIniciado
 import io.signallq.app.feature.diagnostico.ai.AiAcaoRecomendada
 import io.signallq.app.feature.speedtest.MeasurementStatus
 import io.signallq.app.ui.SignallQTheme
+import io.signallq.app.ui.component.labelPt
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -465,6 +467,68 @@ class DiagnosticoGuiadoScreenTest {
 
         assertEquals("o retry precisa fazer uma nova chamada", 2, chamadas)
         composeRule.onNodeWithText("Tentar novamente").assertDoesNotExist()
+    }
+
+    // Bloqueio B2 do parecer de Caio: nenhum teste desta suíte renderizava o ramo `veioDoNds`
+    // do conteúdo de conclusão (só o banner de erro/retry, linhas acima). Esta é a caracterização
+    // do layout reestilizado (issue de restyle do Assist) — trava regressão se um próximo agente
+    // desfizer a fatia sem querer.
+    @Test
+    fun `conclusao vinda do NDS mostra status real, proximos passos e reteste, sem resumo local`() {
+        var estado by mutableStateOf<EstadoAnaliseGuiada>(EstadoAnaliseGuiada.NaoIniciada)
+        var status by mutableStateOf<MeasurementStatus?>(null)
+        composeRule.setContent {
+            SignallQTheme {
+                TelaDeTeste(
+                    objetivoPreSelecionado = ObjetivoDiagnostico.JOGOS_COM_LAG,
+                    respostaPreSelecionadaPasso0 = 0,
+                    input = inputJogosComWifiFraco(),
+                    estadoAnalise = estado,
+                    statusMedicao = status,
+                    analisadorState = resultadoComAcoes(tipo = "reteste", executavelNoApp = true),
+                    onAvaliarAssist = {
+                        DiagnosticRunner.run(it).let { relatorio ->
+                            relatorio.copy(
+                                evaluationSource = DiagnosticEvaluationSource.REMOTE,
+                                decisao =
+                                    relatorio.decisao.copy(
+                                        status = DiagnosticStatus.ok,
+                                        recomendacaoPassos =
+                                            listOf(
+                                                "Pause downloads e streams durante a partida.",
+                                                "Repita a medição para confirmar a melhora.",
+                                            ),
+                                    ),
+                            )
+                        }
+                    },
+                )
+            }
+        }
+
+        completarSegundaPerguntaJogos()
+        estado = EstadoAnaliseGuiada.EmAndamento(0.4f, "Medindo a velocidade de recebimento")
+        composeRule.waitForIdle()
+        estado = EstadoAnaliseGuiada.Concluida
+        status = MeasurementStatus.COMPLETE
+        composeRule.waitForIdle()
+
+        // Guarda o rótulo canônico (não o "TUDO CERTO" literal do mockup). A cor do card (B1) NÃO
+        // é coberta aqui — asserção de tom exigiria captureToImage (ressalva RS7 do parecer).
+        composeRule.onNodeWithText(DiagnosticStatus.ok.labelPt().uppercase()).assertIsDisplayed()
+        composeRule.onNodeWithText("Próximos passos".uppercase()).performScrollTo().assertIsDisplayed()
+        composeRule
+            .onNodeWithText("1. Pause downloads e streams durante a partida.")
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText("2. Repita a medição para confirmar a melhora.")
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("Testar novamente").performScrollTo().assertIsDisplayed()
+
+        // Resumo redundante do motor local não deve aparecer no caminho NDS (só no `!veioDoNds`).
+        composeRule.onNodeWithText("Nenhum problema importante foi encontrado nas medições.").assertDoesNotExist()
     }
 
     // RESSALVA RS1 do parecer. `etapaEmLinguagemHumana` era testada como função pura e nunca como
