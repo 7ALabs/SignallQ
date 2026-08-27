@@ -4,7 +4,7 @@ description: "Runbook do processo de release do SignallQ Android — build, depl
 type: "runbook"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-15"
+last_updated: "2026-08-26"
 ---
 
 # Release Process
@@ -14,9 +14,10 @@ last_updated: "2026-08-15"
 This document outlines the process for releasing new versions of the SignallQ Android Kotlin application, covering the steps from build to deployment.
 
 - **Status:** ativo
-- **Última validação:** 2026-07-23
-- **Validação de runbook:** 2026-08-05 — workflows referenciados (firebase-distribution.yml,
-  release.yml, promote-release.yml) e scripts (version.ps1) confirmados como existentes e atualizados
+- **Última validação:** 2026-08-26
+- **Validação de runbook:** 2026-08-26 — corrigida defasagem: `release.yml` publica direto em
+  `beta` desde o commit `1555e92b` (2026-08-23), não mais `internal`; seção "Feature Activation
+  Process" e `operations/DEPLOY.md` atualizados junto
 - **Fonte de verdade:** versão real em `android/gradle/libs.versions.toml` (não fixar número
   aqui, muda a cada release); processo de release neste documento
 - **Escopo:** release Android (Firebase App Distribution + Play Console)
@@ -49,15 +50,26 @@ CI headless nem via agente — configurado com `gh secret set FIREBASE_TOKEN --r
 1. Bump de versão (`libs.versions.toml`, `CHANGELOG.md`, `docs_ai/RELEASES.md`) — escopo
    real desde a última versão **realmente publicada** (ver `VERSIONING.md`).
 2. `git tag vX.Y.Z && git push origin vX.Y.Z` — dispara `.github/workflows/release.yml`:
-   build, assinatura, GitHub Release, e publica direto na trilha **`internal`** (teste
-   interno, sem review do Google, só o Luiz valida).
-3. Depois de validado, `.github/workflows/promote-release.yml` (`workflow_dispatch` manual)
-   promove o MESMO AAB de `internal` pra `alpha` (`gradlew promoteReleaseArtifact`) — sem
-   rebuild, sem reassinar (padrão recomendado pelo Google: testar um binário, promover o
-   mesmo binário entre trilhas).
-4. **Guardrail técnico**: `promote-release.yml` só aceita `internal`/`alpha` como destino.
-   Beta e produção ainda não estão liberados — qualquer tentativa nessas trilhas falha o
-   workflow e exige decisão explícita do Luiz.
+   build, assinatura, GitHub Release, e publica direto na trilha **`beta`** (desde
+   2026-08-23, commit `1555e92b`), **compilado com anúncios desligados**
+   (`-PplayTrack=beta -PadsEnabled=false`, hardcoded no push de tag comum).
+3. Produção com anúncios reais **não é uma promoção** do binário de beta — é um disparo
+   manual do mesmo `release.yml` (`workflow_dispatch`, adicionado 2026-08-26) com
+   `playTrack=production` e `adsEnabled=true`, que builda e publica um AAB **novo**
+   direto na trilha `production`. Motivo: `BuildConfig.USE_TEST_ADS`/`ADS_ENABLED`
+   são compilados no APK/AAB no momento do build (ver `app/build.gradle.kts`), não do
+   publish — promover o mesmo binário entre trilhas não muda os Ad Unit IDs nem liga
+   anúncio nenhum.
+4. **Pré-requisito de ads antes desse disparo**: as chaves de Firebase Remote Config
+   (`ads_native_enabled` + 5 chaves por tela, ver
+   `android/app/src/main/kotlin/io/signallq/app/ads/AdsRemoteConfigRepository.kt`) precisam
+   existir no console — sem elas, mesmo o binário certo cai no fallback `AdsFlags.DESLIGADO`
+   e nenhum usuário vê anúncio. Criação dessas chaves é ação do Luiz no console do Firebase,
+   fora do escopo de qualquer agente.
+5. **Guardrail técnico**: `promote-release.yml` (usado hoje só se for preciso mover o mesmo
+   AAB de `beta` pra `internal`/`alpha`, não o caminho principal) bloqueia `production` como
+   destino — decisão explícita do Luiz, e tecnicamente inútil de qualquer forma pelo motivo
+   do item 3 acima.
 
 **Worker Cloudflare:** quando houver mudanças em
 `integrations/cloudflare/ai-diagnosis-worker/src/`, rodar `npx wrangler deploy`

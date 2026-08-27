@@ -4,10 +4,22 @@ name: Promote Release Track
 # nem reassinatura — usa o mesmo AAB (padrao recomendado pelo Google: testar um binario,
 # promover o mesmo binario entre trilhas).
 #
-# Fluxo do produto: release.yml publica sempre em 'internal' (teste interno, so o Luiz
-# valida). Depois de validado, dispare este workflow manualmente pra promover pra 'alpha'
-# (teste fechado). Beta e producao ainda NAO estao liberados — o guardrail abaixo bloqueia
-# qualquer tentativa nessas trilhas ate decisao explicita do Luiz.
+# Fluxo real (atualizado 2026-08-23, commit 1555e92b): release.yml ja publica direto em
+# 'beta' a cada tag (nao mais 'internal'). Bloqueio B1 do parecer de Caio na PR #1805:
+# 'fromTrack' abaixo so aceita 'internal'/'alpha' como origem, e nada no pipeline atual
+# publica nessas trilhas -- ou seja, este workflow esta efetivamente sem artefato pra
+# promover hoje. Mantido documentado (nao removido) caso volte a existir um fluxo
+# internal/alpha no futuro; nao tratar como caminho ativo enquanto isso nao acontecer.
+#
+# Producao continua bloqueada abaixo de proposito, e por um motivo tecnico alem da decisao
+# de negocio: promover o MESMO binario nao ativa anuncios reais. USE_TEST_ADS/ADS_ENABLED
+# (ver app/build.gradle.kts) sao compilados no AAB no momento do build, nao do publish --
+# um binario buildado para 'beta' continua com Ad Unit ID de teste mesmo promovido pra
+# 'production'. O caminho de ativacao real e um disparo manual de release.yml
+# (workflow_dispatch) com -PplayTrack=production -PadsEnabled=true, publicando um AAB NOVO
+# direto na trilha, com as chaves de Firebase Remote Config (ads_native_enabled + por tela)
+# ja criadas -- nao uma promocao. O guardrail abaixo continua bloqueando 'production' ate
+# decisao explicita do Luiz.
 
 on:
   workflow_dispatch:

@@ -7,10 +7,44 @@ on:
   push:
     tags:
       - 'v*'
+  # Issue de ativacao de ads em producao -- disparo manual permite escolher trilha/ads
+  # explicitamente (Luiz), sem alterar o default do push de tag (sempre beta/ads=false).
+  # Pre-requisito antes de rodar com playTrack=production e adsEnabled=true: as chaves de
+  # Firebase Remote Config (ads_native_enabled + 5 por tela, ver AdsRemoteConfigRepository.kt)
+  # precisam existir no console -- sem elas o app publicado ainda nao mostra anuncio de
+  # verdade (AdsFlagsManager cai no fallback DESLIGADO), mesmo com o binario certo.
+  #
+  # Decisao do Luiz (2026-08-27, PR #1805): sem gate de GitHub Environment/required reviewers
+  # pro disparo manual de producao -- o dropdown do workflow_dispatch + o guardrail que rejeita
+  # adsEnabled=true fora de playTrack=production (step abaixo) bastam por enquanto. Nao reabrir
+  # essa pergunta em revisao futura sem novo pedido explicito.
+  workflow_dispatch:
+    inputs:
+      playTrack:
+        description: 'Trilha Play Console (produção com ads reais exige decisão explícita do Luiz)'
+        required: true
+        default: 'beta'
+        type: choice
+        options:
+          - beta
+          - production
+      adsEnabled:
+        description: 'Habilitar anúncios neste build (requer chaves Firebase Remote Config já criadas)'
+        required: true
+        default: false
+        type: boolean
 
 jobs:
   build-release:
     runs-on: ubuntu-latest
+
+    # Bloqueio B4 do parecer de Caio (PR #1805): valores resolvidos uma unica vez aqui, em vez de
+    # repetir a mesma expressao -PplayTrack=... -PadsEnabled=... nos 4 comandos Gradle abaixo —
+    # a duplicacao era exatamente o vetor de drift que o comentario do step de build ja alertava
+    # (AAB publicado divergindo do artefato do GitHub Release / mapping do Crashlytics).
+    env:
+      PLAY_TRACK: ${{ inputs.playTrack || 'beta' }}
+      ADS_ENABLED_BUILD: ${{ inputs.adsEnabled || false }}
 
     steps:
       - name: Checkout
@@ -41,6 +75,18 @@ jobs:
       - name: Permissao gradlew
         run: chmod +x android/gradlew
 
+      # Escala com o Luiz na PR #1805: disparo manual com playTrack != production e
+      # adsEnabled=true compilaria USE_TEST_ADS=true + ADS_ENABLED=true — anuncio de TESTE do
+      # Google servido pra usuario real de beta/internal/alpha, sem receita e com cara de app
+      # quebrado. Bloqueado aqui, antes de qualquer build caro rodar.
+      - name: Guardrail — adsEnabled só é permitido com playTrack=production
+        run: |
+          if [ "$ADS_ENABLED_BUILD" = "true" ] && [ "$PLAY_TRACK" != "production" ]; then
+            echo "::error::adsEnabled=true só é permitido com playTrack=production (trilha atual: $PLAY_TRACK) — isso serviria Ad Unit ID de TESTE do Google para usuários reais dessa trilha."
+            exit 1
+          fi
+          echo "Build resolvido: playTrack=$PLAY_TRACK adsEnabled=$ADS_ENABLED_BUILD"
+
       - name: Extrair versao
         id: versao
         run: |
@@ -59,14 +105,17 @@ jobs:
       # o BuildConfig na hora de publicar (mesmo --no-daemon, via up-to-date check) e o AAB
       # publicado na Play divergiria do artefato ja anexado ao GitHub Release e do mapping.txt
       # ja enviado ao Crashlytics.
+      #
+      # inputs.playTrack/inputs.adsEnabled so existem em disparo manual (workflow_dispatch);
+      # push de tag normal cai no fallback beta/false -- comportamento automatico inalterado.
       - name: Build APK release
-        run: cd android && ./gradlew :app:assembleRelease --no-build-cache --no-daemon -PplayTrack=beta -PadsEnabled=false
+        run: cd android && ./gradlew :app:assembleRelease --no-build-cache --no-daemon -PplayTrack=$PLAY_TRACK -PadsEnabled=$ADS_ENABLED_BUILD
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
           NDS_API_TOKEN: ${{ secrets.NDS_API_TOKEN }}
 
       - name: Build AAB release
-        run: cd android && ./gradlew :app:bundleRelease --no-build-cache --no-daemon -PplayTrack=beta -PadsEnabled=false
+        run: cd android && ./gradlew :app:bundleRelease --no-build-cache --no-daemon -PplayTrack=$PLAY_TRACK -PadsEnabled=$ADS_ENABLED_BUILD
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
           NDS_API_TOKEN: ${{ secrets.NDS_API_TOKEN }}
@@ -79,7 +128,7 @@ jobs:
              android/app/build/outputs/apk/release/signallq-${{ steps.versao.outputs.name }}.apk
 
       - name: Upload mapping.txt para Crashlytics
-        run: cd android && ./gradlew :app:uploadCrashlyticsMappingFileRelease --no-daemon -PplayTrack=beta -PadsEnabled=false
+        run: cd android && ./gradlew :app:uploadCrashlyticsMappingFileRelease --no-daemon -PplayTrack=$PLAY_TRACK -PadsEnabled=$ADS_ENABLED_BUILD
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
           NDS_API_TOKEN: ${{ secrets.NDS_API_TOKEN }}
@@ -108,12 +157,18 @@ jobs:
             android/app/build/outputs/bundle/release/signallq-*.aab
             android/app/build/outputs/apk/release/signallq-*.apk
 
-      # Publica o AAB assinado diretamente na trilha beta da Play Console.
-      # Esta versao beta e compilada com anuncios desligados (-PadsEnabled=false).
+      # Publica o AAB assinado na trilha escolhida da Play Console (default: beta,
+      # anuncios desligados). Producao com anuncios reais (playTrack=production,
+      # adsEnabled=true) exige disparo manual deste workflow (workflow_dispatch) com os
+      # inputs correspondentes -- NAO acontece num push de tag comum -- e as chaves de
+      # Firebase Remote Config ja criadas (ver nota no gatilho `on:` acima). Promover o
+      # MESMO binario via promote-release.yml nao ativa anuncio: USE_TEST_ADS/ADS_ENABLED
+      # ja estao compilados no AAB desde o build, a promocao so move o artefato entre
+      # trilhas sem recompilar.
       # Requer o app criado na Play e um primeiro upload manual na trilha (a API nao cria o app do zero).
       # Roda por ultimo: uma falha aqui nao invalida o GitHub Release nem os artefatos ja gerados.
       - name: Publicar na Play Console
-        run: cd android && ./gradlew :app:publishReleaseBundle --no-daemon -PplayTrack=beta -PadsEnabled=false
+        run: cd android && ./gradlew :app:publishReleaseBundle --no-daemon -PplayTrack=$PLAY_TRACK -PadsEnabled=$ADS_ENABLED_BUILD
         env:
           ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
