@@ -58,6 +58,16 @@ Claudete mais cedo no fluxo — os dois são complementares, não duplicados.
 - [ ] SHA-1/SHA-256 da release keystore registrados no Firebase?
 - [ ] ReleaseTree filtrando logs WARN/ERROR para Crashlytics?
 
+### AdMob (só relevante para disparo manual com `playTrack=production`/`adsEnabled=true`)
+- [ ] Chaves de Firebase Remote Config (`ads_native_enabled` + 5 por tela) já criadas no
+      console? Sem elas o binário certo ainda cai no fallback `AdsFlags.DESLIGADO` (ver
+      `android/app/src/main/kotlin/io/signallq/app/ads/AdsRemoteConfigRepository.kt`).
+- [ ] Disparo é `workflow_dispatch` manual de `release.yml` com os inputs corretos — **não**
+      uma promoção via `promote-release.yml` (promover o mesmo AAB não muda
+      `USE_TEST_ADS`/`ADS_ENABLED`, compilados no binário no momento do build)?
+- [ ] Decisão de ativar anúncio em produção teve aprovação explícita do Luiz (ver
+      `AGENTS.md`, "Publicação")?
+
 ### Play Store
 - [ ] Screenshots e ícone atualizados se UI mudou?
 - [ ] Descrição da release atualizada?
