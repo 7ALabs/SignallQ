@@ -13,6 +13,11 @@ on:
   # Firebase Remote Config (ads_native_enabled + 5 por tela, ver AdsRemoteConfigRepository.kt)
   # precisam existir no console -- sem elas o app publicado ainda nao mostra anuncio de
   # verdade (AdsFlagsManager cai no fallback DESLIGADO), mesmo com o binario certo.
+  #
+  # Decisao do Luiz (2026-08-27, PR #1805): sem gate de GitHub Environment/required reviewers
+  # pro disparo manual de producao -- o dropdown do workflow_dispatch + o guardrail que rejeita
+  # adsEnabled=true fora de playTrack=production (step abaixo) bastam por enquanto. Nao reabrir
+  # essa pergunta em revisao futura sem novo pedido explicito.
   workflow_dispatch:
     inputs:
       playTrack:
