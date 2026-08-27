@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Refresh
@@ -29,7 +30,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -116,6 +116,7 @@ fun EquipamentoInternetScreen(
     onVerDispositivos: () -> Unit = {},
     onExecutarDiagnostico: () -> Unit = {},
     onVerDetalhesWifi: () -> Unit = {},
+    onAbrirMenu: () -> Unit = {},
 ) {
     val c = LocalLkTokens.current
     var reiniciadoEmEpochMs by remember { mutableStateOf<Long?>(null) }
@@ -152,49 +153,38 @@ fun EquipamentoInternetScreen(
     Scaffold(
         containerColor = c.bgPrimary,
         topBar = {
-            // GH#1079: migrado de Column/Row cru para TopAppBar real do M3 -- o layout
-            // manual nao aplicava inset de status bar/notch (`.statusBarsPadding()`),
-            // diferente das outras telas do app que já usam CenterAlignedTopAppBar reais.
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .background(c.bgPrimary),
-            ) {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Column {
-                            Text(
-                                "Equipamento de internet",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.W600,
-                                color = c.textPrimary,
-                            )
-                            Text(
-                                if (estaCarregando) "Conectando…" else acessoLabel(acesso),
-                                fontSize = 12.sp,
-                                color = c.textSecondary,
-                            )
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onVoltar) {
-                            Icon(
-                                Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription = "Voltar",
-                                tint = c.textPrimary,
-                            )
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = onRetentar) {
-                            Icon(Icons.Outlined.Refresh, contentDescription = "Atualizar", tint = c.textPrimary)
-                        }
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = c.bgPrimary),
-                )
-                HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
-            }
+            // GH#1806 — header alinhado ao padrão das telas irmãs (Dispositivos, Sinal):
+            // título único headlineSmall, sem subtítulo dinâmico nem divisor manual, e
+            // MoreVert de volta ao lado do Refresh. O estado de acesso (antes só no
+            // subtítulo) já aparece em "Informações técnicas" via DeviceInfoSectionCard.
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        "Equipamento de internet",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.W600,
+                        color = c.textPrimary,
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onVoltar) {
+                        Icon(
+                            Icons.AutoMirrored.Outlined.ArrowBack,
+                            contentDescription = "Voltar",
+                            tint = c.textPrimary,
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onRetentar) {
+                        Icon(Icons.Outlined.Refresh, contentDescription = "Atualizar", tint = c.textPrimary)
+                    }
+                    IconButton(onClick = onAbrirMenu) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "Abrir ajustes", tint = c.textPrimary)
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = c.bgPrimary),
+            )
         },
     ) { padding ->
         when {
@@ -264,6 +254,14 @@ private fun EquipamentoCarregando(
         modifier = modifier.fillMaxSize().padding(LkSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
+        // #1090 — "Conectando…" morava no subtítulo do TopAppBar, removido no alinhamento de
+        // header com as telas irmãs (GH#1806). Preservado aqui: é o mesmo sinal de que a tela
+        // ainda está tentando ler o equipamento, não parada num estado sem explicação.
+        Text(
+            "Conectando…",
+            style = MaterialTheme.typography.bodyMedium,
+            color = c.textSecondary,
+        )
         repeat(5) { index ->
             Box(
                 modifier =
