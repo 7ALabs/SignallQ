@@ -18,6 +18,28 @@ import androidx.lifecycle.viewmodel.CreationExtras
  * real para navegar. Esta fábrica é o que essa tela futura vai chamar quando existir — trocar
  * `@HiltViewModel` por este `ViewModelProvider.Factory` (ou vice-versa) é mudança local, não
  * redesenho do wiring.
+ *
+ * ## Ressalva 1 da revisão do Caio na PR #1814 — dispatcher implícito por trás do `yield()`
+ *
+ * `DiagnosticoOfflineViewModel.executarDesde()` depende de `yield()` para que `EtapaOk`/
+ * `EtapaFalhou` (estados transitórios, `StateFlow` conflado) sejam observáveis por um coletor
+ * antes de serem sobrescritos. Caio validou que isso funciona porque produtor
+ * (`viewModelScope` = `Dispatchers.Main.immediate`) e consumidor real (`collectAsStateWithLifecycle`
+ * em Compose, também Main) compartilham o mesmo dispatcher single-threaded — e avisou que é um
+ * acordo implícito, não uma garantia: qualquer coletor fora da Main (`flowOn(Default)`, um
+ * segundo coletor concorrente, `UnconfinedTestDispatcher`) reabre a janela de perda.
+ *
+ * Decisão desta task: **manter `yield()` como está, sem reforço adicional.** Motivo: esta PR
+ * não introduz nenhum coletor de UI — `DiagnosticoOfflineExecutorReal`/esta fábrica só trocam a
+ * implementação do seam (`ExecutorEtapaDiagnosticoOffline`) por uma que faz I/O real; nenhuma
+ * tela ainda observa `estado`. O consumo real (`collectAsStateWithLifecycle` na Main) só nasce
+ * quando existir uma tela Compose de verdade para o CTA navegar, e nesse ponto o pressuposto do
+ * Caio ("mesmo dispatcher single-threaded") continua valendo pela própria natureza do Compose.
+ * Se aquela tela futura precisar do estado transitório GARANTIDO (ex.: cada etapa acende com
+ * tempo mínimo visível, não só "o que sobrou depois do próximo yield"), a estrutura certa é
+ * substituir o `StateFlow` conflado por um canal de eventos (`SharedFlow` com
+ * `BufferOverflow.SUSPEND`) — mudança de contrato que cabe àquela task, não a esta, porque reabre
+ * o `DiagnosticoOfflineEstado` aprovado na #1814.
  */
 class DiagnosticoOfflineViewModelFactory(
     private val appContext: Context,

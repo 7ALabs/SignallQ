@@ -3,6 +3,7 @@ package io.signallq.app.diagnosticooffline
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -122,16 +123,34 @@ class DiagnosticoOfflineViewModel(
     private val _estado = MutableStateFlow<DiagnosticoOfflineEstado>(DiagnosticoOfflineEstado.Idle)
     val estado: StateFlow<DiagnosticoOfflineEstado> = _estado.asStateFlow()
 
-    /** Dispara o fluxo do zero — chamada pelo tap no CTA "Diagnosticar problema" (Task 3). */
+    // Ressalva 3 da revisão do Caio na PR #1814 (risco residual, não bloqueio daquela PR):
+    // `iniciar()`/`retry()` não guardavam referência ao Job, então dois taps rápidos no CTA (ou
+    // um retry disparado enquanto uma rodada já está em andamento) lançavam corrotinas
+    // concorrentes escrevendo no mesmo `_estado`/histórico. Sem consumidor real até esta task
+    // (Task 4 -- wiring real); a partir daqui o executor faz I/O de rede de verdade, então a
+    // corrida deixa de ser hipotética. Guarda mínima, sem mudar o contrato de estado aprovado:
+    // rastreia o Job ativo e decide por chamada (ver comentários em cada função abaixo).
+    private var jobEmAndamento: Job? = null
+
+    /**
+     * Dispara o fluxo do zero — chamada pelo tap no CTA "Diagnosticar problema" (Task 3).
+     * Ignora a chamada se já houver uma rodada em andamento (tap duplo) -- não cancela nem
+     * reinicia, só evita a segunda corrotina concorrente.
+     */
     fun iniciar() {
-        viewModelScope.launch {
-            executarDesde(etapa = EtapaDiagnosticoOffline.ORDEM.first(), historicoAnterior = emptyList())
-        }
+        if (jobEmAndamento?.isActive == true) return
+        jobEmAndamento =
+            viewModelScope.launch {
+                executarDesde(etapa = EtapaDiagnosticoOffline.ORDEM.first(), historicoAnterior = emptyList())
+            }
     }
 
     /**
      * Repete o fluxo a partir de [etapa] (por padrão, a que falhou por último) preservando o
      * histórico das etapas anteriores a ela — não reexecuta o que já confirmou sucesso.
+     * Cancela uma rodada anterior ainda em andamento antes de iniciar a nova: diferente de
+     * [iniciar], um retry explícito é uma intenção clara do usuário de recomeçar, então
+     * substitui a execução corrente em vez de ser ignorado.
      */
     fun retry(etapa: EtapaDiagnosticoOffline? = null) {
         val estadoAtual = _estado.value
@@ -154,10 +173,12 @@ class DiagnosticoOfflineViewModel(
                     estadoAtual.historico.filter { EtapaDiagnosticoOffline.ORDEM.indexOf(it.etapa) < indiceRetry }
                 else -> emptyList()
             }
+        jobEmAndamento?.cancel()
         _estado.value = DiagnosticoOfflineEstado.RetryEmAndamento(etapaParaRetry, historicoAnterior)
-        viewModelScope.launch {
-            executarDesde(etapa = etapaParaRetry, historicoAnterior = historicoAnterior)
-        }
+        jobEmAndamento =
+            viewModelScope.launch {
+                executarDesde(etapa = etapaParaRetry, historicoAnterior = historicoAnterior)
+            }
     }
 
     private suspend fun executarDesde(

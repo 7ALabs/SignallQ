@@ -18,8 +18,10 @@ import io.signallq.app.core.network.connectivity.HostnameProbe
 import io.signallq.app.core.network.connectivity.HostnameReachabilityProbe
 import io.signallq.app.core.network.contracts.connectivity.ProbeFailureReason
 import io.signallq.app.core.network.contracts.connectivity.ProbeResult
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 
 /**
  * Contexto de rede resolvido para uma sondagem: o [binding] amarrado à Wi-Fi sob análise mais
@@ -70,13 +72,31 @@ class DiagnosticoOfflineExecutorReal(
     private val dnsHostnamesParaTeste: List<String> = ConnectivityDiagnosisEngine.DNS_HOSTNAMES_PADRAO,
     private val obterContexto: () -> ContextoRedeDiagnosticoOffline? = { capturarContextoRedeWifiPadrao(context) },
 ) : ExecutorEtapaDiagnosticoOffline {
+    // Ressalva 2 da revisão do Caio na PR #1814 (registrada como "vira bloqueio na PR que
+    // plugar o executor real" -- esta é essa PR): o ViewModel converte QUALQUER Throwable vindo
+    // daqui em Falha genérica ("sua rede falhou"), sem log nem Crashlytics -- o que esconderia
+    // um bug de programação real (NPE, IllegalState) atrás de um diagnóstico de rede plausível.
+    // Em vez de mudar o catch do ViewModel (contrato de estado já aprovado na #1814, reabrir
+    // ele reabriria aquela revisão), o log entra aqui, no ponto de wiring que introduz a chance
+    // real de exceção -- rethrow preserva o comportamento e o contrato já aprovados: o
+    // ViewModel continua vendo exatamente a mesma exceção e convertendo do mesmo jeito.
+    // Timber.e é o padrão já usado pra erro real em outros pontos do app (ver
+    // MainViewModel.kt:2167, "analisarProblema falhou") -- SignallQApplication planta
+    // ReleaseTree em build de release, que encaminha pra Firebase Crashlytics.
     override suspend fun executar(etapa: EtapaDiagnosticoOffline): ResultadoEtapaDiagnosticoOffline =
         withContext(Dispatchers.IO) {
-            when (etapa) {
-                EtapaDiagnosticoOffline.GATEWAY -> executarGateway()
-                EtapaDiagnosticoOffline.DNS -> executarDns()
-                EtapaDiagnosticoOffline.ROTA_EXTERNA -> executarRotaExterna()
-                EtapaDiagnosticoOffline.HOSTNAME_CAPTIVE_PORTAL -> executarHostname()
+            try {
+                when (etapa) {
+                    EtapaDiagnosticoOffline.GATEWAY -> executarGateway()
+                    EtapaDiagnosticoOffline.DNS -> executarDns()
+                    EtapaDiagnosticoOffline.ROTA_EXTERNA -> executarRotaExterna()
+                    EtapaDiagnosticoOffline.HOSTNAME_CAPTIVE_PORTAL -> executarHostname()
+                }
+            } catch (cancelamento: CancellationException) {
+                throw cancelamento
+            } catch (erro: Throwable) {
+                Timber.e(erro, "DiagnosticoOfflineExecutorReal: falha inesperada na etapa $etapa")
+                throw erro
             }
         }
 
