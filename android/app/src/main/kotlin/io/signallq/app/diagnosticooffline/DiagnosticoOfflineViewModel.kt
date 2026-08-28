@@ -2,10 +2,12 @@ package io.signallq.app.diagnosticooffline
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 
 /**
  * Etapas do fluxo de diagnóstico offline guiado (issue #1811, Task 2), CTA opt-in dentro de
@@ -137,10 +139,19 @@ class DiagnosticoOfflineViewModel(
             etapa ?: (estadoAtual as? DiagnosticoOfflineEstado.DiagnosticoConcluido)?.etapaComFalha
                 ?: (estadoAtual as? DiagnosticoOfflineEstado.EtapaFalhou)?.etapa
                 ?: return
+        // Remoção posicional, não por igualdade de etapa: a reexecução gera de novo a etapa-alvo
+        // E todas as posteriores, então o histórico preservado é só o que vem ANTES dela na
+        // ORDEM (achado de revisão do Caio na PR #1814 — bloqueio 3). `filter { it.etapa !=
+        // etapaParaRetry }` removia só a etapa-alvo e deixava as posteriores duplicadas.
+        val indiceRetry = EtapaDiagnosticoOffline.ORDEM.indexOf(etapaParaRetry)
         val historicoAnterior =
             when (estadoAtual) {
-                is DiagnosticoOfflineEstado.DiagnosticoConcluido -> estadoAtual.historico.filter { it.etapa != etapaParaRetry }
-                is DiagnosticoOfflineEstado.EtapaFalhou -> estadoAtual.historico
+                is DiagnosticoOfflineEstado.DiagnosticoConcluido ->
+                    estadoAtual.historico.filter { EtapaDiagnosticoOffline.ORDEM.indexOf(it.etapa) < indiceRetry }
+                is DiagnosticoOfflineEstado.EtapaFalhou ->
+                    // `historico` de EtapaFalhou já inclui o resultado da própria falha (ver
+                    // executarDesde) — mesmo corte posicional evita duplicar esse registro.
+                    estadoAtual.historico.filter { EtapaDiagnosticoOffline.ORDEM.indexOf(it.etapa) < indiceRetry }
                 else -> emptyList()
             }
         _estado.value = DiagnosticoOfflineEstado.RetryEmAndamento(etapaParaRetry, historicoAnterior)
@@ -160,15 +171,35 @@ class DiagnosticoOfflineViewModel(
             val etapaAtual = EtapaDiagnosticoOffline.ORDEM[indice]
             _estado.value = DiagnosticoOfflineEstado.TestandoEtapa(etapaAtual, historico)
 
-            val resultado = executorEtapa.executar(etapaAtual)
+            // Bloqueio 2 (revisão Caio, PR #1814): em produção, exceção do executor é o caminho
+            // ESPERADO — o usuário está offline, I/O real de rede falha com frequência. Sem este
+            // try/catch, a corrotina morre e o estado trava em TestandoEtapa para sempre, sem
+            // possibilidade de retry (retry() exige DiagnosticoConcluido ou EtapaFalhou). Nunca
+            // engole CancellationException — isso quebraria o cancelamento cooperativo do escopo.
+            val resultado =
+                try {
+                    executorEtapa.executar(etapaAtual)
+                } catch (cancelamento: CancellationException) {
+                    throw cancelamento
+                } catch (erro: Throwable) {
+                    ResultadoEtapaDiagnosticoOffline.Falha(etapaAtual, motivo = erro.message)
+                }
             historico = historico + resultado
 
             when (resultado) {
                 is ResultadoEtapaDiagnosticoOffline.Sucesso -> {
                     _estado.value = DiagnosticoOfflineEstado.EtapaOk(etapaAtual, historico)
+                    // Bloqueio 1 (revisão Caio, PR #1814): StateFlow é conflated e não há ponto
+                    // de suspensão entre esta escrita e a próxima iteração do loop — sem o
+                    // yield(), nenhum coletor externo consegue observar EtapaOk antes de ser
+                    // sobrescrito por TestandoEtapa/DiagnosticoConcluido. yield() cede o
+                    // dispatcher para que coletores já agendados processem o valor atual antes
+                    // da próxima emissão.
+                    yield()
                 }
                 is ResultadoEtapaDiagnosticoOffline.Falha -> {
                     _estado.value = DiagnosticoOfflineEstado.EtapaFalhou(etapaAtual, resultado.motivo, historico)
+                    yield()
                     _estado.value = DiagnosticoOfflineEstado.DiagnosticoConcluido(historico, etapaComFalha = etapaAtual)
                     return
                 }
