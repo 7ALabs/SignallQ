@@ -47,6 +47,7 @@ import io.signallq.app.diagnosticooffline.DiagnosticoOfflineViewModel
 import io.signallq.app.diagnosticooffline.DiagnosticoOfflineViewModelFactory
 import io.signallq.app.diagnosticooffline.EtapaDiagnosticoOffline
 import io.signallq.app.diagnosticooffline.ResultadoEtapaDiagnosticoOffline
+import io.signallq.app.feature.dns.ConfiguracaoDnsSugerida
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
 
@@ -155,6 +156,7 @@ private data class EtapaVisual(
     val etapa: EtapaDiagnosticoOffline,
     val status: StatusEtapaVisual,
     val motivo: String?,
+    val recomendacaoDns: ConfiguracaoDnsSugerida? = null,
 )
 
 private fun historicoDoEstado(estado: DiagnosticoOfflineEstado): List<ResultadoEtapaDiagnosticoOffline> =
@@ -182,7 +184,8 @@ private fun etapasVisuais(estado: DiagnosticoOfflineEstado): List<EtapaVisual> {
         val resultado = resultadoPorEtapa[etapa]
         when {
             resultado is ResultadoEtapaDiagnosticoOffline.Sucesso -> EtapaVisual(etapa, StatusEtapaVisual.OK, null)
-            resultado is ResultadoEtapaDiagnosticoOffline.Falha -> EtapaVisual(etapa, StatusEtapaVisual.FALHOU, resultado.motivo)
+            resultado is ResultadoEtapaDiagnosticoOffline.Falha ->
+                EtapaVisual(etapa, StatusEtapaVisual.FALHOU, resultado.motivo, resultado.recomendacaoDns)
             etapaEmTeste == etapa -> EtapaVisual(etapa, StatusEtapaVisual.TESTANDO, null)
             else -> EtapaVisual(etapa, StatusEtapaVisual.PENDENTE, null)
         }
@@ -245,6 +248,40 @@ private fun EtapaStepperItem(etapaVisual: EtapaVisual) {
                     color = c.onSurfaceVariant,
                 )
             }
+            if (etapaVisual.recomendacaoDns != null) {
+                RecomendacaoDnsCard(recomendacao = etapaVisual.recomendacaoDns)
+            }
+        }
+    }
+}
+
+/**
+ * Recomendação estruturada real (issue #1819, `OrientadorConfiguracaoDns`) — o "resolver" do
+ * pilar entender→diagnosticar→resolver→confirmar do posicionamento do produto. Some abaixo do
+ * motivo, nunca no lugar dele: a causa continua visível, a recomendação é o próximo passo.
+ */
+@Composable
+private fun RecomendacaoDnsCard(recomendacao: ConfiguracaoDnsSugerida) {
+    val c = LocalLkTokens.current
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = c.surfaceContainerHigh,
+        shape = MaterialTheme.shapes.small,
+    ) {
+        Column(
+            modifier = Modifier.padding(LkSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+        ) {
+            Text(
+                "Recomendado: trocar o DNS desta rede para ${recomendacao.nomeProvedor}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.onSurface,
+            )
+            Text(
+                "Primário ${recomendacao.primario} · Secundário ${recomendacao.secundario}",
+                style = MaterialTheme.typography.bodySmall,
+                color = c.onSurfaceVariant,
+            )
         }
     }
 }

@@ -121,7 +121,51 @@ class DiagnosticoOfflineExecutorRealTest {
         }
 
     @Test
-    fun `dns da rede falha e DoH tambem falha indica ausencia de resolucao total`() =
+    fun `dns da rede falha e DoH resolve produz recomendacao real de DNS publico (issue 1819)`() =
+        runTest {
+            val executor =
+                criarExecutor(
+                    dnsRede = ProbeResult.Failure(ProbeFailureReason.DNS_RESOLUTION_FAILED),
+                    doh = ProbeResult.Success(),
+                )
+
+            val resultado = executor.executar(EtapaDiagnosticoOffline.DNS) as ResultadoEtapaDiagnosticoOffline.Falha
+
+            // Vem do OrientadorConfiguracaoDns real (não duplicado) -- evidência é o próprio
+            // DoH ter funcionado contra a Cloudflare (DohFallbackProbe consulta esse provedor).
+            val recomendacao = requireNotNull(resultado.recomendacaoDns) { "esperava recomendação real de DNS público" }
+            assertEquals("cloudflare", recomendacao.nomeProvedor)
+            assertEquals("1.1.1.1", recomendacao.primario)
+            assertEquals("1.0.0.1", recomendacao.secundario)
+            // Motivo continua presente -- a recomendação é adicional, não substitui a explicação.
+            assertTrue(resultado.motivo?.contains("resolvedor DNS desta rede") == true)
+        }
+
+    @Test
+    fun `dns da rede falha, DoH resolve, mas rede ja usa cloudflare -- nao recomenda trocar pro mesmo (bloqueio revisao PR 1822)`() =
+        runTest {
+            val contexto =
+                ContextoRedeDiagnosticoOffline(
+                    binding = bindingFake,
+                    gatewayIp = "192.168.0.1",
+                    // UDP/53 bloqueado (dnsRede falha) mas DoH sobre 443 passa -- cenário real
+                    // apontado pelo Caio na revisão: a rede já está configurada com 1.1.1.1.
+                    dnsServers = listOf("1.1.1.1"),
+                )
+            val executor =
+                criarExecutor(
+                    contexto = contexto,
+                    dnsRede = ProbeResult.Failure(ProbeFailureReason.DNS_RESOLUTION_FAILED),
+                    doh = ProbeResult.Success(),
+                )
+
+            val resultado = executor.executar(EtapaDiagnosticoOffline.DNS) as ResultadoEtapaDiagnosticoOffline.Falha
+
+            assertEquals(null, resultado.recomendacaoDns)
+        }
+
+    @Test
+    fun `dns da rede falha e DoH tambem falha indica ausencia de resolucao total, sem recomendacao`() =
         runTest {
             val executor =
                 criarExecutor(
@@ -132,6 +176,9 @@ class DiagnosticoOfflineExecutorRealTest {
             val resultado = executor.executar(EtapaDiagnosticoOffline.DNS) as ResultadoEtapaDiagnosticoOffline.Falha
 
             assertEquals("sem resolução DNS -- nem pelo resolvedor da rede nem por DoH externo", resultado.motivo)
+            // Sem evidência de que algum DNS público funciona nesta rede -- recomendar seria
+            // inventar uma solução sem base, então o orientador não é acionado.
+            assertEquals(null, resultado.recomendacaoDns)
         }
 
     @Test
