@@ -11,12 +11,16 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Issue #1811 (Task 3/4) — CTA "Diagnosticar problema" dentro do `SignallQOfflineBanner`.
+ * CTA "Diagnosticar problema" dentro do `SignallQOfflineBanner` (issue #1811) e sua navegação
+ * padrão para o diálogo real de diagnóstico offline (issue #1818, `DiagnosticoOfflineDialog`).
  *
- * A navegação real para o fluxo de diagnóstico offline (Task 2, `DiagnosticoOfflineViewModel`,
- * branch `feat/1811-diagnostico-offline-state` / PR #1814) ainda não está mergeada em `main`, por
- * isso este teste cobre o comportamento atual: o CTA existe, tem a microcopy esperada e, sem
- * callback externo, abre o stub de navegação placeholder.
+ * O teste sem callback externo abre o diálogo real, que dispara `DiagnosticoOfflineViewModel
+ * .iniciar()` de verdade (achado de revisão do Caio na PR #1821) — não uma sondagem de rede real:
+ * sob Robolectric, sem rede Wi-Fi ativa configurada, `DiagnosticoOfflineExecutorReal` encerra em
+ * "sem rede Wi-Fi ativa" na primeira etapa (ver `capturarContextoRedeWifiPadrao` retornando
+ * `null`), então nenhuma chamada de I/O real acontece. Este teste cobre só a navegação (o título
+ * do diálogo aparece); `DiagnosticoOfflineDialogTest` cobre o conteúdo do diálogo isoladamente,
+ * sem depender do ViewModel/Factory reais.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -38,7 +42,7 @@ class SignallQOfflineBannerCtaTest {
     }
 
     @Test
-    fun `tap no cta sem callback externo abre o stub de navegacao`() {
+    fun `tap no cta sem callback externo abre o dialogo real de diagnostico`() {
         composeRule.setContent {
             SignallQTheme {
                 SignallQOfflineBanner()
@@ -53,7 +57,7 @@ class SignallQOfflineBannerCtaTest {
     }
 
     @Test
-    fun `tap no cta com callback externo usa navegacao real em vez do stub`() {
+    fun `tap no cta com callback externo usa navegacao real em vez do dialogo padrao`() {
         var chamadas = 0
         composeRule.setContent {
             SignallQTheme {

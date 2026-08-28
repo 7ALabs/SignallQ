@@ -1,10 +1,8 @@
 package io.signallq.app.ui.component
 
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import io.signallq.app.diagnosticooffline.DiagnosticoOfflineEstado
 import io.signallq.app.diagnosticooffline.EtapaDiagnosticoOffline
 import io.signallq.app.diagnosticooffline.ResultadoEtapaDiagnosticoOffline
@@ -50,8 +48,7 @@ class DiagnosticoOfflineDialogTest {
     }
 
     @Test
-    fun `etapa com falha mostra motivo e oferece retry, que aciona onRetry com a etapa`() {
-        var etapaRetry: EtapaDiagnosticoOffline? = null
+    fun `etapa com falha mostra motivo e oferece um unico retry, que aciona onRetry`() {
         var chamadas = 0
         val historico =
             listOf(
@@ -66,10 +63,7 @@ class DiagnosticoOfflineDialogTest {
                             historico = historico,
                             etapaComFalha = EtapaDiagnosticoOffline.DNS,
                         ),
-                    onRetry = { etapa ->
-                        chamadas++
-                        etapaRetry = etapa
-                    },
+                    onRetry = { chamadas++ },
                     onDismiss = {},
                 )
             }
@@ -79,11 +73,13 @@ class DiagnosticoOfflineDialogTest {
         composeRule.onNodeWithText("Servidor DNS não respondeu").assertExists()
         composeRule.onNodeWithText("Diagnóstico concluído com falha").assertExists()
 
-        composeRule.onAllNodesWithText("Tentar novamente")[0].performClick()
+        // Só existe um botão "Tentar novamente" na tela (rodapé fixo) — onNodeWithText já falha
+        // se houver mais de um nó com esse texto, então a unicidade em si já é a asserção contra
+        // o achado de a11y da revisão do Caio na PR #1821 (dois botões idênticos).
+        composeRule.onNodeWithText("Tentar novamente").performClick()
         composeRule.waitForIdle()
 
         assert(chamadas == 1) { "esperava 1 chamada a onRetry, houve $chamadas" }
-        assert(etapaRetry == EtapaDiagnosticoOffline.DNS) { "esperava retry da etapa DNS, veio $etapaRetry" }
     }
 
     @Test
@@ -104,7 +100,9 @@ class DiagnosticoOfflineDialogTest {
         composeRule.onNodeWithText("Diagnóstico concluído").assertExists()
         composeRule.onNodeWithText("Tentar novamente").assertDoesNotExist()
 
-        composeRule.onNodeWithText("Concluir").performScrollTo().performClick()
+        // Rodapé fixo fora do scroll (achado de revisão do Caio na PR #1821) — não precisa mais
+        // de performScrollTo() pra alcançar o botão.
+        composeRule.onNodeWithText("Concluir").performClick()
         composeRule.waitForIdle()
 
         assert(dismissChamado) { "esperava onDismiss chamado ao tocar em Concluir" }

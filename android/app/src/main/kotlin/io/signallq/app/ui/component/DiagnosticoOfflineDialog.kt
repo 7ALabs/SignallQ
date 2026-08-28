@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -81,7 +83,17 @@ fun DiagnosticoOfflineDialog(onDismiss: () -> Unit) {
     }
 }
 
-/** `internal` (não `private`) para permitir teste de UI direto, sem passar pelo ViewModel/Factory reais (que exigem Context/rede). */
+/**
+ * `internal` (não `private`) para permitir teste de UI direto, sem passar pelo ViewModel/Factory
+ * reais (que exigem Context/rede).
+ *
+ * Topo e rodapé ficam fora do `verticalScroll` de propósito, cada um com o inset correto
+ * (`statusBarsPadding`/`navigationBarsPadding`) — achado de revisão do Caio na PR #1821: como
+ * `usePlatformDefaultWidth = false` faz este ser o único diálogo full-screen do app sem
+ * tratamento de inset (edge-to-edge, `targetSdk 36`), o botão de fechar caía sob a status bar e
+ * o "Concluir" sob a nav bar. Fixar o rodapé fora do scroll também resolve o CTA ficar abaixo da
+ * dobra em telas pequenas ou com fonte ampliada, sem depender de o usuário rolar até o fim.
+ */
 @Composable
 internal fun DiagnosticoOfflineConteudo(
     estado: DiagnosticoOfflineEstado,
@@ -89,12 +101,13 @@ internal fun DiagnosticoOfflineConteudo(
     onDismiss: () -> Unit,
 ) {
     val c = LocalLkTokens.current
+    val concluido = estado as? DiagnosticoOfflineEstado.DiagnosticoConcluido
     Column(modifier = Modifier.fillMaxSize()) {
         DiagnosticoOfflineTopo(onDismiss)
         Column(
             modifier =
                 Modifier
-                    .fillMaxSize()
+                    .weight(1f)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = LkSpacing.xl),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.lg),
@@ -111,12 +124,14 @@ internal fun DiagnosticoOfflineConteudo(
                 color = c.onSurfaceVariant,
             )
             Spacer(Modifier.size(LkSpacing.sm))
-            DiagnosticoOfflineStepper(estado = estado, onRetry = onRetry)
-            val concluido = estado as? DiagnosticoOfflineEstado.DiagnosticoConcluido
+            DiagnosticoOfflineStepper(estado = estado)
             if (concluido != null) {
-                DiagnosticoOfflineResumo(concluido = concluido, onRetry = onRetry, onDismiss = onDismiss)
+                DiagnosticoOfflineResumoTexto(concluido = concluido)
             }
             Spacer(Modifier.size(LkSpacing.xl))
+        }
+        if (concluido != null) {
+            DiagnosticoOfflineRodape(concluido = concluido, onRetry = onRetry, onDismiss = onDismiss)
         }
     }
 }
@@ -124,7 +139,7 @@ internal fun DiagnosticoOfflineConteudo(
 @Composable
 private fun DiagnosticoOfflineTopo(onDismiss: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(LkSpacing.sm),
+        modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(LkSpacing.sm),
         horizontalArrangement = Arrangement.End,
     ) {
         IconButton(onClick = onDismiss) {
@@ -182,15 +197,20 @@ private fun rotuloEtapa(etapa: EtapaDiagnosticoOffline): String =
         EtapaDiagnosticoOffline.HOSTNAME_CAPTIVE_PORTAL -> "Hostname / captive portal"
     }
 
+/**
+ * Sem botão de retry por etapa: o fluxo real ([DiagnosticoOfflineViewModel.executarDesde]) para
+ * na primeira falha e conclui imediatamente — nunca existe um estado onde uma etapa falhou e o
+ * diagnóstico segue "em aberto" aguardando ação nela. O único retry oferecido ao usuário vive no
+ * rodapé ([DiagnosticoOfflineRodape]), evitando dois botões "Tentar novamente" idênticos na tela
+ * ao mesmo tempo (achado de revisão do Caio na PR #1821 — problema de acessibilidade, dois nós
+ * com o mesmo rótulo e a mesma ação).
+ */
 @Composable
-private fun DiagnosticoOfflineStepper(
-    estado: DiagnosticoOfflineEstado,
-    onRetry: (EtapaDiagnosticoOffline?) -> Unit,
-) {
+private fun DiagnosticoOfflineStepper(estado: DiagnosticoOfflineEstado) {
     val etapas = remember(estado) { etapasVisuais(estado) }
     Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.md)) {
         etapas.forEachIndexed { indice, etapaVisual ->
-            EtapaStepperItem(etapaVisual = etapaVisual, onRetry = onRetry)
+            EtapaStepperItem(etapaVisual = etapaVisual)
             if (indice < etapas.lastIndex) {
                 HorizontalDivider(color = LocalLkTokens.current.outlineVariant)
             }
@@ -199,10 +219,7 @@ private fun DiagnosticoOfflineStepper(
 }
 
 @Composable
-private fun EtapaStepperItem(
-    etapaVisual: EtapaVisual,
-    onRetry: (EtapaDiagnosticoOffline?) -> Unit,
-) {
+private fun EtapaStepperItem(etapaVisual: EtapaVisual) {
     val c = LocalLkTokens.current
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = LkSpacing.sm),
@@ -221,18 +238,11 @@ private fun EtapaStepperItem(
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (etapaVisual.status == StatusEtapaVisual.FALHOU) c.error else c.onSurfaceVariant,
             )
-            if (etapaVisual.status == StatusEtapaVisual.FALHOU) {
-                if (etapaVisual.motivo != null) {
-                    Text(
-                        etapaVisual.motivo,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = c.onSurfaceVariant,
-                    )
-                }
-                SignallQButton(
-                    label = "Tentar novamente",
-                    onClick = { onRetry(etapaVisual.etapa) },
-                    style = SignallQButtonStyle.Secondary,
+            if (etapaVisual.status == StatusEtapaVisual.FALHOU && etapaVisual.motivo != null) {
+                Text(
+                    etapaVisual.motivo,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.onSurfaceVariant,
                 )
             }
         }
@@ -282,12 +292,9 @@ private fun IconeStatus(
     Icon(icon, contentDescription = null, tint = tint)
 }
 
+/** Só o cartão de resumo (texto), sem ação — os botões vivem no rodapé fixo ([DiagnosticoOfflineRodape]). */
 @Composable
-private fun DiagnosticoOfflineResumo(
-    concluido: DiagnosticoOfflineEstado.DiagnosticoConcluido,
-    onRetry: (EtapaDiagnosticoOffline?) -> Unit,
-    onDismiss: () -> Unit,
-) {
+private fun DiagnosticoOfflineResumoTexto(concluido: DiagnosticoOfflineEstado.DiagnosticoConcluido) {
     val c = LocalLkTokens.current
     val etapaComFalha = concluido.etapaComFalha
     Surface(
@@ -316,20 +323,41 @@ private fun DiagnosticoOfflineResumo(
                         (if (motivo != null) ": $motivo." else ".")
                 }
             Text(mensagem, style = MaterialTheme.typography.bodyMedium, color = tituloCor)
-            Row(horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
-                if (etapaComFalha != null) {
-                    SignallQButton(
-                        label = "Tentar novamente",
-                        onClick = { onRetry(null) },
-                        style = SignallQButtonStyle.Primary,
-                    )
-                }
-                SignallQButton(
-                    label = "Concluir",
-                    onClick = onDismiss,
-                    style = if (etapaComFalha == null) SignallQButtonStyle.Primary else SignallQButtonStyle.Text,
-                )
-            }
         }
+    }
+}
+
+/**
+ * Rodapé fixo (fora do `verticalScroll`) com os botões de ação — único lugar da tela que oferece
+ * "Tentar novamente", e sempre visível independente de altura de conteúdo, tamanho de tela ou
+ * escala de fonte, com o inset de navegação aplicado (`navigationBarsPadding`).
+ */
+@Composable
+private fun DiagnosticoOfflineRodape(
+    concluido: DiagnosticoOfflineEstado.DiagnosticoConcluido,
+    onRetry: (EtapaDiagnosticoOffline?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val etapaComFalha = concluido.etapaComFalha
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.base),
+        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+    ) {
+        if (etapaComFalha != null) {
+            SignallQButton(
+                label = "Tentar novamente",
+                onClick = { onRetry(null) },
+                style = SignallQButtonStyle.Primary,
+            )
+        }
+        SignallQButton(
+            label = "Concluir",
+            onClick = onDismiss,
+            style = if (etapaComFalha == null) SignallQButtonStyle.Primary else SignallQButtonStyle.Text,
+        )
     }
 }
