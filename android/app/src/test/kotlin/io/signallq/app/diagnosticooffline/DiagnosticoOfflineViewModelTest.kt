@@ -2,6 +2,7 @@ package io.signallq.app.diagnosticooffline
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -321,5 +322,119 @@ class DiagnosticoOfflineViewModelTest {
             dispatcher.scheduler.advanceUntilIdle()
 
             assertEquals(DiagnosticoOfflineEstado.Idle, vm.estado.value)
+        }
+
+    @Test
+    fun `iniciar duas vezes seguidas nao lanca duas rodadas concorrentes`() =
+        runTest(dispatcher) {
+            // Bloqueio único da revisão do Caio na PR #1816: a guarda de Job (`jobEmAndamento`)
+            // existe pra ignorar o segundo tap sem cancelar nem reiniciar o fluxo. Prova aqui que
+            // cada etapa é executada exatamente 1x mesmo com duas chamadas consecutivas a
+            // iniciar() -- o segundo Job nunca chega a ser lançado, então não há segunda rodada
+            // pra corromper histórico ou emitir estado duplicado.
+            val execucoes = mutableListOf<EtapaDiagnosticoOffline>()
+            val vm =
+                viewModel(
+                    executor = { etapa ->
+                        execucoes += etapa
+                        delay(10)
+                        ResultadoEtapaDiagnosticoOffline.Sucesso(etapa)
+                    },
+                )
+            val estados = coletarEstados(vm)
+
+            vm.iniciar()
+            // Tap duplo: chamada imediata, antes de qualquer avanço do dispatcher de teste --
+            // jobEmAndamento já está ativo (Job fica ativo assim que launch() retorna, mesmo sem
+            // ter começado a rodar o corpo), então esta segunda chamada precisa ser ignorada.
+            vm.iniciar()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(
+                "cada etapa deve ser sondada exatamente uma vez -- tap duplo nao pode lancar rodada concorrente",
+                EtapaDiagnosticoOffline.ORDEM,
+                execucoes,
+            )
+
+            assertTrue(vm.estado.value is DiagnosticoOfflineEstado.DiagnosticoConcluido)
+            val estadoFinal = vm.estado.value as DiagnosticoOfflineEstado.DiagnosticoConcluido
+            assertNull(estadoFinal.etapaComFalha)
+            assertEquals(4, estadoFinal.historico.size)
+
+            // Nenhum TestandoEtapa duplicado na sequência observada -- confirma que não houve
+            // uma segunda corrotina emitindo por cima da primeira.
+            val etapasTestadasObservadas =
+                estados.filterIsInstance<DiagnosticoOfflineEstado.TestandoEtapa>().map { it.etapa }
+            assertEquals(EtapaDiagnosticoOffline.ORDEM, etapasTestadasObservadas)
+        }
+
+    @Test
+    fun `retry durante rodada em andamento cancela a anterior e nao mistura historico`() =
+        runTest(dispatcher) {
+            // Bloqueio único da revisão do Caio na PR #1816: retry() faz jobEmAndamento?.cancel()
+            // e escreve RetryEmAndamento SEM join() antes. Este teste fecha exatamente a janela
+            // que o Caio apontou -- força uma rodada antiga a ficar suspensa em pleno GATEWAY
+            // (via delay de tempo virtual controlado pelo próprio TestDispatcher), dispara
+            // retry() nesse meio-tempo, e prova que a rodada antiga NUNCA consegue escrever por
+            // cima do RetryEmAndamento nem duplicar GATEWAY no histórico final.
+            var chamadasGateway = 0
+            val vm =
+                viewModel(
+                    executor = { etapa ->
+                        if (etapa == EtapaDiagnosticoOffline.GATEWAY) {
+                            chamadasGateway++
+                            if (chamadasGateway == 1) {
+                                // Rodada antiga: suspende "em andamento" e, se não for
+                                // cancelada, terminaria em falha -- prova (se aparecer no
+                                // histórico ou nos estados observados) que o cancel() falhou.
+                                delay(10_000)
+                                ResultadoEtapaDiagnosticoOffline.Falha(etapa, motivo = "rodada antiga nao deveria completar")
+                            } else {
+                                ResultadoEtapaDiagnosticoOffline.Sucesso(etapa)
+                            }
+                        } else {
+                            ResultadoEtapaDiagnosticoOffline.Sucesso(etapa)
+                        }
+                    },
+                )
+            val estados = coletarEstados(vm)
+
+            vm.iniciar()
+            // Avança só até o ponto de suspensão dentro do delay(10_000) -- a rodada antiga fica
+            // com Job ativo, presa em TestandoEtapa(GATEWAY), exatamente o cenário "Job ativo"
+            // que o Caio pediu para reproduzir deterministicamente.
+            dispatcher.scheduler.runCurrent()
+            assertEquals(
+                DiagnosticoOfflineEstado.TestandoEtapa(EtapaDiagnosticoOffline.GATEWAY, emptyList()),
+                vm.estado.value,
+            )
+
+            vm.retry(etapa = EtapaDiagnosticoOffline.GATEWAY)
+
+            // Escrita de RetryEmAndamento é síncrona dentro de retry() -- precisa já valer aqui,
+            // antes de qualquer avanço adicional do dispatcher, provando que não há corrida entre
+            // o cancel() e esta escrita.
+            assertTrue(vm.estado.value is DiagnosticoOfflineEstado.RetryEmAndamento)
+
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue(vm.estado.value is DiagnosticoOfflineEstado.DiagnosticoConcluido)
+            val estadoFinal = vm.estado.value as DiagnosticoOfflineEstado.DiagnosticoConcluido
+            assertNull(estadoFinal.etapaComFalha)
+            // 4, não 5: se a rodada antiga tivesse sobrevivido ao cancel(), GATEWAY apareceria
+            // duas vezes (uma da rodada cancelada, outra da nova).
+            assertEquals(4, estadoFinal.historico.size)
+            assertEquals(EtapaDiagnosticoOffline.ORDEM, estadoFinal.historico.map { it.etapa })
+            assertEquals(2, chamadasGateway)
+
+            // Nenhum estado observado carrega o motivo de falha da rodada cancelada -- prova que
+            // ela nunca escreveu em _estado depois do cancel(), nem por corrida.
+            val falhasObservadas = estados.filterIsInstance<DiagnosticoOfflineEstado.EtapaFalhou>()
+            assertTrue(falhasObservadas.none { it.motivo == "rodada antiga nao deveria completar" })
+            assertTrue(
+                estados
+                    .filterIsInstance<DiagnosticoOfflineEstado.DiagnosticoConcluido>()
+                    .none { concluido -> concluido.historico.any { it is ResultadoEtapaDiagnosticoOffline.Falha } },
+            )
         }
 }

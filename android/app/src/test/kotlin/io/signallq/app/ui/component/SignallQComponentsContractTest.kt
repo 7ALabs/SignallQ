@@ -22,6 +22,13 @@ class SignallQComponentsContractTest {
         // parar de importar o OfflineBanner() legado (ver contrato "legacy component
         // contracts remain available" abaixo -- o legado continua existindo para quem
         // ainda não migrou, só não pode coexistir com o novo na mesma tela).
+        // Regex usa só o abre-parêntese (SignallQOfflineBanner\() em vez da chamada vazia
+        // completa (SignallQOfflineBanner\(\)) -- achado da revisão do Caio na PR #1815: a
+        // Task 4 (#1811) passa o callback real `onDiagnosticarProblema`, então a chamada deixa
+        // de ser SignallQOfflineBanner() e vira SignallQOfflineBanner(onDiagnosticarProblema =
+        // ...). A string literal vazia e o regex fechado quebrariam por mudança intencional de
+        // adoção, não por regressão real -- o contrato que importa é "a tela chama o composable
+        // novo", não "chama sem nenhum argumento".
         val sourceRoot = findSourceRoot()
         val screens = File(sourceRoot, "screen")
         val allScreens = screens.walkTopDown().filter { it.extension == "kt" }.toList()
@@ -29,14 +36,14 @@ class SignallQComponentsContractTest {
 
         telasMigradas.forEach { nomeArquivo ->
             val texto = File(screens, nomeArquivo).readText()
-            assertTrue("$nomeArquivo deveria chamar SignallQOfflineBanner()", "SignallQOfflineBanner()" in texto)
+            assertTrue("$nomeArquivo deveria chamar SignallQOfflineBanner(", "SignallQOfflineBanner(" in texto)
             assertFalse(
                 "$nomeArquivo não deveria mais chamar o OfflineBanner() legado",
                 Regex("(?m)^\\s*OfflineBanner\\(\\)").containsMatchIn(texto),
             )
         }
 
-        val pilotCalls = Regex("SignallQOfflineBanner\\(\\)")
+        val pilotCalls = Regex("SignallQOfflineBanner\\(")
         assertEquals(telasMigradas.size, allScreens.sumOf { pilotCalls.findAll(it.readText()).count() })
     }
 
