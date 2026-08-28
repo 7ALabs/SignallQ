@@ -11,10 +11,16 @@ import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.LocationOff
 import androidx.compose.material.icons.outlined.WifiOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -116,11 +122,48 @@ private fun SignallQFullScreenState(
 fun SignallQOfflineBanner(
     modifier: Modifier = Modifier,
     message: String = "Sem conexão ativa. Recursos locais continuam disponíveis.",
+    // #1811 (Task 3/4) — navegação real para o fluxo de diagnóstico passo a passo (Task 2,
+    // `DiagnosticoOfflineViewModel` em `io.signallq.app.diagnosticooffline`, branch
+    // `feat/1811-diagnostico-offline-state` / PR #1814) entra aqui quando essa branch mergear.
+    // Até lá, o CTA abre o stub abaixo em vez de navegar de verdade.
+    onDiagnosticarProblema: (() -> Unit)? = null,
 ) {
+    var mostrarStubDiagnostico by remember { mutableStateOf(false) }
     SignallQBanner(
         title = "Você está offline",
         message = message,
         modifier = modifier,
         tone = SignallQFeedbackTone.Warning,
+        actionLabel = "Diagnosticar problema",
+        onAction = onDiagnosticarProblema ?: { mostrarStubDiagnostico = true },
+    )
+    if (mostrarStubDiagnostico) {
+        DiagnosticoOfflineStubDialog(onDismiss = { mostrarStubDiagnostico = false })
+    }
+}
+
+/**
+ * Placeholder de navegação para o fluxo de diagnóstico offline guiado (#1811, Task 3/4).
+ *
+ * A Task 2 (`DiagnosticoOfflineViewModel`, branch `feat/1811-diagnostico-offline-state`,
+ * PR #1814) já define o contrato de estado passo a passo (gateway → DNS → rota externa →
+ * hostname/captive portal), mas ainda não está mergeada em `main`. Este diálogo existe só para
+ * o CTA ter um destino visível enquanto isso — quando a Task 2 mergear, a Task 4 substitui esta
+ * chamada por navegação real para a tela que consome `DiagnosticoOfflineViewModel`.
+ */
+@Composable
+private fun DiagnosticoOfflineStubDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Diagnóstico guiado") },
+        text = {
+            Text(
+                "Em breve: o app vai testar gateway, DNS, rota externa e captive portal " +
+                    "para explicar o que está bloqueando sua conexão.",
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Entendi") }
+        },
     )
 }
