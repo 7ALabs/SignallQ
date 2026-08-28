@@ -127,9 +127,11 @@ portal), por motivos históricos diferentes, até serem unificados.
 
 **`ConnectivityDiagnosisEngine`/`ConnectivityDiagnosisRunner`** (`:coreNetwork`,
 `connectivity/`) — motor original, consumido em produção por `AppShellMedicaoGuiada` (medição
-guiada de Wi-Fi) e `ConnectivityBlockingPolicy` (`:featureSpeedtest`, decide se bloqueia o
-speedtest). Roda a cadeia inteira numa única chamada suspend e devolve só o resultado agregado
-ao final — não expõe progresso etapa a etapa.
+guiada de Wi-Fi, chamada direta do Runner) e por `ConnectivityBlockingPolicy` (`:featureSpeedtest`,
+extensão sobre `ConnectivityDiagnosis` — a *saída* do engine, não o engine em si — chamada por
+`MainViewModel` e `SpeedtestViewModel` para decidir se bloqueia o speedtest). Roda a cadeia inteira
+numa única chamada suspend e devolve só o resultado agregado ao final — não expõe progresso etapa
+a etapa.
 
 **`DiagnosticoOfflineExecutorReal`** (`io.signallq.app.diagnosticooffline`, em `:app`) — motor
 novo (issue #1811, Task 4), chama os mesmos probes (`GatewayReachabilityProbe`,
@@ -147,8 +149,9 @@ histórico anterior a ela. Guarda de concorrência (`jobEmAndamento`) evita corr
 tap duplo ou retry disparado durante uma rodada em andamento.
 
 Na etapa DNS, quando `DnsReachabilityProbe` falha mas `DohFallbackProbe` (contra a Cloudflare
-pública) resolve, o executor aciona `OrientadorConfiguracaoDns` (`:featureDns`, issue #1819) com
-o provedor evidenciado — sem rodar o benchmark completo de `BenchmarkDnsDoh` (7 provedores, 6
+pública) resolve, o executor aciona `OrientadorConfiguracaoDns` (`:featureDns` — histórico da
+integração na issue #1819, fechada) com o provedor evidenciado — sem rodar o benchmark completo de
+`BenchmarkDnsDoh` (7 provedores, 6
 rounds, 25 s), pesado demais para esse fluxo de resposta rápida. `provedorAtivo` é derivado
 comparando os IPs de `ContextoRedeDiagnosticoOffline.dnsServers` contra uma tabela reversa
 IP→provedor (duplicada da tabela privada de `OrientadorConfiguracaoDns.mapearProvedor` — dívida

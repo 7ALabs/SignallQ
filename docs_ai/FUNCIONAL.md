@@ -485,10 +485,12 @@ novamente" (só quando houve falha) e "Concluir".
 (Cloudflare, via DoH) antes de concluir — se o público resolve e o da rede não, o motivo diz "o
 problema é o DNS configurado na rede, não a internet em si", em vez de deixar o usuário achando
 que a internet inteira caiu. Quando essa evidência existe, o app vai além do diagnóstico: mostra uma
-recomendação real de DNS público (provedor + IPs primário/secundário, via o mesmo componente que a
-tela DNS em 5.5 usa) — sem recomendar trocar para o que a rede já está usando. As outras três etapas
-(gateway, rota externa, hostname/captive portal) ainda só explicam a causa, sem recomendação
-estruturada equivalente — dívida conhecida, não um esquecimento (issue #1819).
+recomendação real de DNS público (provedor + IPs primário/secundário, via o mesmo orientador
+(`OrientadorConfiguracaoDns`) que a tela DNS em 5.5 usa — a tela visual em si não é reaproveitada,
+só a lógica de recomendação). Não recomenda trocar para o que a rede já está usando. As outras três
+etapas (gateway, rota externa, hostname/captive portal) ainda só explicam a causa, sem recomendação
+estruturada equivalente — dívida conhecida, não um esquecimento, registrada no histórico da
+issue #1819 (fechada; sem rastreador aberto por ora).
 
 **Limitação conhecida:** o motor deste fluxo (`DiagnosticoOfflineExecutorReal`) roda em paralelo ao
 motor de conectividade usado pela medição guiada de Wi-Fi e pelo bloqueio de speedtest — os dois
