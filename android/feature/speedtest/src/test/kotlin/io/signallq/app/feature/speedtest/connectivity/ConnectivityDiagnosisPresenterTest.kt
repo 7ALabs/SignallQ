@@ -11,10 +11,14 @@ import org.junit.Test
 
 class ConnectivityDiagnosisPresenterTest {
 
-    private fun diagnostico(status: ConnectivityStatus, confidence: NivelConfianca = NivelConfianca.ALTA) = ConnectivityDiagnosis(
+    private fun diagnostico(
+        status: ConnectivityStatus,
+        confidence: NivelConfianca = NivelConfianca.ALTA,
+        localAddressAvailable: Boolean = true,
+    ) = ConnectivityDiagnosis(
         transport = EstadoConexao.wifi,
         wifiConnected = true,
-        localAddressAvailable = true,
+        localAddressAvailable = localAddressAvailable,
         gatewayConfigured = true,
         gatewayReachable = ProbeResult.Success(),
         dnsConfigured = true,
@@ -117,11 +121,44 @@ class ConnectivityDiagnosisPresenterTest {
         }
     }
 
+    // ── GH#1809 — falha de DHCP (sem IP local) ─────────────────────────────
+
     @Test
-    fun `todos os 9 estados de conectividade tem apresentacao`() {
+    fun `sem ip local usa mensagem honesta e sugere reconectar reiniciar e checar limite do roteador`() {
+        val mensagem = ConnectivityDiagnosisPresenter.apresentar(
+            diagnostico(ConnectivityStatus.NO_LOCAL_ADDRESS, localAddressAvailable = false),
+        )
+        assertTrue(
+            "mensagem deveria explicar que nao recebeu endereco de rede",
+            mensagem.mensagem.contains("endereço de rede"),
+        )
+        assertEquals(
+            listOf(
+                ConnectivityAction.ESQUECER_REDE_E_RECONECTAR,
+                ConnectivityAction.REINICIAR_EQUIPAMENTO,
+                ConnectivityAction.VERIFICAR_LIMITE_DISPOSITIVOS_ROTEADOR,
+            ),
+            mensagem.acoes,
+        )
+    }
+
+    @Test
+    fun `sem ip local nao promete certeza alem da evidencia disponivel`() {
+        val mensagem = ConnectivityDiagnosisPresenter.apresentar(
+            diagnostico(ConnectivityStatus.NO_LOCAL_ADDRESS, localAddressAvailable = false),
+        )
+        assertTrue(
+            "mensagem nao deve acusar a operadora por uma falha de DHCP local",
+            !mensagem.mensagem.contains("operadora", ignoreCase = true),
+        )
+    }
+
+    @Test
+    fun `todos os 10 estados de conectividade tem apresentacao`() {
         val estados = setOf(
             ConnectivityStatus.INTERNET_AVAILABLE,
             ConnectivityStatus.WIFI_WITHOUT_INTERNET,
+            ConnectivityStatus.NO_LOCAL_ADDRESS,
             ConnectivityStatus.GATEWAY_UNREACHABLE,
             ConnectivityStatus.DNS_FAILURE,
             ConnectivityStatus.EXTERNAL_ROUTE_FAILURE,

@@ -35,6 +35,7 @@ fun ConnectivityDiagnosis.indicaAusenciaDeInternetParaBloquearSpeedtest(): Boole
     ConnectivityStatus.WIFI_WITHOUT_INTERNET,
     ConnectivityStatus.EXTERNAL_ROUTE_FAILURE,
     ConnectivityStatus.CAPTIVE_PORTAL,
+    ConnectivityStatus.NO_LOCAL_ADDRESS,
     -> true
 
     ConnectivityStatus.DNS_FAILURE,

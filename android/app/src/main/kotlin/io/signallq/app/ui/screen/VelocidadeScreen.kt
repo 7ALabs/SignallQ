@@ -633,6 +633,9 @@ private fun ConnectivityAction.rotulo(): String =
         ConnectivityAction.REINICIAR_EQUIPAMENTO -> "Reiniciar o roteador (última opção)"
         ConnectivityAction.TESTAR_DNS_ALTERNATIVO -> "Testar um DNS alternativo"
         ConnectivityAction.CONTATAR_OPERADORA -> "Contatar a operadora"
+        ConnectivityAction.ESQUECER_REDE_E_RECONECTAR -> "Esquecer a rede Wi-Fi e reconectar"
+        ConnectivityAction.VERIFICAR_LIMITE_DISPOSITIVOS_ROTEADOR ->
+            "Verificar o limite de dispositivos do roteador"
     }
 
 @Composable
