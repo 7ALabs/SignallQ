@@ -18,6 +18,9 @@ import io.signallq.app.core.network.connectivity.HostnameProbe
 import io.signallq.app.core.network.connectivity.HostnameReachabilityProbe
 import io.signallq.app.core.network.contracts.connectivity.ProbeFailureReason
 import io.signallq.app.core.network.contracts.connectivity.ProbeResult
+import io.signallq.app.feature.dns.DiagnosticoCoerenciaDns
+import io.signallq.app.feature.dns.NivelAlertaCoerenciaDns
+import io.signallq.app.feature.dns.OrientadorConfiguracaoDns
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -71,6 +74,7 @@ class DiagnosticoOfflineExecutorReal(
     private val criarHostnameProbe: (ConnectivityProbeBinding) -> HostnameProbe = { HostnameReachabilityProbe(it) },
     private val dnsHostnamesParaTeste: List<String> = ConnectivityDiagnosisEngine.DNS_HOSTNAMES_PADRAO,
     private val obterContexto: () -> ContextoRedeDiagnosticoOffline? = { capturarContextoRedeWifiPadrao(context) },
+    private val orientadorDns: OrientadorConfiguracaoDns = OrientadorConfiguracaoDns(),
 ) : ExecutorEtapaDiagnosticoOffline {
     // Ressalva 2 da revisão do Caio na PR #1814 (registrada como "vira bloqueio na PR que
     // plugar o executor real" -- esta é essa PR): o ViewModel converte QUALQUER Throwable vindo
@@ -119,14 +123,36 @@ class DiagnosticoOfflineExecutorReal(
         // Diferenciador (Task 1, DohFallbackProbe): DoH público, independente do resolvedor
         // da rede -- distingue "resolvedor da rede quebrado" de "sem rota externa nenhuma".
         val resultadoDoh = criarDohProbe().probe(dnsHostnamesParaTeste)
+        val dohFuncionou = resultadoDoh is ProbeResult.Success
         val motivo =
-            if (resultadoDoh is ProbeResult.Success) {
+            if (dohFuncionou) {
                 "o resolvedor DNS desta rede não respondeu, mas a resolução externa (DoH) funciona " +
                     "-- o problema é o DNS configurado na rede, não a internet em si"
             } else {
                 "sem resolução DNS -- nem pelo resolvedor da rede nem por DoH externo"
             }
-        return ResultadoEtapaDiagnosticoOffline.Falha(EtapaDiagnosticoOffline.DNS, motivo)
+        // Issue #1819: quando o DoH funcionou, já temos evidência real e concreta de que a
+        // Cloudflare pública resolve nomes nesta rede (é o provedor que DohFallbackProbe
+        // consulta) -- suficiente para pedir a recomendação estruturada real ao
+        // OrientadorConfiguracaoDns (sem duplicar a lógica dele: só fornecemos o insumo que já
+        // coletamos). `provedorAtivo = null` porque não sabemos o nome do provedor configurado
+        // na rede, só os IPs em ContextoRedeDiagnosticoOffline.dnsServers -- mapear IP -> nome
+        // de provedor é fora de escopo desta issue (o orientador já lida com `null` tratando
+        // como "sem preferência atual", nunca suprime a sugestão por isso). Sem histórico de
+        // coerência: este é um diagnóstico avulso, não uma sessão de monitoramento contínuo, daí
+        // `NivelAlertaCoerenciaDns.none` -- estado inicial legítimo de `AvaliadorCoerenciaDns`,
+        // não um valor inventado.
+        val recomendacao =
+            if (dohFuncionou) {
+                orientadorDns.sugerir(
+                    melhorProvedor = "cloudflare",
+                    provedorAtivo = null,
+                    diagnosticoCoerencia = DiagnosticoCoerenciaDns(NivelAlertaCoerenciaDns.none, 0, 0, 0, 0.0),
+                )
+            } else {
+                null
+            }
+        return ResultadoEtapaDiagnosticoOffline.Falha(EtapaDiagnosticoOffline.DNS, motivo, recomendacao)
     }
 
     private suspend fun executarRotaExterna(): ResultadoEtapaDiagnosticoOffline {

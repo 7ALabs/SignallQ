@@ -2,6 +2,7 @@ package io.signallq.app.diagnosticooffline
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.signallq.app.feature.dns.ConfiguracaoDnsSugerida
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,6 +49,11 @@ sealed interface ResultadoEtapaDiagnosticoOffline {
     data class Falha(
         override val etapa: EtapaDiagnosticoOffline,
         val motivo: String? = null,
+        // Issue #1819 — só a etapa DNS preenche isto (via OrientadorConfiguracaoDns real, sem
+        // duplicar a lógica de recomendação). Gateway/rota externa/hostname continuam só com
+        // `motivo`: não há orientador estruturado equivalente pra elas ainda — débito residual
+        // registrado na própria #1819, não issue nova (baixo volume).
+        val recomendacaoDns: ConfiguracaoDnsSugerida? = null,
     ) : ResultadoEtapaDiagnosticoOffline
 }
 
