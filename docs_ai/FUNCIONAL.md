@@ -4,7 +4,7 @@ description: "O que o app Android SignallQ (io.signallq.app) entrega ao usuário
 type: "funcional"
 status: "ativo"
 owner: "Claudete"
-last_updated: "2026-08-22"
+last_updated: "2026-08-28"
 ---
 
 - **Fonte de verdade:** o código do app consumer em `android/app/src/main/kotlin/io/signallq/app/`
@@ -465,6 +465,35 @@ ficam dentro de 10 ms, a tela diz "Empate técnico entre os servidores mais ráp
 (`DnsScreen.kt:480-490`). **Guia** — colapsável "Quando vale a pena trocar DNS?", com o passo a
 passo real de configuração em duas abas (Dispositivo, 5 passos; Roteador, 6 passos), cada uma
 declarando o escopo do efeito.
+
+### 5.5b Diagnóstico offline guiado
+
+**Gatilho:** CTA "Diagnosticar problema" dentro do `SignallQOfflineBanner`
+(`ui/component/SignallQScreenState.kt`), o banner não-bloqueante que aparece quando o app detecta
+"sem conexão ativa" em telas como Sinal e Dispositivos — o banner continua mostrando dado local já
+calculado (issue #1672), o CTA é a ação opcional pra investigar a causa.
+
+**Fluxo:** ao tocar no CTA, abre `DiagnosticoOfflineDialog` — diálogo full-screen com um stepper
+de 4 etapas testadas em sequência, na mesma ordem que o motor de conectividade do app já usa:
+Gateway → DNS → Rota externa → Hostname/captive portal. Cada etapa mostra "Aguardando" → "Testando…"
+→ "Concluído com sucesso" ou "Falhou", com o motivo em linguagem direta quando falha. O fluxo para
+na primeira falha e conclui — não continua testando as etapas seguintes de uma rede que já não
+responde. Ao final, um resumo (sucesso total ou "Diagnóstico concluído com falha") oferece "Tentar
+novamente" (só quando houve falha) e "Concluir".
+
+**Diferencial de DNS:** quando a etapa DNS falha, o app testa também um resolvedor DNS público
+(Cloudflare, via DoH) antes de concluir — se o público resolve e o da rede não, o motivo diz "o
+problema é o DNS configurado na rede, não a internet em si", em vez de deixar o usuário achando
+que a internet inteira caiu. Quando essa evidência existe, o app vai além do diagnóstico: mostra uma
+recomendação real de DNS público (provedor + IPs primário/secundário, via o mesmo componente que a
+tela DNS em 5.5 usa) — sem recomendar trocar para o que a rede já está usando. As outras três etapas
+(gateway, rota externa, hostname/captive portal) ainda só explicam a causa, sem recomendação
+estruturada equivalente — dívida conhecida, não um esquecimento (issue #1819).
+
+**Limitação conhecida:** o motor deste fluxo (`DiagnosticoOfflineExecutorReal`) roda em paralelo ao
+motor de conectividade usado pela medição guiada de Wi-Fi e pelo bloqueio de speedtest — os dois
+sabem testar a mesma sequência de sondagens de forma independente, até serem unificados (dívida
+técnica registrada, issue #1817).
 
 ### 5.6 Fibra / equipamento de internet
 

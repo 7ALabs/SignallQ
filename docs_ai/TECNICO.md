@@ -4,7 +4,7 @@ description: "Stack, build, persistência, integrações Cloudflare, analytics e
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-19"
+last_updated: "2026-08-28"
 ---
 
 # Documentação técnica — SignallQ consumer
@@ -106,14 +106,53 @@ histórica em `.claude/rules/higiene-e-padronizacao-repositorio.md` §4.1 marcad
 
 Detalhe que costuma ser documentado errado: **não existe uma única pilha HTTP**.
 
-- **`:coreNetwork` não usa OkHttp.** As sondagens de rede usam `HttpURLConnection`, `Socket` e
-  `InetAddress` puros, amarrados à `Network` sob análise — necessário para medir a interface
-  correta em vez da rota padrão do sistema. Oito timeouts constantes: passo 2500 ms, global
-  8000 ms, gateway 1200 ms, DNS 1500 ms, IP externo 1500 ms, hostname 2500 ms, RTT de gateway
-  1000 ms, varredura Wi-Fi 10 000 ms.
+- **`:coreNetwork` majoritariamente não usa OkHttp.** As sondagens de rede (gateway, DNS do
+  sistema, IP externo, hostname) usam `HttpURLConnection`, `Socket` e `InetAddress` puros,
+  amarrados à `Network` sob análise — necessário para medir a interface correta em vez da rota
+  padrão do sistema. Oito timeouts constantes: passo 2500 ms, global 8000 ms, gateway 1200 ms,
+  DNS 1500 ms, IP externo 1500 ms, hostname 2500 ms, RTT de gateway 1000 ms, varredura Wi-Fi
+  10 000 ms. **Exceção (issue #1811, Task 1):** `DohFallbackProbe` — o único probe de
+  `connectivity/` que faz uma requisição DoH real contra `cloudflare-dns.com` — usa OkHttp
+  (timeout configurável por instância, não singleton), porque não precisa amarrar à `Network`
+  sob análise da mesma forma que os outros (é sempre uma consulta contra o resolvedor público).
 - **OkHttp é usado nas chamadas a Workers**, em `:featureDiagnostico`.
 - **`:featureDevices` fixa `okhttp:5.4.0` direto no `build.gradle.kts`**, fora do version catalog —
   pode divergir do `libs.okhttp` dos demais módulos. Dívida registrada.
+
+### 2.4 Diagnóstico de conectividade: dois motores paralelos
+
+Dívida arquitetural conhecida e registrada (issue #1817) — dois orquestradores independentes
+sabem rodar a mesma sequência de sondagens (gateway → DNS → rota externa → hostname/captive
+portal), por motivos históricos diferentes, até serem unificados.
+
+**`ConnectivityDiagnosisEngine`/`ConnectivityDiagnosisRunner`** (`:coreNetwork`,
+`connectivity/`) — motor original, consumido em produção por `AppShellMedicaoGuiada` (medição
+guiada de Wi-Fi) e `ConnectivityBlockingPolicy` (`:featureSpeedtest`, decide se bloqueia o
+speedtest). Roda a cadeia inteira numa única chamada suspend e devolve só o resultado agregado
+ao final — não expõe progresso etapa a etapa.
+
+**`DiagnosticoOfflineExecutorReal`** (`io.signallq.app.diagnosticooffline`, em `:app`) — motor
+novo (issue #1811, Task 4), chama os mesmos probes (`GatewayReachabilityProbe`,
+`DnsReachabilityProbe`/`DohFallbackProbe`, `ExternalIpReachabilityProbe`,
+`HostnameReachabilityProbe`) diretamente, na mesma ordem, mas devolve o resultado de UMA etapa
+por chamada — necessário para o diagnóstico offline guiado (5.5b em `FUNCIONAL.md`) mostrar
+progresso real conforme cada sondagem termina, sem reescrever o Runner original e arriscar
+regressão nos dois consumidores de produção.
+
+**`DiagnosticoOfflineViewModel`** (mesmo pacote) é o state holder consumido pela UI —
+`StateFlow<DiagnosticoOfflineEstado>` com seis estados (`Idle`, `TestandoEtapa`, `EtapaOk`,
+`EtapaFalhou`, `RetryEmAndamento`, `DiagnosticoConcluido`), execução sequencial que para na
+primeira falha, e retry (da última etapa que falhou, ou de uma etapa explícita) preservando o
+histórico anterior a ela. Guarda de concorrência (`jobEmAndamento`) evita corrotinas paralelas em
+tap duplo ou retry disparado durante uma rodada em andamento.
+
+Na etapa DNS, quando `DnsReachabilityProbe` falha mas `DohFallbackProbe` (contra a Cloudflare
+pública) resolve, o executor aciona `OrientadorConfiguracaoDns` (`:featureDns`, issue #1819) com
+o provedor evidenciado — sem rodar o benchmark completo de `BenchmarkDnsDoh` (7 provedores, 6
+rounds, 25 s), pesado demais para esse fluxo de resposta rápida. `provedorAtivo` é derivado
+comparando os IPs de `ContextoRedeDiagnosticoOffline.dnsServers` contra uma tabela reversa
+IP→provedor (duplicada da tabela privada de `OrientadorConfiguracaoDns.mapearProvedor` — dívida
+registrada, issue #1823), para não recomendar trocar para o DNS que a rede já usa.
 
 ## 3. Modelo de dados
 
