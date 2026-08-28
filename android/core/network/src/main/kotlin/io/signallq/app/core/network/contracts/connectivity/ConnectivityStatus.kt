@@ -13,6 +13,11 @@ enum class ConnectivityStatus {
      *  conclusão honesta quando não dá para atribuir a causa a uma camada específica. */
     WIFI_WITHOUT_INTERNET,
 
+    /** Wi-Fi conectado, mas o aparelho não recebeu endereço IP local (falha de DHCP) —
+     *  camada anterior ao gateway: sem IP local não faz sentido testar gateway/DNS/rota
+     *  externa (GH#1809). */
+    NO_LOCAL_ADDRESS,
+
     /** Wi-Fi conectado, mas o gateway local não responde. */
     GATEWAY_UNREACHABLE,
 

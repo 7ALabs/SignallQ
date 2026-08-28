@@ -143,6 +143,7 @@ class ConnectivityDiagnosisEngine(
         val captivePortalDetectado = context.androidCaptivePortalCapability || captivePortalSuspeito
         val outcome = ConnectivityProbeOutcome(
             wifiConnected = context.wifiConnected,
+            localAddressAvailable = context.localAddressAvailable,
             gatewayConfigured = context.gatewayIp != null,
             gatewayReachable = gatewayReachable,
             dnsConfigured = context.dnsServers.isNotEmpty(),

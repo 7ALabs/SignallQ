@@ -14,6 +14,8 @@ enum class ConnectivityAction {
     REINICIAR_EQUIPAMENTO,
     TESTAR_DNS_ALTERNATIVO,
     CONTATAR_OPERADORA,
+    ESQUECER_REDE_E_RECONECTAR,
+    VERIFICAR_LIMITE_DISPOSITIVOS_ROTEADOR,
 }
 
 /** Texto mínimo e honesto + ações ordenadas para apresentar um [ConnectivityDiagnosis]
@@ -48,6 +50,17 @@ object ConnectivityDiagnosisPresenter {
                 ConnectivityAction.TESTAR_OUTRO_APARELHO,
                 ConnectivityAction.REINICIAR_EQUIPAMENTO,
                 ConnectivityAction.CONTATAR_OPERADORA,
+            ),
+        )
+
+        ConnectivityStatus.NO_LOCAL_ADDRESS -> ConnectivityDiagnosisMensagem(
+            titulo = "Sem endereço de rede",
+            mensagem = "Seu celular está conectado ao Wi-Fi, mas não recebeu um endereço de rede " +
+                "do roteador — por isso não conseguimos testar mais nada nesta conexão.",
+            acoes = listOf(
+                ConnectivityAction.ESQUECER_REDE_E_RECONECTAR,
+                ConnectivityAction.REINICIAR_EQUIPAMENTO,
+                ConnectivityAction.VERIFICAR_LIMITE_DISPOSITIVOS_ROTEADOR,
             ),
         )
 

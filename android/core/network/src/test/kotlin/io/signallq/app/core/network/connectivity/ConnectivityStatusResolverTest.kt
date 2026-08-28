@@ -11,6 +11,7 @@ class ConnectivityStatusResolverTest {
 
     private fun outcome(
         wifiConnected: Boolean = true,
+        localAddressAvailable: Boolean = true,
         gatewayConfigured: Boolean = true,
         gatewayReachable: ProbeResult = ProbeResult.Success(),
         dnsConfigured: Boolean = true,
@@ -23,6 +24,7 @@ class ConnectivityStatusResolverTest {
         globalTimeoutExceeded: Boolean = false,
     ) = ConnectivityProbeOutcome(
         wifiConnected = wifiConnected,
+        localAddressAvailable = localAddressAvailable,
         gatewayConfigured = gatewayConfigured,
         gatewayReachable = gatewayReachable,
         dnsConfigured = dnsConfigured,
@@ -144,6 +146,46 @@ class ConnectivityStatusResolverTest {
         )
         assertEquals(ConnectivityStatus.INCONCLUSIVE, resultado.status)
         assertEquals(NivelConfianca.BAIXA, resultado.confidence)
+    }
+
+    // GH#1809 -- falha de DHCP (sem IP local) e uma camada anterior ao gateway: o cliente
+    // nem chegou a ter endereco na rede, entao testar gateway/DNS/rota externa nao faz sentido.
+
+    @Test
+    fun `sem ip local isolado retorna no local address com confianca alta`() {
+        val resultado = ConnectivityStatusResolver.resolve(
+            outcome(localAddressAvailable = false),
+        )
+        assertEquals(ConnectivityStatus.NO_LOCAL_ADDRESS, resultado.status)
+        assertEquals(NivelConfianca.ALTA, resultado.confidence)
+    }
+
+    @Test
+    fun `sem ip local tem precedencia sobre gateway dns e rota externa com falha`() {
+        val resultado = ConnectivityStatusResolver.resolve(
+            outcome(
+                localAddressAvailable = false,
+                gatewayConfigured = false,
+                gatewayReachable = ProbeResult.Failure(ProbeFailureReason.HOST_UNREACHABLE),
+                dnsReachable = ProbeResult.Failure(ProbeFailureReason.DNS_RESOLUTION_FAILED),
+                externalIpReachable = ProbeResult.Failure(ProbeFailureReason.HOST_UNREACHABLE),
+                hostnameReachable = ProbeResult.Failure(ProbeFailureReason.HOST_UNREACHABLE),
+            ),
+        )
+        assertEquals(ConnectivityStatus.NO_LOCAL_ADDRESS, resultado.status)
+    }
+
+    @Test
+    fun `sem ip local nao tem precedencia sobre wifi desconectado ou captive portal`() {
+        val semWifi = ConnectivityStatusResolver.resolve(
+            outcome(wifiConnected = false, localAddressAvailable = false),
+        )
+        assertEquals(ConnectivityStatus.WIFI_DISCONNECTED, semWifi.status)
+
+        val comCaptivePortal = ConnectivityStatusResolver.resolve(
+            outcome(captivePortalDetected = true, localAddressAvailable = false),
+        )
+        assertEquals(ConnectivityStatus.CAPTIVE_PORTAL, comCaptivePortal.status)
     }
 
     @Test

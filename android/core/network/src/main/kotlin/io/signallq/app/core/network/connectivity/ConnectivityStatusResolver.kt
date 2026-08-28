@@ -11,6 +11,9 @@ import io.signallq.app.core.network.contracts.topologia.NivelConfianca
  */
 data class ConnectivityProbeOutcome(
     val wifiConnected: Boolean,
+    /** `true` quando o link Wi-Fi possui ao menos um endereço IP local atribuído (DHCP
+     *  concluído). `false` indica falha de DHCP — camada anterior ao gateway (GH#1809). */
+    val localAddressAvailable: Boolean = true,
     val gatewayConfigured: Boolean,
     val gatewayReachable: ProbeResult,
     val dnsConfigured: Boolean,
@@ -38,8 +41,9 @@ data class ConnectivityStatusResolution(
  * função pura, sem I/O, sem Android. Único ponto de decisão do diagnóstico local (GH#1512):
  * a UI e a persistência consomem o resultado daqui, nunca recalculam a regra.
  *
- * Precedência (mais específico primeiro): transporte -> captive portal -> gateway -> DNS ->
- * rota externa -> internet ok. Cada camada só é avaliada se a anterior confirmou sucesso —
+ * Precedência (mais específico primeiro): transporte -> captive portal -> IP local (DHCP) ->
+ * gateway -> DNS -> rota externa -> internet ok. Cada camada só é avaliada se a anterior
+ * confirmou sucesso —
  * uma sondagem [ProbeResult.NotExecuted]/[ProbeResult.Unavailable]/[ProbeResult.Timeout] nunca
  * é tratada como sucesso implícito.
  */
@@ -52,6 +56,12 @@ object ConnectivityStatusResolver {
 
         if (outcome.captivePortalDetected) {
             return ConnectivityStatusResolution(ConnectivityStatus.CAPTIVE_PORTAL, NivelConfianca.ALTA)
+        }
+
+        // Sem IP local (falha de DHCP), nenhuma das sondagens seguintes faz sentido -- elas
+        // pressupõem que o aparelho já tem um endereço na rede (GH#1809).
+        if (!outcome.localAddressAvailable) {
+            return ConnectivityStatusResolution(ConnectivityStatus.NO_LOCAL_ADDRESS, NivelConfianca.ALTA)
         }
 
         val gatewaySucesso = outcome.gatewayReachable is ProbeResult.Success
