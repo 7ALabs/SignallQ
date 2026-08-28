@@ -142,11 +142,17 @@ class DiagnosticoOfflineExecutorReal(
         // coerência: este é um diagnóstico avulso, não uma sessão de monitoramento contínuo, daí
         // `NivelAlertaCoerenciaDns.none` -- estado inicial legítimo de `AvaliadorCoerenciaDns`,
         // não um valor inventado.
+        // Bloqueio de revisão do Caio na PR #1822: `provedorAtivo = null` desligava a guarda de
+        // "não sugerir o que a rede já usa" dentro de `OrientadorConfiguracaoDns.sugerir()` --
+        // numa rede já configurada com 1.1.1.1 (ex.: UDP/53 bloqueado, mas DoH sobre 443 passa),
+        // o app recomendava trocar para o que a pessoa já tinha. `contexto.dnsServers` já está
+        // em escopo aqui (linha acima) -- só faltava usá-lo pra identificar o provedor ativo
+        // quando o IP configurado bate com um provedor público conhecido.
         val recomendacao =
             if (dohFuncionou) {
                 orientadorDns.sugerir(
                     melhorProvedor = "cloudflare",
-                    provedorAtivo = null,
+                    provedorAtivo = provedorPublicoConhecido(contexto.dnsServers),
                     diagnosticoCoerencia = DiagnosticoCoerenciaDns(NivelAlertaCoerenciaDns.none, 0, 0, 0, 0.0),
                 )
             } else {
@@ -203,6 +209,34 @@ class DiagnosticoOfflineExecutorReal(
         const val SEM_REDE_WIFI = "sem rede Wi-Fi ativa para diagnosticar"
     }
 }
+
+// Mesmos pares nome->IP que `OrientadorConfiguracaoDns.mapearProvedor` conhece -- duplicado aqui
+// só como tabela de BUSCA REVERSA (IP->nome) porque essa função é privada no orientador. Se a
+// lista de provedores dele mudar, esta tabela precisa acompanhar (nenhum teste de caracterização
+// cobre a divergência entre as duas hoje -- risco residual pequeno, aceito por ora).
+private val IPS_POR_PROVEDOR_PUBLICO: Map<String, String> =
+    mapOf(
+        "1.1.1.1" to "cloudflare",
+        "1.0.0.1" to "cloudflare",
+        "8.8.8.8" to "google",
+        "8.8.4.4" to "google",
+        "9.9.9.9" to "quad9",
+        "149.112.112.112" to "quad9",
+        "208.67.222.222" to "opendns",
+        "208.67.220.220" to "opendns",
+        "94.140.14.14" to "adguard",
+        "94.140.15.15" to "adguard",
+    )
+
+/**
+ * Identifica se algum dos servidores DNS configurados na rede é um provedor público conhecido
+ * (mesma tabela usada por `OrientadorConfiguracaoDns`). `null` quando nenhum bate -- resolvedor
+ * do roteador/ISP, provedor desconhecido, ou IP privado -- e é um `null` legítimo, não ausência
+ * de dado: `OrientadorConfiguracaoDns.sugerir()` trata `provedorAtivo = null` como "sem
+ * preferência atual conhecida", nunca suprime a sugestão por causa disso.
+ */
+private fun provedorPublicoConhecido(dnsServers: List<String>): String? =
+    dnsServers.firstNotNullOfOrNull { IPS_POR_PROVEDOR_PUBLICO[it] }
 
 /**
  * Captura real de rede/`LinkProperties` -- mesma estratégia de

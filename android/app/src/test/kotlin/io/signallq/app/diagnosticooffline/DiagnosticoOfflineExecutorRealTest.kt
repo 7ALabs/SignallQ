@@ -142,6 +142,29 @@ class DiagnosticoOfflineExecutorRealTest {
         }
 
     @Test
+    fun `dns da rede falha, DoH resolve, mas rede ja usa cloudflare -- nao recomenda trocar pro mesmo (bloqueio revisao PR 1822)`() =
+        runTest {
+            val contexto =
+                ContextoRedeDiagnosticoOffline(
+                    binding = bindingFake,
+                    gatewayIp = "192.168.0.1",
+                    // UDP/53 bloqueado (dnsRede falha) mas DoH sobre 443 passa -- cenário real
+                    // apontado pelo Caio na revisão: a rede já está configurada com 1.1.1.1.
+                    dnsServers = listOf("1.1.1.1"),
+                )
+            val executor =
+                criarExecutor(
+                    contexto = contexto,
+                    dnsRede = ProbeResult.Failure(ProbeFailureReason.DNS_RESOLUTION_FAILED),
+                    doh = ProbeResult.Success(),
+                )
+
+            val resultado = executor.executar(EtapaDiagnosticoOffline.DNS) as ResultadoEtapaDiagnosticoOffline.Falha
+
+            assertEquals(null, resultado.recomendacaoDns)
+        }
+
+    @Test
     fun `dns da rede falha e DoH tambem falha indica ausencia de resolucao total, sem recomendacao`() =
         runTest {
             val executor =
