@@ -39,10 +39,21 @@ import kotlin.io.encoding.ExperimentalEncodingApi
  * sem decodificar records.
  */
 class DohFallbackProbe(
-    private val httpClient: OkHttpClient = HTTP_CLIENT_PADRAO,
+    httpClientBase: OkHttpClient = HTTP_CLIENT_PADRAO,
     private val endpoint: String = ENDPOINT_PADRAO,
     private val timeoutMs: Long = TIMEOUT_MS_DEFAULT,
 ) : DnsProbe {
+
+    // Construído uma única vez por instância (não a cada chamada de `probe`) -- OkHttpClient
+    // é caro de criar (pool de conexões, dispatcher próprio). `httpClientBase` só empresta
+    // configuração compartilhada (ex.: interceptors); os timeouts de fato aplicados são
+    // sempre derivados de `timeoutMs`, nunca do valor fixo do cliente base -- é a causa raiz
+    // da ressalva de revisão do Caio na PR #1812: antes, `timeoutMs` não configurava nada.
+    private val httpClient: OkHttpClient = httpClientBase.newBuilder()
+        .connectTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+        .readTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+        .callTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+        .build()
 
     companion object {
         private const val TIMEOUT_MS_DEFAULT = 2000L
@@ -51,11 +62,9 @@ class DohFallbackProbe(
         // (feature/dns), mas sem nenhuma dependência de código daquele módulo.
         private const val ENDPOINT_PADRAO = "https://cloudflare-dns.com/dns-query"
 
-        private val HTTP_CLIENT_PADRAO = OkHttpClient.Builder()
-            .connectTimeout(TIMEOUT_MS_DEFAULT, TimeUnit.MILLISECONDS)
-            .readTimeout(TIMEOUT_MS_DEFAULT, TimeUnit.MILLISECONDS)
-            .callTimeout(TIMEOUT_MS_DEFAULT, TimeUnit.MILLISECONDS)
-            .build()
+        // Base sem timeout customizado -- os timeouts reais são sempre reaplicados acima
+        // a partir de `timeoutMs`, então o valor aqui é irrelevante na prática.
+        private val HTTP_CLIENT_PADRAO = OkHttpClient.Builder().build()
     }
 
     @OptIn(ExperimentalEncodingApi::class)

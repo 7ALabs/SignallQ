@@ -30,6 +30,15 @@ class DohFallbackProbeTest {
             .build()
     }
 
+    private fun probeComTimeoutMs(
+        timeoutMs: Long,
+        httpClientBase: OkHttpClient = httpClient,
+    ) = DohFallbackProbe(
+        httpClientBase = httpClientBase,
+        endpoint = server.url("/dns-query").toString(),
+        timeoutMs = timeoutMs,
+    )
+
     @After
     fun tearDown() {
         server.shutdown()
@@ -51,7 +60,7 @@ class DohFallbackProbeTest {
                 .setResponseCode(200)
                 .setBody(okio.Buffer().write(respostaDnsBinaria(rcode = 0, ancount = 1))),
         )
-        val probe = DohFallbackProbe(httpClient = httpClient, endpoint = server.url("/dns-query").toString(), timeoutMs = 500)
+        val probe = probeComTimeoutMs(timeoutMs = 500)
 
         val resultado = probe.probe(listOf("exemplo.com"))
 
@@ -64,7 +73,7 @@ class DohFallbackProbeTest {
             MockResponse()
                 .setSocketPolicy(SocketPolicy.NO_RESPONSE),
         )
-        val probe = DohFallbackProbe(httpClient = httpClient, endpoint = server.url("/dns-query").toString(), timeoutMs = 500)
+        val probe = probeComTimeoutMs(timeoutMs = 500)
 
         val resultado = probe.probe(listOf("exemplo.com"))
 
@@ -78,7 +87,7 @@ class DohFallbackProbeTest {
                 .setResponseCode(200)
                 .setBody(okio.Buffer().write(respostaDnsBinaria(rcode = 3, ancount = 0))),
         )
-        val probe = DohFallbackProbe(httpClient = httpClient, endpoint = server.url("/dns-query").toString(), timeoutMs = 500)
+        val probe = probeComTimeoutMs(timeoutMs = 500)
 
         val resultado = probe.probe(listOf("host-inexistente.invalido"))
 
@@ -88,11 +97,36 @@ class DohFallbackProbeTest {
 
     @Test
     fun `sem hostname informado retorna Unavailable sem chamar a rede`() = runBlocking {
-        val probe = DohFallbackProbe(httpClient = httpClient, endpoint = server.url("/dns-query").toString(), timeoutMs = 500)
+        val probe = probeComTimeoutMs(timeoutMs = 500)
 
         val resultado = probe.probe(emptyList())
 
         assertTrue("esperava Unavailable, obteve $resultado", resultado is ProbeResult.Unavailable)
         assertEquals(0, server.requestCount)
+    }
+
+    /**
+     * Regressão da ressalva de revisão do Caio na PR #1812: `timeoutMs` precisa ser o
+     * timeout de fato aplicado ao cliente HTTP, não só o número reportado em
+     * [ProbeResult.Timeout]. Usa deliberadamente um `httpClientBase` SEM timeout curto
+     * configurado (padrão OkHttp, dezenas de segundos) para provar que é `timeoutMs` --
+     * não o cliente base -- quem estoura a chamada.
+     */
+    @Test
+    fun `timeoutMs configura o cliente de fato, mesmo com cliente base sem timeout curto`() = runBlocking {
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE))
+        val clienteBaseSemTimeoutCurto = OkHttpClient.Builder().build()
+        val probe = probeComTimeoutMs(timeoutMs = 300, httpClientBase = clienteBaseSemTimeoutCurto)
+
+        val decorridoMs = System.currentTimeMillis()
+        val resultado = probe.probe(listOf("exemplo.com"))
+        val duracaoMs = System.currentTimeMillis() - decorridoMs
+
+        assertTrue("esperava Timeout, obteve $resultado", resultado is ProbeResult.Timeout)
+        assertEquals(300L, (resultado as ProbeResult.Timeout).afterMs)
+        assertTrue(
+            "esperava estourar perto de 300ms (timeoutMs), levou ${duracaoMs}ms -- indica que o cliente base, nao timeoutMs, esta valendo",
+            duracaoMs < 2000,
+        )
     }
 }
