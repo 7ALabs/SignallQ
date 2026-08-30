@@ -97,6 +97,117 @@ class NdsClientTest {
     }
 
     // -------------------------------------------------------------------
+    // v2 (feat/nds-client-v2) — useV2=true sempre escolhe a rota v2; o contrato
+    // aceita contexto parcial ou ausente.
+    // -------------------------------------------------------------------
+
+    @Test
+    fun `evaluate com useV2=false sempre chama v1 mesmo com objective e subcategory`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(successBody))
+        val requestComContexto = sampleRequest.copy(
+            context = NdsDiagnosticContext(objective = "JOGOS_COM_LAG", subcategory = "lag_horario_pico"),
+        )
+
+        client.evaluate(requestComContexto, useV2 = false)
+
+        assertEquals("/v1/diagnostics/evaluate", server.takeRequest().path)
+    }
+
+    @Test
+    fun `evaluate com useV2=true e objective sem subcategory chama v2`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"raw":{},"explanation":{"titulo":"t","descricao":"d","dados":[]}}"""))
+        val requestSoObjective = sampleRequest.copy(
+            context = NdsDiagnosticContext(objective = "JOGOS_COM_LAG"),
+        )
+
+        client.evaluate(requestSoObjective, useV2 = true)
+
+        assertEquals("/v2/diagnostics/evaluate", server.takeRequest().path)
+    }
+
+    @Test
+    fun `evaluate com useV2=true sem context algum chama v2`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"raw":{},"explanation":{"titulo":"t","descricao":"d","dados":[]}}"""))
+
+        client.evaluate(sampleRequest, useV2 = true)
+
+        assertEquals("/v2/diagnostics/evaluate", server.takeRequest().path)
+    }
+
+    @Test
+    fun `evaluate com useV2=true e objective+subcategory chama v2`() = runBlocking {
+        val v2Body =
+            """
+            {
+              "raw": { "score": 42 },
+              "explanation": {
+                "titulo": "Pico de latência no horário de maior uso",
+                "descricao": "A rede fica congestionada entre 19h e 22h.",
+                "dados": ["LATENCY_HIGH"],
+                "acao_usuario": "Evite downloads grandes nesse horário."
+              }
+            }
+            """.trimIndent()
+        server.enqueue(MockResponse().setResponseCode(200).setBody(v2Body))
+        val requestComContexto = sampleRequest.copy(
+            context = NdsDiagnosticContext(objective = "JOGOS_COM_LAG", subcategory = "lag_horario_pico"),
+        )
+
+        val outcome = client.evaluate(requestComContexto, useV2 = true)
+
+        assertEquals("/v2/diagnostics/evaluate", server.takeRequest().path)
+        assertTrue(outcome is NdsDiagnosticsOutcome.Success)
+        val response = (outcome as NdsDiagnosticsOutcome.Success).response
+        assertEquals("Pico de latência no horário de maior uso", response.explanationV2?.titulo)
+        assertEquals(listOf("LATENCY_HIGH"), response.explanationV2?.dados)
+        assertEquals(false, response.explanationV2?.semCausaIdentificada)
+    }
+
+    @Test
+    fun `evaluate v2 envia objective e subcategory no corpo`() = runBlocking {
+        server.enqueue(
+            MockResponse().setResponseCode(200)
+                .setBody("""{"raw":{},"explanation":{"titulo":"t","descricao":"d"}}"""),
+        )
+        val requestComContexto = sampleRequest.copy(
+            context = NdsDiagnosticContext(objective = "JOGOS_COM_LAG", subcategory = "lag_horario_pico"),
+        )
+
+        client.evaluate(requestComContexto, useV2 = true)
+
+        val sentBody = JSONObject(server.takeRequest().body.readUtf8())
+        val context = sentBody.getJSONObject("context")
+        assertEquals("JOGOS_COM_LAG", context.getString("objective"))
+        assertEquals("lag_horario_pico", context.getString("subcategory"))
+    }
+
+    @Test
+    fun `evaluate v2 com sem_causa_identificada true e mapeado corretamente`() = runBlocking {
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                """
+                {
+                  "raw": {},
+                  "explanation": {
+                    "titulo": "Não foi possível identificar a causa",
+                    "descricao": "Os dados coletados não indicam uma causa provável.",
+                    "sem_causa_identificada": true
+                  }
+                }
+                """.trimIndent(),
+            ),
+        )
+        val requestComContexto = sampleRequest.copy(
+            context = NdsDiagnosticContext(objective = "JOGOS_COM_LAG", subcategory = "lag_horario_pico"),
+        )
+
+        val outcome = client.evaluate(requestComContexto, useV2 = true) as NdsDiagnosticsOutcome.Success
+
+        assertEquals(true, outcome.response.explanationV2?.semCausaIdentificada)
+        assertNull(outcome.response.explanationV2?.acaoUsuario)
+    }
+
+    // -------------------------------------------------------------------
     // Sucesso — os 3 modulos do exemplo do ADR-017.
     // -------------------------------------------------------------------
 

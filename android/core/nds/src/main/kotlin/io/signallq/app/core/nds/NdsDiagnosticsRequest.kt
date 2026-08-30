@@ -66,6 +66,8 @@ data class NdsFiberInfo(
 data class NdsDiagnosticContext(
     val reportedProblem: String? = null,
     val objective: String? = null,
+    /** Recorte estruturado opcional do objetivo aceito pelo contrato v2 do NDS. */
+    val subcategory: String? = null,
     val symptoms: List<String> = emptyList(),
     val answers: Map<String, String> = emptyMap(),
 )
@@ -112,6 +114,7 @@ data class NdsDiagnosticsRequest(
             root.put("context", JSONObject().apply {
                 c.reportedProblem?.takeIf(String::isNotBlank)?.let { put("reported_problem", it) }
                 c.objective?.takeIf(String::isNotBlank)?.let { put("objective", it) }
+                c.subcategory?.takeIf(String::isNotBlank)?.let { put("subcategory", it) }
                 if (c.symptoms.isNotEmpty()) put("symptoms", JSONArray(c.symptoms))
                 if (c.answers.isNotEmpty()) put("answers", JSONObject(c.answers))
             })

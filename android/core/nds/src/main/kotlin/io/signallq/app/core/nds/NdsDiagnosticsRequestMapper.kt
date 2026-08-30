@@ -41,6 +41,9 @@ private const val NDS_APP_ID = "io.signallq.app"
  * ## Gap documentado: `dns.hijacked`
  * Ainda nao ha coleta desse dado no app (ADR-017, pendencias em aberto) — fica
  * sempre `null` aqui, mesmo com bloco `dns` presente.
+ *
+ * `context.subcategory` e opcional no contrato v2. Quando a tela tiver um recorte
+ * canônico, ele é preservado; a ausência dele não impede a avaliação v2.
  */
 fun DiagnosticInput.toNdsDiagnosticsRequest(
     appVersion: String,
@@ -124,6 +127,7 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
             NdsDiagnosticContext(
                 reportedProblem = context.reportedProblem,
                 objective = context.objective,
+                subcategory = context.subcategory,
                 symptoms = context.symptoms,
                 answers = context.answers,
             )

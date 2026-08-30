@@ -60,12 +60,21 @@ class NdsDiagnosticRepository(
      * Caminho exclusivo do Assist: NDS remoto é obrigatório e falhas não podem virar um
      * diagnóstico local silencioso. A UI traduz [NdsAssistEvaluationException] para o estado
      * de erro recuperável do Assist.
+     *
+     * [usarNdsV2] (feat/nds-client-v2) — decisão de `FeatureFlagKeys.USAR_NDS_V2_NO_ASSIST`,
+     * lida pelo chamador ([io.signallq.app.feature.diagnostico.DiagnosticOrchestrator.avaliarAssist],
+     * mesmo padrão já usado para `CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED` em
+     * [DiagnosticOrchestrator.executarProtegido][io.signallq.app.feature.diagnostico.DiagnosticOrchestrator]).
+     * Este repository não lê flags diretamente. Default `false` preserva o contrato v1
+     * inalterado; quando `true`, [NdsClient.evaluate] usa v2 mesmo com contexto parcial
+     * (ver [io.signallq.app.core.nds.NdsClient.evaluate]).
      */
-    suspend fun evaluateForAssist(input: DiagnosticInput): DiagnosticReport =
+    suspend fun evaluateForAssist(input: DiagnosticInput, usarNdsV2: Boolean = false): DiagnosticReport =
         evaluate(
             input = input,
             enabledAreas = DiagnosticArea.entries.toSet(),
             fallbackLocalOnError = false,
+            useV2 = usarNdsV2,
         )
 
     suspend fun evaluate(
@@ -77,17 +86,18 @@ class NdsDiagnosticRepository(
         // diagnostico atual roda dentro do Modo Gamer. Default `false` preserva o
         // comportamento atual; quem chamar de dentro do Modo Gamer deve passar `true`.
         perfilGamer: Boolean = false,
-    ): DiagnosticReport = evaluate(input, enabledAreas, perfilGamer, fallbackLocalOnError = true)
+    ): DiagnosticReport = evaluate(input, enabledAreas, perfilGamer, fallbackLocalOnError = true, useV2 = false)
 
     private suspend fun evaluate(
         input: DiagnosticInput,
         enabledAreas: Set<DiagnosticArea>,
         perfilGamer: Boolean = false,
         fallbackLocalOnError: Boolean,
+        useV2: Boolean = false,
     ): DiagnosticReport {
         val startedAtMs = System.currentTimeMillis()
         val request = input.toNdsDiagnosticsRequest(appVersion = BuildConfig.APP_VERSION, perfilGamer = perfilGamer)
-        val outcome = ndsClient.evaluate(request)
+        val outcome = ndsClient.evaluate(request, useV2 = useV2)
         val latenciaMs = System.currentTimeMillis() - startedAtMs
 
         return when (outcome) {

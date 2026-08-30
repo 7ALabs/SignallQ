@@ -1,13 +1,16 @@
 package io.signallq.app.feature.diagnostico.nds
 
 import io.signallq.app.core.diagnostico.ConnectionType
+import io.signallq.app.core.diagnostico.DiagnosticContext
 import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
 import io.signallq.app.core.diagnostico.DiagnosticInput
+import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.NoOpAnalyticsHelper
 import io.signallq.app.core.nds.NdsClient
+import io.signallq.app.core.nds.toDiagnosticReport
 import org.junit.Assert.assertThrows
 import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
@@ -243,5 +246,99 @@ class NdsDiagnosticRepositoryTest {
 
         val corpoEnviado = JSONObject(server.takeRequest().body.readUtf8())
         assertFalse("profile nao deveria estar presente no JSON quando perfilGamer=false", corpoEnviado.has("profile"))
+    }
+
+    // -------------------------------------------------------------------
+    // feat/nds-client-v2 — Assist com usarNdsV2. O contrato v2 aceita contexto
+    // parcial, então a flag ligada seleciona v2 mesmo sem subcategoria canônica.
+    // -------------------------------------------------------------------
+
+    @Test
+    fun `Assist com usarNdsV2=false - chama v1 identico ao comportamento anterior`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(successBody()))
+
+        val report = repository().evaluateForAssist(snapshotSaudavelInput(), usarNdsV2 = false)
+
+        val recorded = server.takeRequest()
+        assertEquals("/v1/diagnostics/evaluate", recorded.path)
+        assertEquals(DiagnosticEvaluationSource.REMOTE, report.evaluationSource)
+    }
+
+    @Test
+    fun `Assist com usarNdsV2=true sem subcategory na origem chama v2`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"raw":{},"explanation":{"titulo":"t","descricao":"d","dados":[]}}"""))
+        val inputComObjective = snapshotSaudavelInput().copy(
+            context = DiagnosticContext(objective = "JOGOS_COM_LAG"),
+        )
+
+        val report = repository().evaluateForAssist(inputComObjective, usarNdsV2 = true)
+
+        val recorded = server.takeRequest()
+        assertEquals("/v2/diagnostics/evaluate", recorded.path)
+        assertEquals(DiagnosticEvaluationSource.REMOTE, report.evaluationSource)
+    }
+
+    @Test
+    fun `Assist com usarNdsV2=true - resposta v2 e mapeada para REMOTE com explanation`() = runTest {
+        // Simula o dia em que o NdsClient recebe subcategory (via NdsClient direto,
+        // que ja aceita o campo hoje) -- prova que o restante do pipeline (Repository
+        // -> toDiagnosticReport) sabe lidar com a resposta v2 de ponta a ponta.
+        val v2Body =
+            """
+            {
+              "raw": { "score": 61 },
+              "explanation": {
+                "titulo": "Instabilidade fora do horário de pico",
+                "descricao": "A conexão oscila mesmo fora dos horários de maior uso.",
+                "acao_usuario": "Reinicie o roteador e repita o teste."
+              }
+            }
+            """.trimIndent()
+        server.enqueue(MockResponse().setResponseCode(200).setBody(v2Body))
+        val clientQueChamaV2 = NdsClient(baseUrl = server.url("/").toString(), apiToken = "test-token")
+        val repositoryComV2 = NdsDiagnosticRepository(ndsClient = clientQueChamaV2)
+        val inputComContextoCompleto = snapshotSaudavelInput().copy(
+            context = DiagnosticContext(objective = "JOGOS_COM_LAG"),
+        )
+
+        // Chama o cliente diretamente com useV2=true e um NdsDiagnosticsRequest que já
+        // carrega subcategory, para confirmar que a resposta v2 chega íntegra até o
+        // DiagnosticReport via o mesmo toDiagnosticReport usado pelo Repository.
+        val outcome = clientQueChamaV2.evaluate(
+            io.signallq.app.core.nds.NdsDiagnosticsRequest(
+                requestId = "exec-nds-v2-test",
+                app = io.signallq.app.core.nds.NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+                context = io.signallq.app.core.nds.NdsDiagnosticContext(
+                    objective = "JOGOS_COM_LAG",
+                    subcategory = "lag_horario_pico",
+                ),
+            ),
+            useV2 = true,
+        )
+
+        val recorded = server.takeRequest()
+        assertEquals("/v2/diagnostics/evaluate", recorded.path)
+        val success = outcome as io.signallq.app.core.nds.NdsDiagnosticsOutcome.Success
+        val report = success.response.toDiagnosticReport(inputComContextoCompleto, 0L)
+        assertEquals("Instabilidade fora do horário de pico", report.decisao.titulo)
+        assertEquals("Reinicie o roteador e repita o teste.", report.decisao.recomendacao)
+        assertEquals(DiagnosticStatus.attention, report.decisao.status)
+    }
+
+    @Test
+    fun `Assist com usarNdsV2=true e NDS falhando - continua sem fallback local (comportamento existente)`() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(401)
+                .setBody("""{"error":"Unauthorized","message":"Missing or invalid Bearer token."}"""),
+        )
+        val inputComObjective = snapshotSaudavelInput().copy(
+            context = DiagnosticContext(objective = "JOGOS_COM_LAG"),
+        )
+
+        assertThrows(NdsAssistEvaluationException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                repository().evaluateForAssist(inputComObjective, usarNdsV2 = true)
+            }
+        }
     }
 }

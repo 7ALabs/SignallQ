@@ -13,6 +13,13 @@ import java.util.concurrent.TimeUnit
 private const val EVALUATE_PATH = "/v1/diagnostics/evaluate"
 
 /**
+ * Contrato v2 (disponível no NDS desde a PR #24) -- aceita contexto opcional e responde
+ * `{raw, explanation: {titulo, descricao, dados, acao_usuario, sem_causa_identificada?}}`.
+ * [NdsClient.evaluate] só chama esta rota quando explicitamente pedido via `useV2 = true`.
+ */
+private const val EVALUATE_PATH_V2 = "/v2/diagnostics/evaluate"
+
+/**
  * Cliente HTTP para o Network Diagnostics Service (NDS) — fatia NDS-01
  * (#1744, ADR-017). Isolado: nenhuma tela do app depende deste cliente ainda,
  * a religacao dos consumidores reais (Home, Wifi, Devices, Diagnostico) e
@@ -54,15 +61,25 @@ class NdsClient(
      * timeout, corpo inesperado) volta como [NdsDiagnosticsOutcome.KnownError]
      * ou [NdsDiagnosticsOutcome.UnknownError].
      */
-    suspend fun evaluate(request: NdsDiagnosticsRequest): NdsDiagnosticsOutcome =
+    suspend fun evaluate(
+        request: NdsDiagnosticsRequest,
+        /**
+         * `true` pede o contrato v2. O contexto é opcional nesse contrato; o chamador
+         * ([io.signallq.app.feature.diagnostico.nds.NdsDiagnosticRepository]) decide este
+         * valor a partir da feature flag `FeatureFlagKeys.USAR_NDS_V2_NO_ASSIST` -- este
+         * cliente não lê flags.
+         */
+        useV2: Boolean = false,
+    ): NdsDiagnosticsOutcome =
         withContext(Dispatchers.IO) {
             try {
+                val path = if (useV2) EVALUATE_PATH_V2 else EVALUATE_PATH
                 val body =
                     request.toJson().toString()
                         .toRequestBody("application/json; charset=utf-8".toMediaType())
                 val httpRequest =
                     Request.Builder()
-                        .url(baseUrl.trimEnd('/') + EVALUATE_PATH)
+                        .url(baseUrl.trimEnd('/') + path)
                         .addHeader("Authorization", "Bearer $apiToken")
                         .post(body)
                         .build()

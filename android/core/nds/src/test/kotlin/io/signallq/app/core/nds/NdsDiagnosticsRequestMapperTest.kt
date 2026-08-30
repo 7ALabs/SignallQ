@@ -165,19 +165,22 @@ class NdsDiagnosticsRequestMapperTest {
     }
 
     @Test
-    fun `contexto guiado preserva objetivo e respostas estruturadas sem relato inventado`() {
+    fun `contexto guiado preserva relato objetivo subcategoria e respostas estruturadas`() {
         val request = DiagnosticInput(
             executionId = "exec-context",
             context = DiagnosticContext(
+                reportedProblem = "A conexão cai à noite.",
                 objective = "JOGOS_COM_LAG",
+                subcategory = "lag_horario_pico",
                 answers = mapOf("pergunta_0" to "resposta_1"),
             ),
         ).toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
         assertEquals("gamer", request.profile)
         assertTrue(request.capabilities.contains("usage_profiles"))
-        assertNull(request.context?.reportedProblem)
+        assertEquals("A conexão cai à noite.", request.context?.reportedProblem)
         assertEquals("JOGOS_COM_LAG", request.context?.objective)
+        assertEquals("lag_horario_pico", request.context?.subcategory)
         assertEquals(mapOf("pergunta_0" to "resposta_1"), request.context?.answers)
     }
 }
