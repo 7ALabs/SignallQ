@@ -1,1 +1,1 @@
-O Assist agora usa a nova versão do diagnóstico remoto, entende melhor o contexto relatado e apresenta uma resposta mais clara, sem expor dados técnicos internos.
+Melhoramos a estabilidade do Assist em diagnósticos mais completos, para que a análise da sua conexão tenha mais tempo para responder.
