@@ -117,11 +117,7 @@ private fun NdsDiagnosticsResponse.toDiagnosticReportV2(
     } else {
         DiagnosticStatus.attention
     }
-    val dadosFormatados = explanation.dados.entries.joinToString(separator = "\n") { (chave, valor) -> "$chave: $valor" }
-    val mensagem = listOfNotNull(
-        explanation.descricao?.takeIf(String::isNotBlank),
-        dadosFormatados.takeIf(String::isNotBlank),
-    ).joinToString(separator = "\n\n").ifBlank {
+    val mensagem = explanation.descricao?.takeIf(String::isNotBlank).orEmpty().ifBlank {
         if (explanation.semCausaIdentificada) {
             "O NDS não conseguiu identificar uma causa provável para o problema com os dados coletados."
         } else {
@@ -137,7 +133,7 @@ private fun NdsDiagnosticsResponse.toDiagnosticReportV2(
         recomendacao = explanation.acaoUsuario,
         recomendacaoPassos = listOfNotNull(explanation.acaoUsuario?.takeIf(String::isNotBlank)),
         recomendacaoId = null,
-        sourceFindingIds = emptyList(),
+        sourceFindingIds = explanation.dados,
         categoria = "nds",
         podeConcluir = status != DiagnosticStatus.inconclusive,
         categoriaOrigem = null,

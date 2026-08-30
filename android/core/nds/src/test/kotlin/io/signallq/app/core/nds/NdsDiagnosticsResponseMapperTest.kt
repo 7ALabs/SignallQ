@@ -273,7 +273,7 @@ class NdsDiagnosticsResponseMapperTest {
             explanationV2 = NdsExplanationV2(
                 titulo = "Pico de latência no horário de maior uso",
                 descricao = "A rede fica congestionada entre 19h e 22h.",
-                dados = mapOf("latencia_pico_ms" to 180),
+                dados = listOf("LATENCY_HIGH"),
                 acaoUsuario = "Evite downloads grandes nesse horário.",
                 semCausaIdentificada = false,
             ),
@@ -284,7 +284,8 @@ class NdsDiagnosticsResponseMapperTest {
 
         assertEquals("Pico de latência no horário de maior uso", report.decisao.titulo)
         assertTrue(report.decisao.mensagemUsuario.contains("A rede fica congestionada entre 19h e 22h."))
-        assertTrue(report.decisao.mensagemUsuario.contains("latencia_pico_ms"))
+        assertTrue(report.decisao.mensagemUsuario.contains("A rede fica congestionada entre 19h e 22h."))
+        assertEquals(listOf("LATENCY_HIGH"), report.decisao.sourceFindingIds)
         assertEquals("Evite downloads grandes nesse horário.", report.decisao.recomendacao)
         assertEquals(listOf("Evite downloads grandes nesse horário."), report.decisao.recomendacaoPassos)
         assertEquals(DiagnosticStatus.attention, report.decisao.status)
@@ -301,7 +302,7 @@ class NdsDiagnosticsResponseMapperTest {
             explanationV2 = NdsExplanationV2(
                 titulo = "Não foi possível identificar a causa",
                 descricao = null,
-                dados = emptyMap(),
+                dados = emptyList(),
                 acaoUsuario = null,
                 semCausaIdentificada = true,
             ),
@@ -325,7 +326,7 @@ class NdsDiagnosticsResponseMapperTest {
             explanationV2 = NdsExplanationV2(
                 titulo = null,
                 descricao = null,
-                dados = emptyMap(),
+                dados = emptyList(),
                 acaoUsuario = null,
                 semCausaIdentificada = false,
             ),

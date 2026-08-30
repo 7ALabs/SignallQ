@@ -13,12 +13,9 @@ import java.util.concurrent.TimeUnit
 private const val EVALUATE_PATH = "/v1/diagnostics/evaluate"
 
 /**
- * Contrato v2 (feat/nds-client-v2, PR #24 do repo `network-diagnostics-service`, ainda
- * não mergeada) -- aceita `context.objective`+`context.subcategory` e responde
+ * Contrato v2 (disponível no NDS desde a PR #24) -- aceita contexto opcional e responde
  * `{raw, explanation: {titulo, descricao, dados, acao_usuario, sem_causa_identificada?}}`.
- * [NdsClient.evaluate] só chama esta rota quando explicitamente pedido via
- * `useV2 = true` E o request tiver `objective`+`subcategory` preenchidos -- ver
- * kdoc do parâmetro `useV2`.
+ * [NdsClient.evaluate] só chama esta rota quando explicitamente pedido via `useV2 = true`.
  */
 private const val EVALUATE_PATH_V2 = "/v2/diagnostics/evaluate"
 
@@ -67,20 +64,16 @@ class NdsClient(
     suspend fun evaluate(
         request: NdsDiagnosticsRequest,
         /**
-         * `true` pede o contrato v2 (feat/nds-client-v2) -- só efetivo quando
-         * `request.context?.objective` E `request.context?.subcategory` estiverem AMBOS
-         * preenchidos; caso contrário esta função cai silenciosamente para
-         * `/v1/diagnostics/evaluate`, com comportamento 100% igual ao de antes desta
-         * mudança. O chamador ([io.signallq.app.feature.diagnostico.nds.NdsDiagnosticRepository])
-         * decide este valor a partir da feature flag
-         * `FeatureFlagKeys.USAR_NDS_V2_NO_ASSIST` -- este cliente não lê flags.
+         * `true` pede o contrato v2. O contexto é opcional nesse contrato; o chamador
+         * ([io.signallq.app.feature.diagnostico.nds.NdsDiagnosticRepository]) decide este
+         * valor a partir da feature flag `FeatureFlagKeys.USAR_NDS_V2_NO_ASSIST` -- este
+         * cliente não lê flags.
          */
         useV2: Boolean = false,
     ): NdsDiagnosticsOutcome =
         withContext(Dispatchers.IO) {
             try {
-                val chamarV2 = useV2 && request.context?.objective != null && request.context.subcategory != null
-                val path = if (chamarV2) EVALUATE_PATH_V2 else EVALUATE_PATH
+                val path = if (useV2) EVALUATE_PATH_V2 else EVALUATE_PATH
                 val body =
                     request.toJson().toString()
                         .toRequestBody("application/json; charset=utf-8".toMediaType())

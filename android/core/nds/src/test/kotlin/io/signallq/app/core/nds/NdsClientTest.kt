@@ -97,9 +97,8 @@ class NdsClientTest {
     }
 
     // -------------------------------------------------------------------
-    // v2 (feat/nds-client-v2) — path so muda quando useV2=true E
-    // objective+subcategory estao ambos presentes; caso contrario cai
-    // silenciosamente para v1, sem mudar nenhum comportamento existente.
+    // v2 (feat/nds-client-v2) — useV2=true sempre escolhe a rota v2; o contrato
+    // aceita contexto parcial ou ausente.
     // -------------------------------------------------------------------
 
     @Test
@@ -115,24 +114,24 @@ class NdsClientTest {
     }
 
     @Test
-    fun `evaluate com useV2=true mas sem subcategory cai para v1`() = runBlocking {
-        server.enqueue(MockResponse().setResponseCode(200).setBody(successBody))
+    fun `evaluate com useV2=true e objective sem subcategory chama v2`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"raw":{},"explanation":{"titulo":"t","descricao":"d","dados":[]}}"""))
         val requestSoObjective = sampleRequest.copy(
             context = NdsDiagnosticContext(objective = "JOGOS_COM_LAG"),
         )
 
         client.evaluate(requestSoObjective, useV2 = true)
 
-        assertEquals("/v1/diagnostics/evaluate", server.takeRequest().path)
+        assertEquals("/v2/diagnostics/evaluate", server.takeRequest().path)
     }
 
     @Test
-    fun `evaluate com useV2=true sem context algum cai para v1`() = runBlocking {
-        server.enqueue(MockResponse().setResponseCode(200).setBody(successBody))
+    fun `evaluate com useV2=true sem context algum chama v2`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"raw":{},"explanation":{"titulo":"t","descricao":"d","dados":[]}}"""))
 
         client.evaluate(sampleRequest, useV2 = true)
 
-        assertEquals("/v1/diagnostics/evaluate", server.takeRequest().path)
+        assertEquals("/v2/diagnostics/evaluate", server.takeRequest().path)
     }
 
     @Test
@@ -144,7 +143,7 @@ class NdsClientTest {
               "explanation": {
                 "titulo": "Pico de latência no horário de maior uso",
                 "descricao": "A rede fica congestionada entre 19h e 22h.",
-                "dados": { "latencia_pico_ms": 180 },
+                "dados": ["LATENCY_HIGH"],
                 "acao_usuario": "Evite downloads grandes nesse horário."
               }
             }
@@ -160,6 +159,7 @@ class NdsClientTest {
         assertTrue(outcome is NdsDiagnosticsOutcome.Success)
         val response = (outcome as NdsDiagnosticsOutcome.Success).response
         assertEquals("Pico de latência no horário de maior uso", response.explanationV2?.titulo)
+        assertEquals(listOf("LATENCY_HIGH"), response.explanationV2?.dados)
         assertEquals(false, response.explanationV2?.semCausaIdentificada)
     }
 

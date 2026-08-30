@@ -66,17 +66,7 @@ data class NdsFiberInfo(
 data class NdsDiagnosticContext(
     val reportedProblem: String? = null,
     val objective: String? = null,
-    /**
-     * Subcategoria estruturada do objetivo do diagnóstico guiado (feat/nds-client-v2) --
-     * campo exigido pelo contrato `POST /v2/diagnostics/evaluate` do NDS junto com
-     * [objective] (PR #24 do repo `network-diagnostics-service`, ainda não mergeada).
-     * Preparado aqui como opcional porque `DiagnosticContext`
-     * ([io.signallq.app.core.diagnostico.DiagnosticContext], PR #1826 no momento desta
-     * mudança) ainda não carrega essa informação -- o mapper
-     * ([toNdsDiagnosticsRequest]) sempre gera `null` até esse campo existir na origem.
-     * [NdsClient] só chama v2 quando [objective] E [subcategory] estiverem ambos
-     * presentes, então este campo continuar `null` mantém o comportamento v1 inalterado.
-     */
+    /** Recorte estruturado opcional do objetivo aceito pelo contrato v2 do NDS. */
     val subcategory: String? = null,
     val symptoms: List<String> = emptyList(),
     val answers: Map<String, String> = emptyMap(),

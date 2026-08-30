@@ -158,7 +158,7 @@
       "defaultValue": false,
       "criticality": "MEDIUM",
       "owner": "product-signallq",
-      "description": "Liga o uso do contrato POST /v2/diagnostics/evaluate do NDS (context.objective/context.subcategory, resposta {raw, explanation}) no caminho dedicado do Assist (NdsDiagnosticRepository.evaluateForAssist), no lugar do /v1/diagnostics/evaluate atual. So chama v2 quando a flag esta ligada E o request tem objective+subcategory preenchidos -- caso contrario o comportamento v1 permanece inalterado. Depende do endpoint v2 do NDS (PR #24 do repo network-diagnostics-service, ainda nao mergeada).",
+      "description": "Liga o uso do contrato POST /v2/diagnostics/evaluate do NDS (contexto opcional, resposta {raw, explanation}) no caminho dedicado do Assist (NdsDiagnosticRepository.evaluateForAssist), no lugar do /v1/diagnostics/evaluate atual. Quando a flag esta ligada, a rota v2 e usada mesmo com contexto parcial. O endpoint v2 foi publicado pelo NDS na PR #24 e a reversao continua disponivel pela flag.",
       "disabledBehavior": "SILENT_NO_OP",
       "disabledMessage": null,
       "dependencies": [],

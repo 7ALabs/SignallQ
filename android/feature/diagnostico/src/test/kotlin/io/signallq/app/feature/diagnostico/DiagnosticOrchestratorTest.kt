@@ -386,9 +386,8 @@ class DiagnosticOrchestratorTest {
 
     // -------------------------------------------------------------------
     // feat/nds-client-v2 — avaliarAssist le USAR_NDS_V2_NO_ASSIST e repassa pro
-    // NdsDiagnosticRepository. Sem subcategory disponivel em DiagnosticContext
-    // ainda, mesmo com a flag ligada o request cai em v1 -- gap documentado em
-    // NdsDiagnosticsRequestMapper.
+    // NdsDiagnosticRepository. O contrato v2 aceita contexto parcial, então a flag
+    // ligada seleciona v2 mesmo enquanto a tela não tem subcategoria canônica.
     // -------------------------------------------------------------------
 
     @Test
@@ -406,8 +405,8 @@ class DiagnosticOrchestratorTest {
     }
 
     @Test
-    fun `avaliarAssist com USAR_NDS_V2_NO_ASSIST ligada mas sem subcategory - ainda chama v1 (gap documentado)`() = runTest {
-        server.enqueue(MockResponse().setResponseCode(200).setBody(ndsSuccessBody()))
+    fun `avaliarAssist com USAR_NDS_V2_NO_ASSIST ligada sem subcategory chama v2`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"raw":{},"explanation":{"titulo":"t","descricao":"d","dados":[]}}"""))
         val ndsClient = NdsClient(baseUrl = server.url("/").toString(), apiToken = "t", client = OkHttpClient())
         val ndsRepo = NdsDiagnosticRepository(ndsClient = ndsClient)
         val orchestrator = DiagnosticOrchestrator(
@@ -418,7 +417,7 @@ class DiagnosticOrchestratorTest {
         val report = orchestrator.avaliarAssist(snapshotSaudavelInput())
 
         val recorded = server.takeRequest()
-        assertEquals("/v1/diagnostics/evaluate", recorded.path)
+        assertEquals("/v2/diagnostics/evaluate", recorded.path)
         assertEquals(DiagnosticEvaluationSource.REMOTE, report.evaluationSource)
     }
 }

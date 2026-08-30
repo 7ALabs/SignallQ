@@ -32,13 +32,11 @@ package io.signallq.app.core.featureflags
  * outra versão do app.
  *
  * [USAR_NDS_V2_NO_ASSIST] (feat/nds-client-v2) liga o uso do contrato
- * `POST /v2/diagnostics/evaluate` do NDS (`context.objective`/`context.subcategory`,
+ * `POST /v2/diagnostics/evaluate` do NDS (contexto opcional,
  * resposta `{raw, explanation}`) no caminho dedicado do Assist
  * (`NdsDiagnosticRepository.evaluateForAssist`), no lugar do `/v1/diagnostics/evaluate`
- * atual. Default `false`: o app só tenta v2 quando a flag estiver ligada E o request
- * tiver `objective`+`subcategory` preenchidos -- caso contrário o comportamento v1
- * permanece 100% inalterado. Depende do endpoint v2 do NDS (PR #24 do repo
- * `network-diagnostics-service`, ainda não mergeada) -- reversível via flag até lá.
+ * atual. Default `false`; quando ligada, a rota v2 é usada mesmo com contexto parcial.
+ * O endpoint v2 foi publicado pelo NDS na PR #24. A reversão continua disponível via flag.
  */
 object FeatureFlagKeys {
     val CONSUMER_SPEEDTEST_ENABLED = FeatureFlagKey("consumer_speedtest_enabled")

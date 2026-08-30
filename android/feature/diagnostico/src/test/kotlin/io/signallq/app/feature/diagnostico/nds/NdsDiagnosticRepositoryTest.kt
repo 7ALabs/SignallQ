@@ -249,12 +249,8 @@ class NdsDiagnosticRepositoryTest {
     }
 
     // -------------------------------------------------------------------
-    // feat/nds-client-v2 — Assist com usarNdsV2. O request que sai daqui
-    // NUNCA carrega `subcategory` ainda (DiagnosticContext nao tem esse campo,
-    // ver kdoc de toNdsDiagnosticsRequest) -- entao mesmo com a flag ligada o
-    // NdsClient continua chamando v1 ate essa origem existir. Cobrimos os dois
-    // lados: regressao com a flag desligada, e o gap documentado com a flag
-    // ligada mas sem subcategory disponivel.
+    // feat/nds-client-v2 — Assist com usarNdsV2. O contrato v2 aceita contexto
+    // parcial, então a flag ligada seleciona v2 mesmo sem subcategoria canônica.
     // -------------------------------------------------------------------
 
     @Test
@@ -269,8 +265,8 @@ class NdsDiagnosticRepositoryTest {
     }
 
     @Test
-    fun `Assist com usarNdsV2=true mas sem subcategory na origem - ainda chama v1 (gap documentado)`() = runTest {
-        server.enqueue(MockResponse().setResponseCode(200).setBody(successBody()))
+    fun `Assist com usarNdsV2=true sem subcategory na origem chama v2`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"raw":{},"explanation":{"titulo":"t","descricao":"d","dados":[]}}"""))
         val inputComObjective = snapshotSaudavelInput().copy(
             context = DiagnosticContext(objective = "JOGOS_COM_LAG"),
         )
@@ -278,7 +274,7 @@ class NdsDiagnosticRepositoryTest {
         val report = repository().evaluateForAssist(inputComObjective, usarNdsV2 = true)
 
         val recorded = server.takeRequest()
-        assertEquals("/v1/diagnostics/evaluate", recorded.path)
+        assertEquals("/v2/diagnostics/evaluate", recorded.path)
         assertEquals(DiagnosticEvaluationSource.REMOTE, report.evaluationSource)
     }
 

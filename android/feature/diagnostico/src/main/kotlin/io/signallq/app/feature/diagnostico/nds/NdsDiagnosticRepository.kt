@@ -66,8 +66,8 @@ class NdsDiagnosticRepository(
      * mesmo padrão já usado para `CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED` em
      * [DiagnosticOrchestrator.executarProtegido][io.signallq.app.feature.diagnostico.DiagnosticOrchestrator]).
      * Este repository não lê flags diretamente. Default `false` preserva o contrato v1
-     * inalterado; mesmo `true`, [NdsClient.evaluate] só chama v2 quando o request tiver
-     * `objective`+`subcategory` preenchidos (ver [io.signallq.app.core.nds.NdsClient.evaluate]).
+     * inalterado; quando `true`, [NdsClient.evaluate] usa v2 mesmo com contexto parcial
+     * (ver [io.signallq.app.core.nds.NdsClient.evaluate]).
      */
     suspend fun evaluateForAssist(input: DiagnosticInput, usarNdsV2: Boolean = false): DiagnosticReport =
         evaluate(

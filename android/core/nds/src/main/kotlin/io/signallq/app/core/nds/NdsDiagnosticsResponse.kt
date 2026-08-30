@@ -4,15 +4,16 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * Explicação do contrato v2 (feat/nds-client-v2, `POST /v2/diagnostics/evaluate`, PR #24
- * do repo `network-diagnostics-service` -- ainda não mergeada). Formato bem mais simples
+ * Explicação do contrato v2 (`POST /v2/diagnostics/evaluate`, disponível no NDS desde a
+ * PR #24). Formato bem mais simples
  * que o v1: `{raw, explanation: {titulo, descricao, dados, acao_usuario,
  * sem_causa_identificada?}}`, sem `results`/`recommendation`/`traces`.
  */
 data class NdsExplanationV2(
     val titulo: String?,
     val descricao: String?,
-    val dados: Map<String, Any?>,
+    /** Identificadores de achados que dão proveniência à explicação, não texto de UI. */
+    val dados: List<String>,
     val acaoUsuario: String?,
     /** `true` quando o NDS não conseguiu apontar uma causa provável com os dados
      *  coletados -- a UI deve mostrar isso de forma transparente, não como erro. */
@@ -111,7 +112,7 @@ internal object NdsResponseParser {
         NdsExplanationV2(
             titulo = obj.optStringOrNull("titulo"),
             descricao = obj.optStringOrNull("descricao"),
-            dados = obj.optJSONObject("dados")?.toKotlinMap() ?: emptyMap(),
+            dados = stringListFrom(obj.optJSONArray("dados")),
             acaoUsuario = obj.optStringOrNull("acao_usuario"),
             semCausaIdentificada = obj.optBoolean("sem_causa_identificada", false),
         )
