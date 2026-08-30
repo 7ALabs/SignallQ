@@ -64,9 +64,8 @@ class DiagnosticOrchestrator(
      * propagada para a UI exibir erro explícito, sem inventar resultado local.
      *
      * `usarNdsV2` (feat/nds-client-v2) segue o mesmo padrão de leitura de flag já usado
-     * em [executarProtegido] pra `CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED` — flag ligada
-     * não força v2 sozinha: [NdsDiagnosticRepository.evaluateForAssist] só chama o
-     * contrato v2 quando o request também tiver `objective`+`subcategory` preenchidos.
+     * em [executarProtegido] pra `CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED`: flag ligada
+     * seleciona o contrato v2, que aceita contexto parcial.
      */
     suspend fun avaliarAssist(input: DiagnosticInput): DiagnosticReport =
         ndsDiagnosticRepository.evaluateForAssist(
