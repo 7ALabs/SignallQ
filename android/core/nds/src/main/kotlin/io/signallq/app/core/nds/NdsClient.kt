@@ -13,6 +13,16 @@ import java.util.concurrent.TimeUnit
 private const val EVALUATE_PATH = "/v1/diagnostics/evaluate"
 
 /**
+ * Contrato v2 (feat/nds-client-v2, PR #24 do repo `network-diagnostics-service`, ainda
+ * não mergeada) -- aceita `context.objective`+`context.subcategory` e responde
+ * `{raw, explanation: {titulo, descricao, dados, acao_usuario, sem_causa_identificada?}}`.
+ * [NdsClient.evaluate] só chama esta rota quando explicitamente pedido via
+ * `useV2 = true` E o request tiver `objective`+`subcategory` preenchidos -- ver
+ * kdoc do parâmetro `useV2`.
+ */
+private const val EVALUATE_PATH_V2 = "/v2/diagnostics/evaluate"
+
+/**
  * Cliente HTTP para o Network Diagnostics Service (NDS) — fatia NDS-01
  * (#1744, ADR-017). Isolado: nenhuma tela do app depende deste cliente ainda,
  * a religacao dos consumidores reais (Home, Wifi, Devices, Diagnostico) e
@@ -54,15 +64,29 @@ class NdsClient(
      * timeout, corpo inesperado) volta como [NdsDiagnosticsOutcome.KnownError]
      * ou [NdsDiagnosticsOutcome.UnknownError].
      */
-    suspend fun evaluate(request: NdsDiagnosticsRequest): NdsDiagnosticsOutcome =
+    suspend fun evaluate(
+        request: NdsDiagnosticsRequest,
+        /**
+         * `true` pede o contrato v2 (feat/nds-client-v2) -- só efetivo quando
+         * `request.context?.objective` E `request.context?.subcategory` estiverem AMBOS
+         * preenchidos; caso contrário esta função cai silenciosamente para
+         * `/v1/diagnostics/evaluate`, com comportamento 100% igual ao de antes desta
+         * mudança. O chamador ([io.signallq.app.feature.diagnostico.nds.NdsDiagnosticRepository])
+         * decide este valor a partir da feature flag
+         * `FeatureFlagKeys.USAR_NDS_V2_NO_ASSIST` -- este cliente não lê flags.
+         */
+        useV2: Boolean = false,
+    ): NdsDiagnosticsOutcome =
         withContext(Dispatchers.IO) {
             try {
+                val chamarV2 = useV2 && request.context?.objective != null && request.context.subcategory != null
+                val path = if (chamarV2) EVALUATE_PATH_V2 else EVALUATE_PATH
                 val body =
                     request.toJson().toString()
                         .toRequestBody("application/json; charset=utf-8".toMediaType())
                 val httpRequest =
                     Request.Builder()
-                        .url(baseUrl.trimEnd('/') + EVALUATE_PATH)
+                        .url(baseUrl.trimEnd('/') + path)
                         .addHeader("Authorization", "Bearer $apiToken")
                         .post(body)
                         .build()

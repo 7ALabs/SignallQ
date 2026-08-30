@@ -257,4 +257,83 @@ class NdsDiagnosticsResponseMapperTest {
         assertEquals(listOf("Aproxime-se do roteador.", "Repita a medição."), report.decisao.recomendacaoPassos)
         assertEquals(listOf("gateway.rtt"), report.dadosAusentes)
     }
+
+    // -------------------------------------------------------------------
+    // Contrato v2 (feat/nds-client-v2) — {raw, explanation}. Mapeia pros
+    // MESMOS campos de DiagnosticResult que a UI do Assist ja le hoje
+    // (titulo/mensagemUsuario/evidencia/recomendacaoPassos), sem UI nova.
+    // -------------------------------------------------------------------
+
+    @Test
+    fun `v2 mapeia explanation para titulo mensagem e passo unico de recomendacao`() {
+        val response = NdsDiagnosticsResponse(
+            recommendation = null,
+            results = emptyList(),
+            traces = emptyList(),
+            explanationV2 = NdsExplanationV2(
+                titulo = "Pico de latência no horário de maior uso",
+                descricao = "A rede fica congestionada entre 19h e 22h.",
+                dados = mapOf("latencia_pico_ms" to 180),
+                acaoUsuario = "Evite downloads grandes nesse horário.",
+                semCausaIdentificada = false,
+            ),
+            rawV2 = mapOf("score" to 42),
+        )
+
+        val report = response.toDiagnosticReport(DiagnosticInput(executionId = "exec-v2"), 0L)
+
+        assertEquals("Pico de latência no horário de maior uso", report.decisao.titulo)
+        assertTrue(report.decisao.mensagemUsuario.contains("A rede fica congestionada entre 19h e 22h."))
+        assertTrue(report.decisao.mensagemUsuario.contains("latencia_pico_ms"))
+        assertEquals("Evite downloads grandes nesse horário.", report.decisao.recomendacao)
+        assertEquals(listOf("Evite downloads grandes nesse horário."), report.decisao.recomendacaoPassos)
+        assertEquals(DiagnosticStatus.attention, report.decisao.status)
+        assertTrue(report.decisao.podeConcluir)
+        assertEquals(mapOf("score" to 42), report.modulosRemotos["nds_v2"])
+    }
+
+    @Test
+    fun `v2 com sem_causa_identificada vira inconclusive com mensagem transparente`() {
+        val response = NdsDiagnosticsResponse(
+            recommendation = null,
+            results = emptyList(),
+            traces = emptyList(),
+            explanationV2 = NdsExplanationV2(
+                titulo = "Não foi possível identificar a causa",
+                descricao = null,
+                dados = emptyMap(),
+                acaoUsuario = null,
+                semCausaIdentificada = true,
+            ),
+        )
+
+        val report = response.toDiagnosticReport(DiagnosticInput(executionId = "exec-v2"), 0L)
+
+        assertEquals(DiagnosticStatus.inconclusive, report.decisao.status)
+        assertTrue(report.decisao.mensagemUsuario.contains("não conseguiu identificar uma causa provável"))
+        assertEquals(emptyList<String>(), report.decisao.recomendacaoPassos)
+        assertTrue(report.decisao.podeConcluir.not())
+        assertTrue(report.recomendacoes.isEmpty())
+    }
+
+    @Test
+    fun `v2 sem titulo nem descricao usa fallback honesto`() {
+        val response = NdsDiagnosticsResponse(
+            recommendation = null,
+            results = emptyList(),
+            traces = emptyList(),
+            explanationV2 = NdsExplanationV2(
+                titulo = null,
+                descricao = null,
+                dados = emptyMap(),
+                acaoUsuario = null,
+                semCausaIdentificada = false,
+            ),
+        )
+
+        val report = response.toDiagnosticReport(DiagnosticInput(executionId = "exec-v2"), 0L)
+
+        assertEquals("Diagnóstico via NDS", report.decisao.titulo)
+        assertEquals("Diagnóstico concluído.", report.decisao.mensagemUsuario)
+    }
 }

@@ -41,6 +41,14 @@ private const val NDS_APP_ID = "io.signallq.app"
  * ## Gap documentado: `dns.hijacked`
  * Ainda nao ha coleta desse dado no app (ADR-017, pendencias em aberto) — fica
  * sempre `null` aqui, mesmo com bloco `dns` presente.
+ *
+ * ## Gap documentado: `context.subcategory` (feat/nds-client-v2)
+ * [NdsDiagnosticContext.subcategory] existe no schema (preparado pro contrato v2 do
+ * NDS, `POST /v2/diagnostics/evaluate`), mas `DiagnosticContext` (`core/diagnostico`)
+ * ainda nao carrega esse dado no momento desta mudanca (PR #1826, nao mergeada) — este
+ * mapper sempre gera `subcategory = null`. `NdsClient` so tenta v2 quando `objective` E
+ * `subcategory` estao ambos presentes, entao esse gap mantem o app inteiramente no
+ * contrato v1 ate a subcategoria estruturada chegar em `DiagnosticContext`.
  */
 fun DiagnosticInput.toNdsDiagnosticsRequest(
     appVersion: String,

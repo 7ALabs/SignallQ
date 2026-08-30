@@ -30,6 +30,15 @@ package io.signallq.app.core.featureflags
  * o NDS é tentado como fonte principal e o motor local assume automaticamente quando
  * a chamada falha. O Remote Config continua podendo desligar a chamada sem publicar
  * outra versão do app.
+ *
+ * [USAR_NDS_V2_NO_ASSIST] (feat/nds-client-v2) liga o uso do contrato
+ * `POST /v2/diagnostics/evaluate` do NDS (`context.objective`/`context.subcategory`,
+ * resposta `{raw, explanation}`) no caminho dedicado do Assist
+ * (`NdsDiagnosticRepository.evaluateForAssist`), no lugar do `/v1/diagnostics/evaluate`
+ * atual. Default `false`: o app só tenta v2 quando a flag estiver ligada E o request
+ * tiver `objective`+`subcategory` preenchidos -- caso contrário o comportamento v1
+ * permanece 100% inalterado. Depende do endpoint v2 do NDS (PR #24 do repo
+ * `network-diagnostics-service`, ainda não mergeada) -- reversível via flag até lá.
  */
 object FeatureFlagKeys {
     val CONSUMER_SPEEDTEST_ENABLED = FeatureFlagKey("consumer_speedtest_enabled")
@@ -42,6 +51,7 @@ object FeatureFlagKeys {
     val CONSUMER_DIAGNOSTICO_ENABLED = FeatureFlagKey("consumer_diagnostico_enabled")
     val CONSUMER_DIAGNOSTICO_SHADOW_MODE_ENABLED = FeatureFlagKey("consumer_diagnostico_shadow_mode_enabled")
     val CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED = FeatureFlagKey("consumer_diagnostico_nds_live_enabled")
+    val USAR_NDS_V2_NO_ASSIST = FeatureFlagKey("consumer_diagnostico_assist_nds_v2_enabled")
     val CONSUMER_HISTORY_ENABLED = FeatureFlagKey("consumer_history_enabled")
     val CONSUMER_SETTINGS_ENABLED = FeatureFlagKey("consumer_settings_enabled")
 
@@ -58,6 +68,7 @@ object FeatureFlagKeys {
             CONSUMER_DIAGNOSTICO_ENABLED,
             CONSUMER_DIAGNOSTICO_SHADOW_MODE_ENABLED,
             CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED,
+            USAR_NDS_V2_NO_ASSIST,
             CONSUMER_HISTORY_ENABLED,
             CONSUMER_SETTINGS_ENABLED,
         )

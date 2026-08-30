@@ -383,4 +383,42 @@ class DiagnosticOrchestratorTest {
         assertEquals(segunda.geracao, orchestrator.snapshotFlow.value.geracao)
         assertTrue(orchestrator.cancelarReserva(segunda))
     }
+
+    // -------------------------------------------------------------------
+    // feat/nds-client-v2 — avaliarAssist le USAR_NDS_V2_NO_ASSIST e repassa pro
+    // NdsDiagnosticRepository. Sem subcategory disponivel em DiagnosticContext
+    // ainda, mesmo com a flag ligada o request cai em v1 -- gap documentado em
+    // NdsDiagnosticsRequestMapper.
+    // -------------------------------------------------------------------
+
+    @Test
+    fun `avaliarAssist com USAR_NDS_V2_NO_ASSIST desligada (default) - chama v1`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(ndsSuccessBody()))
+        val ndsClient = NdsClient(baseUrl = server.url("/").toString(), apiToken = "t", client = OkHttpClient())
+        val ndsRepo = NdsDiagnosticRepository(ndsClient = ndsClient)
+        val orchestrator = DiagnosticOrchestrator(ndsDiagnosticRepository = ndsRepo)
+
+        val report = orchestrator.avaliarAssist(snapshotSaudavelInput())
+
+        val recorded = server.takeRequest()
+        assertEquals("/v1/diagnostics/evaluate", recorded.path)
+        assertEquals(DiagnosticEvaluationSource.REMOTE, report.evaluationSource)
+    }
+
+    @Test
+    fun `avaliarAssist com USAR_NDS_V2_NO_ASSIST ligada mas sem subcategory - ainda chama v1 (gap documentado)`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(ndsSuccessBody()))
+        val ndsClient = NdsClient(baseUrl = server.url("/").toString(), apiToken = "t", client = OkHttpClient())
+        val ndsRepo = NdsDiagnosticRepository(ndsClient = ndsClient)
+        val orchestrator = DiagnosticOrchestrator(
+            ndsDiagnosticRepository = ndsRepo,
+            featureFlagProvider = FakeFeatureFlagProvider(enabled = true),
+        )
+
+        val report = orchestrator.avaliarAssist(snapshotSaudavelInput())
+
+        val recorded = server.takeRequest()
+        assertEquals("/v1/diagnostics/evaluate", recorded.path)
+        assertEquals(DiagnosticEvaluationSource.REMOTE, report.evaluationSource)
+    }
 }
