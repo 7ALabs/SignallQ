@@ -58,6 +58,7 @@ object DiagnosticoGuiadoEngine {
                 ObjetivoDiagnostico.SITES_DEMORAM -> ::avaliarSitesDemoram
                 ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA -> ::avaliarVelocidadeNaoChega
                 ObjetivoDiagnostico.WIFI_VS_OPERADORA -> ::avaliarWifiVsOperadora
+                ObjetivoDiagnostico.OUTRO_PROBLEMA -> ::avaliarOutroProblema
             }
         return avaliador(respostas, input)
     }
@@ -395,6 +396,48 @@ object DiagnosticoGuiadoEngine {
             2 -> "não muda"
             else -> "não feita"
         }
+
+    // ── Outro problema (texto livre, sem pergunta fechada) ───────────────────
+    /**
+     * [ObjetivoDiagnostico.OUTRO_PROBLEMA] não tem pergunta fechada — a pessoa descreve o
+     * problema em texto livre. Esse texto (`DiagnosticoGuiadoEstado.relatoLivre` /
+     * `relatoLivreUsuario` no payload da IA) **não é lido aqui**: sem categoria conhecida, este
+     * motor cobre as métricas mais genéricas — as mesmas 3 dimensões de "jogos com lag"
+     * (latência/jitter/perda), mais download/upload — e deixa a IA usar o relato como contexto
+     * na explicação. `respostas` é sempre vazio para este objetivo (roteiro sem pergunta).
+     */
+    private fun avaliarOutroProblema(
+        @Suppress("UNUSED_PARAMETER") respostas: List<Int>,
+        input: DiagnosticInput?,
+    ): ResultadoDiagnosticoGuiado {
+        val internet = input?.internet
+        val dims = dimsLatenciaJitterPerda(internet)
+        internet?.downloadMbps?.let {
+            dims += Dimensao("Download", "%.1f Mbps".format(it), MetricClassifier.classificarDownload(it))
+        }
+        internet?.uploadMbps?.let {
+            dims += Dimensao("Upload", "%.1f Mbps".format(it), MetricClassifier.classificarUpload(it))
+        }
+        return montarResultado(
+            objetivo = ObjetivoDiagnostico.OUTRO_PROBLEMA,
+            dims = dims,
+            mensagens = MensagensStatus(
+                ok = "As métricas gerais da sua conexão estão dentro do esperado.",
+                atencao = "Encontramos sinais de que sua conexão pode estar com dificuldades em algum momento.",
+                critica = "Encontramos sinais claros de que sua conexão está com problemas.",
+            ),
+            acoes = { status ->
+                if (status == DiagnosticStatus.ok) {
+                    emptyList()
+                } else {
+                    listOf(
+                        "Refaça o teste em um horário diferente para comparar",
+                        "Teste por cabo para isolar se é Wi-Fi ou operadora",
+                    )
+                }
+            },
+        )
+    }
 
     // ── Compartilhado ────────────────────────────────────────────────────────
 

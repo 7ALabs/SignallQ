@@ -58,6 +58,11 @@ import io.signallq.app.core.diagnostico.WifiDiagnosticInput
  */
 const val AI_PROMPT_VERSION = "diagnostico_v6_local_device"
 
+/** Limite de caracteres de [DiagnosisAiContext.relatoLivreUsuario] — espelha
+ *  `LIMITE_RELATO_LIVRE_DIAGNOSTICO` em `:app` (`DiagnosticoGuiadoRelatoLivreSection`), que não
+ *  pode ser referenciado daqui (feature não depende de app). */
+const val LIMITE_RELATO_LIVRE_USUARIO = 200
+
 // =============================================================================
 // Schema v3 — APENAS DADOS BRUTOS
 // =============================================================================
@@ -132,6 +137,22 @@ data class DiagnosisAiContext(
      * [AiObjetivoDiagnosticoFactory].
      */
     val objetivoDiagnostico: AiObjetivoDiagnostico? = null,
+    /**
+     * Relato em texto livre digitado pelo usuário quando escolhe a opção "Outro problema" do
+     * diagnóstico guiado (`ObjetivoDiagnostico.OUTRO_PROBLEMA`, sem pergunta fechada própria —
+     * ver kdoc do enum em `:core:diagnostico`). Até 200 caracteres, truncado no client
+     * (`DiagnosticoGuiadoRelatoLivreSection`) e de novo aqui na serialização, por defesa em
+     * profundidade.
+     *
+     * Campo **estruturado e distinto** de [feedbackUsuario]: [feedbackUsuario] carrega o título
+     * do objetivo escolhido (produção, `MainViewModel.analisarProblema`), enquanto este campo é
+     * só o texto livre de "Outro problema", quando existir. **Nunca** é lido pelo
+     * `DiagnosticoGuiadoEngine` para decidir status ou causa — regra de produto inalterada, o
+     * motor local continua sendo a única fonte de status/evidências. Serve apenas como contexto
+     * adicional para o `ai-diagnosis-worker` compor a explicação em prosa. `null` quando o
+     * usuário não escolheu "Outro problema" ou pulou sem escrever nada.
+     */
+    val relatoLivreUsuario: String? = null,
 )
 
 /**
@@ -568,6 +589,9 @@ object DiagnosisAiContextFactory {
         /** Ver kdoc de [DiagnosisAiContext.objetivoDiagnostico] — opcional, `null` em todos os
          *  callers de produção hoje. */
         objetivoDiagnostico: AiObjetivoDiagnostico? = null,
+        /** Ver kdoc de [DiagnosisAiContext.relatoLivreUsuario] — opcional, truncado a 200
+         *  caracteres aqui por defesa em profundidade (o client já trunca antes de chamar). */
+        relatoLivreUsuario: String? = null,
     ): DiagnosisAiContext {
         val base = buildContext(report, connectionType, input)
         val metricasComExtras = (base.metricasAtuais ?: AiMetricasAtuais()).copy(
@@ -620,6 +644,7 @@ object DiagnosisAiContextFactory {
             historico = historicoFinal,
             feedbackUsuario = feedbackUsuario,
             objetivoDiagnostico = objetivoDiagnostico,
+            relatoLivreUsuario = relatoLivreUsuario?.take(LIMITE_RELATO_LIVRE_USUARIO),
         )
     }
 

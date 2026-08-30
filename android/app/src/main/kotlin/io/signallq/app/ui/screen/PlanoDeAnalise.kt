@@ -169,6 +169,11 @@ private fun capacidadesDoObjetivo(
                     else -> null
                 },
             )
+
+        // Sem categoria conhecida (texto livre, sem pergunta fechada) — plano genérico com as
+        // dimensões mais amplas, mesmo espírito do que o motor avalia em avaliarOutroProblema.
+        ObjetivoDiagnostico.OUTRO_PROBLEMA ->
+            listOf(Capacidade.ESTADO_CONEXAO, Capacidade.LATENCIA_VARIACAO, Capacidade.DOWNLOAD_UPLOAD)
     }
 
 /**

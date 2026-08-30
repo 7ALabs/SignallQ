@@ -259,18 +259,49 @@ class DiagnosticoGuiadoEngineTest {
     // ── Perguntas: 7 objetivos, roteiro reduzido a 1 pergunta fechada cada ───
 
     @Test
-    fun `todo objetivo tem exatamente uma pergunta com pelo menos duas opcoes`() {
+    fun `todo objetivo fechado tem exatamente uma pergunta com pelo menos duas opcoes`() {
         // Roteiro reduzido de 2 para 1 pergunta por objetivo (issue "muitas
         // perguntas, dificil escolher", 2026-08) — nenhum dos 7 objetivos ficou
         // com 2 perguntas: o motor nunca leu o indice da 2a pergunta em nenhum
         // deles (ver kdoc de PerguntasDiagnosticoGuiado).
-        ObjetivoDiagnostico.entries.forEach { objetivo ->
+        //
+        // OUTRO_PROBLEMA fica fora: não tem pergunta fechada por definição (ver kdoc do enum) —
+        // coberto pelo teste dedicado logo abaixo.
+        ObjetivoDiagnostico.entries.filter { it != ObjetivoDiagnostico.OUTRO_PROBLEMA }.forEach { objetivo ->
             val perguntas = PerguntasDiagnosticoGuiado.perguntas(objetivo)
             assertEquals("objetivo $objetivo deveria ter exatamente 1 pergunta", 1, perguntas.size)
             perguntas.forEach { pergunta ->
                 assertTrue("pergunta '${pergunta.texto}' com menos de 2 opcoes", pergunta.opcoes.size >= 2)
             }
         }
+    }
+
+    @Test
+    fun `outro problema nao tem pergunta fechada`() {
+        assertTrue(PerguntasDiagnosticoGuiado.perguntas(ObjetivoDiagnostico.OUTRO_PROBLEMA).isEmpty())
+    }
+
+    @Test
+    fun `outro problema avalia com metricas gerais e ignora texto livre (nao recebido aqui)`() {
+        // O motor nunca recebe o relato livre — só respostas (sempre vazio para este objetivo) e
+        // o DiagnosticInput medido. Isso já garante, por construção de assinatura, que o texto
+        // não influencia status/causa (ver kdoc de avaliarOutroProblema).
+        val resultado =
+            DiagnosticoGuiadoEngine.avaliar(
+                ObjetivoDiagnostico.OUTRO_PROBLEMA,
+                respostas = emptyList(),
+                input = DiagnosticInput(internet = internet(latencia = 200.0, jitter = 80.0, perda = 5.0)),
+            )
+        assertTrue(resultado.evidencias.isNotEmpty())
+        assertEquals(DiagnosticStatus.critical, resultado.status)
+    }
+
+    @Test
+    fun `outro problema sem nenhuma metrica fica inconclusivo, sem inventar evidencia`() {
+        val resultado = DiagnosticoGuiadoEngine.avaliar(ObjetivoDiagnostico.OUTRO_PROBLEMA, emptyList(), null)
+        assertTrue(resultado.dadosInsuficientes)
+        assertTrue(resultado.evidencias.isEmpty())
+        assertEquals(DiagnosticStatus.inconclusive, resultado.status)
     }
 
     @Test

@@ -16,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.DiagnosticReport
@@ -73,6 +74,70 @@ class DiagnosticoGuiadoScreenTest {
 
         composeRule.onNodeWithText("Vamos descobrir o que está acontecendo").assertIsDisplayed()
         composeRule.onNodeWithText(ObjetivoDiagnostico.JOGOS_COM_LAG.titulo).assertIsDisplayed()
+    }
+
+    // ─── melhoria do Assist (2026-08) — pular em cada etapa e "Outro problema" ──────────────────
+
+    @Test
+    fun `pular a escolha de objetivo vai direto ao diagnostico sem pedir motivo`() {
+        setContent()
+
+        composeRule.onNodeWithText("Pular e ir direto para o diagnóstico").performClick()
+
+        // Com medição já concluída e válida (default de setContent), pular a escolha de objetivo
+        // esgota o roteiro (nenhuma pergunta) e cai direto na conclusão.
+        composeRule.onNodeWithText("Resultado").assertIsDisplayed()
+    }
+
+    @Test
+    fun `pular a pergunta de subcategoria apos escolher objetivo ainda chega ao resultado`() {
+        setContent(objetivoPreSelecionado = ObjetivoDiagnostico.SITES_DEMORAM)
+
+        composeRule.onNodeWithText("Isso acontece em quais sites?").assertIsDisplayed()
+        composeRule.onNodeWithText("Pular esta pergunta").performClick()
+
+        composeRule.onNodeWithText("Resultado").assertIsDisplayed()
+    }
+
+    @Test
+    fun `outro problema mostra campo de texto livre em vez de pergunta fechada`() {
+        setContent()
+
+        composeRule.onNodeWithText(ObjetivoDiagnostico.OUTRO_PROBLEMA.titulo).performScrollTo().performClick()
+
+        composeRule.onNodeWithText("Descreva o que está acontecendo").assertIsDisplayed()
+        composeRule.onNodeWithText("Isso acontece em quais sites?").assertDoesNotExist()
+    }
+
+    @Test
+    fun `outro problema com texto dentro do limite continua para o resultado`() {
+        setContent()
+
+        composeRule.onNodeWithText(ObjetivoDiagnostico.OUTRO_PROBLEMA.titulo).performScrollTo().performClick()
+        composeRule.onNodeWithTag(TAG_RELATO_LIVRE_DIAGNOSTICO).performTextInput("A internet cai toda noite depois de uma hora.")
+        composeRule.onNodeWithText("Continuar").performClick()
+
+        composeRule.onNodeWithText("Resultado").assertIsDisplayed()
+    }
+
+    @Test
+    fun `outro problema trunca o relato livre em 200 caracteres`() {
+        setContent()
+
+        composeRule.onNodeWithText(ObjetivoDiagnostico.OUTRO_PROBLEMA.titulo).performScrollTo().performClick()
+        composeRule.onNodeWithTag(TAG_RELATO_LIVRE_DIAGNOSTICO).performTextInput("a".repeat(250))
+
+        composeRule.onNodeWithText("200/200").assertIsDisplayed()
+    }
+
+    @Test
+    fun `pular a pergunta de outro problema sem escrever nada tambem chega ao resultado`() {
+        setContent()
+
+        composeRule.onNodeWithText(ObjetivoDiagnostico.OUTRO_PROBLEMA.titulo).performScrollTo().performClick()
+        composeRule.onNodeWithText("Pular esta pergunta").performClick()
+
+        composeRule.onNodeWithText("Resultado").assertIsDisplayed()
     }
 
     // ─── issue #1720 — DiagnosticoGuiadoEstado/RegistrarBackDoOverlay finalmente ligados ────────
