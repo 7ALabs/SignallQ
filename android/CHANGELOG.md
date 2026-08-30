@@ -9,6 +9,14 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ---
 
+## [1.0.2] — 2026-08-30
+
+### Alterado
+- O Assist passa a usar a versão 2 do diagnóstico remoto, que aceita o contexto completo ou parcial da conversa e preserva a pergunta relatada.
+
+### Corrigido
+- Dados técnicos devolvidos pelo diagnóstico remoto deixam de aparecer como texto na resposta; o resultado continua explicando apenas o que é útil para a pessoa usuária.
+
 ## [1.0.0] — 2026-08-23
 
 ### Alterado

@@ -1,1 +1,1 @@
-O Assist agora envia corretamente as medições de qualidade, DNS e gateway, evitando informar que dados já medidos estão ausentes.
+O Assist agora usa a nova versão do diagnóstico remoto, entende melhor o contexto relatado e apresenta uma resposta mais clara, sem expor dados técnicos internos.
