@@ -85,7 +85,7 @@ class NdsClientTest {
 
         val recorded = server.takeRequest()
         assertEquals("POST", recorded.method)
-        assertEquals("/v1/diagnostics/evaluate", recorded.path)
+        assertEquals("/v2/diagnostics/evaluate", recorded.path)
         assertEquals("Bearer test-token", recorded.getHeader("Authorization"))
 
         val sentBody = JSONObject(recorded.body.readUtf8())
@@ -94,6 +94,16 @@ class NdsClientTest {
         assertEquals("gamer", sentBody.getString("profile"))
         assertEquals("WIFI", sentBody.getJSONObject("connection").getString("type"))
         assertEquals(-65, sentBody.getJSONObject("wifi").getInt("rssi"))
+    }
+
+    @Test
+    fun `evaluate parseia envelope v2 e preserva explicacao da IA`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"raw":{"results":[{"module":"ai","module_version":"2.0.0","request_id":"req-12345","warnings":[],"missing_inputs":[],"result":{"source":"ai_bypass"},"cards":[{"id":"latencia","titulo":"Latência elevada","status":"attention","mensagemUsuario":"A resposta demora mais do que o esperado.","categoria":"connection","podeConcluir":true}]}],"traces":[],"recommendation":null},"explanation":{"titulo":"A conexão precisa de atenção","descricao":"A latência medida pode afetar atividades em tempo real."}}"""))
+
+        val response = (client.evaluate(sampleRequest) as NdsDiagnosticsOutcome.Success).response
+
+        assertEquals("A conexão precisa de atenção", response.explanation?.title)
+        assertEquals("Latência elevada", response.resultFor("ai")?.cards?.firstOrNull()?.get("titulo"))
     }
 
     // -------------------------------------------------------------------
