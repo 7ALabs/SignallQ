@@ -213,6 +213,7 @@ fun DiagnosticoGuiadoScreen(
     val objetivo = estado.objetivo
     val passo = estado.passo
     val respostas = estado.respostas
+    val relatoLivre = estado.relatoLivre
     val mostrarResultado = estado.rotaAtual == DiagnosticoGuiadoRota.Resultado
 
     // GH#1704 parte 4/4 — rota `Analise`. Derivado do topo da pilha, e não um terceiro valor
@@ -232,9 +233,13 @@ fun DiagnosticoGuiadoScreen(
     // GH#1706 — o plano só existe depois de haver objetivo; antes disso não há o que verificar.
     val plano = objetivo?.let { montarPlano(it, contextoDoPlano, respostas) }
     val contextoNds =
-        remember(objetivo, respostas) {
+        remember(objetivo, respostas, relatoLivre) {
             objetivo?.let { objetivoAtual ->
                 DiagnosticContext(
+                    // O relato livre é contexto de explicação, nunca evidência nem causa. O NDS
+                    // limita este campo a 200 caracteres no contrato v2; a tela já aplica o
+                    // mesmo teto antes de ele chegar aqui.
+                    reportedProblem = relatoLivre,
                     objective = objetivoAtual.name,
                     answers =
                         respostas

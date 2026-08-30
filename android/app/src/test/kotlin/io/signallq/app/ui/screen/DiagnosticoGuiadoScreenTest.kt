@@ -121,6 +121,40 @@ class DiagnosticoGuiadoScreenTest {
     }
 
     @Test
+    fun `relato livre chega ao Assist remoto como contexto sem virar causa`() {
+        var estado by mutableStateOf<EstadoAnaliseGuiada>(EstadoAnaliseGuiada.NaoIniciada)
+        var status by mutableStateOf<MeasurementStatus?>(null)
+        var inputRecebido: DiagnosticInput? = null
+        composeRule.setContent {
+            SignallQTheme {
+                TelaDeTeste(
+                    objetivoPreSelecionado = null,
+                    respostaPreSelecionadaPasso0 = null,
+                    input = inputJogosComWifiFraco(),
+                    estadoAnalise = estado,
+                    statusMedicao = status,
+                    onAvaliarAssist = { input ->
+                        inputRecebido = input
+                        DiagnosticRunner.run(input).copy(evaluationSource = DiagnosticEvaluationSource.REMOTE)
+                    },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(ObjetivoDiagnostico.OUTRO_PROBLEMA.titulo).performScrollTo().performClick()
+        composeRule.onNodeWithTag(TAG_RELATO_LIVRE_DIAGNOSTICO).performTextInput("A internet cai toda noite.")
+        composeRule.onNodeWithText("Continuar").performClick()
+        estado = EstadoAnaliseGuiada.EmAndamento(0.5f, "Medindo")
+        composeRule.waitForIdle()
+        estado = EstadoAnaliseGuiada.Concluida
+        status = MeasurementStatus.COMPLETE
+        composeRule.waitForIdle()
+
+        assertEquals("OUTRO_PROBLEMA", inputRecebido?.context?.objective)
+        assertEquals("A internet cai toda noite.", inputRecebido?.context?.reportedProblem)
+    }
+
+    @Test
     fun `outro problema trunca o relato livre em 200 caracteres`() {
         setContent()
 
