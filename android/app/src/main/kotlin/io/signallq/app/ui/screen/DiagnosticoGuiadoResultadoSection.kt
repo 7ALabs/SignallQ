@@ -151,6 +151,7 @@ internal fun mensagemAssistSegura(
         ObjetivoDiagnostico.SITES_DEMORAM -> "A resposta da rede pode atrasar a abertura de sites e aplicativos."
         ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA -> "A velocidade medida pode estar abaixo do esperado para o seu plano ou para o uso atual."
         ObjetivoDiagnostico.WIFI_VS_OPERADORA -> "As medições ajudam a separar um problema no Wi-Fi de um problema no caminho até a operadora."
+        ObjetivoDiagnostico.OUTRO_PROBLEMA -> "As medições gerais da sua conexão ajudam a entender o que pode estar acontecendo."
     }
 }
 

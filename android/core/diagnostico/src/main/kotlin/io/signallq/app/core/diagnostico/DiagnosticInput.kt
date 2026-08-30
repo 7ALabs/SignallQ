@@ -139,6 +139,12 @@ data class SpeedtestQualityInput(
 data class DiagnosticContext(
     val reportedProblem: String? = null,
     val objective: String? = null,
+    /**
+     * Recorte opcional e estruturado do objetivo, usado pelo contrato NDS v2 somente para
+     * priorizar achados que já sejam compatíveis. Ausente quando a pergunta do Assist não tem
+     * equivalente canônico no contrato remoto; nunca é uma causa declarada pela pessoa.
+     */
+    val subcategory: String? = null,
     val symptoms: List<String> = emptyList(),
     val answers: Map<String, String> = emptyMap(),
 )

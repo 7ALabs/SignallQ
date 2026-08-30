@@ -42,6 +42,8 @@ class TipoFerramentaTest {
         assertNull(ObjetivoDiagnostico.VIDEOS_TRAVAM.ferramentaSugerida())
         assertNull(ObjetivoDiagnostico.JOGOS_COM_LAG.ferramentaSugerida())
         assertNull(ObjetivoDiagnostico.CHAMADAS_CONGELAM.ferramentaSugerida())
+        // "Outro problema" (sem categoria conhecida, texto livre) também não sugere ferramenta.
+        assertNull(ObjetivoDiagnostico.OUTRO_PROBLEMA.ferramentaSugerida())
     }
 
     @Test
@@ -49,7 +51,8 @@ class TipoFerramentaTest {
         // O compilador já garante exaustividade do `when` em ferramentaSugerida() — este
         // teste trava a contagem esperada pra acusar se um objetivo novo aparecer sem
         // decisão de produto explícita sobre mapear ou não pra uma ferramenta.
-        assertEquals(7, ObjetivoDiagnostico.entries.size)
+        // 7 objetivos fechados + OUTRO_PROBLEMA (texto livre, melhoria do Assist, 2026-08).
+        assertEquals(8, ObjetivoDiagnostico.entries.size)
     }
 
     @Test

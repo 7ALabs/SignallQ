@@ -81,6 +81,17 @@ data class DiagnosticoGuiadoEstado(
     val passo: Int = 0,
     val respostas: List<Int?> = emptyList(),
     val pilha: List<DiagnosticoGuiadoRota> = emptyList(),
+    /**
+     * Texto livre digitado quando [objetivo] é
+     * [io.signallq.app.core.diagnostico.ObjetivoDiagnostico.OUTRO_PROBLEMA] — até
+     * [LIMITE_RELATO_LIVRE_DIAGNOSTICO] caracteres, truncado no próprio `onValueChange` da tela
+     * (ver `DiagnosticoGuiadoRelatoLivreSection`). **Nunca** usado por [DiagnosticoGuiadoEngine]
+     * para decidir status/causa — só viaja como contexto adicional no payload da IA
+     * (`relatoLivreUsuario` em `DiagnosisAiContext`, módulo `:feature:diagnostico`). `null`
+     * para todo objetivo que não seja `OUTRO_PROBLEMA`, e também quando o usuário pula sem
+     * escrever nada.
+     */
+    val relatoLivre: String? = null,
 ) {
     /** Rota corrente, ou `null` quando o usuário ainda está escolhendo o objetivo. */
     val rotaAtual: DiagnosticoGuiadoRota? get() = pilha.lastOrNull()
@@ -129,9 +140,12 @@ data class DiagnosticoGuiadoEstado(
             if (objetivo == null) {
                 passo == 0 && respostas.isEmpty() && pilha.isEmpty()
             } else {
-                passo >= 0 &&
-                    passo < PerguntasDiagnosticoGuiado.perguntas(objetivo).size &&
-                    respostas.size <= PerguntasDiagnosticoGuiado.perguntas(objetivo).size
+                // OUTRO_PROBLEMA não tem pergunta fechada (`perguntas` vazio) — o único `passo`
+                // coerente para ele é 0, e não `passo < 0` (sempre falso). Os demais objetivos
+                // continuam com o teto `passo < perguntas.size` de sempre.
+                val totalPerguntas = PerguntasDiagnosticoGuiado.perguntas(objetivo).size
+                val passoCoerente = if (totalPerguntas == 0) passo == 0 else passo in 0 until totalPerguntas
+                passoCoerente && respostas.size <= totalPerguntas
             }
 
     /**
@@ -209,6 +223,10 @@ data class DiagnosticoGuiadoEstado(
          * Formato: `[nomeObjetivo, passo, respostasCsv, pilhaCsv]`. Enum vai por **nome**, nunca
          * por ordinal — reordenar o enum não pode ressuscitar a análise apontando para outro
          * problema. Nome desconhecido cai no [saneado], que devolve o estado inicial.
+         *
+         * `relatoLivre` entrou como **7º elemento**, aditivo: `formatoAtual` continua checando
+         * `size >= 6`, então um estado salvo por uma versão anterior (sem o 7º elemento) restaura
+         * normalmente com `relatoLivre = null` via `getOrNull(6)`.
          */
         val Saver: Saver<DiagnosticoGuiadoEstado, List<String>> =
             Saver(
@@ -220,6 +238,7 @@ data class DiagnosticoGuiadoEstado(
                         estado.passo.toString(),
                         estado.respostas.joinToString(",") { (it ?: RESPOSTA_NAO_RESPONDIDA).toString() },
                         estado.pilha.joinToString(",") { it.name },
+                        estado.relatoLivre.orEmpty(),
                     )
                 },
                 restore = { valores ->
@@ -273,6 +292,7 @@ data class DiagnosticoGuiadoEstado(
                                         texto.toIntOrNull()?.takeIf { it >= 0 }
                                     },
                             pilha = pilhaRestaurada.filterNotNull(),
+                            relatoLivre = valores.getOrNull(6)?.takeIf { it.isNotEmpty() },
                         ).saneado()
                     }
                 },

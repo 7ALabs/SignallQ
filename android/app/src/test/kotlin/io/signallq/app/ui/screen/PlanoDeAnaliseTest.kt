@@ -200,6 +200,8 @@ class PlanoDeAnaliseTest {
                     listOf(Capacidade.ESTADO_CONEXAO, Capacidade.DOWNLOAD_UPLOAD),
                 ObjetivoDiagnostico.WIFI_VS_OPERADORA to
                     listOf(Capacidade.ESTADO_CONEXAO, Capacidade.SINAL_WIFI),
+                ObjetivoDiagnostico.OUTRO_PROBLEMA to
+                    listOf(Capacidade.ESTADO_CONEXAO, Capacidade.LATENCIA_VARIACAO, Capacidade.DOWNLOAD_UPLOAD),
             )
 
         ObjetivoDiagnostico.entries.forEach { objetivo ->

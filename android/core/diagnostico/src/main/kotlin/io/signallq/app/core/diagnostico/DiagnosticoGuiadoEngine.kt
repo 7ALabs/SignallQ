@@ -6,6 +6,14 @@ package io.signallq.app.core.diagnostico
  * [PerguntaFechada] (por índice de opção, não texto) e o [DiagnosticInput] real do
  * teste — devolve um [ResultadoDiagnosticoGuiado] com status/evidências/ações.
  *
+ * ## Roteiro reduzido a 1 pergunta por objetivo (2026-08)
+ * [PerguntasDiagnosticoGuiado.perguntas] hoje devolve **1** [PerguntaFechada] por
+ * objetivo (antes eram 2) — ver o kdoc daquele objeto para o racional completo.
+ * Este motor não precisou mudar: nenhum `avaliarXxx` abaixo já lia
+ * `respostas.getOrNull(1)` ou índice maior — [avaliarJogosComLag] e
+ * [avaliarWifiVsOperadora] são os únicos que leem `respostas`, e ambos só usam
+ * `getOrNull(0)`, que continua sendo a pergunta que sobrou.
+ *
  * ## Regra de produto (não-negociável, issue #1475/#550)
  * Este objeto é a ÚNICA fonte do `status`/evidências. A camada de IA (ver
  * `AnalisadorState`/`onAnalisarProblema` em `:app`) só pode **explicar** o
@@ -50,6 +58,7 @@ object DiagnosticoGuiadoEngine {
                 ObjetivoDiagnostico.SITES_DEMORAM -> ::avaliarSitesDemoram
                 ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA -> ::avaliarVelocidadeNaoChega
                 ObjetivoDiagnostico.WIFI_VS_OPERADORA -> ::avaliarWifiVsOperadora
+                ObjetivoDiagnostico.OUTRO_PROBLEMA -> ::avaliarOutroProblema
             }
         return avaliador(respostas, input)
     }
@@ -387,6 +396,48 @@ object DiagnosticoGuiadoEngine {
             2 -> "não muda"
             else -> "não feita"
         }
+
+    // ── Outro problema (texto livre, sem pergunta fechada) ───────────────────
+    /**
+     * [ObjetivoDiagnostico.OUTRO_PROBLEMA] não tem pergunta fechada — a pessoa descreve o
+     * problema em texto livre. Esse texto (`DiagnosticoGuiadoEstado.relatoLivre` /
+     * `relatoLivreUsuario` no payload da IA) **não é lido aqui**: sem categoria conhecida, este
+     * motor cobre as métricas mais genéricas — as mesmas 3 dimensões de "jogos com lag"
+     * (latência/jitter/perda), mais download/upload — e deixa a IA usar o relato como contexto
+     * na explicação. `respostas` é sempre vazio para este objetivo (roteiro sem pergunta).
+     */
+    private fun avaliarOutroProblema(
+        @Suppress("UNUSED_PARAMETER") respostas: List<Int>,
+        input: DiagnosticInput?,
+    ): ResultadoDiagnosticoGuiado {
+        val internet = input?.internet
+        val dims = dimsLatenciaJitterPerda(internet)
+        internet?.downloadMbps?.let {
+            dims += Dimensao("Download", "%.1f Mbps".format(it), MetricClassifier.classificarDownload(it))
+        }
+        internet?.uploadMbps?.let {
+            dims += Dimensao("Upload", "%.1f Mbps".format(it), MetricClassifier.classificarUpload(it))
+        }
+        return montarResultado(
+            objetivo = ObjetivoDiagnostico.OUTRO_PROBLEMA,
+            dims = dims,
+            mensagens = MensagensStatus(
+                ok = "As métricas gerais da sua conexão estão dentro do esperado.",
+                atencao = "Encontramos sinais de que sua conexão pode estar com dificuldades em algum momento.",
+                critica = "Encontramos sinais claros de que sua conexão está com problemas.",
+            ),
+            acoes = { status ->
+                if (status == DiagnosticStatus.ok) {
+                    emptyList()
+                } else {
+                    listOf(
+                        "Refaça o teste em um horário diferente para comparar",
+                        "Teste por cabo para isolar se é Wi-Fi ou operadora",
+                    )
+                }
+            },
+        )
+    }
 
     // ── Compartilhado ────────────────────────────────────────────────────────
 

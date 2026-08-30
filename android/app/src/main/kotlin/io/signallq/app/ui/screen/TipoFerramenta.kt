@@ -77,5 +77,7 @@ fun ObjetivoDiagnostico.ferramentaSugerida(): TipoFerramenta? =
         ObjetivoDiagnostico.VIDEOS_TRAVAM,
         ObjetivoDiagnostico.JOGOS_COM_LAG,
         ObjetivoDiagnostico.CHAMADAS_CONGELAM,
+        // Sem categoria conhecida — nenhuma ferramenta específica é forte o bastante.
+        ObjetivoDiagnostico.OUTRO_PROBLEMA,
         -> null
     }

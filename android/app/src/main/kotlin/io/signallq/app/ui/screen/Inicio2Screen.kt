@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.SignallQTheme
+import io.signallq.app.ui.component.BetaBadge
 import io.signallq.app.ui.component.SignallQButton
 import io.signallq.app.ui.component.SignallQFeedbackTone
 import io.signallq.app.ui.component.SignallQTopAppBar
@@ -204,6 +205,12 @@ private fun Inicio2Hero(
             textAlign = TextAlign.Center,
             color = c.textSecondary,
         )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            BetaBadge()
+        }
         SignallQButton(
             label = "Analisar minha conexão",
             onClick = onIniciarDiagnostico,

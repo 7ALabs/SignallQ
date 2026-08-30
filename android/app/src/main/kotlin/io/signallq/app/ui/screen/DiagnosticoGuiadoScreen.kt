@@ -213,6 +213,7 @@ fun DiagnosticoGuiadoScreen(
     val objetivo = estado.objetivo
     val passo = estado.passo
     val respostas = estado.respostas
+    val relatoLivre = estado.relatoLivre
     val mostrarResultado = estado.rotaAtual == DiagnosticoGuiadoRota.Resultado
 
     // GH#1704 parte 4/4 — rota `Analise`. Derivado do topo da pilha, e não um terceiro valor
@@ -232,9 +233,13 @@ fun DiagnosticoGuiadoScreen(
     // GH#1706 — o plano só existe depois de haver objetivo; antes disso não há o que verificar.
     val plano = objetivo?.let { montarPlano(it, contextoDoPlano, respostas) }
     val contextoNds =
-        remember(objetivo, respostas) {
+        remember(objetivo, respostas, relatoLivre) {
             objetivo?.let { objetivoAtual ->
                 DiagnosticContext(
+                    // O relato livre é contexto de explicação, nunca evidência nem causa. O NDS
+                    // limita este campo a 200 caracteres no contrato v2; a tela já aplica o
+                    // mesmo teto antes de ele chegar aqui.
+                    reportedProblem = relatoLivre,
                     objective = objetivoAtual.name,
                     answers =
                         respostas
@@ -364,6 +369,50 @@ fun DiagnosticoGuiadoScreen(
         if (!tentarRecuar()) onVoltar()
     }
 
+    /**
+     * Avança um passo do roteiro, ou conclui quando não há mais pergunta — compartilhado entre
+     * "respondeu a pergunta", "pulou a pergunta" e "pulou o objetivo inteiro" (issue de melhoria
+     * do Assist, 2026-08: garantir que dá pra pular em cada etapa). `perguntasTotal == 0` (caso
+     * de [io.signallq.app.core.diagnostico.ObjetivoDiagnostico.OUTRO_PROBLEMA], sem pergunta
+     * fechada, e de "pular objetivo", que trata o roteiro inteiro como já esgotado) cai direto
+     * no mesmo ramo de conclusão que a última pergunta de um roteiro normal — o motor já tolera
+     * respostas parciais ou vazias, ver `DiagnosticoGuiadoEngine`.
+     */
+    fun avançarOuConcluir(
+        perguntasTotal: Int,
+        passoAtual: Int,
+        respostasAtualizadas: List<Int?>,
+    ) {
+        estado =
+            when {
+                passoAtual < perguntasTotal - 1 ->
+                    estado.copy(passo = passoAtual + 1, respostas = respostasAtualizadas)
+                podeConcluirSemMedir -> {
+                    if (onAvaliarAssist == null) {
+                        estado.copy(respostas = respostasAtualizadas).irPara(DiagnosticoGuiadoRota.Resultado)
+                    } else {
+                        estado.copy(respostas = respostasAtualizadas).irPara(DiagnosticoGuiadoRota.Processando)
+                    }
+                }
+                else -> {
+                    analise.onIniciar()
+                    estado.copy(respostas = respostasAtualizadas).irPara(DiagnosticoGuiadoRota.Analise)
+                }
+            }
+        if (passoAtual == perguntasTotal - 1 && podeConcluirSemMedir && onAvaliarAssist != null) {
+            estadoChamadaNds = EstadoChamadaNds.EmCurso
+        }
+    }
+
+    /** Pula a escolha de objetivo inteira (Camada A do Assist) — vai direto para o diagnóstico
+     *  sem escolher motivo nem responder pergunta nenhuma. [ObjetivoDiagnostico.WIFI_VS_OPERADORA]
+     *  é o objetivo de baixo nível usado aqui porque seu título já é "Não sei onde está o
+     *  problema" — a semântica exata de quem pulou a escolha. */
+    fun pularEscolhaDeObjetivo() {
+        estado = estado.copy(objetivo = ObjetivoDiagnostico.WIFI_VS_OPERADORA, respostas = emptyList())
+        avançarOuConcluir(perguntasTotal = 0, passoAtual = 0, respostasAtualizadas = emptyList())
+    }
+
     // GH#1720 — o voltar do Assist fecha a jornada inteira. As perguntas são respostas da mesma
     // jornada, não uma pilha de navegação para o usuário percorrer com o botão voltar.
     // `false` chega intacto ao navigator para ele remover o overlay do topo.
@@ -419,7 +468,8 @@ fun DiagnosticoGuiadoScreen(
             objetivoAtual == null ->
                 DiagnosticoGuiadoListaObjetivosSection(
                     modifier = Modifier.padding(padding),
-                    onSelect = { estado = estado.copy(objetivo = it ?: ObjetivoDiagnostico.INTERNET_CAI_OSCILA) },
+                    onSelect = { estado = estado.copy(objetivo = it) },
+                    onPular = ::pularEscolhaDeObjetivo,
                     c = c,
                 )
             estado.rotaAtual == DiagnosticoGuiadoRota.Processando ->
@@ -510,6 +560,22 @@ fun DiagnosticoGuiadoScreen(
                     onTentarNovamente = analise.onIniciar,
                     plano = plano,
                 )
+            // ObjetivoDiagnostico.OUTRO_PROBLEMA não tem pergunta fechada — troca a lista de
+            // opções por um campo de texto livre (ver kdoc do enum e de
+            // DiagnosticoGuiadoRelatoLivreSection). `perguntas` fica vazio para ele, e
+            // avançarOuConcluir já trata `perguntasTotal == 0` como "roteiro esgotado".
+            objetivoAtual == ObjetivoDiagnostico.OUTRO_PROBLEMA ->
+                DiagnosticoGuiadoRelatoLivreSection(
+                    modifier = Modifier.padding(padding),
+                    texto = estado.relatoLivre.orEmpty(),
+                    onTextoAlterado = { novo -> estado = estado.copy(relatoLivre = novo.takeIf { it.isNotEmpty() }) },
+                    onContinuar = { avançarOuConcluir(perguntasTotal = 0, passoAtual = 0, respostasAtualizadas = emptyList()) },
+                    onPular = {
+                        estado = estado.copy(relatoLivre = null)
+                        avançarOuConcluir(perguntasTotal = 0, passoAtual = 0, respostasAtualizadas = emptyList())
+                    },
+                    c = c,
+                )
             else -> {
                 val perguntas =
                     remember(objetivoAtual, input?.connectionType) {
@@ -517,33 +583,11 @@ fun DiagnosticoGuiadoScreen(
                     }
                 val pergunta = perguntas[passo]
 
-                fun avançarApósResposta(respostasAtualizadas: List<Int?>) {
-                    estado =
-                        when {
-                            passo < perguntas.size - 1 ->
-                                estado.copy(
-                                    passo = passo + 1,
-                                    respostas = respostasAtualizadas,
-                                )
-                            // GH#1704 — o fim do roteiro leva à análise (§8.5), não direto à
-                            // conclusão. Só pula a medição quando já existe resultado utilizável,
-                            // que é o caminho de quem entrou aqui vindo da tela de Resultado.
-                            podeConcluirSemMedir -> {
-                                if (onAvaliarAssist == null) {
-                                    estado.copy(respostas = respostasAtualizadas).irPara(DiagnosticoGuiadoRota.Resultado)
-                                } else {
-                                    estado.copy(respostas = respostasAtualizadas).irPara(DiagnosticoGuiadoRota.Processando)
-                                }
-                            }
-                            else -> {
-                                analise.onIniciar()
-                                estado.copy(respostas = respostasAtualizadas).irPara(DiagnosticoGuiadoRota.Analise)
-                            }
-                        }
-                    if (passo == perguntas.size - 1 && podeConcluirSemMedir && onAvaliarAssist != null) {
-                        estadoChamadaNds = EstadoChamadaNds.EmCurso
+                fun respostasComPasso(opcaoIndex: Int?): List<Int?> =
+                    respostas.toMutableList().apply {
+                        while (size <= passo) add(null)
+                        this[passo] = opcaoIndex
                     }
-                }
 
                 DiagnosticoGuiadoPerguntaFechadaSection(
                     modifier = Modifier.padding(padding),
@@ -552,13 +596,13 @@ fun DiagnosticoGuiadoScreen(
                     total = perguntas.size,
                     respostaSelecionada = respostas.getOrNull(passo),
                     onEscolher = { opcaoIndex ->
-                        val respostasAtualizadas =
-                            respostas.toMutableList().apply {
-                                while (size <= passo) add(null)
-                                this[passo] = opcaoIndex
-                            }
-                        avançarApósResposta(respostasAtualizadas)
+                        avançarOuConcluir(perguntas.size, passo, respostasComPasso(opcaoIndex))
                     },
+                    // Pula a pergunta desta etapa sem escolher opção — deixa `null` no índice do
+                    // passo em vez de remover a posição, preservando o mesmo formato de
+                    // `respostas` que uma resposta normal produz. `DiagnosticoGuiadoEngine` já
+                    // tolerava resposta ausente antes desta pergunta existir.
+                    onPular = { avançarOuConcluir(perguntas.size, passo, respostasComPasso(null)) },
                     c = c,
                 )
             }

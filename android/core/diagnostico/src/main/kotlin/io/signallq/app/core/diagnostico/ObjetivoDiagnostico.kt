@@ -1,11 +1,21 @@
 package io.signallq.app.core.diagnostico
 
 /**
- * Os 7 objetivos fechados do diagnóstico guiado (Feature #550, issue #1475). Cada
- * objetivo abre um roteiro próprio de perguntas fechadas — nunca chat livre, ver
- * [PerguntaFechada] — e prioriza um subconjunto diferente de métricas do
- * [DiagnosticInput] em [DiagnosticoGuiadoEngine]. Mesma copy/ordem do protótipo
- * #1474 (`diagnostico-guiado.jsx`, array `OBJETIVOS`), issue #1483.
+ * Os 7 objetivos fechados do diagnóstico guiado (Feature #550, issue #1475), mais
+ * [OUTRO_PROBLEMA] — opção de saída para quem não se reconhece em nenhum dos 7 (issue de
+ * melhoria do Assist, 2026-08). Cada um dos 7 objetivos fechados abre um roteiro próprio de
+ * **1 pergunta fechada** — nunca chat livre, ver [PerguntaFechada] — e prioriza um
+ * subconjunto diferente de métricas do [DiagnosticInput] em [DiagnosticoGuiadoEngine]. Mesma
+ * copy/ordem do protótipo #1474 (`diagnostico-guiado.jsx`, array `OBJETIVOS`), issue #1483.
+ * Roteiro reduzido de 2 para 1 pergunta por objetivo (2026-08) — ver kdoc de
+ * [PerguntasDiagnosticoGuiado] para o racional da consolidação.
+ *
+ * [OUTRO_PROBLEMA] é diferente dos demais: [PerguntasDiagnosticoGuiado.perguntas] devolve
+ * lista vazia para ele — em vez de pergunta fechada, a tela mostra um campo de texto livre
+ * (até 200 caracteres, ver `DiagnosticoGuiadoEstado.relatoLivre`). Esse texto **nunca** é lido
+ * por [DiagnosticoGuiadoEngine] para decidir status/causa (regra de produto inalterada: motor
+ * só decide a partir de métricas reais) — ele só viaja como contexto adicional no payload da
+ * IA (`relatoLivreUsuario` em `DiagnosisAiContext`, módulo `:feature:diagnostico`).
  */
 enum class ObjetivoDiagnostico(
     val titulo: String,
@@ -39,6 +49,12 @@ enum class ObjetivoDiagnostico(
         titulo = "Não sei onde está o problema",
         subtitulo = "Vamos verificar se o problema está no Wi-Fi ou na operadora.",
     ),
+
+    /** Ver kdoc da classe — sem pergunta fechada própria, mostra campo de texto livre. */
+    OUTRO_PROBLEMA(
+        titulo = "Outro problema",
+        subtitulo = "Descreva com suas palavras o que está acontecendo.",
+    ),
 }
 
 /**
@@ -52,11 +68,32 @@ data class PerguntaFechada(
 )
 
 /**
- * Roteiro fixo de perguntas por objetivo — mesma copy do protótipo #1474.
- * [DiagnosticoGuiadoEngine] usa o índice da opção escolhida (não o texto) para as
- * poucas perguntas que de fato mudam a avaliação — ver kdoc de cada `avaliarXxx`
- * em [DiagnosticoGuiadoEngine] para o mapeamento exato de qual pergunta/índice
- * influencia o quê.
+ * Roteiro fixo de perguntas por objetivo — mesma copy do protótipo #1474 para a
+ * pergunta que sobreviveu à consolidação (issue de redução "muitas perguntas,
+ * difícil escolher", 2026-08). [DiagnosticoGuiadoEngine] usa o índice da opção
+ * escolhida (não o texto) para as poucas perguntas que de fato mudam a avaliação —
+ * ver kdoc de cada `avaliarXxx` em [DiagnosticoGuiadoEngine] para o mapeamento
+ * exato de qual pergunta/índice influencia o quê.
+ *
+ * ## Consolidação de 2 perguntas fechadas para 1 (2026-08)
+ * Cada objetivo tinha 2 perguntas fechadas fixas. Auditoria do
+ * [DiagnosticoGuiadoEngine] mostrou que ele **nunca leu o índice da 2ª pergunta**
+ * em nenhum dos 7 objetivos — só [ObjetivoDiagnostico.JOGOS_COM_LAG] e
+ * [ObjetivoDiagnostico.WIFI_VS_OPERADORA] usam `respostas.getOrNull(0)`, e a
+ * pergunta que eles leem já era a 1ª da lista. Não há, portanto, nenhum objetivo
+ * em que a consolidação perca sinal usado pelo motor — os 7 foram reduzidos a 1
+ * pergunta, sem exceção. Critério de escolha de qual pergunta manter:
+ * 1. a pergunta cujo índice o motor lê (quando existe: JOGOS_COM_LAG,
+ *    WIFI_VS_OPERADORA);
+ * 2. entre as demais, a mais diagnóstica por natureza (sintoma > meta-pergunta);
+ * 3. eliminar a pergunta redundante com uma métrica que o app já mede sozinho
+ *    ([DiagnosticInput.connectionType] cobre "isso acontece em qual conexão?" —
+ *    caso de [ObjetivoDiagnostico.VIDEOS_TRAVAM] e [ObjetivoDiagnostico.SITES_DEMORAM]).
+ *
+ * A pergunta única de cada objetivo é a candidata natural a "subcategoria" no
+ * payload da IA (ver `AiObjetivoDiagnosticoFactory` em `:feature:diagnostico`),
+ * espelhando o par objective+subcategory que o NDS v2 já usa em outros produtos —
+ * sem migrar o motor local para o NDS, que segue fora de escopo.
  */
 object PerguntasDiagnosticoGuiado {
 
@@ -87,16 +124,6 @@ object PerguntasDiagnosticoGuiado {
                                 "Só em alguns cômodos da casa",
                             ),
                     ),
-                    PerguntaFechada(
-                        texto = "O que você percebe quando acontece?",
-                        opcoes =
-                            listOf(
-                                "A rede Wi-Fi desaparece",
-                                "Continua conectado, mas a internet para",
-                                "Desconecta e reconecta sozinho",
-                                "Não sei dizer",
-                            ),
-                    ),
                 )
             ObjetivoDiagnostico.VIDEOS_TRAVAM ->
                 listOf(
@@ -110,25 +137,12 @@ object PerguntasDiagnosticoGuiado {
                                 "Só em determinado aplicativo",
                             ),
                     ),
-                    PerguntaFechada(
-                        texto = "Isso acontece em qual conexão?",
-                        opcoes = listOf("Wi-Fi", "Dados móveis", "Nas duas", "Ainda não consegui comparar"),
-                    ),
                 )
             ObjetivoDiagnostico.JOGOS_COM_LAG ->
                 listOf(
                     PerguntaFechada(
                         texto = "Em qual conexão você joga?",
                         opcoes = listOf("Wi-Fi", "Cabo de rede", "Dados móveis"),
-                    ),
-                    PerguntaFechada(
-                        texto = "Com que frequência isso acontece?",
-                        opcoes =
-                            listOf(
-                                "Quase sempre",
-                                "Só em horário de pico",
-                                "De vez em quando, sem padrão",
-                            ),
                     ),
                 )
             ObjetivoDiagnostico.CHAMADAS_CONGELAM ->
@@ -143,10 +157,6 @@ object PerguntasDiagnosticoGuiado {
                                 "A imagem e o áudio travam",
                             ),
                     ),
-                    PerguntaFechada(
-                        texto = "Piora se outra pessoa em casa também estiver usando a internet?",
-                        opcoes = listOf("Sim, bastante", "Um pouco", "Não muda", "Ainda não testei"),
-                    ),
                 )
             ObjetivoDiagnostico.SITES_DEMORAM ->
                 listOf(
@@ -159,27 +169,14 @@ object PerguntasDiagnosticoGuiado {
                                 "Só na primeira página. Depois melhora.",
                             ),
                     ),
-                    PerguntaFechada(
-                        texto = "O problema é mais forte em qual conexão?",
-                        opcoes = listOf("Wi-Fi", "Dados móveis", "Nas duas igual"),
-                    ),
                 )
             ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA ->
-                listOf(
-                    PerguntaFechada(
-                        texto = "Você já comparou com outro teste?",
-                        opcoes = listOf("Testei apenas no SignallQ", "Comparei com outro aplicativo ou site"),
-                    ),
-                    perguntaComoFezOTeste(tipoConexao),
-                )
+                listOf(perguntaComoFezOTeste(tipoConexao))
             ObjetivoDiagnostico.WIFI_VS_OPERADORA ->
-                listOf(
-                    perguntaMelhoraTrocandoConexao(tipoConexao),
-                    PerguntaFechada(
-                        texto = "Outros aparelhos também apresentam esse problema?",
-                        opcoes = listOf("Sim, todos", "Só alguns", "Não, só este aparelho"),
-                    ),
-                )
+                listOf(perguntaMelhoraTrocandoConexao(tipoConexao))
+            // Sem pergunta fechada — a tela mostra texto livre em vez desta lista. Ver kdoc de
+            // ObjetivoDiagnostico.OUTRO_PROBLEMA.
+            ObjetivoDiagnostico.OUTRO_PROBLEMA -> emptyList()
         }
 
     private fun perguntaComoFezOTeste(tipoConexao: ConnectionType?): PerguntaFechada =
