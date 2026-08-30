@@ -141,7 +141,7 @@ internal fun SobreSheet(
         HorizontalDivider(color = c.border, thickness = 1.dp)
         InfoRow(c, "Plataforma", "Android")
         HorizontalDivider(color = c.border, thickness = 1.dp)
-        InfoRow(c, "Marca", "Buildea Labs")
+        InfoRow(c, "Marca", "GINGA")
         Spacer(Modifier.height(LkSpacing.sm))
         TextButton(
             modifier = Modifier.fillMaxWidth(),
