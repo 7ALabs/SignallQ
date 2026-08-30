@@ -85,6 +85,62 @@ test("validarTextoParaLeigo: string vazia e considerada valida (nada para valida
 });
 
 // =============================================================================
+// BLOQUEIO 1 (PR #1828) — falso-positivo do termo "nat" casado por substring
+// =============================================================================
+
+test("validarTextoParaLeigo: nao reprova 'Anatel', 'assinatura' e 'natural' (substring de 'nat')", () => {
+  const texto =
+    "De acordo com a Anatel, sua assinatura de internet garante uma velocidade natural de navegacao estavel.";
+  const resultado = validarTextoParaLeigo(texto);
+  assert.equal(resultado.ok, true);
+  assert.deepEqual(resultado.problemas, []);
+});
+
+test("validarTextoParaLeigo: continua detectando 'gateway' sem explicacao na mesma frase comum", () => {
+  const texto =
+    "De acordo com a Anatel, sua assinatura de internet depende do gateway configurado corretamente.";
+  const resultado = validarTextoParaLeigo(texto);
+  assert.equal(resultado.ok, false);
+  const termos = resultado.problemas
+    .filter((p) => p.tipo === "termo_tecnico_sem_explicacao")
+    .map((p) => (p as { termo: string }).termo);
+  assert.ok(termos.includes("gateway"));
+  assert.ok(!termos.includes("nat"));
+});
+
+test("validarTextoParaLeigo: ainda detecta 'NAT' isolado (ocorrencia real do termo, nao substring)", () => {
+  const texto = "O problema esta no NAT do roteador, que esta mal configurado.";
+  const resultado = validarTextoParaLeigo(texto);
+  assert.equal(resultado.ok, false);
+  const termos = resultado.problemas
+    .filter((p) => p.tipo === "termo_tecnico_sem_explicacao")
+    .map((p) => (p as { termo: string }).termo);
+  assert.ok(termos.includes("nat"));
+});
+
+// =============================================================================
+// BLOQUEIO 2 (PR #1828) — explicacao parentetica exigida so na 1a ocorrencia
+// =============================================================================
+
+test("validarTextoParaLeigo: aceita termo explicado na primeira mencao e repetido livremente depois", () => {
+  const texto = "A latência (demora) está alta. Essa latência afeta chamadas.";
+  const resultado = validarTextoParaLeigo(texto);
+  assert.equal(resultado.ok, true);
+  assert.deepEqual(resultado.problemas, []);
+});
+
+test("validarTextoParaLeigo: ainda reprova quando nem a primeira ocorrencia tem explicacao", () => {
+  const texto = "A latência está alta. Essa latência afeta chamadas.";
+  const resultado = validarTextoParaLeigo(texto);
+  assert.equal(resultado.ok, false);
+  assert.ok(
+    resultado.problemas.some(
+      (p) => p.tipo === "termo_tecnico_sem_explicacao" && (p as { termo: string }).termo === "latência",
+    ),
+  );
+});
+
+// =============================================================================
 // aplicarValidacaoDeQualidade — fallback deterministico
 // =============================================================================
 
@@ -139,4 +195,71 @@ test("construirResumoFallback: gera resumo curto valido para status desconhecido
   const texto = construirResumoFallback({ status: "algo_inesperado" });
   assert.ok(texto.length > 0);
   assert.equal(validarTextoParaLeigo(texto).ok, true);
+});
+
+// =============================================================================
+// BLOQUEIO 3 (PR #1828) — fallback nao pode propagar jargao/mojibake de
+// titulo/acaoRecomendada interpolados sem checagem
+// =============================================================================
+
+test("construirTextoLaudoFallback: titulo com jargao sem explicacao nao contamina o fallback (reproducao do revisor)", () => {
+  // Reproducao real do revisor: titulo interpolado sem checagem gerava
+  // "Problema de DNS detectado: ... Troque o DNS do seu roteador", que
+  // reprovava a propria validacao de qualidade.
+  const parsed = {
+    status: "ruim",
+    titulo: "Problema de DNS detectado",
+    acoesRecomendadas: [{ titulo: "Troque o DNS do seu roteador" }],
+  };
+  const texto = construirTextoLaudoFallback(parsed);
+  assert.equal(validarTextoParaLeigo(texto).ok, true);
+  // Nao deve ter interpolado titulo/acao com jargao sem explicacao.
+  assert.doesNotMatch(texto, /DNS/);
+});
+
+test("construirTextoLaudoFallback: titulo com mojibake nao contamina o fallback (reproducao do revisor)", () => {
+  const parsed = {
+    status: "critico",
+    titulo: "ConexÃ£o instÃ¡vel",
+  };
+  const texto = construirTextoLaudoFallback(parsed);
+  assert.equal(validarTextoParaLeigo(texto).ok, true);
+  assert.doesNotMatch(texto, /Ã/);
+});
+
+test("construirTextoLaudoFallback: acaoRecomendada com mojibake nao contamina o fallback", () => {
+  const parsed = {
+    status: "regular",
+    titulo: "Conexao instavel",
+    acoesRecomendadas: [{ titulo: "ReinÃ­cie o roteador" }],
+  };
+  const texto = construirTextoLaudoFallback(parsed);
+  assert.equal(validarTextoParaLeigo(texto).ok, true);
+  assert.doesNotMatch(texto, /Ã/);
+});
+
+test("construirTextoLaudoFallback: titulo seguro continua sendo interpolado normalmente", () => {
+  const parsed = {
+    status: "bom",
+    titulo: "Conexao estavel",
+    acoesRecomendadas: [{ titulo: "Nenhuma acao necessaria" }],
+  };
+  const texto = construirTextoLaudoFallback(parsed);
+  assert.equal(validarTextoParaLeigo(texto).ok, true);
+  assert.match(texto, /Conexao estavel/);
+  assert.match(texto, /Nenhuma acao necessaria/);
+});
+
+test("aplicarValidacaoDeQualidade: fallback com titulo/acao contendo jargao nao propaga o problema (reproducao completa do revisor)", () => {
+  const parsed: Record<string, unknown> = {
+    status: "ruim",
+    titulo: "Problema de DNS detectado",
+    textoLaudo: "O CGNAT esta causando problema de RSSI na sua rede.",
+    resumo: "CGNAT e RSSI ruins.",
+    acoesRecomendadas: [{ titulo: "Troque o DNS do seu roteador" }],
+  };
+  const resultado = aplicarValidacaoDeQualidade(parsed);
+  assert.equal(resultado.substituido, true);
+  assert.equal(validarTextoParaLeigo(parsed.textoLaudo as string).ok, true);
+  assert.equal(validarTextoParaLeigo(parsed.resumo as string).ok, true);
 });

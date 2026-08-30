@@ -65,19 +65,56 @@ export type ResultadoValidacaoTexto = {
 // Ex.: "é" -> "Ã©", "’" -> "â€™", "ção" -> "Ã§Ã£o".
 const MOJIBAKE_PATTERN = /Ã[\x80-\xBF]|â€[\x80-\x9F]|Â[\x80-\xBF]|Ã|Ã/;
 
+// Escapa caracteres especiais de regex para uso seguro dentro de um termo
+// literal (alguns termos da lista têm espaço, ex. "packet loss" — nenhum tem
+// metacaractere hoje, mas isso protege contra um termo futuro com ".", "(" etc.).
+function escaparRegex(texto: string): string {
+  return texto.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Classe de caractere "de palavra" com suporte Unicode (letras acentuadas,
+// números, underscore). O \b nativo do JS é ASCII-only (baseado em \w =
+// [A-Za-z0-9_]), então "nat" com \b ainda casaria a fronteira errada em
+// "Anatel"/"assinatura" apenas por acaso de onde ficam as letras ASCII — o
+// bug real é que \b não enxerga "ã"/"ç"/etc. como parte da palavra. Aqui
+// definimos fronteira de palavra nós mesmos com \p{L}/\p{N} (flag "u").
+const LIMITE_PALAVRA = "\\p{L}\\p{N}_";
+
+// Constrói, para um termo técnico, uma regex que só casa quando o termo
+// aparece como palavra (ou sequência de palavras) inteira — não como
+// substring de uma palavra maior. Ex.: o termo "nat" não deve casar dentro
+// de "Anatel", "assinatura" ou "natural", só em ocorrências isoladas do
+// termo "nat" (ex.: "problema de NAT no roteador").
+function criarRegexTermo(termo: string): RegExp {
+  const escapado = escaparRegex(termo);
+  return new RegExp(`(?<![${LIMITE_PALAVRA}])${escapado}(?![${LIMITE_PALAVRA}])`, "giu");
+}
+
 // Detecta um termo técnico da lista quando ele NÃO está seguido (dentro de uma
 // janela curta de caracteres, cobrindo "termo (explicação)") por um parêntese
-// de explicação. Heurística simples e intencionalmente tolerante a falso
-// negativo (preferimos deixar passar um caso ambíguo a barrar texto correto).
+// de explicação. Exige explicação só na PRIMEIRA ocorrência de cada termo no
+// texto — a regra 8b do SYSTEM_PROMPT pede exatamente isso: explicar na
+// primeira menção e repetir o termo livremente depois (ex.: "A latência
+// (demora) está alta. Essa latência afeta chamadas." é texto correto).
+// Heurística simples e intencionalmente tolerante a falso negativo
+// (preferimos deixar passar um caso ambíguo a barrar texto correto).
 function encontrarTermosSemExplicacao(texto: string): Array<{ termo: string; trecho: string }> {
-  const lower = texto.toLowerCase();
   const encontrados: Array<{ termo: string; trecho: string }> = [];
   for (const termo of TERMOS_TECNICOS_SENSIVEIS) {
-    let fromIndex = 0;
-    while (true) {
-      const idx = lower.indexOf(termo, fromIndex);
-      if (idx === -1) break;
-      const fim = idx + termo.length;
+    const regexTermo = criarRegexTermo(termo);
+    let match: RegExpExecArray | null;
+    let primeiraOcorrencia = true;
+    while ((match = regexTermo.exec(texto)) !== null) {
+      const idx = match.index;
+      const fim = idx + match[0].length;
+
+      if (!primeiraOcorrencia) {
+        // Ocorrências seguintes da mesma palavra já foram apresentadas ao
+        // leitor na primeira menção — não exigimos explicação de novo.
+        continue;
+      }
+      primeiraOcorrencia = false;
+
       // Janela de até 40 caracteres depois do termo para achar "(explicação)".
       const janela = texto.slice(fim, fim + 40);
       const temParenteseLogoDepois = /^\s*\(/.test(janela);
@@ -91,7 +128,6 @@ function encontrarTermosSemExplicacao(texto: string): Array<{ termo: string; tre
           trecho: texto.slice(Math.max(0, idx - 20), Math.min(texto.length, fim + 20)),
         });
       }
-      fromIndex = fim;
     }
   }
   return encontrados;
@@ -149,9 +185,32 @@ const ROTULO_STATUS: Record<string, string> = {
   inconclusivo: "não foi possível concluir o diagnóstico com os dados atuais",
 };
 
+// Versão 100% segura do textoLaudo de fallback — construída só com o rótulo
+// fixo de status (ROTULO_STATUS, strings literais neste arquivo, já livres de
+// jargão e de mojibake) e frases fixas, SEM interpolar titulo/acao (que vêm
+// do JSON já parseado da IA e podem, eles mesmos, ter jargão ou mojibake).
+// Último degrau do fallback: usado quando a versão com interpolação (que tenta
+// aproveitar titulo/acaoRecomendada para o texto ficar mais específico)
+// reprova a mesma validação de qualidade.
+function construirTextoLaudoFallbackSeguro(status: string): string {
+  const rotulo = ROTULO_STATUS[status] ?? ROTULO_STATUS.inconclusivo;
+  return [
+    `${rotulo.charAt(0).toUpperCase()}${rotulo.slice(1)}.`,
+    "Repita o teste em outro horário para confirmar o resultado.",
+    "Este resumo foi simplificado automaticamente porque a explicação detalhada não ficou clara o suficiente.",
+  ].join(" ");
+}
+
 // Constrói um textoLaudo de fallback simples, em português correto e sem
 // jargão, a partir de campos que o Worker já possui localmente (nunca inventa
 // dado novo). Usado só quando o texto gerado pela IA reprova a validação.
+//
+// `titulo` e o título da primeira ação recomendada vêm do JSON parseado da
+// resposta da IA — mesmos campos que passaram pela validação de qualidade
+// (podem ter jargão sem explicação ou mojibake, exatamente o problema que o
+// fallback deveria evitar). Por isso o texto candidato com essa interpolação
+// é ele mesmo revalidado com `validarTextoParaLeigo` antes de ser devolvido;
+// se reprovar, cai na versão 100% segura, sem interpolação nenhuma.
 export function construirTextoLaudoFallback(parsed: Record<string, unknown>): string {
   const status = typeof parsed.status === "string" ? parsed.status : "inconclusivo";
   const titulo = typeof parsed.titulo === "string" && parsed.titulo.trim() ? parsed.titulo.trim() : null;
@@ -173,13 +232,23 @@ export function construirTextoLaudoFallback(parsed: Record<string, unknown>): st
     "Este resumo foi simplificado automaticamente porque a explicação detalhada não ficou clara o suficiente.",
   );
 
-  return partes.join(" ");
+  const candidato = partes.join(" ");
+  if (validarTextoParaLeigo(candidato).ok) {
+    return candidato;
+  }
+  // titulo ou o título da ação recomendada reprovaram a validação (jargão sem
+  // explicação, mojibake) — não propaga: cai na versão sem interpolação.
+  return construirTextoLaudoFallbackSeguro(status);
 }
 
 export function construirResumoFallback(parsed: Record<string, unknown>): string {
   const status = typeof parsed.status === "string" ? parsed.status : "inconclusivo";
   const rotulo = ROTULO_STATUS[status] ?? ROTULO_STATUS.inconclusivo;
-  return `${rotulo.charAt(0).toUpperCase()}${rotulo.slice(1)}.`;
+  const candidato = `${rotulo.charAt(0).toUpperCase()}${rotulo.slice(1)}.`;
+  // ROTULO_STATUS é um mapa fixo neste arquivo (não interpola titulo/acao),
+  // então este candidato já é seguro por construção — a validação aqui é só
+  // uma rede de segurança defensiva caso o mapa mude no futuro.
+  return validarTextoParaLeigo(candidato).ok ? candidato : "Não foi possível concluir o diagnóstico com os dados atuais.";
 }
 
 // Ponto único chamado pelo Worker após o parse da resposta da IA. Valida
