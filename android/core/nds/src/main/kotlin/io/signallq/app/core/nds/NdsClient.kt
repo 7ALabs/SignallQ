@@ -34,25 +34,16 @@ class NdsClient(
     private val baseUrl: String,
     private val apiToken: String,
     /**
-     * Timeout reduzido de 20s (fatia NDS-01) para 12s de leitura — decisao da
-     * NDS-02k (issue #1759, item 8). Os dois gatilhos de producao que passaram a
-     * chamar [evaluate] (`DiagnosticOrchestrator.executarProtegido`, atras da
-     * flag `consumer_diagnostico_nds_live_enabled`) disparam em BACKGROUND, sem
-     * "aguarde" explicito do usuario — bem diferente do padrao de UI que
-     * justificava um teto mais largo em outros pontos do app (ex.: o teto de
-     * 42s de `RemoteDiagnosticRepository`, atras de uma tela que ja mostra
-     * estado de carregamento). 12s fica ACIMA do `EVALUATE_TIMEOUT_MS` default
-     * do proprio NDS (10000ms, ADR-017) — da margem para o servidor responder
-     * com o envelope de erro estruturado (`504 NDS_TIMEOUT`) antes do cliente
-     * abortar por conta propria, e ainda assim bem abaixo dos 20s antigos. O
-     * fallback total para `DiagnosticRunner` local (NdsDiagnosticRepository,
-     * `:featureDiagnostico`) cobre qualquer estouro deste teto sem travar a UI.
+     * O NDS tem orçamento de 50 s para concluir a inferência. O cliente reserva
+     * 55 s para receber o envelope V2 estruturado, inclusive se a cadeia de IA
+     * precisar trocar de provedor. `callTimeout` fixa o teto total da chamada.
      */
     private val client: OkHttpClient =
         OkHttpClient.Builder()
             .connectTimeout(5, TimeUnit.SECONDS)
-            .readTimeout(12, TimeUnit.SECONDS)
+            .readTimeout(55, TimeUnit.SECONDS)
             .writeTimeout(5, TimeUnit.SECONDS)
+            .callTimeout(55, TimeUnit.SECONDS)
             .build(),
 ) {
     /**
