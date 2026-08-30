@@ -8,6 +8,8 @@ import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.HistoricalDiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
+import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
+import io.signallq.app.core.diagnostico.PerguntasDiagnosticoGuiado
 import io.signallq.app.core.diagnostico.SpeedtestQualityInput
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 
@@ -118,7 +120,57 @@ data class DiagnosisAiContext(
      * equipamento foi lido nesta sessao — a IA analisa normalmente sem ele.
      */
     val equipamentoLocal: AiEquipamentoLocalInfo? = null,
+    /**
+     * Objetivo + subcategoria escolhidos pelo usuário no diagnóstico guiado (Feature #550),
+     * quando disponíveis. Campo ESTRUTURADO (id do objetivo + índice + rótulo da opção
+     * escolhida) — não é o índice cru nem texto livre solto em [feedbackUsuario]. Preparação de
+     * terreno (issue de redução "muitas perguntas, difícil escolher", 2026-08): hoje nenhum
+     * caller popula este campo em produção (o roteiro guiado ainda manda o objetivo como texto
+     * livre via [feedbackUsuario], ver `MainViewModel.analisarProblema`), e o Worker não recebe
+     * nenhuma lógica nova de priorização a partir dele — quando um caller futuro decidir usar
+     * este campo para priorizar hipóteses, o schema já está pronto. Ver
+     * [AiObjetivoDiagnosticoFactory].
+     */
+    val objetivoDiagnostico: AiObjetivoDiagnostico? = null,
 )
+
+/**
+ * Recorte estruturado e identificável do objetivo + subcategoria escolhidos no diagnóstico
+ * guiado — [objetivoId] é o nome do [ObjetivoDiagnostico] (estável, não muda com reordenação de
+ * enum) e [subcategoriaRotulo] é o texto da opção escolhida na única pergunta fechada do roteiro
+ * daquele objetivo (ver `PerguntasDiagnosticoGuiado`, roteiro reduzido a 1 pergunta por objetivo,
+ * 2026-08). [subcategoriaIndice] acompanha o rótulo para permitir join com o catálogo de
+ * perguntas sem re-parsear texto.
+ */
+data class AiObjetivoDiagnostico(
+    val objetivoId: String,
+    val subcategoriaIndice: Int,
+    val subcategoriaRotulo: String,
+)
+
+/**
+ * Constrói [AiObjetivoDiagnostico] a partir do objetivo escolhido e das respostas do roteiro
+ * guiado — hoje o roteiro tem sempre 1 pergunta por objetivo, então só a resposta de índice 0
+ * importa. Devolve `null` quando falta objetivo, resposta ou quando o índice não corresponde a
+ * nenhuma opção real (roteiro desatualizado em relação ao estado salvo, mesma defesa que
+ * [DiagnosticoGuiadoEstado] já aplica).
+ */
+object AiObjetivoDiagnosticoFactory {
+    fun from(
+        objetivo: ObjetivoDiagnostico,
+        respostas: List<Int?>,
+        tipoConexao: ConnectionType? = null,
+    ): AiObjetivoDiagnostico? {
+        val indice = respostas.firstOrNull() ?: return null
+        val pergunta = PerguntasDiagnosticoGuiado.perguntas(objetivo, tipoConexao).firstOrNull() ?: return null
+        val rotulo = pergunta.opcoes.getOrNull(indice) ?: return null
+        return AiObjetivoDiagnostico(
+            objetivoId = objetivo.name,
+            subcategoriaIndice = indice,
+            subcategoriaRotulo = rotulo,
+        )
+    }
+}
 
 /**
  * Recorte allowlisted de [SafeLocalDeviceContext] para o payload da IA — mesmos
@@ -513,6 +565,9 @@ object DiagnosisAiContextFactory {
         dispositivos: AiDispositivosInfo? = null,
         feedbackUsuario: String? = null,
         speedtestExtras: SpeedtestExtras? = null,
+        /** Ver kdoc de [DiagnosisAiContext.objetivoDiagnostico] — opcional, `null` em todos os
+         *  callers de produção hoje. */
+        objetivoDiagnostico: AiObjetivoDiagnostico? = null,
     ): DiagnosisAiContext {
         val base = buildContext(report, connectionType, input)
         val metricasComExtras = (base.metricasAtuais ?: AiMetricasAtuais()).copy(
@@ -564,6 +619,7 @@ object DiagnosisAiContextFactory {
             dispositivos = dispositivos,
             historico = historicoFinal,
             feedbackUsuario = feedbackUsuario,
+            objetivoDiagnostico = objetivoDiagnostico,
         )
     }
 

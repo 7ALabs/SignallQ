@@ -97,17 +97,19 @@ class DiagnosticoGuiadoScreenTest {
             }
         }
 
-        // Avança da pergunta 0 (pré-preenchida pelo Assist) para a pergunta 1 do roteiro.
+        // Roteiro reduzido a 1 pergunta por objetivo (2026-08): responder a única pergunta
+        // (pré-preenchida pelo Assist) já esgota o roteiro e avança para o Resultado — antes
+        // desta consolidação havia uma 2ª pergunta intermediária aqui.
         composeRule.onNodeWithText("Em qual conexão você joga?").assertIsDisplayed()
         composeRule.onNodeWithText("Wi-Fi").performClick()
-        composeRule.onNodeWithText("Com que frequência isso acontece?").assertIsDisplayed()
+        composeRule.onNodeWithText("Resultado").assertIsDisplayed()
 
         restorationTester.emulateSavedInstanceStateRestore()
 
         // Sem o `Saver` ligado (o `remember` puro de antes desta issue), a tela recriada voltaria
         // para `objetivo = null` -- a lista de objetivos do início. É exatamente essa perda que a
         // #1720 corrigiu.
-        composeRule.onNodeWithText("Com que frequência isso acontece?").assertIsDisplayed()
+        composeRule.onNodeWithText("Resultado").assertIsDisplayed()
         composeRule.onNodeWithText("Vamos descobrir o que está acontecendo").assertDoesNotExist()
     }
 
@@ -151,8 +153,10 @@ class DiagnosticoGuiadoScreenTest {
             }
         }
 
+        // Roteiro reduzido a 1 pergunta por objetivo (2026-08): este clique já esgota o roteiro
+        // de Jogos com lag e avança direto para o Resultado.
         composeRule.onNodeWithText("Wi-Fi").performClick()
-        composeRule.onNodeWithText("Com que frequência isso acontece?").assertIsDisplayed()
+        composeRule.onNodeWithText("Resultado").assertIsDisplayed()
 
         composeRule.runOnIdle { assertFalse("o back deve liberar o pop do overlay", backHandler()) }
         assertEquals("o callback do shell decide a saída", 0, onVoltarChamado)
@@ -190,7 +194,7 @@ class DiagnosticoGuiadoScreenTest {
             input = inputJogosComWifiFraco(),
         )
 
-        completarSegundaPerguntaJogos(respostaConexao = "Cabo de rede")
+        completarUnicaPerguntaJogos(respostaConexao = "Cabo de rede")
 
         composeRule.onNodeWithText("Força do sinal Wi-Fi").assertDoesNotExist()
     }
@@ -203,7 +207,7 @@ class DiagnosticoGuiadoScreenTest {
             input = inputJogosComWifiFraco(),
         )
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
 
         composeRule.onAllNodesWithText("Força do sinal Wi-Fi").onFirst().assertIsDisplayed()
     }
@@ -221,7 +225,7 @@ class DiagnosticoGuiadoScreenTest {
             statusMedicao = null,
         )
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
 
         assertEquals(1, analiseIniciada)
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
@@ -253,7 +257,7 @@ class DiagnosticoGuiadoScreenTest {
             estadoAnalise = EstadoAnaliseGuiada.Concluida,
         )
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
 
         assertEquals(0, analiseIniciada)
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertDoesNotExist()
@@ -273,7 +277,7 @@ class DiagnosticoGuiadoScreenTest {
             analisadorState = resultadoComAcoes(tipo = "reteste", executavelNoApp = true),
         )
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
 
         composeRule.onNodeWithText("Testar novamente").performScrollTo().assertIsDisplayed()
     }
@@ -288,7 +292,7 @@ class DiagnosticoGuiadoScreenTest {
             analisadorState = resultadoComAcoes(tipo = "reteste", executavelNoApp = false),
         )
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
 
         composeRule.onNodeWithText("Testar novamente").assertDoesNotExist()
     }
@@ -303,7 +307,7 @@ class DiagnosticoGuiadoScreenTest {
             analisadorState = resultadoComAcoes(tipo = "contato_isp", executavelNoApp = true),
         )
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
 
         composeRule.onNodeWithText("Testar novamente").assertDoesNotExist()
     }
@@ -318,7 +322,7 @@ class DiagnosticoGuiadoScreenTest {
             analisadorState = resultadoComAcoes(tipo = "reteste", executavelNoApp = true),
         )
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
         composeRule.onNodeWithText("Testar novamente").performScrollTo().performClick()
 
         assertEquals(1, testesVinculadosAcionados.size)
@@ -336,7 +340,7 @@ class DiagnosticoGuiadoScreenTest {
             comparacaoRetesteState = ComparacaoRetesteUiState.EmAndamento,
         )
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
 
         composeRule.onNodeWithText("Testando novamente…").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Testar novamente").assertDoesNotExist()
@@ -353,7 +357,7 @@ class DiagnosticoGuiadoScreenTest {
             comparacaoRetesteState = ComparacaoRetesteUiState.Concluido(veredito = "Melhorou", comparavel = true),
         )
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
 
         composeRule.onNodeWithText("Melhorou").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Testar novamente").assertDoesNotExist()
@@ -379,13 +383,15 @@ class DiagnosticoGuiadoScreenTest {
             estadoAnalise = EstadoAnaliseGuiada.NaoIniciada,
             statusMedicao = null,
         )
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
 
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_CANCELAR).performScrollTo().performClick()
 
         assertEquals(1, analiseCancelada)
-        composeRule.onNodeWithText("Com que frequência isso acontece?").assertIsDisplayed()
+        // Roteiro reduzido a 1 pergunta por objetivo (2026-08): cancelar a análise volta para a
+        // única pergunta do roteiro (antes desta consolidação voltava para a 2ª pergunta).
+        composeRule.onNodeWithText("Em qual conexão você joga?").assertIsDisplayed()
     }
 
     // BLOQUEIO B1 do parecer de Caio na PR #1719. Todos os testes acima passam `estadoAnalise`
@@ -414,7 +420,7 @@ class DiagnosticoGuiadoScreenTest {
             }
         }
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
 
         estado = EstadoAnaliseGuiada.EmAndamento(0.4f, "Medindo a velocidade de recebimento")
@@ -454,7 +460,7 @@ class DiagnosticoGuiadoScreenTest {
             }
         }
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
         estado = EstadoAnaliseGuiada.EmAndamento(0.4f, "Medindo a velocidade de recebimento")
         composeRule.waitForIdle()
         estado = EstadoAnaliseGuiada.Concluida
@@ -506,7 +512,7 @@ class DiagnosticoGuiadoScreenTest {
             }
         }
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
         estado = EstadoAnaliseGuiada.EmAndamento(0.4f, "Medindo a velocidade de recebimento")
         composeRule.waitForIdle()
         estado = EstadoAnaliseGuiada.Concluida
@@ -547,7 +553,7 @@ class DiagnosticoGuiadoScreenTest {
             statusMedicao = null,
         )
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
 
         composeRule
             .onNodeWithContentDescription("Analisando: Medindo a velocidade de recebimento")
@@ -597,20 +603,22 @@ class DiagnosticoGuiadoScreenTest {
             statusMedicao = null,
         )
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
 
         composeRule.onNodeWithText("sem conexão").assertIsDisplayed()
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_TENTAR_NOVAMENTE).performClick()
         assertEquals(2, analiseIniciada) // 1 ao entrar na rota + 1 no "Tentar de novo"
     }
 
-    /** Avança da primeira pergunta (já pré-preenchida pelo Assist) até o resultado,
-     *  respondendo a segunda pergunta do roteiro de Jogos com lag normalmente. */
-    private fun completarSegundaPerguntaJogos(respostaConexao: String = "Wi-Fi") {
+    /** Confirma a única pergunta do roteiro de Jogos com lag (já pré-preenchida pelo
+     *  Assist) e avança para fora do roteiro de perguntas — issue de redução "muitas
+     *  perguntas, difícil escolher" (2026-08) consolidou o roteiro de 2 para 1
+     *  pergunta por objetivo, então este clique único já esgota `perguntas.size` e
+     *  `avançarApósResposta` segue direto para Análise/Resultado. Nome mantido por
+     *  compatibilidade com os call sites já existentes neste arquivo. */
+    private fun completarUnicaPerguntaJogos(respostaConexao: String = "Wi-Fi") {
         composeRule.onNodeWithText("Em qual conexão você joga?").assertIsDisplayed()
         composeRule.onNodeWithText(respostaConexao).performClick()
-        composeRule.onNodeWithText("Com que frequência isso acontece?").assertIsDisplayed()
-        composeRule.onNodeWithText("Quase sempre").performClick()
     }
 
     /** Mesmos valores do caso `jogos com lag fica critica com latencia alta` em
@@ -665,7 +673,7 @@ class DiagnosticoGuiadoScreenTest {
             }
         }
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
         val disparos = analiseIniciada
 
@@ -820,7 +828,7 @@ class DiagnosticoGuiadoScreenTest {
             statusMedicao = MeasurementStatus.CONTAMINATED,
         )
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
 
         assertEquals("resultado velho não-completo tem que ser remedido", 1, analiseIniciada)
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
@@ -856,7 +864,7 @@ class DiagnosticoGuiadoScreenTest {
             statusMedicao = null,
         )
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
 
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PLANO).assertExists()
         composeRule.onNodeWithText("Vamos verificar", substring = true).assertIsDisplayed()
@@ -874,7 +882,7 @@ class DiagnosticoGuiadoScreenTest {
             contextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = false),
         )
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
 
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_LIMITE).assertExists()
@@ -891,7 +899,7 @@ class DiagnosticoGuiadoScreenTest {
             statusMedicao = null,
         )
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
 
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_PLANO).assertExists()
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA_LIMITE).assertDoesNotExist()
@@ -915,7 +923,7 @@ class DiagnosticoGuiadoScreenTest {
             statusMedicao = null,
         )
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
         composeRule.waitForIdle()
 
         assertEquals(1, planosIniciados.size)
@@ -946,7 +954,7 @@ class DiagnosticoGuiadoScreenTest {
             contextoDoPlano = ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = false),
         )
 
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
         composeRule.waitForIdle()
 
         assertTrue("plano reduzido tem que ir marcado", planosIniciados.first().planoAdaptado)
@@ -982,7 +990,7 @@ class DiagnosticoGuiadoScreenTest {
     fun `entrar no wifi no meio da jornada dispara o funil de novo, com plano maior`() {
         val foraDoWifi = ContextoDoPlano(temPermissaoLocalizacao = true, conectadoPorWifi = false)
         val mudarContexto = cenarioDirigido(foraDoWifi)
-        completarSegundaPerguntaJogos()
+        completarUnicaPerguntaJogos()
         composeRule.waitForIdle()
         val primeiro = planosIniciados.single()
 

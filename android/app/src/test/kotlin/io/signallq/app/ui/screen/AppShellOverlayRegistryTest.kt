@@ -6,7 +6,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
@@ -326,8 +325,12 @@ class AppShellOverlayRegistryTest {
             )
         }
 
+        // Roteiro reduzido a 1 pergunta por objetivo (2026-08): este clique já esgota o roteiro
+        // de Jogos com lag — a tela avança para fora da pergunta (Análise ou Resultado, conforme
+        // o estado de análise/medição injetado neste teste), então a asserção verifica a saída da
+        // pergunta em vez de uma 2ª pergunta que não existe mais.
         composeRule.onNodeWithText("Wi-Fi").performClick()
-        composeRule.onNodeWithText("Com que frequência isso acontece?").assertIsDisplayed()
+        composeRule.onNodeWithText("Em qual conexão você joga?").assertDoesNotExist()
 
         composeRule.runOnIdle { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
 
@@ -400,8 +403,9 @@ class AppShellOverlayRegistryTest {
             )
         }
 
+        // Roteiro reduzido a 1 pergunta por objetivo (2026-08): este clique já esgota o roteiro
+        // de Jogos com lag — não há mais uma 2ª pergunta ("Quase sempre") para responder.
         composeRule.onNodeWithText("Wi-Fi").performClick()
-        composeRule.onNodeWithText("Quase sempre").performClick()
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
 
         estadoAnalise = EstadoAnaliseGuiada.Concluida
@@ -441,8 +445,8 @@ class AppShellOverlayRegistryTest {
             )
         }
 
+        // Roteiro reduzido a 1 pergunta por objetivo (2026-08): este clique já esgota o roteiro.
         composeRule.onNodeWithText("Wi-Fi").performClick()
-        composeRule.onNodeWithText("Quase sempre").performClick()
 
         composeRule.onNodeWithTag(TAG_ANALISE_GUIADA).assertExists()
         // GH#1706 — `planoIniciado` entrou na lista: o evento do funil dispara junto, e isso é

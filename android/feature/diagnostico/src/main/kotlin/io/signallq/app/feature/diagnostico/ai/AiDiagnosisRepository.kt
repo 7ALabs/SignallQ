@@ -599,6 +599,14 @@ class AiDiagnosisRepository(
             o.put("equipamentoLocal", eo)
         }
 
+        ctx.objetivoDiagnostico?.let { od ->
+            val oo = JSONObject()
+            oo.put("objetivoId", od.objetivoId)
+            oo.put("subcategoriaIndice", od.subcategoriaIndice)
+            oo.put("subcategoriaRotulo", od.subcategoriaRotulo)
+            o.put("objetivoDiagnostico", oo)
+        }
+
         return o
     }
 

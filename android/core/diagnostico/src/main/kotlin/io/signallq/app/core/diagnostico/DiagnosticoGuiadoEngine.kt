@@ -6,6 +6,14 @@ package io.signallq.app.core.diagnostico
  * [PerguntaFechada] (por índice de opção, não texto) e o [DiagnosticInput] real do
  * teste — devolve um [ResultadoDiagnosticoGuiado] com status/evidências/ações.
  *
+ * ## Roteiro reduzido a 1 pergunta por objetivo (2026-08)
+ * [PerguntasDiagnosticoGuiado.perguntas] hoje devolve **1** [PerguntaFechada] por
+ * objetivo (antes eram 2) — ver o kdoc daquele objeto para o racional completo.
+ * Este motor não precisou mudar: nenhum `avaliarXxx` abaixo já lia
+ * `respostas.getOrNull(1)` ou índice maior — [avaliarJogosComLag] e
+ * [avaliarWifiVsOperadora] são os únicos que leem `respostas`, e ambos só usam
+ * `getOrNull(0)`, que continua sendo a pergunta que sobrou.
+ *
  * ## Regra de produto (não-negociável, issue #1475/#550)
  * Este objeto é a ÚNICA fonte do `status`/evidências. A camada de IA (ver
  * `AnalisadorState`/`onAnalisarProblema` em `:app`) só pode **explicar** o

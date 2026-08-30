@@ -256,17 +256,48 @@ class DiagnosticoGuiadoEngineTest {
         assertTrue(r.acoes.none { it.contains("roteador", ignoreCase = true) || it.contains("canal Wi-Fi", ignoreCase = true) })
     }
 
-    // ── Perguntas: 7 objetivos, roteiro sempre fechado (sem texto livre) ─────
+    // ── Perguntas: 7 objetivos, roteiro reduzido a 1 pergunta fechada cada ───
 
     @Test
-    fun `todo objetivo tem pelo menos uma pergunta com pelo menos duas opcoes`() {
+    fun `todo objetivo tem exatamente uma pergunta com pelo menos duas opcoes`() {
+        // Roteiro reduzido de 2 para 1 pergunta por objetivo (issue "muitas
+        // perguntas, dificil escolher", 2026-08) — nenhum dos 7 objetivos ficou
+        // com 2 perguntas: o motor nunca leu o indice da 2a pergunta em nenhum
+        // deles (ver kdoc de PerguntasDiagnosticoGuiado).
         ObjetivoDiagnostico.entries.forEach { objetivo ->
             val perguntas = PerguntasDiagnosticoGuiado.perguntas(objetivo)
-            assertTrue("objetivo $objetivo sem pergunta", perguntas.isNotEmpty())
+            assertEquals("objetivo $objetivo deveria ter exatamente 1 pergunta", 1, perguntas.size)
             perguntas.forEach { pergunta ->
                 assertTrue("pergunta '${pergunta.texto}' com menos de 2 opcoes", pergunta.opcoes.size >= 2)
             }
         }
+    }
+
+    @Test
+    fun `motor continua funcionando com uma unica resposta por objetivo`() {
+        // Caracterizacao pos-consolidacao: respostas com 1 elemento (o roteiro
+        // reduzido) produzem o mesmo resultado que o motor ja produzia lendo so
+        // o indice 0 antes da consolidacao.
+        val jogos = DiagnosticoGuiadoEngine.avaliar(
+            ObjetivoDiagnostico.JOGOS_COM_LAG,
+            listOf(1), // "Cabo de rede" — unica resposta do roteiro reduzido
+            DiagnosticInput(
+                internet = internet(latencia = 30.0, jitter = 5.0, perda = 0.0),
+                wifi = WifiDiagnosticInput(rssiDbm = -85, linkSpeedMbps = 20, frequenciaMhz = 2400),
+            ),
+        )
+        assertTrue(jogos.evidencias.none { it.label == "Força do sinal Wi-Fi" })
+
+        val wifiVsOperadora = DiagnosticoGuiadoEngine.avaliar(
+            ObjetivoDiagnostico.WIFI_VS_OPERADORA,
+            listOf(2), // "Não muda nada" — unica resposta do roteiro reduzido
+            DiagnosticInput(
+                connectionType = ConnectionType.wifi,
+                internet = internet(),
+                wifi = WifiDiagnosticInput(rssiDbm = -50, linkSpeedMbps = 300, frequenciaMhz = 5200),
+            ),
+        )
+        assertEquals(DiagnosticStatus.ok, wifiVsOperadora.status)
     }
 
     @Test
