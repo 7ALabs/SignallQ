@@ -13,6 +13,13 @@ import java.util.concurrent.TimeUnit
 private const val EVALUATE_PATH = "/v2/diagnostics/evaluate"
 
 /**
+ * Contrato v2 (disponível no NDS desde a PR #24) -- aceita contexto opcional e responde
+ * `{raw, explanation: {titulo, descricao, dados, acao_usuario, sem_causa_identificada?}}`.
+ * [NdsClient.evaluate] só chama esta rota quando explicitamente pedido via `useV2 = true`.
+ */
+private const val EVALUATE_PATH_V2 = "/v2/diagnostics/evaluate"
+
+/**
  * Cliente HTTP para o Network Diagnostics Service (NDS) — fatia NDS-01
  * (#1744, ADR-017). Isolado: nenhuma tela do app depende deste cliente ainda,
  * a religacao dos consumidores reais (Home, Wifi, Devices, Diagnostico) e
@@ -28,9 +35,8 @@ class NdsClient(
     private val apiToken: String,
     /**
      * O NDS tem orçamento de 50 s para concluir a inferência. O cliente reserva
-     * 55 s para receber o envelope V2 estruturado, inclusive quando a cadeia de
-     * provedores de IA troca de provedor. `callTimeout` torna esse teto total,
-     * sem somar tempos de conexão, escrita e leitura.
+     * 55 s para receber o envelope V2 estruturado, inclusive se a cadeia de IA
+     * precisar trocar de provedor. `callTimeout` fixa o teto total da chamada.
      */
     private val client: OkHttpClient =
         OkHttpClient.Builder()
@@ -46,15 +52,25 @@ class NdsClient(
      * timeout, corpo inesperado) volta como [NdsDiagnosticsOutcome.KnownError]
      * ou [NdsDiagnosticsOutcome.UnknownError].
      */
-    suspend fun evaluate(request: NdsDiagnosticsRequest): NdsDiagnosticsOutcome =
+    suspend fun evaluate(
+        request: NdsDiagnosticsRequest,
+        /**
+         * `true` pede o contrato v2. O contexto é opcional nesse contrato; o chamador
+         * ([io.signallq.app.feature.diagnostico.nds.NdsDiagnosticRepository]) decide este
+         * valor a partir da feature flag `FeatureFlagKeys.USAR_NDS_V2_NO_ASSIST` -- este
+         * cliente não lê flags.
+         */
+        useV2: Boolean = false,
+    ): NdsDiagnosticsOutcome =
         withContext(Dispatchers.IO) {
             try {
+                val path = if (useV2) EVALUATE_PATH_V2 else EVALUATE_PATH
                 val body =
                     request.toJson().toString()
                         .toRequestBody("application/json; charset=utf-8".toMediaType())
                 val httpRequest =
                     Request.Builder()
-                        .url(baseUrl.trimEnd('/') + EVALUATE_PATH)
+                        .url(baseUrl.trimEnd('/') + path)
                         .addHeader("Authorization", "Bearer $apiToken")
                         .post(body)
                         .build()

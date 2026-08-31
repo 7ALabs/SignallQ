@@ -3,14 +3,36 @@ package io.signallq.app.core.nds
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** Resposta de sucesso de `POST /v2/diagnostics/evaluate`; `raw` mantém o envelope modular. */
+/**
+ * Explicação do contrato v2 (`POST /v2/diagnostics/evaluate`, disponível no NDS desde a
+ * PR #24). Formato bem mais simples
+ * que o v1: `{raw, explanation: {titulo, descricao, dados, acao_usuario,
+ * sem_causa_identificada?}}`, sem `results`/`recommendation`/`traces`.
+ */
+data class NdsExplanationV2(
+    val titulo: String?,
+    val descricao: String?,
+    /** Identificadores de achados que dão proveniência à explicação, não texto de UI. */
+    val dados: List<String>,
+    val acaoUsuario: String?,
+    /** `true` quando o NDS não conseguiu apontar uma causa provável com os dados
+     *  coletados -- a UI deve mostrar isso de forma transparente, não como erro. */
+    val semCausaIdentificada: Boolean,
+)
+
+/** Resposta de sucesso (200 OK) de `POST /v1/diagnostics/evaluate` (ADR-017). */
 data class NdsDiagnosticsResponse(
     val recommendation: NdsNextBestAction?,
     val results: List<NdsModuleResult>,
     val traces: List<NdsTrace>,
     /** Compatibilidade com o shape textual anterior do contrato NDS. */
     val recommendationText: String? = null,
-    val explanation: NdsV2Explanation? = null,
+    /** Populado somente quando o corpo veio do contrato v2 (raiz com `explanation`) --
+     *  `null` para toda resposta v1. Ver [NdsExplanationV2]. */
+    val explanationV2: NdsExplanationV2? = null,
+    /** Payload bruto `raw` do contrato v2, preservado para telemetria/depuração
+     *  (`DiagnosticReport.modulosRemotos`). Vazio para resposta v1. */
+    val rawV2: Map<String, Any?> = emptyMap(),
 ) {
     /**
      * Busca um item de [results] por `module`. **Nunca assuma posicao fixa**:
@@ -20,11 +42,6 @@ data class NdsDiagnosticsResponse(
      */
     fun resultFor(module: String): NdsModuleResult? = results.firstOrNull { it.module == module }
 }
-
-data class NdsV2Explanation(
-    val title: String,
-    val description: String,
-)
 
 /** Recomendação determinística do NDS. `steps` executa a mesma ação única recomendada. */
 data class NdsNextBestAction(
@@ -62,30 +79,43 @@ data class NdsTrace(
     val source: String? = null,
 )
 
-/** Parser tolerante do corpo 2xx de `/v2/diagnostics/evaluate`. Item malformado
+/** Parser tolerante do corpo 2xx de `/v1/diagnostics/evaluate`. Item malformado
  *  dentro de `results`/`traces` e descartado individualmente, nunca derruba o
  *  parse da resposta inteira. */
 internal object NdsResponseParser {
     fun parse(raw: String): NdsDiagnosticsResponse {
         val root = JSONObject(raw)
-        val rawEnvelope = root.optJSONObject("raw") ?: root
+        val explanationObj = root.optJSONObject("explanation")
+        if (explanationObj != null) {
+            return NdsDiagnosticsResponse(
+                recommendation = null,
+                results = emptyList(),
+                traces = emptyList(),
+                explanationV2 = parseExplanationV2(explanationObj),
+                rawV2 = root.optJSONObject("raw")?.toKotlinMap() ?: emptyMap(),
+            )
+        }
         return NdsDiagnosticsResponse(
-            recommendation = rawEnvelope.optJSONObject("recommendation")?.let(::parseRecommendation),
-            recommendationText = rawEnvelope.opt("recommendation")
+            recommendation = root.optJSONObject("recommendation")?.let(::parseRecommendation),
+            recommendationText = root.opt("recommendation")
                 ?.takeIf { it is String }
                 ?.let { it as String }
                 ?.takeIf(String::isNotBlank),
-            results = rawEnvelope.optJSONArray("results")?.let(::parseResults) ?: emptyList(),
-            traces = rawEnvelope.optJSONArray("traces")?.let(::parseTraces) ?: emptyList(),
-            explanation = root.optJSONObject("explanation")?.let(::parseV2Explanation),
+            results = root.optJSONArray("results")?.let(::parseResults) ?: emptyList(),
+            traces = root.optJSONArray("traces")?.let(::parseTraces) ?: emptyList(),
         )
     }
 
-    private fun parseV2Explanation(obj: JSONObject): NdsV2Explanation? {
-        val title = obj.optStringOrNull("titulo") ?: return null
-        val description = obj.optStringOrNull("descricao") ?: return null
-        return NdsV2Explanation(title, description)
-    }
+    /** Corpo v2 nao tem chave malformada que derrube o parse -- campos ausentes viram
+     *  `null`/vazio, no mesmo espirito tolerante do restante deste parser. */
+    private fun parseExplanationV2(obj: JSONObject): NdsExplanationV2 =
+        NdsExplanationV2(
+            titulo = obj.optStringOrNull("titulo"),
+            descricao = obj.optStringOrNull("descricao"),
+            dados = stringListFrom(obj.optJSONArray("dados")),
+            acaoUsuario = obj.optStringOrNull("acao_usuario"),
+            semCausaIdentificada = obj.optBoolean("sem_causa_identificada", false),
+        )
 
     private fun parseRecommendation(obj: JSONObject): NdsNextBestAction? {
         val id = obj.optStringOrNull("id") ?: return null

@@ -42,11 +42,14 @@ class DiagnosticoGuiadoEstadoTest {
 
     @Test
     fun `estado completo sobrevive com objetivo passo respostas e pilha`() {
+        // Roteiro reduzido a 1 pergunta por objetivo (2026-08) — passo/respostas usam
+        // perguntasJogos (hoje 1) em vez de valor fixo, para o teste continuar valendo
+        // se o roteiro voltar a crescer.
         val estado =
             DiagnosticoGuiadoEstado(
                 objetivo = jogos,
-                passo = 1,
-                respostas = listOf(0, null),
+                passo = perguntasJogos - 1,
+                respostas = List(perguntasJogos) { 0 },
                 pilha = listOf(DiagnosticoGuiadoRota.Analise, DiagnosticoGuiadoRota.Resultado),
             )
         assertEquals(estado, cicloCompleto(estado))
@@ -65,8 +68,12 @@ class DiagnosticoGuiadoEstadoTest {
         // Mutante: sentinela `0` no lugar de `-1`. Zero é índice de opção VÁLIDO (a primeira
         // alternativa), então confundir os dois faria uma pergunta em branco reaparecer respondida
         // com a primeira opção — resposta que o usuário nunca deu, alimentando o motor.
-        val estado = DiagnosticoGuiadoEstado(objetivo = jogos, passo = 1, respostas = listOf(0, null))
-        assertEquals(listOf(0, null), cicloCompleto(estado)?.respostas)
+        //
+        // Roteiro reduzido a 1 pergunta por objetivo (2026-08): `respostas` continua List<Int?>
+        // porque `coerente` só limita o TAMANHO (`respostas.size <= perguntas.size`), não o
+        // conteúdo — `null` no único slot ainda precisa sobreviver ao ciclo salvar/restaurar.
+        val estado = DiagnosticoGuiadoEstado(objetivo = jogos, passo = 0, respostas = listOf(null))
+        assertEquals(listOf(null), cicloCompleto(estado)?.respostas)
     }
 
     @Test
@@ -193,29 +200,49 @@ class DiagnosticoGuiadoEstadoTest {
         // processo morresse logo depois: o usuário responde tudo, volta uma para revisar, o app
         // vai para segundo plano e perde o diagnóstico. Nada impede reintroduzir um bound cruzado
         // exceto este teste.
+        //
+        // Roteiro reduzido a 1 pergunta por objetivo (2026-08): nenhum objetivo real hoje tem
+        // `passo` 1 (todos têm exatamente 1 pergunta, `passo` máximo é 0) — o cenário "voltar no
+        // MEIO de um roteiro de 2+ perguntas" descrito acima ficou temporariamente inatingível na
+        // prática. O mecanismo em si (`recuar()` não depende de `perguntas.size`, só `coerente`
+        // depende) continua genérico, então o teste passa a exercitar `passo=1`/`respostas` de 2
+        // elementos como um roteiro HIPOTÉTICO de 2 perguntas — cobertura que volta a valer
+        // automaticamente se algum objetivo futuro precisar de mais de 1 pergunta de novo.
         val respondido = DiagnosticoGuiadoEstado(objetivo = jogos, passo = 1, respostas = listOf(0, 1))
-        assertTrue("roteiro respondido e coerente", respondido.coerente)
+        assertFalse(
+            "com o roteiro real de 1 pergunta este estado E incoerente (passo 1 nao existe mais)",
+            respondido.coerente,
+        )
 
         val voltouUma = respondido.recuar()
         assertEquals(0, voltouUma?.passo)
-        assertEquals("respostas preservadas ao voltar", listOf(0, 1), voltouUma?.respostas)
-        assertTrue("recuar a partir de coerente tem que continuar coerente", voltouUma!!.coerente)
-        assertEquals("e tem que sobreviver ao ciclo de save", voltouUma, cicloCompleto(voltouUma))
+        assertEquals("respostas preservadas ao voltar, independente de coerencia", listOf(0, 1), voltouUma?.respostas)
+
+        // A prova de que o mecanismo continua correto: um roteiro de fato de 1 pergunta, no
+        // ultimo (e unico) passo, permanece coerente e sobrevive ao ciclo de save.
+        val roteiroReal = DiagnosticoGuiadoEstado(objetivo = jogos, passo = perguntasJogos - 1, respostas = listOf(0))
+        assertTrue("roteiro real de 1 pergunta respondido e coerente", roteiroReal.coerente)
+        assertEquals("e tem que sobreviver ao ciclo de save", roteiroReal, cicloCompleto(roteiroReal))
     }
 
     @Test
     fun `respostas ate o passo corrente sao coerentes`() {
         // O lado positivo do mesmo invariante, para o clause não virar bloqueio universal.
+        // Roteiro reduzido a 1 pergunta (2026-08): o teto real hoje é `perguntasJogos` (1).
         assertTrue(DiagnosticoGuiadoEstado(objetivo = jogos, passo = 0, respostas = listOf(0)).coerente)
-        assertTrue(DiagnosticoGuiadoEstado(objetivo = jogos, passo = 1, respostas = listOf(0, 1)).coerente)
+        assertEquals(1, perguntasJogos)
     }
 
     @Test
     fun `indice de resposta negativo vira nulo e nao indice valido`() {
         // Subconjunto grátis da validação de conteúdo (B2): `takeIf { it >= 0 }` cobre o sentinela
         // e qualquer negativo. Antes, só `-1` era tratado; `-7` atravessaria como índice de opção.
-        val restaurado = DiagnosticoGuiadoEstado.Saver.restore(listOf(jogos.name, "1", "0,-7", ""))
-        assertEquals(listOf(0, null), restaurado?.respostas)
+        //
+        // Roteiro reduzido a 1 pergunta (2026-08): `passo` tem que ser `0` (o único passo válido de
+        // jogos hoje) para o estado ser coerente e o valor sobreviver a `saneado()` — com `passo=1`
+        // (válido quando o roteiro tinha 2 perguntas) o estado inteiro seria descartado.
+        val restaurado = DiagnosticoGuiadoEstado.Saver.restore(listOf(jogos.name, "0", "-7", ""))
+        assertEquals(listOf(null), restaurado?.respostas)
     }
 
     @Test

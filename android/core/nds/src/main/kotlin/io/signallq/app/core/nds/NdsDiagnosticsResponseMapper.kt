@@ -35,6 +35,8 @@ fun NdsDiagnosticsResponse.toDiagnosticReport(
     input: DiagnosticInput,
     geradoEmMs: Long,
 ): DiagnosticReport {
+    explanationV2?.let { return toDiagnosticReportV2(it, input, geradoEmMs) }
+
     val scoring = resultFor("scoring")?.asScoring()
     val ai = resultFor("ai")?.asAi()
     val dadosAusentes = results.flatMap { it.missingInputs }.distinct()
@@ -97,6 +99,82 @@ private fun DiagnosticStatus.v2SeverityRank(): Int = when (this) {
     DiagnosticStatus.info -> 2
     DiagnosticStatus.ok -> 1
     DiagnosticStatus.inconclusive -> 0
+}
+
+/**
+ * Ponte `NdsExplanationV2 -> DiagnosticReport` (feat/nds-client-v2). O contrato v2 não
+ * devolve `results`/`recommendation`/`scoring` como o v1 -- só `explanation`, então o
+ * relatório aqui é bem mais enxuto, mas reusa os MESMOS campos de [DiagnosticResult]
+ * que a UI do Assist já lê hoje ([io.signallq.app.ui.screen.DiagnosticoGuiadoResultadoSection]):
+ * `titulo`/`mensagemUsuario`/`evidencia` alimentam o card "O que encontramos" e
+ * `recomendacaoPassos` alimenta os próximos passos sugeridos -- nenhuma UI nova.
+ *
+ * `explanation.sem_causa_identificada == true` vira [DiagnosticStatus.inconclusive] com
+ * uma mensagem transparente (não um erro) -- o mesmo tom usado em
+ * [DiagnosticStatus.inconclusive] no restante do app: reconhece a limitação sem inventar
+ * causa. Sem essa marcação, o status é [DiagnosticStatus.attention] -- v2 não devolve
+ * severidade granular (nada equivalente ao `scoring.veredicto` do v1), então "attention"
+ * é o piso honesto para "o NDS encontrou algo a explicar", sem fingir um veredito mais
+ * fino do que o contrato realmente entrega.
+ */
+private fun NdsDiagnosticsResponse.toDiagnosticReportV2(
+    explanation: NdsExplanationV2,
+    input: DiagnosticInput,
+    geradoEmMs: Long,
+): DiagnosticReport {
+    val status = if (explanation.semCausaIdentificada) {
+        DiagnosticStatus.inconclusive
+    } else {
+        DiagnosticStatus.attention
+    }
+    val mensagem = explanation.descricao?.takeIf(String::isNotBlank).orEmpty().ifBlank {
+        if (explanation.semCausaIdentificada) {
+            "O NDS não conseguiu identificar uma causa provável para o problema com os dados coletados."
+        } else {
+            "Diagnóstico concluído."
+        }
+    }
+    val decisao = DiagnosticResult(
+        id = "nds:v2:${if (explanation.semCausaIdentificada) "sem_causa" else "explicado"}",
+        titulo = explanation.titulo?.takeIf(String::isNotBlank) ?: "Diagnóstico via NDS",
+        status = status,
+        evidencia = mensagem,
+        mensagemUsuario = mensagem,
+        recomendacao = explanation.acaoUsuario,
+        recomendacaoPassos = listOfNotNull(explanation.acaoUsuario?.takeIf(String::isNotBlank)),
+        recomendacaoId = null,
+        sourceFindingIds = explanation.dados,
+        categoria = "nds",
+        podeConcluir = status != DiagnosticStatus.inconclusive,
+        categoriaOrigem = null,
+    )
+
+    return DiagnosticReport(
+        wifiResultados = emptyList(),
+        internetResultados = emptyList(),
+        mobileResultados = emptyList(),
+        fibraResultados = emptyList(),
+        dnsResultados = emptyList(),
+        historicoResultados = emptyList(),
+        wifiCanalResultados = emptyList(),
+        redeResultados = emptyList(),
+        decisao = decisao,
+        achadosSecundarios = emptyList(),
+        hipotesesDescartadas = emptyList(),
+        dadosAusentes = emptyList(),
+        limitacoesEquipamentoLocal = emptyList(),
+        recomendacoes = if (explanation.acaoUsuario.isNullOrBlank()) emptyList() else listOf(decisao),
+        perfisUsoSpeedtest = input.internet?.qualidadeUso,
+        scoreEngineResultado = null,
+        perfisUso = emptyList(),
+        gameReadiness = emptyList(),
+        geradoEmMs = geradoEmMs,
+        executionId = input.executionId,
+        evidenciasRemotas = emptyList(),
+        modulosRemotos = mapOf("nds_v2" to rawV2),
+        avisosRemotos = emptyMap(),
+        context = input.context,
+    )
 }
 
 private fun Map<String, Any?>.string(key: String): String? = this[key] as? String

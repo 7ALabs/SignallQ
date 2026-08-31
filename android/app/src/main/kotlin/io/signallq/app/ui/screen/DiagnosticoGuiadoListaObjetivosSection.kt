@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CompareArrows
+import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.SportsEsports
@@ -42,12 +43,19 @@ private fun ObjetivoDiagnostico.iconeAssist(): ImageVector =
         ObjetivoDiagnostico.SITES_DEMORAM -> Icons.Outlined.Language
         ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA -> Icons.Outlined.Speed
         ObjetivoDiagnostico.WIFI_VS_OPERADORA -> Icons.Outlined.CompareArrows
+        ObjetivoDiagnostico.OUTRO_PROBLEMA -> Icons.Outlined.HelpOutline
     }
 
 @Composable
 internal fun DiagnosticoGuiadoListaObjetivosSection(
     modifier: Modifier = Modifier,
-    onSelect: (ObjetivoDiagnostico?) -> Unit,
+    onSelect: (ObjetivoDiagnostico) -> Unit,
+    /**
+     * Pular a escolha de objetivo inteira — a pessoa não escolhe nenhum motivo, e a jornada
+     * segue direto para o diagnóstico sem pergunta nenhuma (nem a de subcategoria do objetivo
+     * usado por baixo dos panos, ver `DiagnosticoGuiadoScreen.pularParaODiagnostico`).
+     */
+    onPular: () -> Unit,
     c: LkTokens,
 ) {
     Column(
@@ -60,10 +68,10 @@ internal fun DiagnosticoGuiadoListaObjetivosSection(
         Text("O que está acontecendo com sua internet?", style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
         Spacer(Modifier.size(LkSpacing.lg))
         Text(
-            "Quero verificar minha conexão",
+            "Pular e ir direto para o diagnóstico",
             style = MaterialTheme.typography.titleSmall,
             color = c.primary,
-            modifier = Modifier.fillMaxWidth().clickable { onSelect(null) }.padding(vertical = LkSpacing.md),
+            modifier = Modifier.fillMaxWidth().clickable { onPular() }.padding(vertical = LkSpacing.md),
         )
         ObjetivoDiagnostico.entries.forEach { objetivo ->
             Row(modifier = Modifier.fillMaxWidth().clickable { onSelect(objetivo) }.padding(LkSpacing.lg)) {

@@ -36,6 +36,12 @@ internal fun DiagnosticoGuiadoPerguntaFechadaSection(
     total: Int,
     respostaSelecionada: Int?,
     onEscolher: (Int) -> Unit,
+    /**
+     * Pular esta pergunta sem escolher opção nenhuma — o motor continua funcionando com
+     * respostas parciais/nenhuma (mesmo comportamento de antes desta pergunta existir, ver
+     * `DiagnosticoGuiadoEngine`: `respostas.getOrNull(0)` já tolerava `null`).
+     */
+    onPular: () -> Unit,
     c: LkTokens,
 ) {
     Column(modifier.fillMaxSize().background(c.bgPrimary)) {
@@ -64,6 +70,13 @@ internal fun DiagnosticoGuiadoPerguntaFechadaSection(
                     Text(opcao, style = MaterialTheme.typography.bodyMedium, color = c.textPrimary)
                 }
             }
+            Spacer(Modifier.height(LkSpacing.lg))
+            Text(
+                "Pular esta pergunta",
+                style = MaterialTheme.typography.titleSmall,
+                color = c.textSecondary,
+                modifier = Modifier.fillMaxWidth().clickable { onPular() }.padding(vertical = LkSpacing.sm),
+            )
         }
     }
 }

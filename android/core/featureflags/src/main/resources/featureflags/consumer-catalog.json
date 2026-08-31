@@ -152,6 +152,21 @@
       "analyticsEvent": null
     },
     {
+      "key": "consumer_diagnostico_assist_nds_v2_enabled",
+      "module": ":featureDiagnostico",
+      "type": "BOOLEAN",
+      "defaultValue": true,
+      "criticality": "MEDIUM",
+      "owner": "product-signallq",
+      "description": "Liga o uso do contrato POST /v2/diagnostics/evaluate do NDS (contexto opcional, resposta {raw, explanation}) no caminho dedicado do Assist (NdsDiagnosticRepository.evaluateForAssist), no lugar do /v1/diagnostics/evaluate atual. O catalogo local inicia ligado e a rota v2 e usada mesmo com contexto parcial. O endpoint v2 foi publicado pelo NDS na PR #24 e a reversao continua disponivel pelo Firebase Remote Config.",
+      "disabledBehavior": "SILENT_NO_OP",
+      "disabledMessage": null,
+      "dependencies": [],
+      "androidImplemented": true,
+      "adminManaged": true,
+      "analyticsEvent": null
+    },
+    {
       "key": "consumer_history_enabled",
       "module": ":featureHistory",
       "type": "BOOLEAN",

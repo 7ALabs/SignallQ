@@ -8,6 +8,8 @@ import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.HistoricalDiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
+import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
+import io.signallq.app.core.diagnostico.PerguntasDiagnosticoGuiado
 import io.signallq.app.core.diagnostico.SpeedtestQualityInput
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 
@@ -55,6 +57,11 @@ import io.signallq.app.core.diagnostico.WifiDiagnosticInput
  *                                 equipamento.
  */
 const val AI_PROMPT_VERSION = "diagnostico_v6_local_device"
+
+/** Limite de caracteres de [DiagnosisAiContext.relatoLivreUsuario] — espelha
+ *  `LIMITE_RELATO_LIVRE_DIAGNOSTICO` em `:app` (`DiagnosticoGuiadoRelatoLivreSection`), que não
+ *  pode ser referenciado daqui (feature não depende de app). */
+const val LIMITE_RELATO_LIVRE_USUARIO = 200
 
 // =============================================================================
 // Schema v3 — APENAS DADOS BRUTOS
@@ -118,7 +125,73 @@ data class DiagnosisAiContext(
      * equipamento foi lido nesta sessao — a IA analisa normalmente sem ele.
      */
     val equipamentoLocal: AiEquipamentoLocalInfo? = null,
+    /**
+     * Objetivo + subcategoria escolhidos pelo usuário no diagnóstico guiado (Feature #550),
+     * quando disponíveis. Campo ESTRUTURADO (id do objetivo + índice + rótulo da opção
+     * escolhida) — não é o índice cru nem texto livre solto em [feedbackUsuario]. Preparação de
+     * terreno (issue de redução "muitas perguntas, difícil escolher", 2026-08): hoje nenhum
+     * caller popula este campo em produção (o roteiro guiado ainda manda o objetivo como texto
+     * livre via [feedbackUsuario], ver `MainViewModel.analisarProblema`), e o Worker não recebe
+     * nenhuma lógica nova de priorização a partir dele — quando um caller futuro decidir usar
+     * este campo para priorizar hipóteses, o schema já está pronto. Ver
+     * [AiObjetivoDiagnosticoFactory].
+     */
+    val objetivoDiagnostico: AiObjetivoDiagnostico? = null,
+    /**
+     * Relato em texto livre digitado pelo usuário quando escolhe a opção "Outro problema" do
+     * diagnóstico guiado (`ObjetivoDiagnostico.OUTRO_PROBLEMA`, sem pergunta fechada própria —
+     * ver kdoc do enum em `:core:diagnostico`). Até 200 caracteres, truncado no client
+     * (`DiagnosticoGuiadoRelatoLivreSection`) e de novo aqui na serialização, por defesa em
+     * profundidade.
+     *
+     * Campo **estruturado e distinto** de [feedbackUsuario]: [feedbackUsuario] carrega o título
+     * do objetivo escolhido (produção, `MainViewModel.analisarProblema`), enquanto este campo é
+     * só o texto livre de "Outro problema", quando existir. **Nunca** é lido pelo
+     * `DiagnosticoGuiadoEngine` para decidir status ou causa — regra de produto inalterada, o
+     * motor local continua sendo a única fonte de status/evidências. Serve apenas como contexto
+     * adicional para o `ai-diagnosis-worker` compor a explicação em prosa. `null` quando o
+     * usuário não escolheu "Outro problema" ou pulou sem escrever nada.
+     */
+    val relatoLivreUsuario: String? = null,
 )
+
+/**
+ * Recorte estruturado e identificável do objetivo + subcategoria escolhidos no diagnóstico
+ * guiado — [objetivoId] é o nome do [ObjetivoDiagnostico] (estável, não muda com reordenação de
+ * enum) e [subcategoriaRotulo] é o texto da opção escolhida na única pergunta fechada do roteiro
+ * daquele objetivo (ver `PerguntasDiagnosticoGuiado`, roteiro reduzido a 1 pergunta por objetivo,
+ * 2026-08). [subcategoriaIndice] acompanha o rótulo para permitir join com o catálogo de
+ * perguntas sem re-parsear texto.
+ */
+data class AiObjetivoDiagnostico(
+    val objetivoId: String,
+    val subcategoriaIndice: Int,
+    val subcategoriaRotulo: String,
+)
+
+/**
+ * Constrói [AiObjetivoDiagnostico] a partir do objetivo escolhido e das respostas do roteiro
+ * guiado — hoje o roteiro tem sempre 1 pergunta por objetivo, então só a resposta de índice 0
+ * importa. Devolve `null` quando falta objetivo, resposta ou quando o índice não corresponde a
+ * nenhuma opção real (roteiro desatualizado em relação ao estado salvo, mesma defesa que
+ * [DiagnosticoGuiadoEstado] já aplica).
+ */
+object AiObjetivoDiagnosticoFactory {
+    fun from(
+        objetivo: ObjetivoDiagnostico,
+        respostas: List<Int?>,
+        tipoConexao: ConnectionType? = null,
+    ): AiObjetivoDiagnostico? {
+        val indice = respostas.firstOrNull() ?: return null
+        val pergunta = PerguntasDiagnosticoGuiado.perguntas(objetivo, tipoConexao).firstOrNull() ?: return null
+        val rotulo = pergunta.opcoes.getOrNull(indice) ?: return null
+        return AiObjetivoDiagnostico(
+            objetivoId = objetivo.name,
+            subcategoriaIndice = indice,
+            subcategoriaRotulo = rotulo,
+        )
+    }
+}
 
 /**
  * Recorte allowlisted de [SafeLocalDeviceContext] para o payload da IA — mesmos
@@ -513,6 +586,12 @@ object DiagnosisAiContextFactory {
         dispositivos: AiDispositivosInfo? = null,
         feedbackUsuario: String? = null,
         speedtestExtras: SpeedtestExtras? = null,
+        /** Ver kdoc de [DiagnosisAiContext.objetivoDiagnostico] — opcional, `null` em todos os
+         *  callers de produção hoje. */
+        objetivoDiagnostico: AiObjetivoDiagnostico? = null,
+        /** Ver kdoc de [DiagnosisAiContext.relatoLivreUsuario] — opcional, truncado a 200
+         *  caracteres aqui por defesa em profundidade (o client já trunca antes de chamar). */
+        relatoLivreUsuario: String? = null,
     ): DiagnosisAiContext {
         val base = buildContext(report, connectionType, input)
         val metricasComExtras = (base.metricasAtuais ?: AiMetricasAtuais()).copy(
@@ -564,6 +643,8 @@ object DiagnosisAiContextFactory {
             dispositivos = dispositivos,
             historico = historicoFinal,
             feedbackUsuario = feedbackUsuario,
+            objetivoDiagnostico = objetivoDiagnostico,
+            relatoLivreUsuario = relatoLivreUsuario?.take(LIMITE_RELATO_LIVRE_USUARIO),
         )
     }
 

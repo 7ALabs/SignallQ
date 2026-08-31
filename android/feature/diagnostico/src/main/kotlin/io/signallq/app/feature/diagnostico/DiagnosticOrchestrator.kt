@@ -43,6 +43,10 @@ import timber.log.Timber
  * precisar de um segundo kill switch (decisao do Luiz registrada no inventario
  * da issue #1759). Default `false` em todo ambiente preserva o comportamento
  * atual (shadow mode local-autoritativo) sem nenhuma mudanca visivel.
+ *
+ * `FeatureFlagKeys.USAR_NDS_V2_NO_ASSIST` (feat/nds-client-v2) segue o mesmo padrao:
+ * [avaliarAssist] le a flag e repassa pro [ndsDiagnosticRepository] decidir se chama
+ * `POST /v2/diagnostics/evaluate` do NDS em vez de `/v1/...` -- default `false`.
  */
 class DiagnosticOrchestrator(
     private val analyticsHelper: AnalyticsHelper = NoOpAnalyticsHelper,
@@ -58,9 +62,16 @@ class DiagnosticOrchestrator(
      * O Assist não participa do rollout global do diagnóstico nem do shadow mode:
      * sucesso precisa ser uma resposta NDS REMOTE; qualquer indisponibilidade é
      * propagada para a UI exibir erro explícito, sem inventar resultado local.
+     *
+     * `usarNdsV2` (feat/nds-client-v2) segue o mesmo padrão de leitura de flag já usado
+     * em [executarProtegido] pra `CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED`: flag ligada
+     * seleciona o contrato v2, que aceita contexto parcial.
      */
     suspend fun avaliarAssist(input: DiagnosticInput): DiagnosticReport =
-        ndsDiagnosticRepository.evaluateForAssist(input)
+        ndsDiagnosticRepository.evaluateForAssist(
+            input = input,
+            usarNdsV2 = featureFlagProvider.isEnabled(FeatureFlagKeys.USAR_NDS_V2_NO_ASSIST),
+        )
 
     private val mutableSnapshotFlow = MutableStateFlow(
         SnapshotDiagnostico(
