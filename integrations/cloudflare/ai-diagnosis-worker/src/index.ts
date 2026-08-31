@@ -20,6 +20,7 @@ import {
 } from "./providers";
 import type { ProviderResult, TokenUsage } from "./providers";
 import { extractJson, stripThinkingTokens } from "./text-parsing.ts";
+import { aplicarValidacaoDeQualidade } from "./text-quality.ts";
 
 type Env = {
   AI: any;
@@ -89,6 +90,14 @@ const SCHEMA_VERSION = "2" as const;
 // mais provável / o que fazer agora / quando procurar a operadora) em
 // linguagem sem jargão não explicado — contrato JSON inalterado, só o
 // conteúdo/estilo do texto gerado.
+// (fix qualidade-portugues-worker-ia, sem bump de versao) — regra 8/8a
+// continuava sendo descumprida na pratica (erro de portugues, jargao sem
+// explicacao, mistura de ingles tecnico), comparavel ao mesmo problema ja
+// corrigido no motor irmao NDS (network-diagnostics-service PR #25). Nova
+// regra 8b reforca com exemplos few-shot positivos/negativos concretos, e
+// text-quality.ts adiciona validacao programatica pos-parse com fallback
+// deterministico quando o texto gerado reprova. Sem mudanca de schema de
+// saida — versao do prompt mantida.
 const AI_PROMPT_VERSION = "diagnostico_v6_explicacao_humana" as const;
 
 const SYSTEM_PROMPT = `Você é o motor de diagnóstico inteligente do app SignallQ, especializado em conexões de internet doméstica no Brasil.
@@ -115,6 +124,14 @@ REGRAS INVIOLÁVEIS:
    - Termos técnicos (latência, jitter, perda de pacotes, bufferbloat, DNS, throughput, RSRP/RSRQ/SINR etc.) só podem aparecer acompanhados de uma explicação curta e simples na mesma frase (ex.: "jitter (oscilação da conexão)"). Nunca cite o termo sozinho como se o usuário já soubesse o que significa.
    - Não repita blocos inteiros de métricas já exibidas em outras partes da tela (o app já mostra download/upload/latência/perda em cards separados) nem reescreva a mesma recomendação com palavras diferentes em textoLaudo e acoesRecomendadas — cada campo deve agregar informação nova, não duplicar.
    - Quando a evidência for insuficiente pra uma conclusão (poucos dados, sem comparação possível), declare a limitação explicitamente (via limitesDaAnalise e uma frase curta no textoLaudo) em vez de inventar uma causa ou forçar uma conclusão com confiança que os dados não sustentam.
+8b. QUALIDADE DO PORTUGUÊS em textoLaudo e resumo — a versão que chega ao usuário passa por validação automática depois da sua resposta; texto que viola isto é descartado e substituído por um resumo genérico, então siga estas regras à risca:
+   - Escreva em português correto: sem erro de acentuação, concordância ou ortografia. Revise mentalmente antes de responder.
+   - Não misture inglês técnico não traduzido no meio da frase em português.
+   - Todo termo técnico citado (ex.: bufferbloat, jitter, RSSI, DNS, CGNAT, gateway, latência, throughput, packet loss) precisa vir acompanhado de uma explicação simples entre parênteses na mesma frase. "Roteador" e "Wi-Fi" são exceções — são palavras do dia a dia do usuário, não precisam de explicação.
+   Exemplo ACEITÁVEL (jargão explicado, português correto): "Sua conexão apresenta jitter (oscilação no tempo de resposta) alto, o que explica os cortes nas chamadas de vídeo."
+   Exemplo INACEITÁVEL — erro de ortografia/acentuação: "Sua conecção esta com problema de lattência, o que pode causar atrasos." (correto seria: "Sua conexão está com problema de latência (demora na resposta da rede), o que pode causar atrasos.")
+   Exemplo INACEITÁVEL — jargão sem explicação: "O CGNAT e o alto RSSI indicam degradação no throughput da sua rede." (o usuário leigo não sabe o que são esses termos)
+   Exemplo INACEITÁVEL — mistura de inglês técnico não traduzido: "Seu download está bom mas o buffering e o packet loss estão causando lag no streaming." (deveria ser: "Seu download está bom, mas a perda de pacotes (dados que não chegam) está causando travamentos no streaming.")
 9. As ações recomendadas (acoesRecomendadas) devem ser práticas, específicas e ordenadas por prioridade — NO MÁXIMO 3 itens (GH#898: mais que isso vira lista genérica que ninguém lê; escolha as 3 de maior impacto). Nunca gere ações genéricas como "verifique a internet" ou "contate o provedor" sem explicar quando e por quê.
 10. Antes de recomendar contato com o provedor, priorize validações locais adequadas ao connectionType do payload:
    - Se connectionType for "wifi" ou "ethernet": testar perto do roteador; comparar Wi-Fi e cabo, se possível; avaliar roteador, sinal Wi-Fi ou canal.
@@ -931,6 +948,21 @@ export default {
       // GH#758 — app Android lê "usage" da resposta pra logar tokens localmente;
       // sem isso o ai_usage do admin sempre chegava zerado.
       if (providerResult.usage) parsed.usage = providerResult.usage;
+
+      // Validação pós-geração de qualidade do português em textoLaudo/resumo
+      // (regra 8/8a do SYSTEM_PROMPT nem sempre é obedecida na prática pelo
+      // modelo). Quando falha (jargão sem explicação parentética, mojibake de
+      // encoding), substitui os dois campos por um fallback determinístico e
+      // simples — a IA nunca decide de novo, o Worker só narra o que já sabe
+      // localmente (status/titulo/acoesRecomendadas). Nunca bloqueia a
+      // resposta HTTP.
+      const qualidadeTexto = aplicarValidacaoDeQualidade(parsed);
+      if (qualidadeTexto.substituido) {
+        console.warn(
+          "textoLaudo/resumo reprovaram validacao de qualidade, fallback aplicado:",
+          JSON.stringify(qualidadeTexto.motivos).slice(0, 500),
+        );
+      }
 
       // Ingerir métricas no painel admin de forma assíncrona, sem bloquear resposta.
       ctx.waitUntil(

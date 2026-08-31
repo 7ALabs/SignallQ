@@ -39,17 +39,19 @@ fun NdsDiagnosticsResponse.toDiagnosticReport(
 
     val scoring = resultFor("scoring")?.asScoring()
     val ai = resultFor("ai")?.asAi()
-    val status = parseNdsVeredicto(scoring?.veredicto).toDiagnosticStatus()
     val dadosAusentes = results.flatMap { it.missingInputs }.distinct()
     val recomendacao = recommendation?.description ?: recommendationText
     val cards = results.flatMap { modulo -> modulo.cards.map { it.toDiagnosticResult(modulo.module) } }
+    val status = scoring?.let { parseNdsVeredicto(it.veredicto).toDiagnosticStatus() }
+        ?: cards.maxByOrNull { it.status.v2SeverityRank() }?.status
+        ?: DiagnosticStatus.inconclusive
 
     val decisao = DiagnosticResult(
         id = "nds:${scoring?.veredicto ?: "inconclusivo"}",
-        titulo = ai?.explanation?.tituloAmigavel ?: "Diagnóstico via NDS",
+        titulo = explanation?.title ?: ai?.explanation?.tituloAmigavel ?: "Diagnóstico via NDS",
         status = status,
         evidencia = null,
-        mensagemUsuario = ai?.explanation?.resumoTecnicoTraduzido
+        mensagemUsuario = explanation?.description ?: ai?.explanation?.resumoTecnicoTraduzido
             ?: recomendacao
             ?: "Diagnóstico concluído.",
         recomendacao = recomendacao,
@@ -89,6 +91,14 @@ fun NdsDiagnosticsResponse.toDiagnosticReport(
         avisosRemotos = results.associate { it.module to it.warnings },
         context = input.context,
     )
+}
+
+private fun DiagnosticStatus.v2SeverityRank(): Int = when (this) {
+    DiagnosticStatus.critical -> 4
+    DiagnosticStatus.attention -> 3
+    DiagnosticStatus.info -> 2
+    DiagnosticStatus.ok -> 1
+    DiagnosticStatus.inconclusive -> 0
 }
 
 /**

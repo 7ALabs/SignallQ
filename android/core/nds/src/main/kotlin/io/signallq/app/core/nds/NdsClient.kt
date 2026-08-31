@@ -10,7 +10,7 @@ import org.json.JSONObject
 import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
-private const val EVALUATE_PATH = "/v1/diagnostics/evaluate"
+private const val EVALUATE_PATH = "/v2/diagnostics/evaluate"
 
 /**
  * Contrato v2 (disponível no NDS desde a PR #24) -- aceita contexto opcional e responde
