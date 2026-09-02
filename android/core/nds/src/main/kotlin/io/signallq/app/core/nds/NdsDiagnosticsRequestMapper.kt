@@ -3,6 +3,7 @@ package io.signallq.app.core.nds
 import io.signallq.app.core.diagnostico.BandaWifi
 import io.signallq.app.core.diagnostico.ConnectionType
 import io.signallq.app.core.diagnostico.DiagnosticInput
+import io.signallq.app.core.diagnostico.MobileDiagnosticInput
 import io.signallq.app.core.diagnostico.banda
 import java.util.UUID
 
@@ -38,6 +39,14 @@ private const val NDS_APP_ID = "io.signallq.app"
  * poder explicar por que um canal foi considerado congestionado, nao so receber
  * a conclusao. Fica `null` apenas quando `DiagnosticInput.wifiScan` e null ou nao
  * carrega nenhuma evidencia util (nem redes vizinhas, nem canal conectado).
+ *
+ * ## `mobile` (ADR-018 bloco 10 — issue #1837)
+ * Bloco opcional montado por [toNdsMobileInfo] a partir de `DiagnosticInput.mobile`.
+ * Fica `null` sem conexao movel, sem snapshot de `MonitorTelephony`, sem
+ * `READ_PHONE_STATE` (`MobileDiagnosticInput.capturaReduzida = true` — mesma
+ * familia de gap de permissao da issue #1735) ou sem nenhuma evidencia de sinal.
+ * Nunca carrega Cell ID/TAC/MCC/MNC (proibido pela issue-mae sem revisao de
+ * privacidade dedicada).
  *
  * ## Gap documentado: `dns.hijacked`
  * Ainda nao ha coleta desse dado no app (ADR-017, pendencias em aberto) — fica
@@ -102,12 +111,13 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
             null
         }
     val wifiScanInfo = wifiScan.toNdsWifiScanInfo(wifi?.banda())
+    val mobileInfo = toNdsMobileInfo(mobile)
 
     return NdsDiagnosticsRequest(
         requestId = executionId.ifBlank { UUID.randomUUID().toString() },
         app = NdsAppInfo(id = NDS_APP_ID, version = appVersion),
         profile = ndsProfile(perfilGamer, this.context?.objective),
-        capabilities = ndsCapabilities(wifi = wifiInfo, fiber = fiberInfo, wifiScan = wifiScanInfo) +
+        capabilities = ndsCapabilities(wifi = wifiInfo, fiber = fiberInfo, wifiScan = wifiScanInfo, mobile = mobileInfo) +
             listOfNotNull(
                 "usage_profiles".takeIf {
                     this.context?.objective in setOf("JOGOS_COM_LAG", "VIDEOS_TRAVAM", "CHAMADAS_CONGELAM", "SITES_DEMORAM")
@@ -125,6 +135,7 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
         dns = dnsInfo,
         gateway = gatewayInfo,
         fiber = fiberInfo,
+        mobile = mobileInfo,
         context = this.context?.let { context ->
             NdsDiagnosticContext(
                 reportedProblem = context.reportedProblem,
@@ -135,6 +146,34 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
             )
         },
     )
+}
+
+/**
+ * Bloco `mobile` (ADR-018 bloco 10, issue #1837). `null` quando:
+ * - `mobile` e null (fora de conexao movel, ou `MonitorTelephony` sem snapshot);
+ * - `mobile.capturaReduzida` e true — snapshot capturado SEM `READ_PHONE_STATE`
+ *   (GH#1662/#1735): so operadora/mcc/mnc estariam disponiveis, sem nenhuma
+ *   medicao real de sinal. A regra do #1837 e "ausencia de permissao resulta em
+ *   bloco omitido, nao em zeros" — omitir o bloco inteiro em vez de mandar so a
+ *   operadora sem nenhum dado de sinal;
+ * - nenhum dos seis campos ficaria preenchido (nenhuma evidencia util).
+ *
+ * Cell ID/TAC/MCC/MNC NUNCA entram aqui — proibido pela issue-mae (#1832 secao 4)
+ * sem revisao explicita de privacidade.
+ */
+private fun toNdsMobileInfo(mobile: MobileDiagnosticInput?): NdsMobileInfo? {
+    if (mobile == null || mobile.capturaReduzida) return null
+    val info = NdsMobileInfo(
+        operator = mobile.carrierName,
+        technology = mobile.mobileTechnology,
+        rsrpDbm = mobile.rsrpDbm,
+        rsrqDb = mobile.rsrqDb,
+        sinrDb = mobile.sinrDb,
+        band = mobile.band,
+    )
+    val temEvidencia = info.operator != null || info.technology != null ||
+        info.rsrpDbm != null || info.rsrqDb != null || info.sinrDb != null || info.band != null
+    return info.takeIf { temEvidencia }
 }
 
 private fun ndsProfile(perfilGamer: Boolean, objective: String?): String? = when {

@@ -70,4 +70,20 @@ class NdsProfileCapabilitiesMapperTest {
         assertEquals(listOf("scoring", "ai", "wifi_scan"), comWifiScan)
         assertEquals(listOf("scoring", "ai"), semWifiScan)
     }
+
+    @Test
+    fun `capabilities inclui mobile quando o bloco mobile existe no request (ADR-018 bloco 10)`() {
+        val capabilities = ndsCapabilities(incluiWifi = false, incluiFiber = false, incluiMobile = true)
+
+        assertEquals(listOf("scoring", "ai", "mobile"), capabilities)
+    }
+
+    @Test
+    fun `sobrecarga com bloco mobile real deriva incluiMobile de nulidade`() {
+        val comMobile = ndsCapabilities(wifi = null, fiber = null, mobile = NdsMobileInfo(operator = "TIM"))
+        val semMobile = ndsCapabilities(wifi = null, fiber = null, mobile = null)
+
+        assertEquals(listOf("scoring", "ai", "mobile"), comMobile)
+        assertEquals(listOf("scoring", "ai"), semMobile)
+    }
 }

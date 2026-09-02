@@ -69,6 +69,13 @@ data class MobileDiagnosticInput(
     val rsrqDb: Int? = null,
     /** Signal-to-Interference-plus-Noise Ratio, em dB. Fonte: MovelSnapshot.sinrDb. */
     val sinrDb: Int? = null,
+    /** GH#1662 -- true quando este snapshot foi capturado SEM READ_PHONE_STATE
+     *  (MovelSnapshot.capturaReduzida). Nesse modo tecnologia/rsrp/rsrq/sinr sempre
+     *  vem null -- so operadora/mcc/mnc, que nao exigem a permissao. Consumidores que
+     *  dependem de sinal medido (ex.: bloco `mobile` do NDS, issue #1837) devem tratar
+     *  este flag como "sem permissao de telefonia" e omitir a evidencia, nao so os
+     *  campos nulos. */
+    val capturaReduzida: Boolean = false,
 )
 
 data class DnsDiagnosticInput(

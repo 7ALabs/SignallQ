@@ -6,6 +6,7 @@ import io.signallq.app.core.diagnostico.DiagnosticContext
 import io.signallq.app.core.diagnostico.DnsDiagnosticInput
 import io.signallq.app.core.diagnostico.FibraDiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
+import io.signallq.app.core.diagnostico.MobileDiagnosticInput
 import io.signallq.app.core.diagnostico.RedeWifiVizinha
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 import io.signallq.app.core.diagnostico.WifiScanDiagnosticInput
@@ -39,6 +40,7 @@ class NdsDiagnosticsRequestMapperTest {
         assertNull(request.dns)
         assertNull(request.gateway)
         assertNull(request.fiber)
+        assertNull(request.mobile)
     }
 
     @Test
@@ -272,6 +274,84 @@ class NdsDiagnosticsRequestMapperTest {
         assertEquals(36, wifiScanJson.getInt("connectedChannel"))
         assertEquals(1, wifiScanJson.getInt("neighborCount"))
         assertEquals(1, wifiScanJson.getJSONArray("neighbors").length())
+    }
+
+    @Test
+    fun `mobile presente preenche bloco mobile e capabilities inclui mobile`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.mobile,
+            mobile = MobileDiagnosticInput(
+                carrierName = "TIM",
+                mobileTechnology = "5G",
+                rsrpDbm = -101,
+                rsrqDb = -14,
+                sinrDb = 7,
+                band = "n78",
+            ),
+        )
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals("TIM", request.mobile?.operator)
+        assertEquals("5G", request.mobile?.technology)
+        assertEquals(-101, request.mobile?.rsrpDbm)
+        assertEquals(-14, request.mobile?.rsrqDb)
+        assertEquals(7, request.mobile?.sinrDb)
+        assertEquals("n78", request.mobile?.band)
+        assertTrue(request.capabilities.contains("mobile"))
+    }
+
+    @Test
+    fun `mobile ausente quando DiagnosticInput nao carrega dados de rede movel`() {
+        val input = DiagnosticInput(connectionType = ConnectionType.wifi)
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertNull(request.mobile)
+        assertTrue("sem bloco mobile, capability mobile nao deve aparecer", !request.capabilities.contains("mobile"))
+    }
+
+    @Test
+    fun `mobile omitido quando snapshot foi capturado sem permissao de telefonia`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.mobile,
+            mobile = MobileDiagnosticInput(
+                carrierName = "TIM",
+                // capturaReduzida=true (GH#1662): sem READ_PHONE_STATE so operadora/mcc/mnc
+                // sao lidos -- tecnologia/rsrp/rsrq/sinr sempre null nesse modo.
+                capturaReduzida = true,
+            ),
+        )
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertNull("ausencia de permissao deve omitir o bloco inteiro, nao so zerar campos", request.mobile)
+        assertTrue(!request.capabilities.contains("mobile"))
+    }
+
+    @Test
+    fun `mobile com tecnologia desconhecida ainda preenche os demais campos de sinal`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.mobile,
+            mobile = MobileDiagnosticInput(
+                carrierName = "Vivo",
+                mobileTechnology = null,
+                rsrpDbm = -95,
+                rsrqDb = -12,
+                sinrDb = 3,
+                band = null,
+            ),
+        )
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals("Vivo", request.mobile?.operator)
+        assertNull(request.mobile?.technology)
+        assertEquals(-95, request.mobile?.rsrpDbm)
+        assertEquals(-12, request.mobile?.rsrqDb)
+        assertEquals(3, request.mobile?.sinrDb)
+        assertNull(request.mobile?.band)
+        assertTrue(request.capabilities.contains("mobile"))
     }
 
     @Test
