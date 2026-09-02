@@ -102,7 +102,7 @@ class NdsClientTest {
 
         val response = (client.evaluate(sampleRequest) as NdsDiagnosticsOutcome.Success).response
 
-        assertEquals("A conexão precisa de atenção", response.explanation?.title)
+        assertEquals("A conexão precisa de atenção", response.explanationV2?.titulo)
         assertEquals("Latência elevada", response.resultFor("ai")?.cards?.firstOrNull()?.get("titulo"))
     }
 
