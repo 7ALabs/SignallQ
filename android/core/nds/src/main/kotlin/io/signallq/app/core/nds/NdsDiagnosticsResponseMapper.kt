@@ -48,10 +48,10 @@ fun NdsDiagnosticsResponse.toDiagnosticReport(
 
     val decisao = DiagnosticResult(
         id = "nds:${scoring?.veredicto ?: "inconclusivo"}",
-        titulo = explanation?.title ?: ai?.explanation?.tituloAmigavel ?: "Diagnóstico via NDS",
+        titulo = ai?.explanation?.tituloAmigavel ?: "Diagnóstico via NDS",
         status = status,
         evidencia = null,
-        mensagemUsuario = explanation?.description ?: ai?.explanation?.resumoTecnicoTraduzido
+        mensagemUsuario = ai?.explanation?.resumoTecnicoTraduzido
             ?: recomendacao
             ?: "Diagnóstico concluído.",
         recomendacao = recomendacao,
