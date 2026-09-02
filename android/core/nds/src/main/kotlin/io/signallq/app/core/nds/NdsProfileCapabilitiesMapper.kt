@@ -18,19 +18,28 @@ package io.signallq.app.core.nds
 fun ndsCapabilities(
     incluiWifi: Boolean,
     incluiFiber: Boolean,
+    incluiWifiScan: Boolean = false,
 ): List<String> {
     val capabilities = mutableListOf("scoring", "ai")
     if (incluiWifi) capabilities += "wifi"
     if (incluiFiber) capabilities += "fiber"
+    // ADR-018 — "wifi_scan" e o vocabulario ja aceito pelo NDS (ADR-017, contrato
+    // canonico PR #12) para a capability de evidencia de scan de canal.
+    if (incluiWifiScan) capabilities += "wifi_scan"
     return capabilities
 }
 
-/** Sobrecarga de conveniencia — deriva `incluiWifi`/`incluiFiber` diretamente
- *  dos blocos opcionais do request, sem o chamador repetir `!= null`. */
+/** Sobrecarga de conveniencia — deriva `incluiWifi`/`incluiFiber`/`incluiWifiScan`
+ *  diretamente dos blocos opcionais do request, sem o chamador repetir `!= null`. */
 fun ndsCapabilities(
     wifi: NdsWifiInfo?,
     fiber: NdsFiberInfo?,
-): List<String> = ndsCapabilities(incluiWifi = wifi != null, incluiFiber = fiber != null)
+    wifiScan: NdsWifiScanInfo? = null,
+): List<String> = ndsCapabilities(
+    incluiWifi = wifi != null,
+    incluiFiber = fiber != null,
+    incluiWifiScan = wifiScan != null,
+)
 
 /**
  * `profile` do payload NDS. `"gamer"` somente dentro do fluxo Modo Gamer;

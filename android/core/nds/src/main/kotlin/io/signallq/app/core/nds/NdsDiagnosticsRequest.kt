@@ -24,9 +24,37 @@ data class NdsWifiInfo(
     val standard: String? = null,
 )
 
+/**
+ * Evidência de uma rede vizinha do scan Wi-Fi (ADR-018, bloco `wifiScan`). BSSID
+ * NUNCA entra aqui — só identifica a rede internamente para o `ChannelEvaluator`,
+ * nunca é enviado ao NDS (rede de terceiros, sem justificativa de produto para
+ * expor). Todo campo é opcional individualmente: o scan pode reportar canal e RSSI
+ * sem largura confiável, por exemplo.
+ */
+data class NdsWifiNeighborInfo(
+    val channel: Int? = null,
+    val frequencyMhz: Int? = null,
+    val rssiDbm: Int? = null,
+    val widthMhz: Int? = null,
+)
+
+/**
+ * Bloco `wifiScan` do payload NDS (ADR-018). Carrega tanto o resultado calculado
+ * (`channelCongestion`/`bestChannel`) quanto a evidência bruta (`neighbors`) que o
+ * originou — o NDS precisa poder explicar por que um canal foi considerado
+ * congestionado, não só receber a conclusão (#1832 seção 3).
+ */
 data class NdsWifiScanInfo(
+    val connectedChannel: Int? = null,
     val channelCongestion: Int? = null,
     val bestChannel: Int? = null,
+    /** Quantidade de redes vizinhas do scan. `0` é valor legítimo (scan rodou, zero
+     *  vizinhas encontradas) — distinto do bloco inteiro ser omitido (scan não rodou). */
+    val neighborCount: Int? = null,
+    val neighbors: List<NdsWifiNeighborInfo> = emptyList(),
+    /** Método/versão do algoritmo de avaliação de canal usado (`ChannelEvaluator`,
+     *  `:coreNetwork`). Null quando nenhum canal foi avaliado. */
+    val algorithmVersion: String? = null,
 )
 
 data class NdsSpeedInfo(
@@ -74,9 +102,10 @@ data class NdsDiagnosticContext(
 
 /**
  * Payload de `POST /v1/diagnostics/evaluate` — schema completo documentado no
- * ADR-017. Cada bloco (`connection`, `wifi`, `wifiScan`, `speed`, `quality`,
- * `dns`, `gateway`, `fiber`) e opcional: quando `null`, o campo e OMITIDO do
- * JSON — o NDS trata
+ * ADR-017 (contrato observado no NDS) e detalhado campo a campo no ADR-018
+ * (nome/tipo/opcionalidade/origem por bloco). Cada bloco (`connection`, `wifi`,
+ * `wifiScan`, `speed`, `quality`, `dns`, `gateway`, `fiber`) e opcional: quando
+ * `null`, o campo e OMITIDO do JSON — o NDS trata
  * ausencia de bloco como "sem dado disponivel", nunca como zero/vazio.
  *
  * Nomes de chave JSON seguem exatamente o exemplo do ADR-017 (mistura
@@ -149,8 +178,26 @@ data class NdsDiagnosticsRequest(
             root.put(
                 "wifiScan",
                 JSONObject().apply {
+                    ws.connectedChannel?.let { put("connectedChannel", it) }
                     ws.channelCongestion?.let { put("channelCongestion", it) }
                     ws.bestChannel?.let { put("bestChannel", it) }
+                    ws.neighborCount?.let { put("neighborCount", it) }
+                    if (ws.neighbors.isNotEmpty()) {
+                        put(
+                            "neighbors",
+                            JSONArray(
+                                ws.neighbors.map { n ->
+                                    JSONObject().apply {
+                                        n.channel?.let { put("channel", it) }
+                                        n.frequencyMhz?.let { put("frequencyMhz", it) }
+                                        n.rssiDbm?.let { put("rssiDbm", it) }
+                                        n.widthMhz?.let { put("widthMhz", it) }
+                                    }
+                                },
+                            ),
+                        )
+                    }
+                    ws.algorithmVersion?.let { put("algorithmVersion", it) }
                 },
             )
         }

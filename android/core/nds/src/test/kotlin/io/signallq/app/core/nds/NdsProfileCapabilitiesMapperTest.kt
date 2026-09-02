@@ -54,4 +54,20 @@ class NdsProfileCapabilitiesMapperTest {
         assertEquals(listOf("scoring", "ai", "fiber"), semWifiComFiber)
         assertEquals(listOf("scoring", "ai"), semNenhum)
     }
+
+    @Test
+    fun `capabilities inclui wifi_scan quando o bloco wifiScan existe no request (ADR-018)`() {
+        val capabilities = ndsCapabilities(incluiWifi = false, incluiFiber = false, incluiWifiScan = true)
+
+        assertEquals(listOf("scoring", "ai", "wifi_scan"), capabilities)
+    }
+
+    @Test
+    fun `sobrecarga com bloco wifiScan real deriva incluiWifiScan de nulidade`() {
+        val comWifiScan = ndsCapabilities(wifi = null, fiber = null, wifiScan = NdsWifiScanInfo(bestChannel = 149))
+        val semWifiScan = ndsCapabilities(wifi = null, fiber = null, wifiScan = null)
+
+        assertEquals(listOf("scoring", "ai", "wifi_scan"), comWifiScan)
+        assertEquals(listOf("scoring", "ai"), semWifiScan)
+    }
 }
