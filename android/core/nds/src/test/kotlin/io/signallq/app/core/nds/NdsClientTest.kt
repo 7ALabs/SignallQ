@@ -85,7 +85,7 @@ class NdsClientTest {
 
         val recorded = server.takeRequest()
         assertEquals("POST", recorded.method)
-        assertEquals("/v2/diagnostics/evaluate", recorded.path)
+        assertEquals("/v1/diagnostics/evaluate", recorded.path)
         assertEquals("Bearer test-token", recorded.getHeader("Authorization"))
 
         val sentBody = JSONObject(recorded.body.readUtf8())
