@@ -30,13 +30,14 @@ private const val NDS_APP_ID = "io.signallq.app"
  * [perfilGamer] — o gap historico (issue #1762) era o chamador em
  * `NdsDiagnosticRepository.evaluate` nunca repassar esse parametro, nao a ausencia do campo.
  *
- * ## Gap documentado: `wifiScan`
- * O bloco opcional `wifiScan` do NDS pede congestionamento/melhor-canal calculados
- * por `ChannelEvaluator` (`:coreNetwork`, ja usado por [mapWifiScanToNds] nos seams
- * NDS-02b/e) — dado que `DiagnosticInput.wifiScan` (so `redes`/`conectadoCanal`/
- * `conectadoBanda`) nao carrega. Este mapper NUNCA roda o evaluator (fora do escopo
- * de uma funcao pura de traducao de shape) — `wifiScan` fica sempre `null` aqui.
- * Registrado no inventario da issue #1759, nao e bug desta fatia.
+ * ## `wifiScan` (ADR-018, NDS-Snapshot-02 — issue #1834)
+ * O bloco opcional `wifiScan` roda o `ChannelEvaluator` (`:coreNetwork`) sobre as
+ * redes vizinhas do scan via [toNdsWifiScanInfo] e carrega tanto o resultado
+ * calculado (congestionamento/melhor canal) quanto a evidencia bruta (redes
+ * vizinhas com canal/frequencia/RSSI/largura) que o originou — o NDS precisa
+ * poder explicar por que um canal foi considerado congestionado, nao so receber
+ * a conclusao. Fica `null` apenas quando `DiagnosticInput.wifiScan` e null ou nao
+ * carrega nenhuma evidencia util (nem redes vizinhas, nem canal conectado).
  *
  * ## Gap documentado: `dns.hijacked`
  * Ainda nao ha coleta desse dado no app (ADR-017, pendencias em aberto) — fica
@@ -100,12 +101,13 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
         } else {
             null
         }
+    val wifiScanInfo = wifiScan.toNdsWifiScanInfo(wifi?.banda())
 
     return NdsDiagnosticsRequest(
         requestId = executionId.ifBlank { UUID.randomUUID().toString() },
         app = NdsAppInfo(id = NDS_APP_ID, version = appVersion),
         profile = ndsProfile(perfilGamer, this.context?.objective),
-        capabilities = ndsCapabilities(wifi = wifiInfo, fiber = fiberInfo) +
+        capabilities = ndsCapabilities(wifi = wifiInfo, fiber = fiberInfo, wifiScan = wifiScanInfo) +
             listOfNotNull(
                 "usage_profiles".takeIf {
                     this.context?.objective in setOf("JOGOS_COM_LAG", "VIDEOS_TRAVAM", "CHAMADAS_CONGELAM", "SITES_DEMORAM")
@@ -117,7 +119,7 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
             bssid = wifi?.bssidMascarado,
         ),
         wifi = wifiInfo,
-        wifiScan = null,
+        wifiScan = wifiScanInfo,
         speed = speedInfo,
         quality = qualityInfo,
         dns = dnsInfo,

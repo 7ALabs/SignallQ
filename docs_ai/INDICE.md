@@ -80,13 +80,15 @@ código real é a issue **#1588**.
 
 ## Decisões — `decisions/` · **preservadas, não regeneráveis**
 
-**ADRs (12):** `ADR-001` Timber · `ADR-002` Ktlint/Detekt · `ADR-003` DispatcherProvider ·
+**ADRs (13):** `ADR-001` Timber · `ADR-002` Ktlint/Detekt · `ADR-003` DispatcherProvider ·
 `ADR-004` estrutura multi-módulo · `ADR-005` custo de IA e fallback · `ADR-008` features D1-only ·
 `ADR-009` vocabulário de diagnóstico · `ADR-011` motor canônico fase 0 · `ADR-012` executionId/
 rulesVersion · `ADR-013` unificação latência/perda/upload · **`ADR-016` portfólio Buildea:
 SignallQ + Linka como produtos comerciais separados, descontinua Pro/ISP/Nethal, squad de 3
 agentes com personalidade** · **`ADR-017` motor de diagnóstico e IA migram para o NDS, substitui
-`core/diagnostico`, `ai-diagnosis-worker` e `signallq-diagnostic-worker` (shadow)**.
+`core/diagnostico`, `ai-diagnosis-worker` e `signallq-diagnostic-worker` (shadow)** ·
+**`ADR-018` schema canônico `DiagnosticSnapshot` do payload NDS — nome/tipo/opcionalidade/origem
+dos 16 blocos, convenção de proveniência (`source`) e `capabilities` vs. campo presente**.
 
 **Removidos na Fase 3 do épico [#1623](https://github.com/buildea-labs/signallq/issues/1623)
 em 2026-08-15** (consolidados no ADR-016 ou superseded; git preserva por SHA):
