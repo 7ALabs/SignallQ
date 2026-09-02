@@ -103,7 +103,10 @@ class NdsClientTest {
         val response = (client.evaluate(sampleRequest) as NdsDiagnosticsOutcome.Success).response
 
         assertEquals("A conexão precisa de atenção", response.explanationV2?.titulo)
-        assertEquals("Latência elevada", response.resultFor("ai")?.cards?.firstOrNull()?.get("titulo"))
+        // Contrato v2 preserva `raw` só como mapa bruto (rawV2, telemetria/debug) --
+        // NdsResponseParser.parse nunca popula `results`/`cards` a partir dele (só o
+        // caminho v1 usa "results"). resultFor() é sempre vazio para resposta v2.
+        assertTrue(response.results.isEmpty())
     }
 
     // -------------------------------------------------------------------
