@@ -150,6 +150,156 @@ class NdsDiagnosticsRequestMapperTest {
         assertNull(request.dns?.hijacked)
     }
 
+    // ── #1840 (ADR-018, bloco `dns` expandido) ──────────────────────────────────
+
+    @Test
+    fun `dns coerente preenche provedor, melhor dns, grade e nivel de coerencia`() {
+        val input = DiagnosticInput(
+            dns = DnsDiagnosticInput(
+                currentDnsIp = "1.1.1.1",
+                currentDnsName = "Cloudflare",
+                currentDnsLatencyMs = 12,
+                bestDnsNameFromComparison = "Cloudflare",
+                bestDnsLatencyMsFromComparison = 12,
+                dnsGrade = "A",
+                dnsComparisonAvailable = true,
+                coerenciaNivelAlerta = "none",
+                coerenciaDivergenciasConsecutivas = 0,
+                coerenciaTaxaDivergenciaPercentual = 0.0,
+            ),
+        )
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals("Cloudflare", request.dns?.providerName)
+        assertEquals("Cloudflare", request.dns?.bestName)
+        assertEquals(12, request.dns?.bestLatencyMs)
+        assertEquals("A", request.dns?.grade)
+        assertEquals(true, request.dns?.comparisonAvailable)
+        assertEquals("none", request.dns?.coherenceAlertLevel)
+        assertEquals(0, request.dns?.coherenceConsecutiveDivergences)
+        assertEquals(0.0, request.dns?.coherenceDivergenceRatePercent)
+        assertNull("hijacked continua sem coleta real", request.dns?.hijacked)
+    }
+
+    @Test
+    fun `dns divergente reporta nivel critical e taxa de divergencia`() {
+        val input = DiagnosticInput(
+            dns = DnsDiagnosticInput(
+                currentDnsIp = "200.200.200.200",
+                currentDnsName = "DNS do Provedor",
+                currentDnsLatencyMs = 90,
+                bestDnsNameFromComparison = "Cloudflare",
+                bestDnsLatencyMsFromComparison = 15,
+                dnsGrade = "C",
+                dnsComparisonAvailable = true,
+                coerenciaNivelAlerta = "critical",
+                coerenciaDivergenciasConsecutivas = 3,
+                coerenciaTaxaDivergenciaPercentual = 80.0,
+            ),
+        )
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals("DNS do Provedor", request.dns?.providerName)
+        assertEquals("Cloudflare", request.dns?.bestName)
+        assertEquals(15, request.dns?.bestLatencyMs)
+        assertEquals("critical", request.dns?.coherenceAlertLevel)
+        assertEquals(3, request.dns?.coherenceConsecutiveDivergences)
+        assertEquals(80.0, request.dns?.coherenceDivergenceRatePercent)
+        assertNull("hijacked continua sem coleta real mesmo com divergencia critica", request.dns?.hijacked)
+    }
+
+    @Test
+    fun `dns sem melhor dns calculado mantem bestName bestLatencyMs e grade nulos, comparisonAvailable false`() {
+        val input = DiagnosticInput(
+            dns = DnsDiagnosticInput(
+                currentDnsIp = "8.8.8.8",
+                currentDnsName = "Google DNS",
+                currentDnsLatencyMs = 40,
+                dnsComparisonAvailable = false,
+            ),
+        )
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals("Google DNS", request.dns?.providerName)
+        assertNull(request.dns?.bestName)
+        assertNull(request.dns?.bestLatencyMs)
+        assertNull(request.dns?.grade)
+        assertEquals(false, request.dns?.comparisonAvailable)
+
+        val dnsJson = input.toNdsDiagnosticsRequest(appVersion = "1.0.0").toJson().getJSONObject("dns")
+        assertFalse("bestName ausente na origem nunca vira chave", dnsJson.has("bestName"))
+        assertFalse("bestLatencyMs ausente na origem nunca vira chave", dnsJson.has("bestLatencyMs"))
+        assertFalse("grade ausente na origem nunca vira chave", dnsJson.has("grade"))
+        assertEquals(
+            "comparisonAvailable=false e um valor legitimo (comparacao nao rodou), nao ausencia -- sempre serializado",
+            false,
+            dnsJson.getBoolean("comparisonAvailable"),
+        )
+    }
+
+    @Test
+    fun `private dns ativo preenche privateDnsActive e hostname`() {
+        val input = DiagnosticInput(
+            dns = DnsDiagnosticInput(
+                privateDnsActive = true,
+                privateDnsHostname = "dns.google",
+            ),
+        )
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals(true, request.dns?.privateDnsActive)
+        assertEquals("dns.google", request.dns?.privateDnsHostname)
+    }
+
+    @Test
+    fun `private dns inativo preenche privateDnsActive false e hostname nulo`() {
+        val input = DiagnosticInput(
+            dns = DnsDiagnosticInput(
+                currentDnsIp = "8.8.8.8",
+                privateDnsActive = false,
+                privateDnsHostname = null,
+            ),
+        )
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals(false, request.dns?.privateDnsActive)
+        assertNull(request.dns?.privateDnsHostname)
+    }
+
+    @Test
+    fun `hijacked permanece nulo mesmo com todos os demais campos de dns preenchidos`() {
+        val input = DiagnosticInput(
+            dns = DnsDiagnosticInput(
+                currentDnsIp = "1.1.1.1",
+                currentDnsName = "Cloudflare",
+                currentDnsLatencyMs = 12,
+                bestDnsNameFromComparison = "Cloudflare",
+                bestDnsLatencyMsFromComparison = 12,
+                dnsGrade = "A",
+                dnsComparisonAvailable = true,
+                coerenciaNivelAlerta = "attention",
+                coerenciaDivergenciasConsecutivas = 2,
+                coerenciaTaxaDivergenciaPercentual = 40.0,
+                privateDnsActive = true,
+                privateDnsHostname = "cloudflare-dns.com",
+            ),
+        )
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertNull(
+            "nunca inventar hijacked=false so porque o resto do bloco esta completo -- so null representa 'nao sabemos'",
+            request.dns?.hijacked,
+        )
+        val dnsJson = request.toJson().getJSONObject("dns")
+        assertFalse("hijacked sem coleta real nunca vira chave no JSON", dnsJson.has("hijacked"))
+    }
+
     @Test
     fun `perfilGamer true preenche profile gamer, false mantem omitido`() {
         val input = DiagnosticInput()

@@ -137,6 +137,7 @@ import java.net.URL
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
+import kotlin.math.roundToInt
 import io.signallq.app.ui.ConnectionType as UiConnectionType
 
 /** NDS-Snapshot-06 (issue #1838) — janela de 30 dias usada para consultar
@@ -1296,14 +1297,60 @@ class MainViewModel
             )
         }
 
-        /** SIG-279 — monta o input de DNS combinando o resultado do ultimo benchmark
-         *  (ja existente) com a coerencia calculada por AvaliadorCoerenciaDns. */
+        /** SIG-279/#1840 (ADR-018, bloco `dns` expandido) — monta o input de DNS
+         *  combinando: o resultado do ultimo benchmark concluido (`benchmarkDns`,
+         *  ja existente e exibido em `DnsScreen`), o provedor ativo inferido por
+         *  [inferirProvedorAtivoDns] (mesma tabela ja usada para calcular a
+         *  coerencia logo abaixo — nao ha uma segunda tabela IP/hostname->provedor
+         *  neste metodo, ver divida #1823), a coerencia calculada por
+         *  `AvaliadorCoerenciaDns`, e o estado de Private DNS lido de `SnapshotRede`.
+         *
+         *  `null` quando nao ha absolutamente nenhuma evidencia de DNS coletada
+         *  ainda nesta sessao (nem resolvedor, nem benchmark, nem coerencia, nem
+         *  Private DNS ativo).
+         */
         private fun montarDnsInput(): DnsDiagnosticInput? {
-            val coerencia = ultimaCoerenciaDns ?: return null
+            val coerencia = ultimaCoerenciaDns
+            val rede = monitorRede.snapshotFlow.value
+            val dnsResolverIp = rede.dnsServidores.firstOrNull()
+            val currentDnsName = inferirProvedorAtivoDns(rede.privateDnsHostname, rede.dnsServidores)
+            val melhor =
+                benchmarkDns.snapshotFlow.value.resultados
+                    .filter { it.tempoMs != null && !it.isGatewayLocal }
+                    .minByOrNull { it.tempoMs ?: Double.MAX_VALUE }
+            // Hostname do Private DNS so sai do aparelho quando bate com um provedor
+            // publico conhecido (mesma seguranca de inferirProvedorAtivoDns, agora sem
+            // a lista de IPs) -- hostname customizado (resolver proprio do usuario)
+            // pode ser identificador pessoal e nunca e enviado (ADR-018).
+            val privateDnsHostnameSeguro =
+                rede.privateDnsHostname?.takeIf { inferirProvedorAtivoDns(it, emptyList()) != null }
+
+            if (coerencia == null &&
+                dnsResolverIp == null &&
+                currentDnsName == null &&
+                melhor == null &&
+                !rede.privateDnsAtivo
+            ) {
+                return null
+            }
+
             return DnsDiagnosticInput(
-                coerenciaNivelAlerta = coerencia.nivelAlerta.name,
-                coerenciaDivergenciasConsecutivas = coerencia.divergenciasConsecutivas,
-                coerenciaTaxaDivergenciaPercentual = coerencia.taxaDivergenciaPercentual,
+                currentDnsIp = dnsResolverIp,
+                currentDnsName = currentDnsName,
+                currentDnsLatencyMs =
+                    melhor
+                        ?.takeIf { it.nomeProvedor.equals(currentDnsName, ignoreCase = true) }
+                        ?.tempoMs
+                        ?.roundToInt(),
+                bestDnsNameFromComparison = melhor?.nomeProvedor,
+                bestDnsLatencyMsFromComparison = melhor?.tempoMs?.roundToInt(),
+                dnsGrade = melhor?.gradeRapidez,
+                dnsComparisonAvailable = melhor != null,
+                coerenciaNivelAlerta = coerencia?.nivelAlerta?.name,
+                coerenciaDivergenciasConsecutivas = coerencia?.divergenciasConsecutivas,
+                coerenciaTaxaDivergenciaPercentual = coerencia?.taxaDivergenciaPercentual,
+                privateDnsActive = rede.privateDnsAtivo,
+                privateDnsHostname = privateDnsHostnameSeguro,
             )
         }
 

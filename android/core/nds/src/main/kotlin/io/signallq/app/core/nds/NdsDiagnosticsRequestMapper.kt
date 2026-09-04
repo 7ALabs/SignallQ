@@ -3,6 +3,7 @@ package io.signallq.app.core.nds
 import io.signallq.app.core.diagnostico.BandaWifi
 import io.signallq.app.core.diagnostico.ConnectionType
 import io.signallq.app.core.diagnostico.DiagnosticInput
+import io.signallq.app.core.diagnostico.DnsDiagnosticInput
 import io.signallq.app.core.diagnostico.MobileDiagnosticInput
 import io.signallq.app.core.diagnostico.banda
 import io.signallq.app.core.network.contracts.localdevice.SafeLocalDeviceContext
@@ -50,6 +51,13 @@ private const val NDS_APP_ID = "io.signallq.app"
  * familia de gap de permissao da issue #1735) ou sem nenhuma evidencia de sinal.
  * Nunca carrega Cell ID/TAC/MCC/MNC (proibido pela issue-mae sem revisao de
  * privacidade dedicada).
+ *
+ * ## `dns` expandido (ADR-018, issue #1840)
+ * Bloco opcional montado por [toNdsDnsInfo] a partir de `DiagnosticInput.dns`
+ * (`DnsDiagnosticInput`), que ja concentra a ultima comparacao de benchmark
+ * (`feature/dns`), a coerencia calculada por `AvaliadorCoerenciaDns` e o estado
+ * de Private DNS lido do `SnapshotRede` (`core/network`) — tudo montado pelo
+ * chamador antes de chegar aqui; este mapper so transcreve.
  *
  * ## Gap documentado: `dns.hijacked`
  * Ainda nao ha coleta desse dado no app (ADR-017, pendencias em aberto) — fica
@@ -116,12 +124,7 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
             bufferbloatMs = it.bufferbloatMs,
         )
     }
-    val dnsInfo = dns?.let {
-        NdsDnsInfo(
-            primary = it.currentDnsIp,
-            responseTimeMs = it.currentDnsLatencyMs,
-        )
-    }
+    val dnsInfo = toNdsDnsInfo(dns)
     val gatewayInfo =
         if (internet?.rttGatewayMs != null || wifi?.dispositivosNaRede != null) {
             NdsGatewayInfo(
@@ -237,6 +240,34 @@ private fun toNdsLocalEquipmentInfo(localDevice: SafeLocalDeviceContext?): NdsLo
             connectedClients = ctx.quantidadeClientes,
         )
     }
+
+/**
+ * Bloco `dns` expandido (ADR-018, issue #1840). Transcricao pura de
+ * `DnsDiagnosticInput` — nenhuma inferencia de provedor/IP acontece aqui (a
+ * tabela IP/hostname->provedor ja existe em `:app` e nao deve ser duplicada
+ * neste mapper, ver divida #1823). `hijacked` sempre `null`: nao ha coleta
+ * real desse dado, e a issue-mae #1832 proibe `false` como default para "nao
+ * sabemos".
+ *
+ * `null` quando `dns` e null — nenhum dado de DNS foi coletado nesta sessao.
+ */
+private fun toNdsDnsInfo(dns: DnsDiagnosticInput?): NdsDnsInfo? = dns?.let {
+    NdsDnsInfo(
+        primary = it.currentDnsIp,
+        responseTimeMs = it.currentDnsLatencyMs,
+        hijacked = null,
+        providerName = it.currentDnsName,
+        bestName = it.bestDnsNameFromComparison,
+        bestLatencyMs = it.bestDnsLatencyMsFromComparison,
+        grade = it.dnsGrade,
+        comparisonAvailable = it.dnsComparisonAvailable,
+        coherenceAlertLevel = it.coerenciaNivelAlerta,
+        coherenceConsecutiveDivergences = it.coerenciaDivergenciasConsecutivas,
+        coherenceDivergenceRatePercent = it.coerenciaTaxaDivergenciaPercentual,
+        privateDnsActive = it.privateDnsActive,
+        privateDnsHostname = it.privateDnsHostname,
+    )
+}
 
 private fun ndsProfile(perfilGamer: Boolean, objective: String?): String? = when {
     perfilGamer -> "gamer"
