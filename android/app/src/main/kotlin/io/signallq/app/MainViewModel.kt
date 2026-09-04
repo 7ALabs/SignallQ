@@ -18,6 +18,7 @@ import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.core.diagnostico.DnsDiagnosticInput
 import io.signallq.app.core.diagnostico.FibraDiagnosticInput
+import io.signallq.app.core.diagnostico.HistoricalDiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.MobileDiagnosticInput
 import io.signallq.app.core.diagnostico.RedeWifiVizinha
@@ -137,6 +138,10 @@ import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import io.signallq.app.ui.ConnectionType as UiConnectionType
+
+/** NDS-Snapshot-06 (issue #1838) — janela de 30 dias usada para consultar
+ *  `MedicaoDao.buscarDesde` antes de agregar em `agregarHistoricoNds`. */
+private const val JANELA_30D_MS = 30L * 24 * 60 * 60 * 1000
 
 @HiltViewModel
 class MainViewModel
@@ -838,6 +843,7 @@ class MainViewModel
                             fibra = fibraInput,
                             mobile = montarMobileInput(),
                             dns = montarDnsInput(),
+                            historico = montarHistoricoInput(),
                             wifiScan = montarWifiScanInput(),
                             velocidadeContratadaMbps = montarVelocidadeContratadaMbps(),
                             natStatus = natStatusAtual,
@@ -1168,6 +1174,7 @@ class MainViewModel
                             wifi = wifiInput,
                             mobile = montarMobileInput(),
                             dns = montarDnsInput(),
+                            historico = montarHistoricoInput(),
                             wifiScan = montarWifiScanInput(),
                             velocidadeContratadaMbps = montarVelocidadeContratadaMbps(),
                             natStatus = natStatusAtual,
@@ -1308,6 +1315,20 @@ class MainViewModel
                 .filter { it.isDigit() }
                 .toIntOrNull()
 
+        /** NDS-Snapshot-06 (issue #1838, ADR-018 secao 13) — historico local
+         *  (`MedicaoDao`) agregado nas janelas 7d/30d que alimentam tanto o payload
+         *  NDS (`historical`) quanto `RecomendacaoPraticaEngine` (REC-14, via
+         *  `HistoricalDiagnosticInput.degradationDetected`). A query ja filtra os
+         *  ultimos 30 dias; a separacao 7d/30d e a agregacao em si sao puras
+         *  (`agregarHistoricoNds`), testadas sem Room. Retorna null (bloco omitido)
+         *  quando nao ha nenhuma medicao no periodo -- usuario novo. */
+        private suspend fun montarHistoricoInput(): HistoricalDiagnosticInput? {
+            val agora = System.currentTimeMillis()
+            val corte30d = agora - JANELA_30D_MS
+            val medicoes = bancoDados.medicaoDao().buscarDesde(corte30d)
+            return agregarHistoricoNds(medicoesUltimos30Dias = medicoes, agoraEpochMs = agora)
+        }
+
         fun dispararBenchmarkDns() {
             val agora = System.currentTimeMillis()
             val expirado =
@@ -1367,6 +1388,7 @@ class MainViewModel
                             wifi = wifiInput,
                             mobile = montarMobileInput(),
                             dns = montarDnsInput(),
+                            historico = montarHistoricoInput(),
                             wifiScan = montarWifiScanInput(),
                             velocidadeContratadaMbps = montarVelocidadeContratadaMbps(),
                             natStatus = natStatusAtual,

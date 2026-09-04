@@ -86,4 +86,20 @@ class NdsProfileCapabilitiesMapperTest {
         assertEquals(listOf("scoring", "ai", "mobile"), comMobile)
         assertEquals(listOf("scoring", "ai"), semMobile)
     }
+
+    @Test
+    fun `capabilities inclui historical quando o bloco historical existe no request (ADR-018, NDS-Snapshot-06)`() {
+        val capabilities = ndsCapabilities(incluiWifi = false, incluiFiber = false, incluiHistorical = true)
+
+        assertEquals(listOf("scoring", "ai", "historical"), capabilities)
+    }
+
+    @Test
+    fun `sobrecarga com bloco historical real deriva incluiHistorical de nulidade`() {
+        val comHistorico = ndsCapabilities(wifi = null, fiber = null, historical = NdsHistoricalInfo(testsCount30d = 12))
+        val semHistorico = ndsCapabilities(wifi = null, fiber = null, historical = null)
+
+        assertEquals(listOf("scoring", "ai", "historical"), comHistorico)
+        assertEquals(listOf("scoring", "ai"), semHistorico)
+    }
 }

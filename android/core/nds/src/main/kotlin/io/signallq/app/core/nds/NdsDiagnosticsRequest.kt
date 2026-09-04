@@ -106,6 +106,36 @@ data class NdsFiberInfo(
     val voltageV: Double? = null,
 )
 
+/**
+ * Bloco `historical` do payload NDS (ADR-018 seção 13, NDS-Snapshot-06 — issue
+ * #1838). Médias 7d/30d do histórico local (`MedicaoDao`) e degradação
+ * calculada de forma determinística — o NDS/IA usa isso para diferenciar
+ * incidente isolado de degradação recorrente (#1832 seção 5).
+ *
+ * `testsCount7d`/`testsCount30d` sempre serializam, mesmo `0` — contagem de
+ * testes é um fato real (ADR-018), não ausência de dado. Os demais campos
+ * (médias, degradação, janelas de horário) são individualmente omitidos
+ * quando o dado correspondente não existir. O bloco inteiro fica `null`
+ * (nunca chega a este tipo) quando não há nenhum teste no período — ver
+ * `HistoricalDiagnosticInput.toNdsHistoricalInfo()`.
+ */
+data class NdsHistoricalInfo(
+    val testsCount7d: Int = 0,
+    val avgDownload7d: Double? = null,
+    val avgUpload7d: Double? = null,
+    val avgPing7d: Double? = null,
+    val avgDns7d: Double? = null,
+    val testsCount30d: Int = 0,
+    val avgDownload30d: Double? = null,
+    val avgUpload30d: Double? = null,
+    val avgPing30d: Double? = null,
+    val avgDns30d: Double? = null,
+    val degradationDetected: Boolean? = null,
+    val degradationPercent: Double? = null,
+    val worstTimeWindow: String? = null,
+    val bestTimeWindow: String? = null,
+)
+
 data class NdsDiagnosticContext(
     val reportedProblem: String? = null,
     val objective: String? = null,
@@ -142,6 +172,7 @@ data class NdsDiagnosticsRequest(
     val gateway: NdsGatewayInfo? = null,
     val fiber: NdsFiberInfo? = null,
     val mobile: NdsMobileInfo? = null,
+    val historical: NdsHistoricalInfo? = null,
     val context: NdsDiagnosticContext? = null,
 ) {
     internal fun toJson(): JSONObject {
@@ -281,6 +312,27 @@ data class NdsDiagnosticsRequest(
                     m.rsrqDb?.let { put("rsrq_db", it) }
                     m.sinrDb?.let { put("sinr_db", it) }
                     m.band?.let { put("band", it) }
+                },
+            )
+        }
+        historical?.let { h ->
+            root.put(
+                "historical",
+                JSONObject().apply {
+                    put("tests_7d", h.testsCount7d)
+                    h.avgDownload7d?.let { put("avg_download_7d", it) }
+                    h.avgUpload7d?.let { put("avg_upload_7d", it) }
+                    h.avgPing7d?.let { put("avg_ping_7d", it) }
+                    h.avgDns7d?.let { put("avg_dns_7d", it) }
+                    put("tests_30d", h.testsCount30d)
+                    h.avgDownload30d?.let { put("avg_download_30d", it) }
+                    h.avgUpload30d?.let { put("avg_upload_30d", it) }
+                    h.avgPing30d?.let { put("avg_ping_30d", it) }
+                    h.avgDns30d?.let { put("avg_dns_30d", it) }
+                    h.degradationDetected?.let { put("degradation_detected", it) }
+                    h.degradationPercent?.let { put("degradation_percent", it) }
+                    h.worstTimeWindow?.let { put("worstTimeWindow", it) }
+                    h.bestTimeWindow?.let { put("bestTimeWindow", it) }
                 },
             )
         }

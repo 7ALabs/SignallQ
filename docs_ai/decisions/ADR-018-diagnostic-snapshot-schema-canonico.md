@@ -4,7 +4,7 @@ description: "Define nome de campo, tipo, opcionalidade e origem no DiagnosticIn
 type: "adr"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-09-02"
+last_updated: "2026-09-03"
 version: "1.1.0"
 ---
 
@@ -282,28 +282,33 @@ reafirmada aqui como requisito do contrato.
 
 #### 13. `historical`
 
-**Estado: planejado** — bloco não existe no payload; `HistoricalDiagnosticInput` já existe e é
-coletado.
+**Estado: implementado** (NDS-Snapshot-06, issue #1838). `HistoricalDiagnosticInput` já existia
+sem nenhum produtor real em produção — esta fatia acrescentou a agregação (`agregarHistoricoNds`,
+`:app`, consultando `MedicaoDao.buscarDesde` sobre uma janela de 30 dias) e o cálculo determinístico
+de degradação (`DegradacaoHistoricoCalculadora`, `core/diagnostico`, reusado por
+`RecomendacaoPraticaEngine.recomendarUpgradeRoteadorRecorrente`/REC-14, que já lia estes dois campos
+sem nenhum caminho de produção que os preenchesse).
 
-| Campo NDS (sugerido) | Tipo | Opcional | Origem |
+| Campo NDS | Tipo | Opcional | Origem |
 |---|---|---|---|
 | `historical.tests_7d` | `Int` | Não (default `0` na origem — `0` testes é um fato real, não ausência) | `HistoricalDiagnosticInput.testsCount7d` |
 | `historical.avg_download_7d` | `Double?` | Sim | `avgDownload7d` |
 | `historical.avg_upload_7d` | `Double?` | Sim | `avgUpload7d` |
 | `historical.avg_ping_7d` | `Double?` | Sim | `avgPing7d` |
-| `historical.avg_dns_7d` *(fora do exemplo do #1832, mas já coletado)* | `Double?` | Sim | `avgDns7d` |
+| `historical.avg_dns_7d` | `Double?` | Sim | `avgDns7d` — **sem produtor hoje** (`MedicaoEntity` não persiste latência DNS por medição; `AvaliadorCoerenciaDns` lê em tempo real, sem histórico). Fica sempre omitido nesta fatia. |
 | `historical.tests_30d` | `Int` | Não (mesma regra do `tests_7d`) | `testsCount30d` |
 | `historical.avg_download_30d` | `Double?` | Sim | `avgDownload30d` |
 | `historical.avg_upload_30d` | `Double?` | Sim | `avgUpload30d` |
 | `historical.avg_ping_30d` | `Double?` | Sim | `avgPing30d` |
-| `historical.avg_dns_30d` | `Double?` | Sim | `avgDns30d` |
-| `historical.degradation_detected` | `Boolean?` | Sim | `degradationDetected` |
-| `historical.degradation_percent` | `Double?` | Sim | `degradationPercent` |
-| `historical.worstTimeWindow`/`bestTimeWindow` *(fora do exemplo do #1832, mas já coletado)* | `String?` | Sim | `worstTimeWindow`/`bestTimeWindow` |
+| `historical.avg_dns_30d` | `Double?` | Sim | `avgDns30d` — mesmo gap do `avg_dns_7d`. |
+| `historical.degradation_detected` | `Boolean?` | Sim | `degradationDetected` — calculado por `DegradacaoHistoricoCalculadora.calcular` (download 7d vs. 30d, mínimo de 5 testes em 7d e 10 em 30d, limiar de 20% — mesma confiança estatística do nível "attention" de `HistoricalDegradationEngine`). |
+| `historical.degradation_percent` | `Double?` | Sim | `degradationPercent` — positivo = queda, negativo = melhora. |
+| `historical.worstTimeWindow`/`bestTimeWindow` | `String?` | Sim | `worstTimeWindow`/`bestTimeWindow` — **sem produtor hoje** (nenhuma fonte calcula janela de horário por medição); campo do schema preservado para quando essa coleta existir, sempre omitido nesta fatia. |
 
-"Últimos testes" (lista bruta) mencionados no #1832 seção 5 **não têm campo correspondente** em
-`HistoricalDiagnosticInput` hoje — exigiria uma nova fonte de dado (consulta a `MedicaoDao` com
-limite), não coberta por esta ADR; a sub-issue de `historical` decide se vale abrir esse gap.
+Bloco inteiro fica omitido do payload (`null`, nunca zeros) quando não há nenhuma medição nas duas
+janelas — usuário novo ou sem uso nos últimos 30 dias. "Últimos testes" (lista bruta) mencionados no
+#1832 seção 5 ficaram **fora desta fatia** — decisão explícita da issue (item opcional, "se houver
+benefício real"), não um gap esquecido.
 
 #### 14. `plan`
 

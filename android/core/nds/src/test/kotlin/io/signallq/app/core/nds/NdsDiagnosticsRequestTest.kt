@@ -30,6 +30,7 @@ class NdsDiagnosticsRequestTest {
         assertFalse(json.has("gateway"))
         assertFalse(json.has("fiber"))
         assertFalse(json.has("mobile"))
+        assertFalse(json.has("historical"))
     }
 
     @Test
@@ -158,6 +159,36 @@ class NdsDiagnosticsRequestTest {
         assertFalse(mobile.has("operator"))
         assertFalse(mobile.has("band"))
         assertEquals(-95, mobile.getInt("rsrp_dbm"))
+    }
+
+    @Test
+    fun `toJson usa snake_case para historical e sempre serializa as contagens de teste, mesmo zero`() {
+        val request =
+            NdsDiagnosticsRequest(
+                requestId = "req-hist",
+                app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+                historical =
+                    NdsHistoricalInfo(
+                        testsCount7d = 0,
+                        avgDownload30d = 301.8,
+                        avgUpload30d = 149.1,
+                        avgPing30d = 17.5,
+                        testsCount30d = 12,
+                        degradationDetected = false,
+                        degradationPercent = -3.2,
+                    ),
+            )
+
+        val historical = request.toJson().getJSONObject("historical")
+
+        assertEquals(0, historical.getInt("tests_7d"))
+        assertFalse("media de 7d ausente nao pode virar zero", historical.has("avg_download_7d"))
+        assertEquals(12, historical.getInt("tests_30d"))
+        assertEquals(301.8, historical.getDouble("avg_download_30d"), 0.001)
+        assertEquals(149.1, historical.getDouble("avg_upload_30d"), 0.001)
+        assertEquals(17.5, historical.getDouble("avg_ping_30d"), 0.001)
+        assertFalse(historical.getBoolean("degradation_detected"))
+        assertEquals(-3.2, historical.getDouble("degradation_percent"), 0.001)
     }
 
     @Test
