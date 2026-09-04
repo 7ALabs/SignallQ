@@ -25,10 +25,10 @@ private const val NDS_APP_ID = "io.signallq.app"
  * quando propagado; gera um UUID novo quando o chamador nao propagou (default `""`).
  *
  * ## Campos de `DiagnosticInput` sem correspondente no schema do NDS (fora por design)
- * `natStatus`, `velocidadeContratadaMbps`,
- * `deviceGamingSelecionado` — o NDS nao pede nenhum destes ainda (`localDevice`
- * ja tem correspondente desde a issue #1839 — ver bloco `localEquipment` abaixo).
- * NAO confundir
+ * `deviceGamingSelecionado` — o NDS nao pede este campo ainda (`localDevice`
+ * ja tem correspondente desde a issue #1839 — ver bloco `localEquipment` abaixo;
+ * `natStatus`/`velocidadeContratadaMbps` ganharam correspondente na issue #1841 —
+ * ver `connection.natStatus` e o bloco `plan` abaixo). NAO confundir
  * `deviceGamingSelecionado` (device/console especifico, ex.: "playstation") com o sinal
  * "diagnostico roda dentro do Modo Gamer": este ultimo TEM campo correspondente no NDS
  * (`profile="gamer"`, decidido em #1746 secao 3b) e ja e aceito por este mapper via
@@ -80,6 +80,21 @@ private const val NDS_APP_ID = "io.signallq.app"
  * completo, credenciais, payload HTML do equipamento, token de sessao ou MAC
  * completo — a allowlist ja fecha essa superficie antes de chegar em
  * `DiagnosticInput`.
+ *
+ * ## `connection.natStatus` e bloco `plan` (ADR-018 blocos `connection`/14 —
+ * NDS-Snapshot-09, issue #1841)
+ * `connection.natStatus` transcreve `DiagnosticInput.natStatus` (enum `NatStatus`
+ * calculado por `NatClassifier`/`TopologyDiagnostic`) como string via `.name` —
+ * sem tabela de traducao propria. `null` quando nenhuma classificacao rodou
+ * nesta sessao; `"UNKNOWN"` quando a classificacao rodou mas foi inconclusiva
+ * (`NatClassifier.classify` sem IP de WAN) — os dois casos sao distintos e nenhum
+ * dos dois inventa um valor.
+ *
+ * O bloco `plan` e montado por [toNdsPlanInfo] a partir de
+ * `DiagnosticInput.velocidadeContratadaMbps` (fonte
+ * `PreferenciasAppRepository.planoInternetFlow`). Fica `null` quando o usuario
+ * nunca informou o plano contratado — **nunca inferido a partir da velocidade
+ * medida no speedtest** (regra explicita da issue-mae #1832 secao 6).
  *
  * `context.subcategory` e opcional no contrato v2. Quando a tela tiver um recorte
  * canônico, ele é preservado; a ausência dele não impede a avaliação v2.
@@ -138,6 +153,7 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
     val mobileInfo = toNdsMobileInfo(mobile)
     val historicalInfo = historico.toNdsHistoricalInfo()
     val localEquipmentInfo = toNdsLocalEquipmentInfo(localDevice)
+    val planInfo = toNdsPlanInfo(velocidadeContratadaMbps)
 
     return NdsDiagnosticsRequest(
         requestId = executionId.ifBlank { UUID.randomUUID().toString() },
@@ -160,6 +176,7 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
             type = ndsConnectionType(connectionType),
             ssid = wifi?.ssid,
             bssid = wifi?.bssidMascarado,
+            natStatus = natStatus?.name,
         ),
         wifi = wifiInfo,
         wifiScan = wifiScanInfo,
@@ -171,6 +188,7 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
         mobile = mobileInfo,
         historical = historicalInfo,
         localEquipment = localEquipmentInfo,
+        plan = planInfo,
         context = this.context?.let { context ->
             NdsDiagnosticContext(
                 reportedProblem = context.reportedProblem,
@@ -268,6 +286,16 @@ private fun toNdsDnsInfo(dns: DnsDiagnosticInput?): NdsDnsInfo? = dns?.let {
         privateDnsHostname = it.privateDnsHostname,
     )
 }
+
+/**
+ * Bloco `plan` (ADR-018 bloco 14, NDS-Snapshot-09 — issue #1841). `null` quando
+ * `velocidadeContratadaMbps` e null — usuario nunca informou o plano contratado
+ * (`PreferenciasAppRepository.planoInternetFlow`). **Nunca inferido** a partir de
+ * `internet.downloadMbps`/`uploadMbps` medidos — regra explicita da issue-mae
+ * #1832 secao 6.
+ */
+private fun toNdsPlanInfo(velocidadeContratadaMbps: Int?): NdsPlanInfo? =
+    velocidadeContratadaMbps?.let { NdsPlanInfo(contractedSpeedMbps = it) }
 
 private fun ndsProfile(perfilGamer: Boolean, objective: String?): String? = when {
     perfilGamer -> "gamer"

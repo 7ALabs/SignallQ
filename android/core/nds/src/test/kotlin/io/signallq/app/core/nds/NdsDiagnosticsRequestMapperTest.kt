@@ -11,6 +11,7 @@ import io.signallq.app.core.diagnostico.MobileDiagnosticInput
 import io.signallq.app.core.diagnostico.RedeWifiVizinha
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 import io.signallq.app.core.diagnostico.WifiScanDiagnosticInput
+import io.signallq.app.core.diagnostico.topology.model.NatStatus
 import io.signallq.app.core.network.contracts.localdevice.DeviceCapabilities
 import io.signallq.app.core.network.contracts.localdevice.DeviceType
 import io.signallq.app.core.network.contracts.localdevice.LocalDeviceSectionStatus
@@ -50,6 +51,8 @@ class NdsDiagnosticsRequestMapperTest {
         assertNull(request.mobile)
         assertNull(request.historical)
         assertNull(request.localEquipment)
+        assertNull(request.plan)
+        assertNull(request.connection?.natStatus)
     }
 
     @Test
@@ -690,5 +693,87 @@ class NdsDiagnosticsRequestMapperTest {
                 jsonTexto.contains(chave.lowercase()),
             )
         }
+    }
+
+    // --- connection.natStatus (ADR-018, NDS-Snapshot-09, issue #1841) ---
+
+    @Test
+    fun `natStatus DIRECT_PUBLIC (NAT simples) transcreve o nome do enum`() {
+        val request = DiagnosticInput(natStatus = NatStatus.DIRECT_PUBLIC)
+            .toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals("DIRECT_PUBLIC", request.connection?.natStatus)
+    }
+
+    @Test
+    fun `natStatus CGNAT transcreve o nome do enum`() {
+        val request = DiagnosticInput(natStatus = NatStatus.CGNAT)
+            .toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals("CGNAT", request.connection?.natStatus)
+    }
+
+    @Test
+    fun `natStatus DOUBLE_NAT_OR_CGNAT (NAT duplo) transcreve o nome do enum`() {
+        val request = DiagnosticInput(natStatus = NatStatus.DOUBLE_NAT_OR_CGNAT)
+            .toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals("DOUBLE_NAT_OR_CGNAT", request.connection?.natStatus)
+    }
+
+    @Test
+    fun `natStatus UNKNOWN (classificacao rodou mas foi inconclusiva) transcreve UNKNOWN`() {
+        val request = DiagnosticInput(natStatus = NatStatus.UNKNOWN)
+            .toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals("UNKNOWN", request.connection?.natStatus)
+    }
+
+    @Test
+    fun `natStatus null (sem classificacao) omite o campo do JSON`() {
+        val json = DiagnosticInput(natStatus = null)
+            .toNdsDiagnosticsRequest(appVersion = "1.0.0")
+            .toJson()
+        val connectionJson = json.getJSONObject("connection")
+
+        assertFalse(
+            "natStatus null deve ser omitido, nunca virar chave com valor nulo/vazio",
+            connectionJson.has("natStatus"),
+        )
+    }
+
+    // --- bloco plan (ADR-018 bloco 14, NDS-Snapshot-09, issue #1841) ---
+
+    @Test
+    fun `plan presente quando usuario informou velocidade contratada`() {
+        val request = DiagnosticInput(velocidadeContratadaMbps = 300)
+            .toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals(300, request.plan?.contractedSpeedMbps)
+
+        val json = request.toJson()
+        assertEquals(300, json.getJSONObject("plan").getInt("contractedSpeedMbps"))
+    }
+
+    @Test
+    fun `plan ausente quando usuario nunca informou velocidade contratada (nunca inferido)`() {
+        val request = DiagnosticInput(
+            velocidadeContratadaMbps = null,
+            internet = InternetDiagnosticInput(
+                downloadMbps = 287.5,
+                uploadMbps = 45.0,
+                latencyMs = null,
+                jitterMs = null,
+                perdaPercentual = null,
+            ),
+        ).toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertNull(
+            "ausencia de plano informado deve omitir o bloco inteiro, nunca inferir da velocidade medida",
+            request.plan,
+        )
+
+        val json = request.toJson()
+        assertFalse("bloco plan nao deve virar chave quando null", json.has("plan"))
     }
 }
