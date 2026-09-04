@@ -29,6 +29,7 @@ class NdsDiagnosticsRequestTest {
         assertFalse(json.has("dns"))
         assertFalse(json.has("gateway"))
         assertFalse(json.has("fiber"))
+        assertFalse(json.has("mobile"))
         assertFalse(json.has("historical"))
     }
 
@@ -113,6 +114,51 @@ class NdsDiagnosticsRequestTest {
         assertEquals(2, capabilities.length())
         assertEquals("scoring", capabilities.getString(0))
         assertEquals("ai", capabilities.getString(1))
+    }
+
+    @Test
+    fun `toJson serializa bloco mobile em snake_case e sem identificadores de celula`() {
+        val request = NdsDiagnosticsRequest(
+            requestId = "req-mobile",
+            app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+            mobile = NdsMobileInfo(
+                operator = "TIM",
+                technology = "5G",
+                rsrpDbm = -101,
+                rsrqDb = -14,
+                sinrDb = 7,
+                band = "n78",
+            ),
+        )
+
+        val mobile = request.toJson().getJSONObject("mobile")
+
+        assertEquals("TIM", mobile.getString("operator"))
+        assertEquals("5G", mobile.getString("technology"))
+        assertEquals(-101, mobile.getInt("rsrp_dbm"))
+        assertEquals(-14, mobile.getInt("rsrq_db"))
+        assertEquals(7, mobile.getInt("sinr_db"))
+        assertEquals("n78", mobile.getString("band"))
+        assertFalse("Cell ID nunca deve entrar no payload", mobile.has("cell_id"))
+        assertFalse("TAC nunca deve entrar no payload", mobile.has("tac"))
+        assertFalse("MCC nunca deve entrar no payload", mobile.has("mcc"))
+        assertFalse("MNC nunca deve entrar no payload", mobile.has("mnc"))
+    }
+
+    @Test
+    fun `toJson omite campos individuais nulos do bloco mobile`() {
+        val request = NdsDiagnosticsRequest(
+            requestId = "req-mobile-parcial",
+            app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+            mobile = NdsMobileInfo(rsrpDbm = -95, rsrqDb = -12, sinrDb = 3),
+        )
+
+        val mobile = request.toJson().getJSONObject("mobile")
+
+        assertFalse("tecnologia desconhecida nao deve virar chave", mobile.has("technology"))
+        assertFalse(mobile.has("operator"))
+        assertFalse(mobile.has("band"))
+        assertEquals(-95, mobile.getInt("rsrp_dbm"))
     }
 
     @Test

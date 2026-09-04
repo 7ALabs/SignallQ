@@ -19,6 +19,7 @@ fun ndsCapabilities(
     incluiWifi: Boolean,
     incluiFiber: Boolean,
     incluiWifiScan: Boolean = false,
+    incluiMobile: Boolean = false,
     incluiHistorical: Boolean = false,
 ): List<String> {
     val capabilities = mutableListOf("scoring", "ai")
@@ -27,6 +28,9 @@ fun ndsCapabilities(
     // ADR-018 — "wifi_scan" e o vocabulario ja aceito pelo NDS (ADR-017, contrato
     // canonico PR #12) para a capability de evidencia de scan de canal.
     if (incluiWifiScan) capabilities += "wifi_scan"
+    // ADR-018 (bloco 10, issue #1837) — "mobile" ja consta no vocabulario de
+    // capabilities aceito pelo NDS (ADR-017/ADR-018).
+    if (incluiMobile) capabilities += "mobile"
     // ADR-018 secao "Vocabulario de capabilities" — "historical" ja e aceito pelo
     // NDS (ADR-017, contrato canonico PR #12), NDS-Snapshot-06 (issue #1838).
     if (incluiHistorical) capabilities += "historical"
@@ -34,17 +38,19 @@ fun ndsCapabilities(
 }
 
 /** Sobrecarga de conveniencia — deriva `incluiWifi`/`incluiFiber`/`incluiWifiScan`/
- *  `incluiHistorical` diretamente dos blocos opcionais do request, sem o chamador
- *  repetir `!= null`. */
+ *  `incluiMobile`/`incluiHistorical` diretamente dos blocos opcionais do request, sem o
+ *  chamador repetir `!= null`. */
 fun ndsCapabilities(
     wifi: NdsWifiInfo?,
     fiber: NdsFiberInfo?,
     wifiScan: NdsWifiScanInfo? = null,
+    mobile: NdsMobileInfo? = null,
     historical: NdsHistoricalInfo? = null,
 ): List<String> = ndsCapabilities(
     incluiWifi = wifi != null,
     incluiFiber = fiber != null,
     incluiWifiScan = wifiScan != null,
+    incluiMobile = mobile != null,
     incluiHistorical = historical != null,
 )
 

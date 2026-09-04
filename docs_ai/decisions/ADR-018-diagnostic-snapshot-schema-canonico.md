@@ -216,10 +216,10 @@ ambos. Preservar esse critério ao adicionar `gateway.ip`.
 
 #### 10. `mobile`
 
-**Estado: planejado** — bloco não existe em `NdsDiagnosticsRequest` hoje; `MobileDiagnosticInput`
-já existe e é coletado.
+**Estado: implementado** (issue #1837). Bloco opcional em `NdsDiagnosticsRequest`, populado por
+`toNdsMobileInfo()` em `NdsDiagnosticsRequestMapper.kt`.
 
-| Campo NDS (sugerido) | Tipo | Opcional | Origem |
+| Campo NDS | Tipo | Opcional | Origem |
 |---|---|---|---|
 | `mobile.operator` | `String?` | Sim | `MobileDiagnosticInput.carrierName` |
 | `mobile.technology` | `String?` | Sim | `MobileDiagnosticInput.mobileTechnology` |
@@ -227,12 +227,19 @@ já existe e é coletado.
 | `mobile.rsrq_db` | `Int?` | Sim | `MobileDiagnosticInput.rsrqDb` |
 | `mobile.sinr_db` | `Int?` | Sim | `MobileDiagnosticInput.sinrDb` |
 | `mobile.band` | `String?` | Sim | `MobileDiagnosticInput.band` |
-| `mobile.signalStrengthDbm`/`signalQualityPercent` *(avaliar)* | `Int?` | Sim | `MobileDiagnosticInput.signalStrengthDbm`/`signalQualityPercent` — pode ser redundante com RSRP/RSRQ/SINR quando a tecnologia é 4G/5G; decisão de incluir cabe à sub-issue de implementação. |
-| — | — | — | `MobileDiagnosticInput.publicIp` **não** entra no schema — IP público é dado sensível sem justificativa clara de diagnóstico (nenhum consumidor pede isso hoje); manter fora até haver caso de uso explícito. |
+| — | — | — | `MobileDiagnosticInput.signalStrengthDbm`/`signalQualityPercent`/`publicIp` **não** entram no schema — os dois primeiros são redundantes com RSRP/RSRQ/SINR na tecnologia 4G/5G; IP público é dado sensível sem justificativa clara de diagnóstico. Seguem fora até haver caso de uso explícito. |
 
 Nomes de chave seguem `snake_case` para casar com o exemplo já publicado no #1832 seção 4.
 Cell ID/TAC/MCC/MNC **não** entram — proibido explicitamente pela issue-mãe sem revisão de
 privacidade dedicada.
+
+**Gate de permissão de telefonia (issue #1735/#1837):** o bloco inteiro é omitido — não apenas
+zerado — quando `MobileDiagnosticInput.capturaReduzida == true`, o flag que `MonitorTelephonyImpl`
+já usa (GH#1662) para sinalizar que o snapshot foi capturado sem `READ_PHONE_STATE` (só
+operadora/MCC/MNC, sem nenhuma medição real de sinal). Também fica `null` quando nenhum dos seis
+campos acima teria conteúdo (nenhuma evidência útil), mesmo com permissão concedida (ex.: rádio
+desligado). Capability `"mobile"` (vocabulário já previsto na seção "Capabilities" abaixo) só entra
+na lista quando o bloco é efetivamente construído.
 
 #### 11. `fiber`
 
@@ -408,9 +415,10 @@ porque a leitura falhou).
 
 **Implementação atual** (`NdsProfileCapabilitiesMapper.ndsCapabilities`): cada capability é incluída
 quando o **bloco correspondente é não-nulo no request** (mesmo critério que decide se o bloco vira
-uma chave no JSON) — hoje cobre `wifi`/`fiber`; esta ADR estende para `wifi_scan` (ver PR do
-NDS-Snapshot-02/#1834) usando o mesmo critério. Sempre inclui `"scoring"`+`"ai"` (`requested_outputs`
-implícito, ainda não migrado para o modelo `requested_outputs` separado do ADR-017).
+uma chave no JSON) — cobre `wifi`/`fiber`/`wifi_scan` (NDS-Snapshot-02/#1834) e `mobile`
+(NDS-Snapshot-05/#1837), todos usando o mesmo critério. Sempre inclui `"scoring"`+`"ai"`
+(`requested_outputs` implícito, ainda não migrado para o modelo `requested_outputs` separado do
+ADR-017).
 
 **Vocabulário de capabilities aceito pelo NDS** (ADR-017, contrato canônico PR #12):
 `wifi`, `wifi_scan`, `fiber`, `mobile`, `dns`, `historical`, `gateway`, `local_equipment` — os

@@ -1292,6 +1292,7 @@ class MainViewModel
                 rsrpDbm = snap.rsrpDbm,
                 rsrqDb = snap.rsrqDb,
                 sinrDb = snap.sinrDb,
+                capturaReduzida = snap.capturaReduzida,
             )
         }
 

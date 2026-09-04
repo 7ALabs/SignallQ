@@ -84,6 +84,21 @@ data class NdsGatewayInfo(
     val connectedDevices: Int? = null,
 )
 
+/**
+ * Bloco `mobile` do payload NDS (ADR-018, bloco 10 — issue #1837). Chaves em
+ * `snake_case` para casar com o exemplo publicado no #1832 seção 4. Nunca carrega
+ * Cell ID/TAC/MCC/MNC — proibido explicitamente pela issue-mãe sem revisão de
+ * privacidade dedicada (allowlist fechada nestes seis campos).
+ */
+data class NdsMobileInfo(
+    val operator: String? = null,
+    val technology: String? = null,
+    val rsrpDbm: Int? = null,
+    val rsrqDb: Int? = null,
+    val sinrDb: Int? = null,
+    val band: String? = null,
+)
+
 data class NdsFiberInfo(
     val rxPowerDbm: Double? = null,
     val txPowerDbm: Double? = null,
@@ -134,7 +149,7 @@ data class NdsDiagnosticContext(
  * Payload de `POST /v1/diagnostics/evaluate` — schema completo documentado no
  * ADR-017 (contrato observado no NDS) e detalhado campo a campo no ADR-018
  * (nome/tipo/opcionalidade/origem por bloco). Cada bloco (`connection`, `wifi`,
- * `wifiScan`, `speed`, `quality`, `dns`, `gateway`, `fiber`) e opcional: quando
+ * `wifiScan`, `speed`, `quality`, `dns`, `gateway`, `fiber`, `mobile`) e opcional: quando
  * `null`, o campo e OMITIDO do JSON — o NDS trata
  * ausencia de bloco como "sem dado disponivel", nunca como zero/vazio.
  *
@@ -156,6 +171,7 @@ data class NdsDiagnosticsRequest(
     val dns: NdsDnsInfo? = null,
     val gateway: NdsGatewayInfo? = null,
     val fiber: NdsFiberInfo? = null,
+    val mobile: NdsMobileInfo? = null,
     val historical: NdsHistoricalInfo? = null,
     val context: NdsDiagnosticContext? = null,
 ) {
@@ -283,6 +299,19 @@ data class NdsDiagnosticsRequest(
                     f.txPowerDbm?.let { put("txPower_dbm", it) }
                     f.temperatureC?.let { put("temperature_c", it) }
                     f.voltageV?.let { put("voltage_v", it) }
+                },
+            )
+        }
+        mobile?.let { m ->
+            root.put(
+                "mobile",
+                JSONObject().apply {
+                    m.operator?.let { put("operator", it) }
+                    m.technology?.let { put("technology", it) }
+                    m.rsrpDbm?.let { put("rsrp_dbm", it) }
+                    m.rsrqDb?.let { put("rsrq_db", it) }
+                    m.sinrDb?.let { put("sinr_db", it) }
+                    m.band?.let { put("band", it) }
                 },
             )
         }
