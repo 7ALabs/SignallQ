@@ -99,6 +99,41 @@ class DegradacaoHistoricoCalculadoraTest {
     }
 
     @Test
+    fun `percentual cru abaixo do limiar que arredondaria para o limiar nao marca degradacao`() {
+        // percentual cru = 19.96%, que arredonda para 20.0 (1 casa decimal) — a decisao
+        // de degradationDetected deve usar o valor cru, nao o arredondado, para nao
+        // divergir de HistoricalDegradationEngine.severidade() (compara valor cru >= 20.0).
+        val resultado =
+            DegradacaoHistoricoCalculadora.calcular(
+                avgDownload7d = 240.12,
+                avgDownload30d = 300.0,
+                testsCount7d = 8,
+                testsCount30d = 31,
+            )
+
+        assertTrue(resultado != null)
+        assertEquals(false, resultado?.first)
+        assertEquals(20.0, resultado?.second)
+    }
+
+    @Test
+    fun `percentual cru acima do limiar que tambem arredonda para o limiar marca degradacao`() {
+        // percentual cru = 20.04%, arredonda para 20.0, e deve detectar degradacao
+        // pois o valor cru ja ultrapassa o limiar.
+        val resultado =
+            DegradacaoHistoricoCalculadora.calcular(
+                avgDownload7d = 239.88,
+                avgDownload30d = 300.0,
+                testsCount7d = 8,
+                testsCount30d = 31,
+            )
+
+        assertTrue(resultado != null)
+        assertEquals(true, resultado?.first)
+        assertEquals(20.0, resultado?.second)
+    }
+
+    @Test
     fun `media de 30d zero ou negativa nao calcula degradacao`() {
         assertNull(
             DegradacaoHistoricoCalculadora.calcular(

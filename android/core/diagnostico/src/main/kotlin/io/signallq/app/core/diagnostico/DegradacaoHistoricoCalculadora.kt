@@ -44,9 +44,9 @@ object DegradacaoHistoricoCalculadora {
         if (avgDownload7d == null || avgDownload30d == null || avgDownload30d <= 0.0) return null
         if (testsCount7d < MIN_TESTS_7D || testsCount30d < MIN_TESTS_30D) return null
 
-        val percentual = arredondar1CasaDecimal(((avgDownload30d - avgDownload7d) / avgDownload30d) * 100.0)
-        val detectada = percentual >= LIMIAR_PERCENTUAL
-        return detectada to percentual
+        val percentualCru = ((avgDownload30d - avgDownload7d) / avgDownload30d) * 100.0
+        val detectada = percentualCru >= LIMIAR_PERCENTUAL
+        return detectada to arredondar1CasaDecimal(percentualCru)
     }
 
     private fun arredondar1CasaDecimal(valor: Double): Double = round(valor * 10.0) / 10.0
