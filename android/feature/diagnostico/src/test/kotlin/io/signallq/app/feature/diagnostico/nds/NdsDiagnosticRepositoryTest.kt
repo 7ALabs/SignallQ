@@ -127,6 +127,90 @@ class NdsDiagnosticRepositoryTest {
     }
 
     @Test
+    fun `NDS respondendo com sucesso - dispara telemetria de cobertura do snapshot`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(successBody()))
+        var schemaVersionRegistrada: String? = null
+        var blocosPresentesRegistrados: String? = null
+        var blocosCriticosAusentesRegistrados: String? = null
+        var iaInvocadaRegistrada: Boolean? = null
+        var iaProviderRegistrado: String? = null
+        var outcomeRegistrado: String? = null
+        var resultConfidenceRegistrada: Double? = null
+        val analytics = object : AnalyticsHelper by NoOpAnalyticsHelper {
+            override fun registrarNdsSnapshotEnviado(
+                schemaVersion: String,
+                blocosPresentes: String,
+                qtdBlocosPresentes: Long,
+                camposPresentesCount: Long,
+                blocosCriticosAusentes: String,
+                iaInvocada: Boolean,
+                iaProvider: String?,
+                duracaoMs: Long,
+                resultConfidence: Double?,
+                outcome: String,
+            ) {
+                schemaVersionRegistrada = schemaVersion
+                blocosPresentesRegistrados = blocosPresentes
+                blocosCriticosAusentesRegistrados = blocosCriticosAusentes
+                iaInvocadaRegistrada = iaInvocada
+                iaProviderRegistrado = iaProvider
+                outcomeRegistrado = outcome
+                resultConfidenceRegistrada = resultConfidence
+            }
+        }
+
+        // snapshotSaudavelInput() e wifi + speedtest + latencia/jitter/perda -- speed e wifi
+        // (os dois blocos criticos possiveis para conexao wifi) ficam presentes.
+        repository(analyticsHelper = analytics).evaluate(snapshotSaudavelInput())
+
+        assertEquals("1", schemaVersionRegistrada)
+        assertTrue(blocosPresentesRegistrados.orEmpty().contains("wifi"))
+        assertTrue(blocosPresentesRegistrados.orEmpty().contains("speed"))
+        assertEquals("", blocosCriticosAusentesRegistrados)
+        assertEquals(true, iaInvocadaRegistrada)
+        assertEquals("copy-catalog", iaProviderRegistrado)
+        assertEquals("success", outcomeRegistrado)
+        assertNotNull(resultConfidenceRegistrada)
+    }
+
+    @Test
+    fun `NDS respondendo 401 - telemetria de cobertura aponta bloco critico ausente quando aplicavel`() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(401)
+                .setBody("""{"error":"Unauthorized","message":"Missing or invalid Bearer token."}"""),
+        )
+        var blocosCriticosAusentesRegistrados: String? = null
+        var iaInvocadaRegistrada: Boolean? = null
+        var outcomeRegistrado: String? = null
+        val analytics = object : AnalyticsHelper by NoOpAnalyticsHelper {
+            override fun registrarNdsSnapshotEnviado(
+                schemaVersion: String,
+                blocosPresentes: String,
+                qtdBlocosPresentes: Long,
+                camposPresentesCount: Long,
+                blocosCriticosAusentes: String,
+                iaInvocada: Boolean,
+                iaProvider: String?,
+                duracaoMs: Long,
+                resultConfidence: Double?,
+                outcome: String,
+            ) {
+                blocosCriticosAusentesRegistrados = blocosCriticosAusentes
+                iaInvocadaRegistrada = iaInvocada
+                outcomeRegistrado = outcome
+            }
+        }
+        // Entrada so com mobile ausente (conexao wifi) -- nenhum bloco critico deveria faltar
+        // aqui; o cenario testa que a telemetria dispara mesmo em erro (known_error), com
+        // ia_invoked=false (nunca chegou resposta do NDS).
+        repository(analyticsHelper = analytics).evaluate(snapshotSaudavelInput())
+
+        assertEquals("", blocosCriticosAusentesRegistrados)
+        assertEquals(false, iaInvocadaRegistrada)
+        assertEquals("known_error", outcomeRegistrado)
+    }
+
+    @Test
     fun `NDS retorna regular sem causa nem recomendacao - preserva resposta remota`() = runTest {
         server.enqueue(MockResponse().setResponseCode(200).setBody(successBody(veredicto = "regular", score = 50)))
 
