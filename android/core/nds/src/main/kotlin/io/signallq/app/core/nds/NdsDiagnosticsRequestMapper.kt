@@ -22,7 +22,7 @@ private const val NDS_APP_ID = "io.signallq.app"
  * quando propagado; gera um UUID novo quando o chamador nao propagou (default `""`).
  *
  * ## Campos de `DiagnosticInput` sem correspondente no schema do NDS (fora por design)
- * `natStatus`, `velocidadeContratadaMbps`, `historico`, `localDevice`,
+ * `natStatus`, `velocidadeContratadaMbps`, `localDevice`,
  * `deviceGamingSelecionado` — o NDS nao pede nenhum destes ainda. NAO confundir
  * `deviceGamingSelecionado` (device/console especifico, ex.: "playstation") com o sinal
  * "diagnostico roda dentro do Modo Gamer": este ultimo TEM campo correspondente no NDS
@@ -42,6 +42,14 @@ private const val NDS_APP_ID = "io.signallq.app"
  * ## Gap documentado: `dns.hijacked`
  * Ainda nao ha coleta desse dado no app (ADR-017, pendencias em aberto) — fica
  * sempre `null` aqui, mesmo com bloco `dns` presente.
+ *
+ * ## `historical` (ADR-018 secao 13, NDS-Snapshot-06 — issue #1838)
+ * O bloco opcional `historical` carrega medias 7d/30d e degradacao calculada
+ * de forma deterministica via [toNdsHistoricalInfo], que roda sobre
+ * `DiagnosticInput.historico` (`HistoricalDiagnosticInput`, ja existente e
+ * populado por quem consulta `MedicaoDao` em `:app` antes de montar o
+ * `DiagnosticInput`). Fica `null` quando nao ha nenhum teste registrado nas
+ * duas janelas (usuario novo) — nunca zeros inventados.
  *
  * `context.subcategory` e opcional no contrato v2. Quando a tela tiver um recorte
  * canônico, ele é preservado; a ausência dele não impede a avaliação v2.
@@ -102,12 +110,18 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
             null
         }
     val wifiScanInfo = wifiScan.toNdsWifiScanInfo(wifi?.banda())
+    val historicalInfo = historico.toNdsHistoricalInfo()
 
     return NdsDiagnosticsRequest(
         requestId = executionId.ifBlank { UUID.randomUUID().toString() },
         app = NdsAppInfo(id = NDS_APP_ID, version = appVersion),
         profile = ndsProfile(perfilGamer, this.context?.objective),
-        capabilities = ndsCapabilities(wifi = wifiInfo, fiber = fiberInfo, wifiScan = wifiScanInfo) +
+        capabilities = ndsCapabilities(
+            wifi = wifiInfo,
+            fiber = fiberInfo,
+            wifiScan = wifiScanInfo,
+            historical = historicalInfo,
+        ) +
             listOfNotNull(
                 "usage_profiles".takeIf {
                     this.context?.objective in setOf("JOGOS_COM_LAG", "VIDEOS_TRAVAM", "CHAMADAS_CONGELAM", "SITES_DEMORAM")
@@ -125,6 +139,7 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
         dns = dnsInfo,
         gateway = gatewayInfo,
         fiber = fiberInfo,
+        historical = historicalInfo,
         context = this.context?.let { context ->
             NdsDiagnosticContext(
                 reportedProblem = context.reportedProblem,

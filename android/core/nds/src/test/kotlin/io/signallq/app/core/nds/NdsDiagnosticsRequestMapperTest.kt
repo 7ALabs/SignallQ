@@ -5,6 +5,7 @@ import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.DiagnosticContext
 import io.signallq.app.core.diagnostico.DnsDiagnosticInput
 import io.signallq.app.core.diagnostico.FibraDiagnosticInput
+import io.signallq.app.core.diagnostico.HistoricalDiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.RedeWifiVizinha
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
@@ -39,6 +40,7 @@ class NdsDiagnosticsRequestMapperTest {
         assertNull(request.dns)
         assertNull(request.gateway)
         assertNull(request.fiber)
+        assertNull(request.historical)
     }
 
     @Test
@@ -272,6 +274,43 @@ class NdsDiagnosticsRequestMapperTest {
         assertEquals(36, wifiScanJson.getInt("connectedChannel"))
         assertEquals(1, wifiScanJson.getInt("neighborCount"))
         assertEquals(1, wifiScanJson.getJSONArray("neighbors").length())
+    }
+
+    @Test
+    fun `historico ausente quando DiagnosticInput nao carrega nenhum teste`() {
+        val input = DiagnosticInput(historico = HistoricalDiagnosticInput(testsCount7d = 0, testsCount30d = 0))
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertNull(request.historical)
+    }
+
+    @Test
+    fun `historico presente preenche bloco historical e entra em capabilities`() {
+        val input = DiagnosticInput(
+            historico = HistoricalDiagnosticInput(
+                avgDownload7d = 287.4,
+                avgUpload7d = 141.2,
+                avgPing7d = 19.2,
+                testsCount7d = 8,
+                avgDownload30d = 301.8,
+                avgUpload30d = 149.1,
+                avgPing30d = 17.5,
+                testsCount30d = 31,
+                degradationDetected = true,
+                degradationPercent = 18.3,
+            ),
+        )
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals(8, request.historical?.testsCount7d)
+        assertEquals(287.4, request.historical?.avgDownload7d)
+        assertEquals(31, request.historical?.testsCount30d)
+        assertEquals(301.8, request.historical?.avgDownload30d)
+        assertEquals(true, request.historical?.degradationDetected)
+        assertEquals(18.3, request.historical?.degradationPercent)
+        assertTrue(request.capabilities.contains("historical"))
     }
 
     @Test
