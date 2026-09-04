@@ -10,9 +10,13 @@ import io.signallq.app.core.diagnostico.GameReadinessClassifier
 import io.signallq.app.core.diagnostico.UsageProfileClassifier
 import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.NoOpAnalyticsHelper
+import io.signallq.app.core.nds.NDS_SNAPSHOT_SCHEMA_VERSION
 import io.signallq.app.core.nds.NdsClient
 import io.signallq.app.core.nds.NdsDiagnosticsOutcome
 import io.signallq.app.core.nds.NdsDiagnosticsResponse
+import io.signallq.app.core.nds.NdsSnapshotCoverage
+import io.signallq.app.core.nds.analyzeNdsSnapshotCoverage
+import io.signallq.app.core.nds.asAi
 import io.signallq.app.core.nds.toDiagnosticReport
 import io.signallq.app.core.nds.toNdsDiagnosticsRequest
 import io.signallq.app.feature.diagnostico.BuildConfig
@@ -97,11 +101,19 @@ class NdsDiagnosticRepository(
     ): DiagnosticReport {
         val startedAtMs = System.currentTimeMillis()
         val request = input.toNdsDiagnosticsRequest(appVersion = BuildConfig.APP_VERSION, perfilGamer = perfilGamer)
+        val coverage = analyzeNdsSnapshotCoverage(
+            request = request,
+            connectionType = input.connectionType,
+            mobileCapturaReduzida = input.mobile?.capturaReduzida == true,
+        )
+        logCoverageEmDebug(coverage)
         val outcome = ndsClient.evaluate(request, useV2 = useV2)
         val latenciaMs = System.currentTimeMillis() - startedAtMs
 
         return when (outcome) {
             is NdsDiagnosticsOutcome.Success -> {
+                val iaInvocada = outcome.response.resultFor("ai") != null || outcome.response.explanationV2 != null
+                val iaProvider = outcome.response.resultFor("ai")?.asAi()?.aiModelUsed?.takeIf(String::isNotBlank)
                 try {
                     val relatorio = outcome.response
                         .toDiagnosticReport(input = input, geradoEmMs = System.currentTimeMillis())
@@ -110,14 +122,23 @@ class NdsDiagnosticRepository(
                             perfisUso = UsageProfileClassifier.classificarTodos(input),
                             gameReadiness = GameReadinessClassifier.classificarTodos(input),
                         )
+                    val outcomeLabel = if (relatorio.decisao.status == DiagnosticStatus.inconclusive) {
+                        "remote_inconclusive"
+                    } else {
+                        "success"
+                    }
                     analyticsHelper.registrarDiagNdsOutcome(
-                        outcome = if (relatorio.decisao.status == DiagnosticStatus.inconclusive) {
-                            "remote_inconclusive"
-                        } else {
-                            "success"
-                        },
+                        outcome = outcomeLabel,
                         fallbackLocalUsado = false,
                         latenciaMs = latenciaMs,
+                    )
+                    registrarCoberturaSnapshot(
+                        coverage = coverage,
+                        latenciaMs = latenciaMs,
+                        outcomeLabel = outcomeLabel,
+                        iaInvocada = iaInvocada,
+                        iaProvider = iaProvider,
+                        resultConfidence = relatorio.confianca,
                     )
                     relatorio
                 } catch (t: Throwable) {
@@ -127,6 +148,14 @@ class NdsDiagnosticRepository(
                             fallbackLocalUsado = false,
                             latenciaMs = latenciaMs,
                         )
+                        registrarCoberturaSnapshot(
+                            coverage = coverage,
+                            latenciaMs = latenciaMs,
+                            outcomeLabel = "unknown_error",
+                            iaInvocada = iaInvocada,
+                            iaProvider = iaProvider,
+                            resultConfidence = null,
+                        )
                         throw NdsAssistEvaluationException("falha ao interpretar resposta remota do NDS", t)
                     }
                     Timber.w(t, "NdsDiagnosticRepository: falha ao mapear resposta do NDS, caindo para motor local")
@@ -134,6 +163,14 @@ class NdsDiagnosticRepository(
                         outcome = "unknown_error",
                         fallbackLocalUsado = true,
                         latenciaMs = latenciaMs,
+                    )
+                    registrarCoberturaSnapshot(
+                        coverage = coverage,
+                        latenciaMs = latenciaMs,
+                        outcomeLabel = "unknown_error",
+                        iaInvocada = iaInvocada,
+                        iaProvider = iaProvider,
+                        resultConfidence = null,
                     )
                     fallbackLocal(input, enabledAreas)
                 }
@@ -151,6 +188,7 @@ class NdsDiagnosticRepository(
                         latenciaMs = latenciaMs,
                         errorCode = outcome.code ?: outcome.error,
                     )
+                    registrarCoberturaSnapshot(coverage = coverage, latenciaMs = latenciaMs, outcomeLabel = "known_error")
                     throw NdsAssistEvaluationException(
                         "NDS recusou a avaliação (${outcome.statusCode})",
                     )
@@ -161,6 +199,7 @@ class NdsDiagnosticRepository(
                     latenciaMs = latenciaMs,
                     errorCode = outcome.code ?: outcome.error,
                 )
+                registrarCoberturaSnapshot(coverage = coverage, latenciaMs = latenciaMs, outcomeLabel = "known_error")
                 fallbackLocal(input, enabledAreas)
             }
 
@@ -175,6 +214,7 @@ class NdsDiagnosticRepository(
                         fallbackLocalUsado = false,
                         latenciaMs = latenciaMs,
                     )
+                    registrarCoberturaSnapshot(coverage = coverage, latenciaMs = latenciaMs, outcomeLabel = "unknown_error")
                     throw NdsAssistEvaluationException("NDS indisponível", outcome.cause)
                 }
                 analyticsHelper.registrarDiagNdsOutcome(
@@ -182,9 +222,52 @@ class NdsDiagnosticRepository(
                     fallbackLocalUsado = true,
                     latenciaMs = latenciaMs,
                 )
+                registrarCoberturaSnapshot(coverage = coverage, latenciaMs = latenciaMs, outcomeLabel = "unknown_error")
                 fallbackLocal(input, enabledAreas)
             }
         }
+    }
+
+    /**
+     * NDS-Snapshot-12 (issue #1844) — log de debug (nunca analytics) listando blocos
+     * montados/omitidos e a razão da omissão. Formato exato pedido pela issue:
+     * ```
+     * NDS snapshot:
+     * speed=present
+     * wifi=present
+     * wifiScan=missing:no_permission
+     * mobile=missing:not_mobile
+     * ```
+     * Só emite em build de debug — nunca em release, mesmo critério já usado por
+     * `SignallQApplication`/`AppModule` para `BuildConfig.DEBUG`.
+     */
+    private fun logCoverageEmDebug(coverage: NdsSnapshotCoverage) {
+        if (!BuildConfig.DEBUG) return
+        Timber.d("NDS snapshot:\n" + coverage.toDebugLogLines().joinToString("\n"))
+    }
+
+    /** Dispara [AnalyticsHelper.registrarNdsSnapshotEnviado] uma vez por chamada ao NDS — ver
+     *  KDoc do método na interface para o que cada propriedade mede e por quê. */
+    private fun registrarCoberturaSnapshot(
+        coverage: NdsSnapshotCoverage,
+        latenciaMs: Long,
+        outcomeLabel: String,
+        iaInvocada: Boolean = false,
+        iaProvider: String? = null,
+        resultConfidence: Double? = null,
+    ) {
+        analyticsHelper.registrarNdsSnapshotEnviado(
+            schemaVersion = NDS_SNAPSHOT_SCHEMA_VERSION,
+            blocosPresentes = coverage.blocksPresent.joinToString(","),
+            qtdBlocosPresentes = coverage.blocksPresent.size.toLong(),
+            camposPresentesCount = coverage.fieldsPresentCount.toLong(),
+            blocosCriticosAusentes = coverage.missingCriticalBlocks.joinToString(","),
+            iaInvocada = iaInvocada,
+            iaProvider = iaProvider,
+            duracaoMs = latenciaMs,
+            resultConfidence = resultConfidence,
+            outcome = outcomeLabel,
+        )
     }
 
     /** Rede de seguranca — mesmo motor 100% offline que [DiagnosticOrchestrator][io.signallq.app.feature.diagnostico.DiagnosticOrchestrator]
