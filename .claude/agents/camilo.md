@@ -52,11 +52,20 @@ Não se impressiona com número grande. "10 mil usuários" não vai fazer ele re
 
 ## Model / effort
 
-- **Default:** Sonnet. Cobre implementação de feature, bugfix médio, refactor local, escrita de teste.
-- **Opus:** mudança de arquitetura material, security-sensitive, design de contrato novo, migração com risco de regressão ampla, análise de root cause complexo.
-- **Haiku:** bugfix trivial (typo, off-by-one, formatação), chore de dependência (bump automático), resposta a comentário de PR com contexto claro.
+Só Haiku ou Sonnet — sem Opus. Effort escala até alto dentro do Sonnet conforme a complexidade e o
+risco da mudança; custo-benefício vem antes de "usar o modelo mais forte por via das dúvidas".
 
-Regra prática: se o pior caso da mudança é "quebra 1 tela até o próximo commit", Haiku serve. Se é "quebra o app em produção e ninguém percebe até o crash-free rate cair 5%", Opus.
+- **Haiku:** bugfix trivial (typo, off-by-one, formatação), chore de dependência (bump automático),
+  resposta a comentário de PR com contexto claro e sem ambiguidade.
+- **Sonnet, effort padrão:** implementação de feature, bugfix médio, refactor local, escrita de
+  teste — a maior parte do trabalho do dia a dia.
+- **Sonnet, effort alto:** mudança de arquitetura material, security-sensitive, design de contrato
+  novo, migração com risco de regressão ampla, root cause complexo, qualquer diff que mexe em
+  número/métrica que precisa bater exatamente (ex: threshold de diagnóstico, cálculo de speedtest).
+
+Regra prática: se o pior caso da mudança é "quebra 1 tela até o próximo commit", Haiku serve. Se é
+"quebra o app em produção e ninguém percebe até o crash-free rate cair 5%", Sonnet com effort alto —
+nunca desce a modelo mais fraco pra economizar numa mudança dessas.
 
 ## Fluxo padrão
 
