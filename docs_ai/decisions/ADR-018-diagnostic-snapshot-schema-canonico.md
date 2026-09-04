@@ -5,7 +5,7 @@ type: "adr"
 status: "ativo"
 owner: "Camilo"
 last_updated: "2026-09-04"
-version: "1.4.0"
+version: "1.5.0"
 ---
 
 # ADR-018 — Schema canônico `DiagnosticSnapshot` para o payload NDS
@@ -149,7 +149,8 @@ não só confiar no resultado do cliente.
 
 #### 6. `speed`
 
-**Estado: implementado**, com um campo de origem ainda fora do payload.
+**Estado: implementado**, incluindo a origem da perda de pacotes (NDS-Snapshot-10 —
+issue #1842).
 
 | Campo NDS | Tipo | Opcional | Origem |
 |---|---|---|---|
@@ -158,7 +159,7 @@ não só confiar no resultado do cliente.
 | `speed.download_mbps` | `Double?` | Sim | `InternetDiagnosticInput.downloadMbps` |
 | `speed.upload_mbps` | `Double?` | Sim | `InternetDiagnosticInput.uploadMbps` |
 | `speed.packet_loss_percent` | `Double?` | Sim | `InternetDiagnosticInput.perdaPercentual` |
-| `speed.packetLossSource` *(planejado, ver "Proveniência")* | `String?` | Sim | `InternetDiagnosticInput.packetLossSource` (`"estimated"`/`"naoMedido"`/`"unknown"`/`"modem"`) — já coletado, ainda sem campo correspondente no payload. |
+| `speed.packetLossSource` | `String?` (vocabulário fechado `NdsProvenance`, ver seção "Convenção de proveniência" abaixo) | Sim | `InternetDiagnosticInput.packetLossSource` traduzido por `toNdsPacketLossSource()` (`NdsDiagnosticsRequestMapper.kt`) — `"modem"`→`MEASURED`, `"estimated"`→`ESTIMATED`, `"unknown"`→`UNKNOWN`, `"naoMedido"`/`null`/valor não reconhecido→omitido (campo `null`). |
 
 #### 7. `quality`
 
@@ -375,10 +376,11 @@ uma nova fonte de UI escrever esse campo.
 
 ### Convenção de proveniência (`source`)
 
-Aplica-se a **qualquer métrica cuja origem afete a confiança que o NDS/IA deve depositar nela** —
-não a todos os campos. Critério de quando um campo precisa de `source`: o mesmo campo pode ser
-preenchido por caminhos de coleta com confiabilidade diferente, e o consumidor (motor de regras ou
-IA) toma decisão diferente dependendo de qual caminho foi usado.
+**Estado: implementado para `speed.packetLossSource`** (NDS-Snapshot-10 — issue #1842). Aplica-se a
+**qualquer métrica cuja origem afete a confiança que o NDS/IA deve depositar nela** — não a todos os
+campos. Critério de quando um campo precisa de `source`: o mesmo campo pode ser preenchido por
+caminhos de coleta com confiabilidade diferente, e o consumidor (motor de regras ou IA) toma decisão
+diferente dependendo de qual caminho foi usado.
 
 **Formato:** quando um campo tiver proveniência relevante, o payload carrega um objeto irmão
 `<campo>Source` (mesmo nível do campo, não aninhado dentro de um objeto `{value, source}") — decisão
@@ -394,9 +396,10 @@ existentes como objetos. Exemplo aplicado ao campo que já tem essa necessidade 
 }
 ```
 
-**Valores enumerados de `source` (vocabulário fechado, string livre por decisão consistente com o
-resto do contrato — não trava o cliente quando o NDS aceitar um valor novo, mas os valores abaixo
-são os únicos que o mapper deve emitir hoje):**
+**Valores enumerados de `source` (vocabulário fechado — modelado pelo enum Kotlin `NdsProvenance` em
+`NdsDiagnosticsRequest.kt`, serializado como string minúscula via `NdsProvenance.jsonValue`; string
+livre no fio por decisão consistente com o resto do contrato — não trava o cliente quando o NDS
+aceitar um valor novo, mas o mapper deste módulo só emite um destes cinco valores):**
 
 | Valor | Significado |
 |---|---|
@@ -406,16 +409,29 @@ são os únicos que o mapper deve emitir hoje):**
 | `cached` | Valor de uma execução anterior, reaproveitado nesta (ex.: leitura de equipamento que falhou nesta execução mas teve sucesso recentemente — se essa política existir; hoje não há caminho de cache confirmado em `DiagnosticInput`, valor reservado para quando existir). |
 | `unknown` | Fonte não determinada — usar apenas quando a coleta já retorna essa incerteza (ex.: `packetLossSource = "unknown"`, já existente). |
 
-**Campo já mapeável para esta convenção hoje:** `InternetDiagnosticInput.packetLossSource`
-(`"estimated"`/`"naoMedido"`/`"unknown"`/`"modem"`) — a sub-issue que implementar `speed.source`
-deve traduzir o vocabulário existente (`"naoMedido"`→ omitir o bloco de proveniência,
-`"modem"`→`"measured"`) em vez de inventar um terceiro vocabulário paralelo.
+**Campo implementado com esta convenção:** `speed.packetLossSource`, traduzido de
+`InternetDiagnosticInput.packetLossSource` (`"estimated"`/`"naoMedido"`/`"unknown"`/`"modem"`) por
+`toNdsPacketLossSource()` em `NdsDiagnosticsRequestMapper.kt` — reaproveita exatamente o vocabulário
+interno já existente, sem inventar um terceiro:
 
-**Candidatos futuros a proveniência**, quando os blocos correspondentes forem implementados:
+| `InternetDiagnosticInput.packetLossSource` | `NdsProvenance` no payload |
+|---|---|
+| `"modem"` (medição direta do equipamento) | `MEASURED` |
+| `"estimated"` (indício via timeout HTTP) | `ESTIMATED` |
+| `"unknown"` (coleta já retorna incerteza) | `UNKNOWN` |
+| `"naoMedido"` ou `null` | campo omitido (nenhuma medição rodou — não é "fonte desconhecida") |
+| qualquer valor não reconhecido | campo omitido (nunca propaga string livre arbitrária — vocabulário fechado) |
+
+**Candidatos futuros a proveniência**, ainda não implementados nesta fatia — deferidos porque não
+há hoje um caminho de coleta que produza um valor *diferente* de um único valor fixo (adicionar um
+campo dinâmico sem um segundo caminho real de coleta seria over-engineering, não proveniência):
 `localEquipment.*` (fonte é sempre `LocalDeviceSafeFilter`/leitura direta do equipamento —
-`"measured"` fixo, não precisa de campo dinâmico, a não ser que surja um caminho de fallback);
-`quality.loadedLatencyMs` (já é `"derived"` por construção, hoje sem campo explícito — candidato
-natural quando a proveniência for cobrada por consumidores externos ao app).
+`"measured"` fixo, não precisa de campo dinâmico, a não ser que surja um caminho de fallback, ex.
+cache de leitura anterior); `quality.loadedLatencyMs` (já é `"derived"` por construção, hoje sem
+campo explícito — candidato natural quando a proveniência for cobrada por consumidores externos ao
+app); `wifi.channel` via scan Android vs. outra fonte futura (hoje só existe um caminho de coleta —
+`WifiDiagnosticInput.canal` do scan do sistema — sem um segundo caminho concorrente que justifique
+`source` dinâmico ainda).
 
 ### `capabilities` vs. "campo presente" (seção 13 do #1832)
 

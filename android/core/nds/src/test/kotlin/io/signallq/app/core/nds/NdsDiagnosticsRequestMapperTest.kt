@@ -138,6 +138,74 @@ class NdsDiagnosticsRequestMapperTest {
         assertEquals(65.0, request.quality?.bufferbloatMs)
         assertEquals(4, request.gateway?.rttGatewayMs)
         assertEquals(6, request.gateway?.connectedDevices)
+        assertNull("sem packetLossSource informado na origem, campo fica omitido", request.speed?.packetLossSource)
+    }
+
+    // -------------------------------------------------------------------------
+    // speed.packetLossSource (ADR-018 "Convenção de proveniência" — issue #1842)
+    // -------------------------------------------------------------------------
+
+    private fun internetComPerda(packetLossSource: String?): InternetDiagnosticInput = InternetDiagnosticInput(
+        downloadMbps = 300.0,
+        uploadMbps = 150.0,
+        latencyMs = 12.0,
+        jitterMs = 2.0,
+        perdaPercentual = 2.1,
+        packetLossSource = packetLossSource,
+    )
+
+    @Test
+    fun `packetLossSource modem traduz para NdsProvenance MEASURED (medicao direta do equipamento)`() {
+        val input = DiagnosticInput(internet = internetComPerda("modem"))
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals(NdsProvenance.MEASURED, request.speed?.packetLossSource)
+    }
+
+    @Test
+    fun `packetLossSource estimated traduz para NdsProvenance ESTIMATED (indicio via timeout HTTP)`() {
+        val input = DiagnosticInput(internet = internetComPerda("estimated"))
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals(NdsProvenance.ESTIMATED, request.speed?.packetLossSource)
+    }
+
+    @Test
+    fun `packetLossSource unknown traduz para NdsProvenance UNKNOWN (coleta ja retorna incerteza)`() {
+        val input = DiagnosticInput(internet = internetComPerda("unknown"))
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals(NdsProvenance.UNKNOWN, request.speed?.packetLossSource)
+    }
+
+    @Test
+    fun `packetLossSource naoMedido omite o campo (nenhuma medicao rodou, nao e fonte desconhecida)`() {
+        val input = DiagnosticInput(internet = internetComPerda("naoMedido"))
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertNull(request.speed?.packetLossSource)
+    }
+
+    @Test
+    fun `packetLossSource null omite o campo`() {
+        val input = DiagnosticInput(internet = internetComPerda(null))
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertNull(request.speed?.packetLossSource)
+    }
+
+    @Test
+    fun `packetLossSource com valor nao reconhecido omite o campo (vocabulario fechado, nunca propaga string livre)`() {
+        val input = DiagnosticInput(internet = internetComPerda("valor-desconhecido-futuro"))
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertNull(request.speed?.packetLossSource)
     }
 
     @Test

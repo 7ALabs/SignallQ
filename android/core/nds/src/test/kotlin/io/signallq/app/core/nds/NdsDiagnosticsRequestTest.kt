@@ -119,6 +119,7 @@ class NdsDiagnosticsRequestTest {
         assertEquals(300.0, speed.getDouble("download_mbps"), 0.001)
         assertEquals(150.0, speed.getDouble("upload_mbps"), 0.001)
         assertEquals(2.0, speed.getDouble("packet_loss_percent"), 0.001)
+        assertFalse("packetLossSource null nunca vira chave", speed.has("packetLossSource"))
 
         val quality = json.getJSONObject("quality")
         assertEquals(151.0, quality.getDouble("latencyMs"), 0.001)
@@ -141,6 +142,21 @@ class NdsDiagnosticsRequestTest {
         assertEquals(2.5, fiber.getDouble("txPower_dbm"), 0.001)
         assertEquals(45.0, fiber.getDouble("temperature_c"), 0.001)
         assertEquals(3.3, fiber.getDouble("voltage_v"), 0.001)
+    }
+
+    @Test
+    fun `toJson serializa cada valor de NdsProvenance em speed packetLossSource com a string minuscula do vocabulario fechado`() {
+        NdsProvenance.entries.forEach { provenance ->
+            val request = NdsDiagnosticsRequest(
+                requestId = "req-provenance-${provenance.name}",
+                app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+                speed = NdsSpeedInfo(packetLossPercent = 1.5, packetLossSource = provenance),
+            )
+
+            val speed = request.toJson().getJSONObject("speed")
+
+            assertEquals(provenance.jsonValue, speed.getString("packetLossSource"))
+        }
     }
 
     @Test
