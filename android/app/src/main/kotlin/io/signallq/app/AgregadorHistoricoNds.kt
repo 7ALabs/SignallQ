@@ -49,14 +49,21 @@ fun agregarHistoricoNds(
     val janela30 = medicoesUltimos30Dias
     val janela7 = janela30.filter { it.timestampEpochMs >= corte7d }
 
-    val avgDownload7d = mediaOuNull(janela7.mapNotNull { it.downloadMbps })
-    val avgDownload30d = mediaOuNull(janela30.mapNotNull { it.downloadMbps })
+    val downloads7d = janela7.mapNotNull { it.downloadMbps }
+    val downloads30d = janela30.mapNotNull { it.downloadMbps }
+    val avgDownload7d = mediaOuNull(downloads7d)
+    val avgDownload30d = mediaOuNull(downloads30d)
+    // Gate de confiança da calculadora precisa da contagem de amostras que
+    // realmente compõem a média de download, não do total de medições da
+    // janela (que pode incluir testes falhos/parciais sem downloadMbps) --
+    // caso contrário 5 medições com só 1 download valido passava no limiar
+    // MIN_TESTS_7D com uma média de amostra única.
     val degradacao =
         DegradacaoHistoricoCalculadora.calcular(
             avgDownload7d = avgDownload7d,
             avgDownload30d = avgDownload30d,
-            testsCount7d = janela7.size,
-            testsCount30d = janela30.size,
+            testsCount7d = downloads7d.size,
+            testsCount30d = downloads30d.size,
         )
 
     return HistoricalDiagnosticInput(

@@ -97,6 +97,29 @@ class AgregadorHistoricoNdsTest {
     }
 
     @Test
+    fun `janela com testes suficientes mas poucos downloads validos nao declara degradacao`() {
+        // 5 medições em 7d (>= MIN_TESTS_7D) mas só 1 com downloadMbps não-nulo --
+        // testsCount7d "bruto" passaria no gate de confiança com média de amostra
+        // única. O gate real deve olhar a contagem de downloads válidos, não o
+        // total de medições da janela.
+        val medicoes =
+            listOf(medicao(diasAtras = 1, downloadMbps = 50.0)) +
+                (2..5).map { medicao(diasAtras = it, downloadMbps = null) } +
+                (8..30).map { medicao(diasAtras = it, downloadMbps = 300.0) }
+
+        val resultado = agregarHistoricoNds(medicoesUltimos30Dias = medicoes, agoraEpochMs = agoraEpochMs)
+
+        assertTrue(resultado != null)
+        assertEquals(5, resultado?.testsCount7d)
+        assertEquals(50.0, resultado?.avgDownload7d)
+        assertNull(
+            "so 1 download valido em 7d nao pode dar confianca estatistica pra degradacao",
+            resultado?.degradationDetected,
+        )
+        assertNull(resultado?.degradationPercent)
+    }
+
+    @Test
     fun `so ha teste fora da janela de 7d -- 7d fica com contagem zero e media nula, 30d preenchido`() {
         val medicoes = (10..25).map { medicao(diasAtras = it, downloadMbps = 250.0) }
 
