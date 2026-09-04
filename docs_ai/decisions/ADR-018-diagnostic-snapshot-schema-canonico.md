@@ -4,8 +4,8 @@ description: "Define nome de campo, tipo, opcionalidade e origem no DiagnosticIn
 type: "adr"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-09-03"
-version: "1.3.0"
+last_updated: "2026-09-04"
+version: "1.4.0"
 ---
 
 # ADR-018 — Schema canônico `DiagnosticSnapshot` para o payload NDS
@@ -97,14 +97,14 @@ enquanto nenhuma sub-issue pedir campos adicionais de execução (ex.: timestamp
 
 #### 3. `connection`
 
-**Estado: implementado**, com um sub-campo (`natStatus`) ainda fora do payload.
+**Estado: implementado.**
 
 | Campo NDS | Tipo | Opcional | Origem |
 |---|---|---|---|
 | `connection.type` | `String` | Não | `ndsConnectionType(DiagnosticInput.connectionType)` — vocabulário livre (`WIFI`/`MOBILE`/`ETHERNET`/`DISCONNECTED`/`UNKNOWN`), não enum, para não travar o cliente quando o servidor aceitar valor novo. |
 | `connection.ssid` | `String?` | Sim | `DiagnosticInput.wifi?.ssid`. |
 | `connection.bssid` | `String?` | Sim | `DiagnosticInput.wifi?.bssidMascarado` — sempre mascarado, nunca o BSSID bruto. |
-| `connection.natStatus` *(planejado)* | `String?` | Sim | `DiagnosticInput.natStatus` (enum `NatStatus`: `DIRECT_PUBLIC`, `CGNAT`, `DOUBLE_NAT_OR_CGNAT`, `UNKNOWN`) — já coletado, ainda não enviado (gap #1832 seção 7). Fica sob `connection` porque é uma propriedade da topologia da conexão atual, não um bloco próprio — a issue-mãe não lista `nat` como um dos 16 blocos de topo. |
+| `connection.natStatus` | `String?` | Sim | `DiagnosticInput.natStatus?.name` (enum `NatStatus`: `DIRECT_PUBLIC`, `CGNAT`, `DOUBLE_NAT_OR_CGNAT`, `UNKNOWN`) — implementado na NDS-Snapshot-09 (issue #1841). Fica sob `connection` porque é uma propriedade da topologia da conexão atual, não um bloco próprio — a issue-mãe não lista `nat` como um dos 16 blocos de topo. `null` quando nenhuma classificação rodou nesta sessão; `"UNKNOWN"` quando rodou mas foi inconclusiva — os dois casos são distintos. |
 
 #### 4. `wifi`
 
@@ -335,12 +335,12 @@ benefício real"), não um gap esquecido.
 
 #### 14. `plan`
 
-**Estado: planejado** — bloco não existe; a origem é um campo de topo do `DiagnosticInput`, não um
-objeto aninhado.
+**Estado: implementado** (NDS-Snapshot-09, issue #1841) — bloco de topo próprio; a origem continua
+sendo um campo de topo do `DiagnosticInput`, não um objeto aninhado na origem.
 
-| Campo NDS (sugerido) | Tipo | Opcional | Origem |
+| Campo NDS | Tipo | Opcional | Origem |
 |---|---|---|---|
-| `plan.contractedSpeedMbps` | `Int?` | Sim | `DiagnosticInput.velocidadeContratadaMbps` — fonte `PreferenciasAppRepository.planoInternetFlow` (informado pelo usuário). **Nunca inferir** este valor quando o usuário não informou (regra explícita do #1832 seção 6) — ausência do campo é o comportamento correto, não um valor default. |
+| `plan.contractedSpeedMbps` | `Int?` | Sim | `DiagnosticInput.velocidadeContratadaMbps` — fonte `PreferenciasAppRepository.planoInternetFlow` (informado pelo usuário). **Nunca inferido** este valor quando o usuário não informou (regra explícita do #1832 seção 6) — ausência do campo é o comportamento correto, não um valor default. Bloco inteiro fica `null` (omitido do JSON) quando o campo não existe. |
 
 #### 15. `networkIdentity`
 

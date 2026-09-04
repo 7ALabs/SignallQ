@@ -31,6 +31,51 @@ class NdsDiagnosticsRequestTest {
         assertFalse(json.has("fiber"))
         assertFalse(json.has("mobile"))
         assertFalse(json.has("historical"))
+        assertFalse(json.has("localEquipment"))
+        assertFalse(json.has("plan"))
+    }
+
+    @Test
+    fun `toJson serializa connection natStatus e bloco plan (ADR-018, NDS-Snapshot-09, issue #1841)`() {
+        val request = NdsDiagnosticsRequest(
+            requestId = "req-nat-plan",
+            app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+            connection = NdsConnectionInfo(type = "WIFI", natStatus = "CGNAT"),
+            plan = NdsPlanInfo(contractedSpeedMbps = 500),
+        )
+
+        val json = request.toJson()
+
+        assertEquals("CGNAT", json.getJSONObject("connection").getString("natStatus"))
+        assertEquals(500, json.getJSONObject("plan").getInt("contractedSpeedMbps"))
+    }
+
+    @Test
+    fun `toJson omite connection natStatus quando null, sem quebrar os demais campos de connection`() {
+        val request = NdsDiagnosticsRequest(
+            requestId = "req-nat-null",
+            app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+            connection = NdsConnectionInfo(type = "WIFI", ssid = "MinhaRede", natStatus = null),
+        )
+
+        val connectionJson = request.toJson().getJSONObject("connection")
+
+        assertEquals("WIFI", connectionJson.getString("type"))
+        assertEquals("MinhaRede", connectionJson.getString("ssid"))
+        assertFalse("natStatus null nunca vira chave", connectionJson.has("natStatus"))
+    }
+
+    @Test
+    fun `toJson omite plan contractedSpeedMbps quando null, mas nao omite o bloco se ja foi construido`() {
+        val request = NdsDiagnosticsRequest(
+            requestId = "req-plan-vazio",
+            app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+            plan = NdsPlanInfo(contractedSpeedMbps = null),
+        )
+
+        val planJson = request.toJson().getJSONObject("plan")
+
+        assertFalse("contractedSpeedMbps null nunca vira chave", planJson.has("contractedSpeedMbps"))
     }
 
     @Test

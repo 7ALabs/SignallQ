@@ -14,6 +14,17 @@ data class NdsConnectionInfo(
     val type: String,
     val ssid: String? = null,
     val bssid: String? = null,
+    /**
+     * Classificacao de NAT/CGNAT da conexao atual (ADR-018 secao `connection`,
+     * NDS-Snapshot-09 — issue #1841). Transcricao direta do nome do enum
+     * `NatStatus` (`DIRECT_PUBLIC`/`CGNAT`/`DOUBLE_NAT_OR_CGNAT`/`UNKNOWN`) — sem
+     * tabela de traducao propria, mesmo criterio ja usado por `localEquipment`
+     * (ADR-018). `null` quando `DiagnosticInput.natStatus` e null — nenhuma
+     * classificacao rodou nesta sessao (falha de rede/timeout do
+     * `TopologyDiagnostic`), distinto de `"UNKNOWN"` (classificacao rodou mas foi
+     * inconclusiva).
+     */
+    val natStatus: String? = null,
 )
 
 data class NdsWifiInfo(
@@ -196,6 +207,21 @@ data class NdsHistoricalInfo(
     val bestTimeWindow: String? = null,
 )
 
+/**
+ * Bloco `plan` do payload NDS (ADR-018 bloco 14 — NDS-Snapshot-09, issue #1841).
+ * Campo de topo do `DiagnosticInput` (`velocidadeContratadaMbps`), nao um objeto
+ * aninhado na origem — vira bloco proprio aqui so no payload NDS.
+ *
+ * **Nunca inferido.** `contractedSpeedMbps` so chega preenchido quando o usuario
+ * informou explicitamente o plano contratado
+ * (`PreferenciasAppRepository.planoInternetFlow`) — regra explicita da issue-mae
+ * #1832 secao 6. Ausencia de informacao do usuario e representada por bloco
+ * `null` (omitido do JSON), nunca por um valor calculado/estimado.
+ */
+data class NdsPlanInfo(
+    val contractedSpeedMbps: Int? = null,
+)
+
 data class NdsDiagnosticContext(
     val reportedProblem: String? = null,
     val objective: String? = null,
@@ -210,8 +236,8 @@ data class NdsDiagnosticContext(
  * ADR-017 (contrato observado no NDS) e detalhado campo a campo no ADR-018
  * (nome/tipo/opcionalidade/origem por bloco). Cada bloco (`connection`, `wifi`,
  * `wifiScan`, `speed`, `quality`, `dns`, `gateway`, `fiber`, `mobile`,
- * `localEquipment`) e opcional: quando `null`, o campo e OMITIDO do JSON — o NDS
- * trata ausencia de bloco como "sem dado disponivel", nunca como zero/vazio.
+ * `localEquipment`, `plan`) e opcional: quando `null`, o campo e OMITIDO do JSON —
+ * o NDS trata ausencia de bloco como "sem dado disponivel", nunca como zero/vazio.
  *
  * Nomes de chave JSON seguem exatamente o exemplo do ADR-017 (mistura
  * `snake_case`/`camelCase` real do contrato — nao uniformizado aqui porque o
@@ -234,6 +260,7 @@ data class NdsDiagnosticsRequest(
     val mobile: NdsMobileInfo? = null,
     val historical: NdsHistoricalInfo? = null,
     val localEquipment: NdsLocalEquipmentInfo? = null,
+    val plan: NdsPlanInfo? = null,
     val context: NdsDiagnosticContext? = null,
 ) {
     internal fun toJson(): JSONObject {
@@ -267,6 +294,7 @@ data class NdsDiagnosticsRequest(
                     put("type", c.type)
                     c.ssid?.let { put("ssid", it) }
                     c.bssid?.let { put("bssid", it) }
+                    c.natStatus?.let { put("natStatus", it) }
                 },
             )
         }
@@ -422,6 +450,14 @@ data class NdsDiagnosticsRequest(
                     put("wifiStatus", le.wifiStatus)
                     put("lanStatus", le.lanStatus)
                     put("connectedClients", le.connectedClients)
+                },
+            )
+        }
+        plan?.let { p ->
+            root.put(
+                "plan",
+                JSONObject().apply {
+                    p.contractedSpeedMbps?.let { put("contractedSpeedMbps", it) }
                 },
             )
         }
