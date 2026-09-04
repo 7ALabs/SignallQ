@@ -11,7 +11,13 @@ import io.signallq.app.core.diagnostico.MobileDiagnosticInput
 import io.signallq.app.core.diagnostico.RedeWifiVizinha
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 import io.signallq.app.core.diagnostico.WifiScanDiagnosticInput
+import io.signallq.app.core.network.contracts.localdevice.DeviceCapabilities
+import io.signallq.app.core.network.contracts.localdevice.DeviceType
+import io.signallq.app.core.network.contracts.localdevice.LocalDeviceSectionStatus
+import io.signallq.app.core.network.contracts.localdevice.SafeLocalDeviceContext
+import io.signallq.app.core.network.contracts.localdevice.SupportLevel
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -43,6 +49,7 @@ class NdsDiagnosticsRequestMapperTest {
         assertNull(request.fiber)
         assertNull(request.mobile)
         assertNull(request.historical)
+        assertNull(request.localEquipment)
     }
 
     @Test
@@ -411,5 +418,127 @@ class NdsDiagnosticsRequestMapperTest {
         assertEquals("JOGOS_COM_LAG", request.context?.objective)
         assertEquals("lag_horario_pico", request.context?.subcategory)
         assertEquals(mapOf("pergunta_0" to "resposta_1"), request.context?.answers)
+    }
+
+    /** Contexto seguro completo (allowlist da issue-mãe #1832 seção 8) para os testes
+     *  de `localEquipment` abaixo — mesmos valores do exemplo Nokia G-1425G-B/ONT. */
+    private fun ontContextoCompleto(): SafeLocalDeviceContext = SafeLocalDeviceContext(
+        vendor = "Nokia",
+        modelo = "G-1425G-B",
+        firmwareVersion = "3FE12345AA",
+        deviceType = DeviceType.ONT_GPON,
+        supportLevel = SupportLevel.LAB_VALIDATED,
+        capabilities = DeviceCapabilities(
+            suportaFibra = true,
+            suportaWan = true,
+            suportaWifi = true,
+            suportaLan = true,
+            suportaClientes = true,
+        ),
+        connectionStatus = LocalDeviceSectionStatus.OK,
+        statusFibra = LocalDeviceSectionStatus.OK,
+        statusWan = LocalDeviceSectionStatus.OK,
+        statusWifi = LocalDeviceSectionStatus.OK,
+        statusLan = LocalDeviceSectionStatus.OK,
+        quantidadeClientes = 7,
+        warnings = emptyList(),
+        coletadoEmEpochMs = 1_725_000_000_000L,
+    )
+
+    @Test
+    fun `localEquipment presente preenche todos os campos e entra em capabilities`() {
+        val input = DiagnosticInput(localDevice = ontContextoCompleto())
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals("Nokia", request.localEquipment?.vendor)
+        assertEquals("G-1425G-B", request.localEquipment?.model)
+        assertEquals("3FE12345AA", request.localEquipment?.firmwareVersion)
+        assertEquals("ONT_GPON", request.localEquipment?.deviceType)
+        assertEquals("LAB_VALIDATED", request.localEquipment?.supportLevel)
+        assertEquals("OK", request.localEquipment?.connectionStatus)
+        assertEquals("OK", request.localEquipment?.fiberStatus)
+        assertEquals("OK", request.localEquipment?.wanStatus)
+        assertEquals("OK", request.localEquipment?.wifiStatus)
+        assertEquals("OK", request.localEquipment?.lanStatus)
+        assertEquals(7, request.localEquipment?.connectedClients)
+        assertTrue(request.capabilities.contains("local_equipment"))
+    }
+
+    @Test
+    fun `localEquipment ausente quando nenhum equipamento local suportado foi lido`() {
+        val input = DiagnosticInput(localDevice = null)
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertNull("ausencia de equipamento deve omitir o bloco inteiro, nunca zerar campos", request.localEquipment)
+        assertFalse(request.capabilities.contains("local_equipment"))
+    }
+
+    @Test
+    fun `localEquipment com campos opcionais ausentes ainda preenche os campos obrigatorios`() {
+        val contextoParcial = SafeLocalDeviceContext(
+            vendor = null,
+            modelo = null,
+            firmwareVersion = null,
+            deviceType = DeviceType.UNKNOWN_SUPPORTED,
+            supportLevel = SupportLevel.INFERRED_FAMILY,
+            capabilities = DeviceCapabilities(),
+            connectionStatus = LocalDeviceSectionStatus.ATENCAO,
+            statusFibra = LocalDeviceSectionStatus.NAO_SUPORTADO,
+            statusWan = LocalDeviceSectionStatus.INDISPONIVEL,
+            statusWifi = LocalDeviceSectionStatus.NAO_SUPORTADO,
+            statusLan = LocalDeviceSectionStatus.NAO_SUPORTADO,
+            quantidadeClientes = 0,
+            warnings = emptyList(),
+            coletadoEmEpochMs = 1_725_000_000_000L,
+        )
+        val input = DiagnosticInput(localDevice = contextoParcial)
+
+        val json = input.toNdsDiagnosticsRequest(appVersion = "1.0.0").toJson()
+        val localEquipmentJson = json.getJSONObject("localEquipment")
+
+        assertFalse("vendor ausente na fonte nunca vira chave", localEquipmentJson.has("vendor"))
+        assertFalse("model ausente na fonte nunca vira chave", localEquipmentJson.has("model"))
+        assertFalse("firmwareVersion ausente na fonte nunca vira chave", localEquipmentJson.has("firmwareVersion"))
+        assertEquals("UNKNOWN_SUPPORTED", localEquipmentJson.getString("deviceType"))
+        assertEquals("INFERRED_FAMILY", localEquipmentJson.getString("supportLevel"))
+        assertEquals("ATENCAO", localEquipmentJson.getString("connectionStatus"))
+        assertEquals("NAO_SUPORTADO", localEquipmentJson.getString("fiberStatus"))
+        assertEquals("INDISPONIVEL", localEquipmentJson.getString("wanStatus"))
+        assertEquals(0, localEquipmentJson.getInt("connectedClients"))
+    }
+
+    @Test
+    fun `localEquipment serializado nunca carrega campo fora da allowlist`() {
+        val json = DiagnosticInput(localDevice = ontContextoCompleto())
+            .toNdsDiagnosticsRequest(appVersion = "1.0.0")
+            .toJson()
+        val localEquipmentJson = json.getJSONObject("localEquipment")
+
+        // Allowlist fechada: exatamente estas chaves, nunca senha/serial completo/
+        // credenciais/payload HTML/token de sessao/MAC completo/lista crua de
+        // clientes -- nenhuma dessas existe em NdsLocalEquipmentInfo, entao esta
+        // asserção também documenta a garantia estrutural (o tipo Kotlin nem tem
+        // campo para carregar esses dados), não só o valor do JSON.
+        val chavesEsperadas = setOf(
+            "vendor", "model", "firmwareVersion", "deviceType", "supportLevel",
+            "connectionStatus", "fiberStatus", "wanStatus", "wifiStatus", "lanStatus",
+            "connectedClients",
+        )
+        assertEquals(chavesEsperadas, localEquipmentJson.keys().asSequence().toSet())
+
+        val chavesProibidas = listOf(
+            "password", "senha", "serial", "serialNumber", "credentials", "credenciais",
+            "html", "sessionToken", "token", "macaddress", "cookie", "clientlist",
+            "warnings", "coletadoEmEpochMs",
+        )
+        val jsonTexto = localEquipmentJson.toString().lowercase()
+        chavesProibidas.forEach { chave ->
+            assertFalse(
+                "campo proibido '$chave' nao pode aparecer no JSON de localEquipment",
+                jsonTexto.contains(chave.lowercase()),
+            )
+        }
     }
 }

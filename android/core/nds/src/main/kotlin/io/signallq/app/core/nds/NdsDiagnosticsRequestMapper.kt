@@ -5,6 +5,7 @@ import io.signallq.app.core.diagnostico.ConnectionType
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.MobileDiagnosticInput
 import io.signallq.app.core.diagnostico.banda
+import io.signallq.app.core.network.contracts.localdevice.SafeLocalDeviceContext
 import java.util.UUID
 
 /** `app.id` do payload NDS — identificador tecnico preservado do app (`AGENTS.md`,
@@ -23,8 +24,10 @@ private const val NDS_APP_ID = "io.signallq.app"
  * quando propagado; gera um UUID novo quando o chamador nao propagou (default `""`).
  *
  * ## Campos de `DiagnosticInput` sem correspondente no schema do NDS (fora por design)
- * `natStatus`, `velocidadeContratadaMbps`, `localDevice`,
- * `deviceGamingSelecionado` — o NDS nao pede nenhum destes ainda. NAO confundir
+ * `natStatus`, `velocidadeContratadaMbps`,
+ * `deviceGamingSelecionado` — o NDS nao pede nenhum destes ainda (`localDevice`
+ * ja tem correspondente desde a issue #1839 — ver bloco `localEquipment` abaixo).
+ * NAO confundir
  * `deviceGamingSelecionado` (device/console especifico, ex.: "playstation") com o sinal
  * "diagnostico roda dentro do Modo Gamer": este ultimo TEM campo correspondente no NDS
  * (`profile="gamer"`, decidido em #1746 secao 3b) e ja e aceito por este mapper via
@@ -59,6 +62,16 @@ private const val NDS_APP_ID = "io.signallq.app"
  * populado por quem consulta `MedicaoDao` em `:app` antes de montar o
  * `DiagnosticInput`). Fica `null` quando nao ha nenhum teste registrado nas
  * duas janelas (usuario novo) — nunca zeros inventados.
+ *
+ * ## `localEquipment` (ADR-018 bloco 12 — issue #1839)
+ * Bloco opcional montado por [toNdsLocalEquipmentInfo] a partir de
+ * `DiagnosticInput.localDevice` (`SafeLocalDeviceContext`, ja filtrado por
+ * `LocalDeviceSafeFilter` antes de chegar aqui — este mapper nunca le
+ * `LocalNetworkDeviceSnapshot` bruto). Fica `null` quando nenhum equipamento
+ * local suportado/conectado foi lido nesta sessao. Nunca carrega senha, serial
+ * completo, credenciais, payload HTML do equipamento, token de sessao ou MAC
+ * completo — a allowlist ja fecha essa superficie antes de chegar em
+ * `DiagnosticInput`.
  *
  * `context.subcategory` e opcional no contrato v2. Quando a tela tiver um recorte
  * canônico, ele é preservado; a ausência dele não impede a avaliação v2.
@@ -121,6 +134,7 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
     val wifiScanInfo = wifiScan.toNdsWifiScanInfo(wifi?.banda())
     val mobileInfo = toNdsMobileInfo(mobile)
     val historicalInfo = historico.toNdsHistoricalInfo()
+    val localEquipmentInfo = toNdsLocalEquipmentInfo(localDevice)
 
     return NdsDiagnosticsRequest(
         requestId = executionId.ifBlank { UUID.randomUUID().toString() },
@@ -132,6 +146,7 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
             wifiScan = wifiScanInfo,
             mobile = mobileInfo,
             historical = historicalInfo,
+            localEquipment = localEquipmentInfo,
         ) +
             listOfNotNull(
                 "usage_profiles".takeIf {
@@ -152,6 +167,7 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
         fiber = fiberInfo,
         mobile = mobileInfo,
         historical = historicalInfo,
+        localEquipment = localEquipmentInfo,
         context = this.context?.let { context ->
             NdsDiagnosticContext(
                 reportedProblem = context.reportedProblem,
@@ -191,6 +207,36 @@ private fun toNdsMobileInfo(mobile: MobileDiagnosticInput?): NdsMobileInfo? {
         info.rsrpDbm != null || info.rsrqDb != null || info.sinrDb != null || info.band != null
     return info.takeIf { temEvidencia }
 }
+
+/**
+ * Bloco `localEquipment` (ADR-018 bloco 12, issue #1839). `null` quando
+ * `localDevice` e null — nenhum equipamento local suportado/conectado foi lido
+ * nesta sessao (ausencia de equipamento nunca vira bloco com zeros).
+ *
+ * Transcreve `SafeLocalDeviceContext` campo a campo, na mesma ordem da tabela
+ * da ADR-018 — nao le `LocalNetworkDeviceSnapshot` bruto em nenhum momento
+ * (esse tipo nem chega ate `core/nds`; `DiagnosticInput.localDevice` ja e o
+ * resultado de `LocalDeviceSafeFilter.filtrar`). `warnings`/`coletadoEmEpochMs`
+ * de `SafeLocalDeviceContext` ficam de fora por decisao explicita da ADR-018
+ * (secao do bloco 12) — nao pedidos pela issue-mae e sem vocabulario JSON
+ * definido para `warnings` ainda.
+ */
+private fun toNdsLocalEquipmentInfo(localDevice: SafeLocalDeviceContext?): NdsLocalEquipmentInfo? =
+    localDevice?.let { ctx ->
+        NdsLocalEquipmentInfo(
+            vendor = ctx.vendor,
+            model = ctx.modelo,
+            firmwareVersion = ctx.firmwareVersion,
+            deviceType = ctx.deviceType.name,
+            supportLevel = ctx.supportLevel.name,
+            connectionStatus = ctx.connectionStatus.name,
+            fiberStatus = ctx.statusFibra.name,
+            wanStatus = ctx.statusWan.name,
+            wifiStatus = ctx.statusWifi.name,
+            lanStatus = ctx.statusLan.name,
+            connectedClients = ctx.quantidadeClientes,
+        )
+    }
 
 private fun ndsProfile(perfilGamer: Boolean, objective: String?): String? = when {
     perfilGamer -> "gamer"

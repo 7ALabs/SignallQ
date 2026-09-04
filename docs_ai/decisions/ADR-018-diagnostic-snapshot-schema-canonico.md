@@ -5,7 +5,7 @@ type: "adr"
 status: "ativo"
 owner: "Camilo"
 last_updated: "2026-09-03"
-version: "1.1.0"
+version: "1.2.0"
 ---
 
 # ADR-018 — Schema canônico `DiagnosticSnapshot` para o payload NDS
@@ -255,30 +255,38 @@ na lista quando o bloco é efetivamente construído.
 
 #### 12. `localEquipment`
 
-**Estado: planejado** — bloco não existe no payload; origem (`SafeLocalDeviceContext`) já passa
-por allowlist (`LocalDeviceSafeFilter`), nunca o snapshot bruto do equipamento.
+**Estado: implementado** (issue #1839). Bloco opcional em `NdsDiagnosticsRequest`, populado por
+`toNdsLocalEquipmentInfo()` em `NdsDiagnosticsRequestMapper.kt` a partir de
+`DiagnosticInput.localDevice` (`SafeLocalDeviceContext`) — origem já passa por allowlist
+(`LocalDeviceSafeFilter`), nunca o snapshot bruto do equipamento.
 
-| Campo NDS (sugerido) | Tipo | Opcional | Origem (`SafeLocalDeviceContext`) |
+| Campo NDS | Tipo | Opcional | Origem (`SafeLocalDeviceContext`) |
 |---|---|---|---|
 | `localEquipment.vendor` | `String?` | Sim | `vendor` |
 | `localEquipment.model` | `String?` | Sim | `modelo` |
 | `localEquipment.firmwareVersion` | `String?` | Sim | `firmwareVersion` |
-| `localEquipment.deviceType` | `String` | Não | `deviceType` (enum `DeviceType`) |
-| `localEquipment.supportLevel` | `String` | Não | `supportLevel` (enum `SupportLevel`) |
-| `localEquipment.connectionStatus` | `String` | Não | `connectionStatus` (enum `LocalDeviceSectionStatus`) |
-| `localEquipment.fiberStatus` | `String` | Não | `statusFibra` |
-| `localEquipment.wanStatus` | `String` | Não | `statusWan` |
-| `localEquipment.wifiStatus` | `String` | Não | `statusWifi` |
-| `localEquipment.lanStatus` | `String` | Não | `statusLan` |
+| `localEquipment.deviceType` | `String` | Não | `deviceType.name` (enum `DeviceType`) |
+| `localEquipment.supportLevel` | `String` | Não | `supportLevel.name` (enum `SupportLevel`) |
+| `localEquipment.connectionStatus` | `String` | Não | `connectionStatus.name` (enum `LocalDeviceSectionStatus`) |
+| `localEquipment.fiberStatus` | `String` | Não | `statusFibra.name` |
+| `localEquipment.wanStatus` | `String` | Não | `statusWan.name` |
+| `localEquipment.wifiStatus` | `String` | Não | `statusWifi.name` |
+| `localEquipment.lanStatus` | `String` | Não | `statusLan.name` |
 | `localEquipment.connectedClients` | `Int` | Não | `quantidadeClientes` |
 
+Os enums viram string via `.name` (`UPPER_SNAKE_CASE`, ex.: `ONT_GPON`, `LAB_VALIDATED`) — não uma
+tradução para o vocabulário ilustrativo (`"ONT"`/`"FULL"`/`"UP"`) do exemplo da issue-mãe #1832
+seção 8, que não é uma tabela de tradução fixada por esta ADR.
+
 O bloco inteiro é opcional (`DiagnosticInput.localDevice == null` quando nenhum equipamento foi
-lido nesta sessão). `warnings`/`coletadoEmEpochMs` de `SafeLocalDeviceContext` ficam fora do
-payload por ora — não pedidos pela issue-mãe, e `warnings` já é uma allowlist derivada (não bruta)
-mas ainda não tem um vocabulário JSON definido; decisão de incluir cabe à sub-issue de
-`localEquipment`. **Nunca enviar** `LocalNetworkDeviceSnapshot` bruto (senha, serial completo,
-credenciais, payload HTML, token de sessão, MAC completo) — regra já imposta pelo filtro existente,
-reafirmada aqui como requisito do contrato.
+lido nesta sessão — resulta em bloco omitido, nunca zeros). `warnings`/`coletadoEmEpochMs` de
+`SafeLocalDeviceContext` ficam fora do payload por decisão explícita desta sub-issue — não pedidos
+pela issue-mãe, e `warnings` ainda não tem um vocabulário JSON definido. **Nunca enviado**:
+`LocalNetworkDeviceSnapshot` bruto (senha, serial completo, credenciais, payload HTML, token de
+sessão, MAC completo) — regra já imposta pelo filtro existente, confirmada por teste dedicado em
+`NdsDiagnosticsRequestMapperTest` (`localEquipment serializado nunca carrega campo fora da
+allowlist`). Capability `"local_equipment"` (vocabulário já previsto na seção "Capabilities" abaixo)
+só entra na lista quando o bloco é efetivamente construído.
 
 #### 13. `historical`
 
@@ -415,8 +423,9 @@ porque a leitura falhou).
 
 **Implementação atual** (`NdsProfileCapabilitiesMapper.ndsCapabilities`): cada capability é incluída
 quando o **bloco correspondente é não-nulo no request** (mesmo critério que decide se o bloco vira
-uma chave no JSON) — cobre `wifi`/`fiber`/`wifi_scan` (NDS-Snapshot-02/#1834) e `mobile`
-(NDS-Snapshot-05/#1837), todos usando o mesmo critério. Sempre inclui `"scoring"`+`"ai"`
+uma chave no JSON) — cobre `wifi`/`fiber`/`wifi_scan` (NDS-Snapshot-02/#1834), `mobile`
+(NDS-Snapshot-05/#1837), `historical` (NDS-Snapshot-06/#1838) e `local_equipment`
+(NDS-Snapshot-07/#1839), todos usando o mesmo critério. Sempre inclui `"scoring"`+`"ai"`
 (`requested_outputs` implícito, ainda não migrado para o modelo `requested_outputs` separado do
 ADR-017).
 
