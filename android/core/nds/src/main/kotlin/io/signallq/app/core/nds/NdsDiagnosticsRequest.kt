@@ -107,6 +107,39 @@ data class NdsFiberInfo(
 )
 
 /**
+ * Bloco `localEquipment` do payload NDS (ADR-018 bloco 12 — issue #1839). Espelha
+ * EXATAMENTE a allowlist de `SafeLocalDeviceContext`
+ * (`core/network/.../contracts/localdevice/LocalDeviceSafeFilter.kt`) — nunca o
+ * `LocalNetworkDeviceSnapshot` bruto. `LocalDeviceSafeFilter` já é o único ponto
+ * de conversão permitido para IA/analytics/logs; este bloco só transcreve os
+ * campos que ele já expõe, sem reabrir a superfície de dados que o filtro fecha.
+ *
+ * Os enums de status/tipo/suporte viram string via `.name` (vocabulário
+ * `UPPER_SNAKE_CASE` do próprio Kotlin: ex. `ONT_GPON`, `LAB_VALIDATED`,
+ * `ATENCAO`) — não existe tabela de tradução fixada pela ADR-018 para outro
+ * vocabulário (o JSON ilustrativo da issue-mãe #1832, com `"ONT"`/`"FULL"`/
+ * `"UP"`, é só exemplo; inventar uma tradução não documentada seria pior que
+ * transcrever o nome real do enum já em uso pelo app.
+ *
+ * Nunca carrega: senha, serial completo, credenciais, payload HTML do
+ * equipamento, token de sessão, MAC completo, ou qualquer campo fora desta
+ * lista — mesma regra que `LocalDeviceSafeFilter` já impõe.
+ */
+data class NdsLocalEquipmentInfo(
+    val vendor: String? = null,
+    val model: String? = null,
+    val firmwareVersion: String? = null,
+    val deviceType: String,
+    val supportLevel: String,
+    val connectionStatus: String,
+    val fiberStatus: String,
+    val wanStatus: String,
+    val wifiStatus: String,
+    val lanStatus: String,
+    val connectedClients: Int,
+)
+
+/**
  * Bloco `historical` do payload NDS (ADR-018 seção 13, NDS-Snapshot-06 — issue
  * #1838). Médias 7d/30d do histórico local (`MedicaoDao`) e degradação
  * calculada de forma determinística — o NDS/IA usa isso para diferenciar
@@ -149,9 +182,9 @@ data class NdsDiagnosticContext(
  * Payload de `POST /v1/diagnostics/evaluate` — schema completo documentado no
  * ADR-017 (contrato observado no NDS) e detalhado campo a campo no ADR-018
  * (nome/tipo/opcionalidade/origem por bloco). Cada bloco (`connection`, `wifi`,
- * `wifiScan`, `speed`, `quality`, `dns`, `gateway`, `fiber`, `mobile`) e opcional: quando
- * `null`, o campo e OMITIDO do JSON — o NDS trata
- * ausencia de bloco como "sem dado disponivel", nunca como zero/vazio.
+ * `wifiScan`, `speed`, `quality`, `dns`, `gateway`, `fiber`, `mobile`,
+ * `localEquipment`) e opcional: quando `null`, o campo e OMITIDO do JSON — o NDS
+ * trata ausencia de bloco como "sem dado disponivel", nunca como zero/vazio.
  *
  * Nomes de chave JSON seguem exatamente o exemplo do ADR-017 (mistura
  * `snake_case`/`camelCase` real do contrato — nao uniformizado aqui porque o
@@ -173,6 +206,7 @@ data class NdsDiagnosticsRequest(
     val fiber: NdsFiberInfo? = null,
     val mobile: NdsMobileInfo? = null,
     val historical: NdsHistoricalInfo? = null,
+    val localEquipment: NdsLocalEquipmentInfo? = null,
     val context: NdsDiagnosticContext? = null,
 ) {
     internal fun toJson(): JSONObject {
@@ -333,6 +367,24 @@ data class NdsDiagnosticsRequest(
                     h.degradationPercent?.let { put("degradation_percent", it) }
                     h.worstTimeWindow?.let { put("worstTimeWindow", it) }
                     h.bestTimeWindow?.let { put("bestTimeWindow", it) }
+                },
+            )
+        }
+        localEquipment?.let { le ->
+            root.put(
+                "localEquipment",
+                JSONObject().apply {
+                    le.vendor?.let { put("vendor", it) }
+                    le.model?.let { put("model", it) }
+                    le.firmwareVersion?.let { put("firmwareVersion", it) }
+                    put("deviceType", le.deviceType)
+                    put("supportLevel", le.supportLevel)
+                    put("connectionStatus", le.connectionStatus)
+                    put("fiberStatus", le.fiberStatus)
+                    put("wanStatus", le.wanStatus)
+                    put("wifiStatus", le.wifiStatus)
+                    put("lanStatus", le.lanStatus)
+                    put("connectedClients", le.connectedClients)
                 },
             )
         }

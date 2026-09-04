@@ -102,4 +102,33 @@ class NdsProfileCapabilitiesMapperTest {
         assertEquals(listOf("scoring", "ai", "historical"), comHistorico)
         assertEquals(listOf("scoring", "ai"), semHistorico)
     }
+
+    @Test
+    fun `capabilities inclui local_equipment quando o bloco localEquipment existe no request (ADR-018 bloco 12)`() {
+        val capabilities = ndsCapabilities(incluiWifi = false, incluiFiber = false, incluiLocalEquipment = true)
+
+        assertEquals(listOf("scoring", "ai", "local_equipment"), capabilities)
+    }
+
+    @Test
+    fun `sobrecarga com bloco localEquipment real deriva incluiLocalEquipment de nulidade`() {
+        val comLocalEquipment = ndsCapabilities(
+            wifi = null,
+            fiber = null,
+            localEquipment = NdsLocalEquipmentInfo(
+                deviceType = "ONT_GPON",
+                supportLevel = "LAB_VALIDATED",
+                connectionStatus = "OK",
+                fiberStatus = "OK",
+                wanStatus = "OK",
+                wifiStatus = "OK",
+                lanStatus = "OK",
+                connectedClients = 7,
+            ),
+        )
+        val semLocalEquipment = ndsCapabilities(wifi = null, fiber = null, localEquipment = null)
+
+        assertEquals(listOf("scoring", "ai", "local_equipment"), comLocalEquipment)
+        assertEquals(listOf("scoring", "ai"), semLocalEquipment)
+    }
 }
