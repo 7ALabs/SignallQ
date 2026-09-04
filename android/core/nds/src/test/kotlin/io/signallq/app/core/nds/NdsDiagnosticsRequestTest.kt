@@ -192,6 +192,62 @@ class NdsDiagnosticsRequestTest {
     }
 
     @Test
+    fun `toJson serializa bloco dns expandido (ADR-018, issue #1840)`() {
+        val request = NdsDiagnosticsRequest(
+            requestId = "req-dns",
+            app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+            dns = NdsDnsInfo(
+                primary = "1.1.1.1",
+                responseTimeMs = 12,
+                hijacked = null,
+                providerName = "Cloudflare",
+                bestName = "Cloudflare",
+                bestLatencyMs = 12,
+                grade = "A",
+                comparisonAvailable = true,
+                coherenceAlertLevel = "none",
+                coherenceConsecutiveDivergences = 0,
+                coherenceDivergenceRatePercent = 0.0,
+                privateDnsActive = true,
+                privateDnsHostname = "dns.google",
+            ),
+        )
+
+        val dns = request.toJson().getJSONObject("dns")
+
+        assertEquals("1.1.1.1", dns.getString("primary"))
+        assertEquals(12, dns.getInt("latencyMs"))
+        assertFalse("hijacked null nunca vira chave", dns.has("hijacked"))
+        assertEquals("Cloudflare", dns.getString("providerName"))
+        assertEquals("Cloudflare", dns.getString("bestName"))
+        assertEquals(12, dns.getInt("bestLatencyMs"))
+        assertEquals("A", dns.getString("grade"))
+        assertTrue(dns.getBoolean("comparisonAvailable"))
+        assertEquals("none", dns.getString("coherenceAlertLevel"))
+        assertEquals(0, dns.getInt("coherenceConsecutiveDivergences"))
+        assertEquals(0.0, dns.getDouble("coherenceDivergenceRatePercent"), 0.001)
+        assertTrue(dns.getBoolean("privateDnsActive"))
+        assertEquals("dns.google", dns.getString("privateDnsHostname"))
+    }
+
+    @Test
+    fun `toJson sempre serializa comparisonAvailable mesmo false, nunca omite`() {
+        val request = NdsDiagnosticsRequest(
+            requestId = "req-dns-sem-comparacao",
+            app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+            dns = NdsDnsInfo(primary = "8.8.8.8", comparisonAvailable = false),
+        )
+
+        val dns = request.toJson().getJSONObject("dns")
+
+        assertTrue("comparisonAvailable=false e valor legitimo, deve estar sempre presente", dns.has("comparisonAvailable"))
+        assertFalse(dns.getBoolean("comparisonAvailable"))
+        assertFalse(dns.has("bestName"))
+        assertFalse(dns.has("privateDnsActive"))
+        assertFalse(dns.has("privateDnsHostname"))
+    }
+
+    @Test
     fun `toJson serializa contexto sem PII e omite relato nulo`() {
         val request = NdsDiagnosticsRequest(
             requestId = "req-context",

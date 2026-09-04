@@ -90,6 +90,15 @@ data class DnsDiagnosticInput(
     val coerenciaNivelAlerta: String? = null,
     val coerenciaDivergenciasConsecutivas: Int? = null,
     val coerenciaTaxaDivergenciaPercentual: Double? = null,
+    /** Estado do Private DNS (Android), lido de `SnapshotRede.privateDnsAtivo`
+     *  (ADR-018, bloco `dns` expandido — issue #1840). */
+    val privateDnsActive: Boolean? = null,
+    /** Hostname do Private DNS configurado, lido de `SnapshotRede.privateDnsHostname`.
+     *  So preenchido pelo chamador quando o hostname bate com um provedor publico
+     *  conhecido (mesma tabela de deteccao usada em [currentDnsName]) -- hostname
+     *  customizado (resolver proprio do usuario) nunca chega aqui, por decisao de
+     *  privacidade da ADR-018 (pode ser identificador pessoal). */
+    val privateDnsHostname: String? = null,
 )
 
 data class HistoricalDiagnosticInput(

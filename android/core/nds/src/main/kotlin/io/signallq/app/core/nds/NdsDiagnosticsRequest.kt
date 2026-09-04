@@ -73,10 +73,37 @@ data class NdsQualityInfo(
     val bufferbloatMs: Double? = null,
 )
 
+/**
+ * Bloco `dns` expandido (ADR-018, issue #1840). `primary`/`responseTimeMs`/`hijacked`
+ * ja existiam (NDS-02k); os demais campos foram planejados na ADR-018 e ficam
+ * populados por [toNdsDnsInfo][io.signallq.app.core.nds.toNdsDnsInfo] a partir de
+ * `DnsDiagnosticInput` (comparacao de benchmark + `AvaliadorCoerenciaDns` +
+ * estado de Private DNS).
+ *
+ * `hijacked` continua SEMPRE `null` nesta fatia -- nao existe coleta real desse
+ * dado no app; a issue-mae #1832 proibe explicitamente usar `false` como default
+ * para "nao sabemos".
+ *
+ * `privateDnsHostname` so chega aqui ja filtrado por privacidade (nunca um
+ * hostname customizado do usuario) -- ver KDoc de `DnsDiagnosticInput.privateDnsHostname`
+ * e a decisao registrada na ADR-018.
+ */
 data class NdsDnsInfo(
     val primary: String? = null,
     val responseTimeMs: Int? = null,
     val hijacked: Boolean? = null,
+    val providerName: String? = null,
+    val bestName: String? = null,
+    val bestLatencyMs: Int? = null,
+    val grade: String? = null,
+    /** `false` aqui e um valor legitimo ("comparacao nao rodou ainda"), nao ausencia
+     *  de dado -- por isso nao-opcional, sempre serializado (ADR-018 secao `dns`). */
+    val comparisonAvailable: Boolean = false,
+    val coherenceAlertLevel: String? = null,
+    val coherenceConsecutiveDivergences: Int? = null,
+    val coherenceDivergenceRatePercent: Double? = null,
+    val privateDnsActive: Boolean? = null,
+    val privateDnsHostname: String? = null,
 )
 
 data class NdsGatewayInfo(
@@ -313,6 +340,16 @@ data class NdsDiagnosticsRequest(
                     d.primary?.let { put("primary", it) }
                     d.responseTimeMs?.let { put("latencyMs", it) }
                     d.hijacked?.let { put("hijacked", it) }
+                    d.providerName?.let { put("providerName", it) }
+                    d.bestName?.let { put("bestName", it) }
+                    d.bestLatencyMs?.let { put("bestLatencyMs", it) }
+                    d.grade?.let { put("grade", it) }
+                    put("comparisonAvailable", d.comparisonAvailable)
+                    d.coherenceAlertLevel?.let { put("coherenceAlertLevel", it) }
+                    d.coherenceConsecutiveDivergences?.let { put("coherenceConsecutiveDivergences", it) }
+                    d.coherenceDivergenceRatePercent?.let { put("coherenceDivergenceRatePercent", it) }
+                    d.privateDnsActive?.let { put("privateDnsActive", it) }
+                    d.privateDnsHostname?.let { put("privateDnsHostname", it) }
                 },
             )
         }

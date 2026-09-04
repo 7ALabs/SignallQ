@@ -5,7 +5,7 @@ type: "adr"
 status: "ativo"
 owner: "Camilo"
 last_updated: "2026-09-03"
-version: "1.2.0"
+version: "1.3.0"
 ---
 
 # ADR-018 — Schema canônico `DiagnosticSnapshot` para o payload NDS
@@ -182,23 +182,38 @@ herdada do ADR-017 (contrato já observado no NDS real), não uma duplicação a
 
 #### 8. `dns`
 
-**Estado: implementado**, com a maior parte dos campos coletados ainda fora do payload (gap #1832
-seção 9 — o bloco mais incompleto em proporção).
+**Estado: implementado** (bloco expandido pela NDS-Snapshot-08, issue #1840). Bloco opcional em
+`NdsDiagnosticsRequest`, populado por `toNdsDnsInfo()` em `NdsDiagnosticsRequestMapper.kt` a partir
+de `DiagnosticInput.dns` (`DnsDiagnosticInput`), montado em `MainViewModel.montarDnsInput()`
+combinando o ultimo benchmark concluido (`feature/dns`, `BenchmarkDns`), o provedor ativo inferido
+por `inferirProvedorAtivoDns` (mesma tabela ja usada para calcular a coerencia — nao existe uma
+segunda tabela IP/hostname→provedor neste metodo, ver dívida #1823), a coerência calculada por
+`AvaliadorCoerenciaDns` e o estado de Private DNS lido de `SnapshotRede` (`core/network`).
 
 | Campo NDS | Tipo | Opcional | Origem |
 |---|---|---|---|
 | `dns.primary` | `String?` | Sim | `DnsDiagnosticInput.currentDnsIp` |
 | `dns.latencyMs` | `Int?` | Sim | `DnsDiagnosticInput.currentDnsLatencyMs` (chave JSON `latencyMs`, apesar do campo Kotlin se chamar `responseTimeMs` em `NdsDnsInfo` — inconsistência herdada, não corrigida aqui para não mudar o contrato JSON já aceito pelo NDS). |
 | `dns.hijacked` | `Boolean?` | Sim | **Sempre `null` hoje** — gap de coleta confirmado (não existe fonte no `DiagnosticInput`). Nunca usar `false` como default para "não sabemos" (regra explícita do #1832 seção 9). |
-| `dns.providerName` *(planejado)* | `String?` | Sim | `DnsDiagnosticInput.currentDnsName` |
-| `dns.bestName` *(planejado)* | `String?` | Sim | `DnsDiagnosticInput.bestDnsNameFromComparison` |
-| `dns.bestLatencyMs` *(planejado)* | `Int?` | Sim | `DnsDiagnosticInput.bestDnsLatencyMsFromComparison` |
-| `dns.grade` *(planejado)* | `String?` | Sim | `DnsDiagnosticInput.dnsGrade` |
-| `dns.comparisonAvailable` *(planejado)* | `Boolean` | Não (default `false`, mas é um booleano de "a comparação rodou", não um dado de rede — `false` aqui é um valor legítimo, não "ausência") | `DnsDiagnosticInput.dnsComparisonAvailable` |
-| `dns.coherenceAlertLevel` *(planejado)* | `String?` | Sim | `DnsDiagnosticInput.coerenciaNivelAlerta` (`"none"`/`"attention"`/`"critical"`) |
-| `dns.coherenceConsecutiveDivergences` *(planejado)* | `Int?` | Sim | `DnsDiagnosticInput.coerenciaDivergenciasConsecutivas` |
-| `dns.coherenceDivergenceRatePercent` *(planejado)* | `Double?` | Sim | `DnsDiagnosticInput.coerenciaTaxaDivergenciaPercentual` |
-| `dns.privateDnsActive`/`dns.privateDnsHostname` *(planejado, avaliar política)* | `Boolean?`/`String?` | Sim | Sem campo em `DiagnosticInput` hoje — não coletado. `privateDnsHostname` precisa de revisão de privacidade antes de entrar (#1832 seção 9: "avaliar política"). |
+| `dns.providerName` | `String?` | Sim | `DnsDiagnosticInput.currentDnsName` — inferido de `SnapshotRede.privateDnsHostname`/`dnsServidores` por `inferirProvedorAtivoDns` (`MainViewModel`). |
+| `dns.bestName` | `String?` | Sim | `DnsDiagnosticInput.bestDnsNameFromComparison` — melhor resultado do último `BenchmarkDns` concluído (menor `tempoMs`, ignorando `isGatewayLocal`). |
+| `dns.bestLatencyMs` | `Int?` | Sim | `DnsDiagnosticInput.bestDnsLatencyMsFromComparison` |
+| `dns.grade` | `String?` | Sim | `DnsDiagnosticInput.dnsGrade` — `ResultadoBenchmarkDns.gradeRapidez` do melhor resultado ("A"≤15ms/"B"≤30ms/"C"≤50ms/"D">50ms). |
+| `dns.comparisonAvailable` | `Boolean` | Não (default `false`, mas é um booleano de "a comparação rodou", não um dado de rede — `false` aqui é um valor legítimo, não "ausência") | `DnsDiagnosticInput.dnsComparisonAvailable` — `true` quando o benchmark encontrou pelo menos um resultado com `tempoMs` medido. |
+| `dns.coherenceAlertLevel` | `String?` | Sim | `DnsDiagnosticInput.coerenciaNivelAlerta` (`"none"`/`"attention"`/`"critical"`) |
+| `dns.coherenceConsecutiveDivergences` | `Int?` | Sim | `DnsDiagnosticInput.coerenciaDivergenciasConsecutivas` |
+| `dns.coherenceDivergenceRatePercent` | `Double?` | Sim | `DnsDiagnosticInput.coerenciaTaxaDivergenciaPercentual` |
+| `dns.privateDnsActive` | `Boolean?` | Sim | `DnsDiagnosticInput.privateDnsActive` — `SnapshotRede.privateDnsAtivo` (`LinkProperties.privateDnsServerName != null`). |
+| `dns.privateDnsHostname` | `String?` | Sim | `DnsDiagnosticInput.privateDnsHostname` — `SnapshotRede.privateDnsHostname`, **filtrado por privacidade antes de sair do `MainViewModel`**: só é repassado quando o hostname bate com um provedor público conhecido (mesma tabela de `inferirProvedorAtivoDns`, chamada só com o hostname, sem lista de IPs). Hostname customizado (ex.: resolver DoH/DoT próprio do usuário) nunca chega ao NDS — pode ser um identificador pessoal. Decisão de privacidade desta issue (#1832 seção 9: "avaliar política"). |
+
+**Decisão de privacidade — `privateDnsHostname`:** avaliadas duas situações. (1) hostname de um
+provedor público conhecido (ex. `dns.google`, `cloudflare-dns.com`, `dns.quad9.net`) — não é dado
+pessoal, mesma informação que `providerName` já expõe por outro caminho; enviado. (2) hostname de
+um resolver DoH/DoT próprio do usuário (self-hosted) — pode ser um identificador (domínio pessoal,
+subdomínio com nome do usuário) sem valor diagnóstico adicional sobre o que `privateDnsActive`
+sozinho já informa; **nunca enviado**. O filtro é mecânico (mesma tabela de substring já usada para
+`providerName`, sem tabela nova) e vive em `MainViewModel.montarDnsInput()`, não no mapper de
+`core/nds` — o mapper só transcreve um valor que já chegou seguro.
 
 #### 9. `gateway`
 
