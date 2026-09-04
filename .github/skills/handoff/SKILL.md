@@ -1,7 +1,7 @@
 ---
 name: handoff
 description: Formaliza handoff entre agentes do squad SignallQ. Roda pre-flight (git sync, branch check, PRs relacionadas), valida os 6 campos obrigatórios do contrato operacional §8 e posta o comentário canônico na issue. Piloto para a proposta de contrato reduzido — #1616.
-argument-hint: "<numero-issue> --de <agente> --para <agente> --decisao \"<texto>\" [--arquivos \"<lista>\"] [--pendencias \"<texto>\"] [--riscos \"<texto>\"]"
+argument-hint: "<numero-issue> --de <agente> --para <agente> --decisao \"<texto>\" [--arquivos \"<lista>\"] [--pendencias \"<texto>\"] [--riscos \"<texto>\"] [--effort-minimo \"alto\"]"
 allowed-tools: Bash(gh *), Bash(git *)
 ---
 
@@ -74,6 +74,20 @@ Todos os checks abaixo rodam automaticamente. Falha em qualquer um PARA a skill 
 | Validações realizadas | derivado automaticamente (ver abaixo) | sim |
 | Pendências | `--pendencias "..."` | sim (aceita `nenhuma`) |
 | Próximo responsável | `--para <agente>` | sim |
+| Effort mínimo exigido | `--effort-minimo "alto"` | não — omitir = padrão |
+
+**Effort mínimo exigido:** ver [Model / effort de cada agente](../../agents/) — desde que o squad
+deixou de usar Opus, effort dentro do Sonnet é o único jeito de sinalizar "isso é sensível, não
+trata como refactor comum". Marcar `--effort-minimo "alto"` sempre que o handoff envolver:
+
+- número/métrica que precisa bater exato (threshold de diagnóstico RSRP/canal, cálculo de
+  speedtest, contrato/mapper NDS);
+- verificação numérica no gate do Caio — nunca deixar isso rodar em effort padrão ou Haiku (memória
+  do projeto: já reprovou PR citando números que não batiam com nenhum commit real);
+- qualquer mudança que Claudete ou Camilo já classificariam como "grande" ou "risco de regressão".
+
+Sem o campo, o próximo agente decide o effort sozinho — o que é o comportamento de sempre para
+handoff comum. Com o campo, o próximo agente **não pode** rodar abaixo do effort declarado.
 
 **Validações automáticas** — a skill roda e cita o resultado no comentário:
 
@@ -101,6 +115,7 @@ gh issue comment <numero> --repo buildea-labs/signallq --body "$(cat <<EOF
 - **Validações:** <resultado automático>
 - **Pendências:** <PENDENCIAS>
 - **Riscos:** <RISCOS ou "nenhum identificado">
+- **Effort mínimo:** <EFFORT_MINIMO ou "padrão">
 - **Branch:** \`$BRANCH\` · **PR:** $PR_URL
 EOF
 )"
