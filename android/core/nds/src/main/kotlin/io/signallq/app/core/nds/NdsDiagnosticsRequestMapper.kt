@@ -98,6 +98,13 @@ private const val NDS_APP_ID = "io.signallq.app"
  *
  * `context.subcategory` e opcional no contrato v2. Quando a tela tiver um recorte
  * canônico, ele é preservado; a ausência dele não impede a avaliação v2.
+ *
+ * ## `speed.packetLossSource` (ADR-018, "Convenção de proveniência" — NDS-Snapshot-10,
+ * issue #1842)
+ * Traduz `InternetDiagnosticInput.packetLossSource` (vocabulario interno legado) para
+ * o vocabulario fechado [NdsProvenance] via [toNdsPacketLossSource]. `null` quando o
+ * usuario nunca mediu perda de pacotes (`"naoMedido"`) ou quando `perdaPercentual`
+ * em si e null — omitido do JSON, nunca um valor inventado.
  */
 fun DiagnosticInput.toNdsDiagnosticsRequest(
     appVersion: String,
@@ -126,6 +133,7 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
             downloadMbps = it.downloadMbps,
             uploadMbps = it.uploadMbps,
             packetLossPercent = it.perdaPercentual,
+            packetLossSource = toNdsPacketLossSource(it.packetLossSource),
         )
     }
     val qualityInfo = internet?.let {
@@ -296,6 +304,30 @@ private fun toNdsDnsInfo(dns: DnsDiagnosticInput?): NdsDnsInfo? = dns?.let {
  */
 private fun toNdsPlanInfo(velocidadeContratadaMbps: Int?): NdsPlanInfo? =
     velocidadeContratadaMbps?.let { NdsPlanInfo(contractedSpeedMbps = it) }
+
+/**
+ * Traduz `InternetDiagnosticInput.packetLossSource` (vocabulário interno em
+ * português/legado — `"estimated"`/`"naoMedido"`/`"unknown"`/`"modem"`, ver
+ * KDoc do campo) para o vocabulário fechado [NdsProvenance] do payload NDS
+ * (ADR-018, "Convenção de proveniência" — issue #1842). Não inventa um
+ * terceiro vocabulário: reaproveita exatamente os quatro valores já
+ * existentes.
+ *
+ * - `"modem"` (medição direta do equipamento) -> [NdsProvenance.MEASURED];
+ * - `"estimated"` (indício via timeout HTTP) -> [NdsProvenance.ESTIMATED];
+ * - `"unknown"` (coleta já retorna incerteza) -> [NdsProvenance.UNKNOWN];
+ * - `"naoMedido"` ou `null` -> `null` (omite o campo do payload — nenhuma
+ *   medição de perda de pacotes rodou nesta execução, não é o mesmo que
+ *   "fonte desconhecida");
+ * - qualquer valor não reconhecido -> `null` (nunca propaga string livre
+ *   arbitrária para o payload; vocabulário fechado por decisão da ADR-018).
+ */
+private fun toNdsPacketLossSource(fonte: String?): NdsProvenance? = when (fonte) {
+    "modem" -> NdsProvenance.MEASURED
+    "estimated" -> NdsProvenance.ESTIMATED
+    "unknown" -> NdsProvenance.UNKNOWN
+    else -> null
+}
 
 private fun ndsProfile(perfilGamer: Boolean, objective: String?): String? = when {
     perfilGamer -> "gamer"

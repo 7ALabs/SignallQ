@@ -68,12 +68,44 @@ data class NdsWifiScanInfo(
     val algorithmVersion: String? = null,
 )
 
+/**
+ * Vocabulário fechado de proveniência de um campo do snapshot (ADR-018, seção
+ * "Convenção de proveniência" — NDS-Snapshot-10, issue #1842). Serializado no JSON
+ * como string minúscula via [jsonValue] — string livre no fio, mesmo critério do
+ * resto do contrato (não trava o cliente quando o NDS aceitar um valor novo), mas
+ * o mapper deste módulo só deve emitir um destes cinco valores.
+ *
+ * - [MEASURED] — medição direta, alta confiança (ex.: RTT gateway via socket, RX
+ *   óptico lido do equipamento, perda de pacotes via medição real do modem).
+ * - [ESTIMATED] — indício indireto, não uma medição direta (ex.: perda de pacotes
+ *   inferida de timeout HTTP).
+ * - [DERIVED] — calculado a partir de outros campos do mesmo snapshot (ex.:
+ *   `loadedLatencyMs = latencyMs + bufferbloatMs`).
+ * - [CACHED] — valor de uma execução anterior, reaproveitado nesta.
+ * - [UNKNOWN] — fonte não determinada — usar só quando a própria coleta já
+ *   retorna essa incerteza.
+ */
+enum class NdsProvenance(val jsonValue: String) {
+    MEASURED("measured"),
+    ESTIMATED("estimated"),
+    DERIVED("derived"),
+    CACHED("cached"),
+    UNKNOWN("unknown"),
+}
+
 data class NdsSpeedInfo(
     val pingMs: Double? = null,
     val jitterMs: Double? = null,
     val downloadMbps: Double? = null,
     val uploadMbps: Double? = null,
     val packetLossPercent: Double? = null,
+    /**
+     * Proveniência de [packetLossPercent] (ADR-018, "Convenção de proveniência" —
+     * issue #1842). `null` quando a origem não permite afirmar nada (usuário nunca
+     * mediu perda de pacotes, ou `InternetDiagnosticInput.packetLossSource ==
+     * "naoMedido"`) — omitido do JSON, nunca um valor inventado.
+     */
+    val packetLossSource: NdsProvenance? = null,
 )
 
 data class NdsQualityInfo(
@@ -346,6 +378,7 @@ data class NdsDiagnosticsRequest(
                     s.downloadMbps?.let { put("download_mbps", it) }
                     s.uploadMbps?.let { put("upload_mbps", it) }
                     s.packetLossPercent?.let { put("packet_loss_percent", it) }
+                    s.packetLossSource?.let { put("packetLossSource", it.jsonValue) }
                 },
             )
         }
