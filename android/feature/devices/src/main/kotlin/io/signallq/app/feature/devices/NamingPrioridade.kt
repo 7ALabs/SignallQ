@@ -25,7 +25,6 @@ import io.signallq.app.core.network.contracts.localdevice.ClientSnapshot
  * na resolução de prioridade.
  */
 object NamingPrioridade {
-
     /**
      * Fonte para nome obtido por **leitura ativa** do gateway/roteador (epic #525,
      * SIG-358/359/360/361 — leitura ativa do gateway). Produzido por
@@ -46,12 +45,13 @@ object NamingPrioridade {
     const val FONTE_NOME_ROUTER_ACTIVE_IP = "routerActiveIp"
 
     /** Nomes que não carregam informação útil — tratados como ausentes na priorização. */
-    val NOMES_GENERICOS = setOf(
-        "Dispositivo não identificado",
-        "Host ativo",
-        "Serviço mDNS",
-        "Dispositivo SSDP",
-    )
+    val NOMES_GENERICOS =
+        setOf(
+            "Dispositivo não identificado",
+            "Host ativo",
+            "Serviço mDNS",
+            "Dispositivo SSDP",
+        )
 
     /**
      * Prefixo sintético que alguns firmwares de roteador (Nokia GPON incluso) usam como
@@ -133,15 +133,17 @@ object NamingPrioridade {
                     (clientesGateway.firstOrNull { it.ip == ipDispositivo } ?: return null) to FONTE_NOME_ROUTER_ACTIVE_IP
                 else -> return null
             }
-        val nome = cliente.hostname?.takeIf {
-            it.isNotBlank() && it !in NOMES_GENERICOS && !it.startsWith(PREFIXO_HOSTNAME_ROUTER_SINTETICO)
-        } ?: return null
+        val nome =
+            cliente.hostname?.takeIf {
+                it.isNotBlank() && it !in NOMES_GENERICOS && !it.startsWith(PREFIXO_HOSTNAME_ROUTER_SINTETICO)
+            } ?: return null
         return NomeRouterActive(nome = nome, fonte = fonte)
     }
 
     /** Normaliza MAC para comparação: lowercase, sem separador (`:`/`-`). */
     private fun normalizarMac(mac: String?): String? =
-        mac?.lowercase(java.util.Locale.ROOT)
+        mac
+            ?.lowercase(java.util.Locale.ROOT)
             ?.replace(":", "")
             ?.replace("-", "")
             ?.takeIf { it.isNotBlank() }
@@ -157,11 +159,10 @@ object NamingPrioridade {
         fabricanteUpnpXml: String?,
         fabricanteMdns: String?,
         fabricanteOui: String?,
-    ): String? {
-        return fabricanteUpnpXml?.takeIf { it.isNotBlank() }
+    ): String? =
+        fabricanteUpnpXml?.takeIf { it.isNotBlank() }
             ?: fabricanteMdns?.takeIf { it.isNotBlank() }
             ?: fabricanteOui?.takeIf { it.isNotBlank() }
-    }
 
     /**
      * Rótulo de fallback quando não há hostname/nome resolvido para o dispositivo.
@@ -184,7 +185,9 @@ object NamingPrioridade {
 
     /** [android.os.Build.MANUFACTURER] vem em lowercase (ex: "samsung") — capitaliza para exibição. */
     fun capitalizarFabricante(manufacturer: String?): String? =
-        manufacturer?.trim()?.takeIf { it.isNotBlank() }
+        manufacturer
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
             ?.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.ROOT) else it.toString() }
 
     /**
@@ -196,7 +199,10 @@ object NamingPrioridade {
      * @param modelo tipicamente [android.os.Build.MODEL]
      * @param fabricante tipicamente [capitalizarFabricante] de [android.os.Build.MANUFACTURER]
      */
-    fun nomeAmigavelDoDevice(modelo: String?, fabricante: String?): String {
+    fun nomeAmigavelDoDevice(
+        modelo: String?,
+        fabricante: String?,
+    ): String {
         val m = modelo?.trim()?.takeIf { it.isNotBlank() }
         val f = fabricante?.trim()?.takeIf { it.isNotBlank() }
         return when {

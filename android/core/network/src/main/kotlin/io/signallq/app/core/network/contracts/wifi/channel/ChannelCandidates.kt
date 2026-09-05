@@ -7,33 +7,39 @@ fun candidateChannels(
     avoidDfs: Boolean,
     allow24Overlapping: Boolean,
     preferPsc: Boolean,
-): List<Int> = when (band) {
-    Band.GHZ_24 -> candidates24(allow24Overlapping)
-    Band.GHZ_5 -> candidates5(width, avoidDfs)
-    Band.GHZ_6 -> candidates6(preferPsc)
-}
+): List<Int> =
+    when (band) {
+        Band.GHZ_24 -> candidates24(allow24Overlapping)
+        Band.GHZ_5 -> candidates5(width, avoidDfs)
+        Band.GHZ_6 -> candidates6(preferPsc)
+    }
 
 private fun candidates24(allow24Overlapping: Boolean): List<Int> =
     // Regra 5 — apenas 1/6/11 por padrao; allow24Overlapping libera 1-13
     if (allow24Overlapping) (1..13).toList() else listOf(1, 6, 11)
 
-private fun candidates5(width: ChannelWidth, avoidDfs: Boolean): List<Int> {
+private fun candidates5(
+    width: ChannelWidth,
+    avoidDfs: Boolean,
+): List<Int> {
     // Regra 5 — canais primarios padrao por largura (menor canal de cada grupo bondado)
     // Regra 6 — DFS = canais 52-144; excluidos quando avoidDfs=true
-    val nonDfs: List<Int> = when (width) {
-        ChannelWidth.W20 -> listOf(36, 40, 44, 48, 149, 153, 157, 161, 165)
-        ChannelWidth.W40 -> listOf(36, 44, 149, 157)
-        ChannelWidth.W80 -> listOf(36, 149)
-        ChannelWidth.W160 -> listOf(36)
-        ChannelWidth.W320 -> emptyList()
-    }
-    val dfs: List<Int> = when (width) {
-        ChannelWidth.W20 -> listOf(52, 56, 60, 64, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144)
-        ChannelWidth.W40 -> listOf(52, 60, 100, 108, 116, 124, 132, 140)
-        ChannelWidth.W80 -> listOf(52, 100, 116, 132)
-        ChannelWidth.W160 -> listOf(100)
-        ChannelWidth.W320 -> emptyList()
-    }
+    val nonDfs: List<Int> =
+        when (width) {
+            ChannelWidth.W20 -> listOf(36, 40, 44, 48, 149, 153, 157, 161, 165)
+            ChannelWidth.W40 -> listOf(36, 44, 149, 157)
+            ChannelWidth.W80 -> listOf(36, 149)
+            ChannelWidth.W160 -> listOf(36)
+            ChannelWidth.W320 -> emptyList()
+        }
+    val dfs: List<Int> =
+        when (width) {
+            ChannelWidth.W20 -> listOf(52, 56, 60, 64, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144)
+            ChannelWidth.W40 -> listOf(52, 60, 100, 108, 116, 124, 132, 140)
+            ChannelWidth.W80 -> listOf(52, 100, 116, 132)
+            ChannelWidth.W160 -> listOf(100)
+            ChannelWidth.W320 -> emptyList()
+        }
     return if (avoidDfs) nonDfs else nonDfs + dfs
 }
 

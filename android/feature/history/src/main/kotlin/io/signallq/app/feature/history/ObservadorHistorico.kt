@@ -5,4 +5,3 @@ import kotlinx.coroutines.flow.StateFlow
 interface ObservadorHistorico {
     val resumoFlow: StateFlow<ResumoHistorico>
 }
-

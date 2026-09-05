@@ -21,7 +21,6 @@ import org.json.JSONObject
  * (6), garantindo que nenhuma regra seja pulada por versao insuficiente.
  */
 internal object DiagnosticSnapshotMapper {
-
     const val REMOTE_DIAGNOSTIC_SNAPSHOT_SCHEMA_VERSION = 6
 
     fun toJson(input: DiagnosticInput): JSONObject {
@@ -42,13 +41,14 @@ internal object DiagnosticSnapshotMapper {
         return o
     }
 
-    private fun connectionType(tipo: ConnectionType): String = when (tipo) {
-        ConnectionType.wifi -> "WIFI"
-        ConnectionType.mobile -> "MOBILE"
-        ConnectionType.ethernet -> "ETHERNET"
-        ConnectionType.desconectado -> "DISCONNECTED"
-        ConnectionType.desconhecido -> "UNKNOWN"
-    }
+    private fun connectionType(tipo: ConnectionType): String =
+        when (tipo) {
+            ConnectionType.wifi -> "WIFI"
+            ConnectionType.mobile -> "MOBILE"
+            ConnectionType.ethernet -> "ETHERNET"
+            ConnectionType.desconectado -> "DISCONNECTED"
+            ConnectionType.desconhecido -> "UNKNOWN"
+        }
 
     /**
      * `hasInternet` so e afirmado quando ha evidencia real: [DiagnosticInput.internet]
@@ -66,11 +66,12 @@ internal object DiagnosticSnapshotMapper {
         return o
     }
 
-    private fun bandaToWorkerString(banda: BandaWifi): String? = when (banda) {
-        BandaWifi.ghz24 -> "2_4_GHZ"
-        BandaWifi.ghz5 -> "5_GHZ"
-        BandaWifi.desconhecida -> null
-    }
+    private fun bandaToWorkerString(banda: BandaWifi): String? =
+        when (banda) {
+            BandaWifi.ghz24 -> "2_4_GHZ"
+            BandaWifi.ghz5 -> "5_GHZ"
+            BandaWifi.desconhecida -> null
+        }
 
     private fun wifiJson(input: DiagnosticInput): JSONObject? {
         val wifi = input.wifi ?: return null

@@ -40,7 +40,8 @@ class NdsClient(
      * precisar trocar de provedor. `callTimeout` fixa o teto total da chamada.
      */
     private val client: OkHttpClient =
-        OkHttpClient.Builder()
+        OkHttpClient
+            .Builder()
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(55, TimeUnit.SECONDS)
             .writeTimeout(5, TimeUnit.SECONDS)
@@ -67,10 +68,13 @@ class NdsClient(
             try {
                 val path = if (useV2) EVALUATE_PATH_V2 else EVALUATE_PATH
                 val body =
-                    request.toJson().toString()
+                    request
+                        .toJson()
+                        .toString()
                         .toRequestBody("application/json; charset=utf-8".toMediaType())
                 val httpRequest =
-                    Request.Builder()
+                    Request
+                        .Builder()
                         .url(baseUrl.trimEnd('/') + path)
                         .addHeader("Authorization", "Bearer $apiToken")
                         .post(body)
@@ -91,11 +95,14 @@ class NdsClient(
             }
         }
 
-    private fun parseSuccessOutcome(statusCode: Int, bodyText: String): NdsDiagnosticsOutcome =
+    private fun parseSuccessOutcome(
+        statusCode: Int,
+        bodyText: String,
+    ): NdsDiagnosticsOutcome =
         try {
             NdsDiagnosticsOutcome.Success(NdsResponseParser.parse(bodyText))
         } catch (t: Throwable) {
-            Timber.w("NdsClient: resposta ${statusCode} nao parseavel — ${t.message}")
+            Timber.w("NdsClient: resposta $statusCode nao parseavel — ${t.message}")
             NdsDiagnosticsOutcome.UnknownError(statusCode, bodyText, t)
         }
 
@@ -108,7 +115,10 @@ class NdsClient(
      * novo. Nenhum dos dois formatos lanca excecao — corpo que nao bate com
      * shape nenhum vira [NdsDiagnosticsOutcome.UnknownError], o fallback final.
      */
-    private fun parseErrorOutcome(statusCode: Int, bodyText: String?): NdsDiagnosticsOutcome {
+    private fun parseErrorOutcome(
+        statusCode: Int,
+        bodyText: String?,
+    ): NdsDiagnosticsOutcome {
         if (bodyText.isNullOrBlank()) return NdsDiagnosticsOutcome.UnknownError(statusCode, bodyText)
         return try {
             val parsed = JSONObject(bodyText)
@@ -122,15 +132,19 @@ class NdsClient(
 
     /** `null` quando `error` nao e um objeto JSON ou falta `code`/`message` —
      *  nesse caso [parseErrorOutcome] tenta o shape antigo em seguida. */
-    private fun parseCanonicalEnvelope(statusCode: Int, parsed: JSONObject): NdsDiagnosticsOutcome.KnownError? {
+    private fun parseCanonicalEnvelope(
+        statusCode: Int,
+        parsed: JSONObject,
+    ): NdsDiagnosticsOutcome.KnownError? {
         val errorObj = parsed.optJSONObject("error") ?: return null
         val code = errorObj.optStringOrNull("code") ?: return null
         val message = errorObj.optStringOrNull("message") ?: return null
-        val retryable = if (errorObj.has("retryable") && !errorObj.isNull("retryable")) {
-            errorObj.optBoolean("retryable")
-        } else {
-            null
-        }
+        val retryable =
+            if (errorObj.has("retryable") && !errorObj.isNull("retryable")) {
+                errorObj.optBoolean("retryable")
+            } else {
+                null
+            }
         return NdsDiagnosticsOutcome.KnownError(
             statusCode = statusCode,
             error = code,
@@ -143,7 +157,10 @@ class NdsClient(
 
     /** `null` quando `error`/`message` (ambos String, shape antigo) nao estao
      *  presentes — nesse caso [parseErrorOutcome] cai para [NdsDiagnosticsOutcome.UnknownError]. */
-    private fun parseLegacyFlatError(statusCode: Int, parsed: JSONObject): NdsDiagnosticsOutcome.KnownError? {
+    private fun parseLegacyFlatError(
+        statusCode: Int,
+        parsed: JSONObject,
+    ): NdsDiagnosticsOutcome.KnownError? {
         val error = parsed.optStringOrNull("error") ?: return null
         val message = parsed.optStringOrNull("message") ?: return null
         return NdsDiagnosticsOutcome.KnownError(statusCode, error, message)

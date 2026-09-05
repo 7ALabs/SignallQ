@@ -10,26 +10,28 @@ import org.junit.Test
  * ainda; não há lógica de negócio pra testar aqui.
  */
 class ClassificacaoTopologiaTest {
-
     @Test
     fun `sistema mesh provavel nao afirma qual no e central`() {
-        val evidenciaOui = Evidencia(
-            tipo = TipoEvidencia.OUI,
-            valorBruto = "C46E1F",
-            peso = PesoEvidencia.FORTE,
-        )
-        val evidenciaSsid = Evidencia(
-            tipo = TipoEvidencia.SSID,
-            valorBruto = "Casa_Mesh_5G",
-            peso = PesoEvidencia.MEDIO,
-        )
+        val evidenciaOui =
+            Evidencia(
+                tipo = TipoEvidencia.OUI,
+                valorBruto = "C46E1F",
+                peso = PesoEvidencia.FORTE,
+            )
+        val evidenciaSsid =
+            Evidencia(
+                tipo = TipoEvidencia.SSID,
+                valorBruto = "Casa_Mesh_5G",
+                peso = PesoEvidencia.MEDIO,
+            )
 
-        val resultado = ClassificacaoTopologia(
-            papelProvavel = PapelTopologia.SISTEMA_MESH_PROVAVEL,
-            confianca = NivelConfianca.MEDIA,
-            evidencias = listOf(evidenciaOui, evidenciaSsid),
-            origemDados = OrigemDados.SCAN_WIFI_PASSIVO,
-        )
+        val resultado =
+            ClassificacaoTopologia(
+                papelProvavel = PapelTopologia.SISTEMA_MESH_PROVAVEL,
+                confianca = NivelConfianca.MEDIA,
+                evidencias = listOf(evidenciaOui, evidenciaSsid),
+                origemDados = OrigemDados.SCAN_WIFI_PASSIVO,
+            )
 
         assertEquals(PapelTopologia.SISTEMA_MESH_PROVAVEL, resultado.papelProvavel)
         assertEquals(2, resultado.evidencias.size)
@@ -38,29 +40,33 @@ class ClassificacaoTopologiaTest {
 
     @Test
     fun `conflito Intelbras registra as duas evidencias que discordam`() {
-        val evidenciaMesh = Evidencia(
-            tipo = TipoEvidencia.OUI,
-            valorBruto = "C46E1F",
-            peso = PesoEvidencia.MEDIO,
-        )
-        val evidenciaGatewayIsp = Evidencia(
-            tipo = TipoEvidencia.OUI,
-            valorBruto = "C46E1F",
-            peso = PesoEvidencia.MEDIO,
-        )
-        val conflito = ConflitoSinal(
-            evidenciaA = evidenciaMesh,
-            evidenciaB = evidenciaGatewayIsp,
-            descricao = "OUI C46E1F consta como nó mesh e como gateway ISP",
-        )
+        val evidenciaMesh =
+            Evidencia(
+                tipo = TipoEvidencia.OUI,
+                valorBruto = "C46E1F",
+                peso = PesoEvidencia.MEDIO,
+            )
+        val evidenciaGatewayIsp =
+            Evidencia(
+                tipo = TipoEvidencia.OUI,
+                valorBruto = "C46E1F",
+                peso = PesoEvidencia.MEDIO,
+            )
+        val conflito =
+            ConflitoSinal(
+                evidenciaA = evidenciaMesh,
+                evidenciaB = evidenciaGatewayIsp,
+                descricao = "OUI C46E1F consta como nó mesh e como gateway ISP",
+            )
 
-        val resultado = ClassificacaoTopologia(
-            papelProvavel = PapelTopologia.DESCONHECIDO,
-            confianca = NivelConfianca.BAIXA,
-            evidencias = listOf(evidenciaMesh, evidenciaGatewayIsp),
-            origemDados = OrigemDados.SCAN_WIFI_PASSIVO,
-            conflitos = listOf(conflito),
-        )
+        val resultado =
+            ClassificacaoTopologia(
+                papelProvavel = PapelTopologia.DESCONHECIDO,
+                confianca = NivelConfianca.BAIXA,
+                evidencias = listOf(evidenciaMesh, evidenciaGatewayIsp),
+                origemDados = OrigemDados.SCAN_WIFI_PASSIVO,
+                conflitos = listOf(conflito),
+            )
 
         assertEquals(1, resultado.conflitos.size)
         assertEquals(conflito, resultado.conflitos.first())

@@ -13,7 +13,6 @@ import org.junit.Test
  * (proveniência/`source`), que mexe no mapper e no request.
  */
 class NdsSnapshotCoverageTest {
-
     private fun requestBase(
         wifi: NdsWifiInfo? = null,
         wifiScan: NdsWifiScanInfo? = null,
@@ -32,10 +31,11 @@ class NdsSnapshotCoverageTest {
 
     @Test
     fun `snapshot saudavel wifi - speed e wifi presentes, nenhum bloco critico ausente`() {
-        val request = requestBase(
-            wifi = NdsWifiInfo(rssi = -55),
-            speed = NdsSpeedInfo(downloadMbps = 200.0),
-        )
+        val request =
+            requestBase(
+                wifi = NdsWifiInfo(rssi = -55),
+                speed = NdsSpeedInfo(downloadMbps = 200.0),
+            )
 
         val coverage = analyzeNdsSnapshotCoverage(request, ConnectionType.wifi, mobileCapturaReduzida = false)
 
@@ -114,10 +114,11 @@ class NdsSnapshotCoverageTest {
 
     @Test
     fun `toDebugLogLines segue exatamente o formato bloco=present ou bloco=missing-motivo`() {
-        val request = requestBase(
-            wifi = NdsWifiInfo(rssi = -55),
-            speed = NdsSpeedInfo(downloadMbps = 200.0),
-        )
+        val request =
+            requestBase(
+                wifi = NdsWifiInfo(rssi = -55),
+                speed = NdsSpeedInfo(downloadMbps = 200.0),
+            )
 
         val coverage = analyzeNdsSnapshotCoverage(request, ConnectionType.wifi, mobileCapturaReduzida = false)
         val linhas = coverage.toDebugLogLines()
@@ -131,10 +132,11 @@ class NdsSnapshotCoverageTest {
     @Test
     fun `fieldsPresentCount cresce conforme mais campos sao preenchidos`() {
         val requestPobre = requestBase(wifi = NdsWifiInfo(rssi = -60))
-        val requestRico = requestBase(
-            wifi = NdsWifiInfo(rssi = -60, band = "5GHz", channel = 44, linkSpeed = 400, standard = "ac"),
-            speed = NdsSpeedInfo(downloadMbps = 200.0, uploadMbps = 50.0, pingMs = 12.0, jitterMs = 2.0, packetLossPercent = 0.0),
-        )
+        val requestRico =
+            requestBase(
+                wifi = NdsWifiInfo(rssi = -60, band = "5GHz", channel = 44, linkSpeed = 400, standard = "ac"),
+                speed = NdsSpeedInfo(downloadMbps = 200.0, uploadMbps = 50.0, pingMs = 12.0, jitterMs = 2.0, packetLossPercent = 0.0),
+            )
 
         val coveragePobre = analyzeNdsSnapshotCoverage(requestPobre, ConnectionType.wifi, mobileCapturaReduzida = false)
         val coverageRico = analyzeNdsSnapshotCoverage(requestRico, ConnectionType.wifi, mobileCapturaReduzida = false)

@@ -6,7 +6,6 @@ import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -17,7 +16,10 @@ private class InMemoryProviderDirectoryCache : ProviderDirectoryCache {
 
     override suspend fun get(key: String): CachedProviderEntry? = armazenado[key]
 
-    override suspend fun put(key: String, info: RemoteProviderInfo) {
+    override suspend fun put(
+        key: String,
+        info: RemoteProviderInfo,
+    ) {
         armazenado[key] = CachedProviderEntry(info)
     }
 
@@ -25,7 +27,6 @@ private class InMemoryProviderDirectoryCache : ProviderDirectoryCache {
 }
 
 class ProviderDirectoryRepositoryTest {
-
     private lateinit var server: MockWebServer
 
     @Before
@@ -44,7 +45,8 @@ class ProviderDirectoryRepositoryTest {
         status: String? = "VERIFIED",
         cacheVersion: Int? = 1,
         cacheExpiresAt: String? = "2026-07-21T00:00:00.000Z",
-    ): String = """
+    ): String =
+        """
         {
           "id": "$id",
           "displayName": "Regional Teste",
@@ -57,185 +59,201 @@ class ProviderDirectoryRepositoryTest {
             "customerAreaUrl": null,
             "ombudsmanPhone": null
           }${if (status != null) ""","status": "$status"""" else ""}${
-        if (cacheVersion != null) ""","cacheVersion": $cacheVersion""" else ""
-    }${if (cacheExpiresAt != null) ""","cacheExpiresAt": "$cacheExpiresAt"""" else ""}
+            if (cacheVersion != null) ""","cacheVersion": $cacheVersion""" else ""
+        }${if (cacheExpiresAt != null) ""","cacheExpiresAt": "$cacheExpiresAt"""" else ""}
         }
-    """.trimIndent()
+        """.trimIndent()
 
     @Test
-    fun `findById mapeia logo e contato corretamente`() = runTest {
-        server.enqueue(MockResponse().setResponseCode(200).setBody(providerJson()))
-        val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString())
+    fun `findById mapeia logo e contato corretamente`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(200).setBody(providerJson()))
+            val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString())
 
-        val info = repo.findById("regional_teste")
+            val info = repo.findById("regional_teste")
 
-        assertEquals("regional_teste", info?.providerId)
-        assertEquals("https://assets.signallq.com/providers/regional_teste/logo-square-v1.webp", info?.logoUrl)
-        assertEquals("10000", info?.sacPhone)
-        assertEquals("https://wa.me/5511999999999", info?.whatsappUrl)
-        assertNull(info?.technicalSupportPhone)
-        // GH#1462 — cacheVersion/cacheExpiresAt do worker mapeados corretamente.
-        assertEquals(1, info?.cacheVersion)
-        assertEquals(1784592000000L, info?.cacheExpiresAtMs) // 2026-07-21T00:00:00.000Z
-    }
+            assertEquals("regional_teste", info?.providerId)
+            assertEquals("https://assets.signallq.com/providers/regional_teste/logo-square-v1.webp", info?.logoUrl)
+            assertEquals("10000", info?.sacPhone)
+            assertEquals("https://wa.me/5511999999999", info?.whatsappUrl)
+            assertNull(info?.technicalSupportPhone)
+            // GH#1462 — cacheVersion/cacheExpiresAt do worker mapeados corretamente.
+            assertEquals(1, info?.cacheVersion)
+            assertEquals(1784592000000L, info?.cacheExpiresAtMs) // 2026-07-21T00:00:00.000Z
+        }
 
     // ── GH#1464 (parte de #951): campo `status` de curadoria ────────────────────────────────
 
     @Test
-    fun `findById mapeia o status de curadoria quando presente`() = runTest {
-        server.enqueue(MockResponse().setResponseCode(200).setBody(providerJson(status = "PENDING_REVIEW")))
-        val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString())
+    fun `findById mapeia o status de curadoria quando presente`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(200).setBody(providerJson(status = "PENDING_REVIEW")))
+            val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString())
 
-        val info = repo.findById("regional_teste")
+            val info = repo.findById("regional_teste")
 
-        assertEquals("PENDING_REVIEW", info?.status)
-    }
-
-    @Test
-    fun `findById com status ausente no JSON mapeia status nulo`() = runTest {
-        server.enqueue(MockResponse().setResponseCode(200).setBody(providerJson(status = null)))
-        val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString())
-
-        val info = repo.findById("regional_teste")
-
-        assertNull(info?.status)
-    }
+            assertEquals("PENDING_REVIEW", info?.status)
+        }
 
     @Test
-    fun `findById com 404 retorna null (nao quebra)`() = runTest {
-        server.enqueue(MockResponse().setResponseCode(404).setBody("""{"error":"Provider not found."}"""))
-        val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString())
-        assertNull(repo.findById("nao_existe"))
-    }
+    fun `findById com status ausente no JSON mapeia status nulo`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(200).setBody(providerJson(status = null)))
+            val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString())
+
+            val info = repo.findById("regional_teste")
+
+            assertNull(info?.status)
+        }
 
     @Test
-    fun `searchByName pega o primeiro item da lista`() = runTest {
-        server.enqueue(
-            MockResponse().setResponseCode(200).setBody("""{"items":[${providerJson("regional_a")}, ${providerJson("regional_b")}]}"""),
-        )
-        val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString())
-        val info = repo.searchByName("Regional")
-        assertEquals("regional_a", info?.providerId)
-
-        val recorded = server.takeRequest()
-        assertEquals("GET", recorded.method)
-        assertEquals("/providers/search?q=Regional", recorded.path)
-    }
+    fun `findById com 404 retorna null (nao quebra)`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(404).setBody("""{"error":"Provider not found."}"""))
+            val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString())
+            assertNull(repo.findById("nao_existe"))
+        }
 
     @Test
-    fun `searchByName sem resultados retorna null`() = runTest {
-        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"items":[]}"""))
-        val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString())
-        assertNull(repo.searchByName("Nao Existe Nenhuma"))
-    }
+    fun `searchByName pega o primeiro item da lista`() =
+        runTest {
+            server.enqueue(
+                MockResponse().setResponseCode(200).setBody("""{"items":[${providerJson("regional_a")}, ${providerJson("regional_b")}]}"""),
+            )
+            val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString())
+            val info = repo.searchByName("Regional")
+            assertEquals("regional_a", info?.providerId)
+
+            val recorded = server.takeRequest()
+            assertEquals("GET", recorded.method)
+            assertEquals("/providers/search?q=Regional", recorded.path)
+        }
 
     @Test
-    fun `searchByName com nome em branco nunca faz chamada de rede`() = runTest {
-        val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString())
-        assertNull(repo.searchByName("   "))
-        assertEquals(0, server.requestCount)
-    }
+    fun `searchByName sem resultados retorna null`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(200).setBody("""{"items":[]}"""))
+            val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString())
+            assertNull(repo.searchByName("Nao Existe Nenhuma"))
+        }
 
     @Test
-    fun `worker fora do ar retorna null, nunca lanca excecao`() = runTest {
-        // Porta 1 (privilegiada, sem listener) — conexao recusada imediatamente.
-        val repo = ProviderDirectoryRepository(baseUrl = "http://127.0.0.1:1")
-        assertNull(repo.findById("qualquer"))
-    }
+    fun `searchByName com nome em branco nunca faz chamada de rede`() =
+        runTest {
+            val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString())
+            assertNull(repo.searchByName("   "))
+            assertEquals(0, server.requestCount)
+        }
+
+    @Test
+    fun `worker fora do ar retorna null, nunca lanca excecao`() =
+        runTest {
+            // Porta 1 (privilegiada, sem listener) — conexao recusada imediatamente.
+            val repo = ProviderDirectoryRepository(baseUrl = "http://127.0.0.1:1")
+            assertNull(repo.findById("qualquer"))
+        }
 
     // ── GH#1462 (parte de #951): cache local com versao/expiracao ──────────────────────────
 
     @Test
-    fun `sucesso de rede grava o resultado no cache`() = runTest {
-        val cache = InMemoryProviderDirectoryCache()
-        server.enqueue(MockResponse().setResponseCode(200).setBody(providerJson()))
-        val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString(), cache = cache)
+    fun `sucesso de rede grava o resultado no cache`() =
+        runTest {
+            val cache = InMemoryProviderDirectoryCache()
+            server.enqueue(MockResponse().setResponseCode(200).setBody(providerJson()))
+            val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString(), cache = cache)
 
-        repo.findById("regional_teste")
+            repo.findById("regional_teste")
 
-        val cacheado = cache.get("id:regional_teste")
-        assertEquals("regional_teste", cacheado?.info?.providerId)
-        assertEquals(1, cacheado?.info?.cacheVersion)
-    }
-
-    @Test
-    fun `falha de rede consulta o cache antes de cair no fallback generico (cache hit)`() = runTest {
-        val cache = InMemoryProviderDirectoryCache()
-        cache.put("id:regional_teste", parsedInfo(id = "regional_teste"))
-        // Porta 1 (privilegiada, sem listener) — conexao recusada imediatamente.
-        val repo = ProviderDirectoryRepository(baseUrl = "http://127.0.0.1:1", cache = cache)
-
-        val info = repo.findById("regional_teste")
-
-        assertEquals("regional_teste", info?.providerId)
-    }
+            val cacheado = cache.get("id:regional_teste")
+            assertEquals("regional_teste", cacheado?.info?.providerId)
+            assertEquals(1, cacheado?.info?.cacheVersion)
+        }
 
     @Test
-    fun `falha de rede sem entrada de cache (cache miss) devolve null`() = runTest {
-        val cache = InMemoryProviderDirectoryCache()
-        val repo = ProviderDirectoryRepository(baseUrl = "http://127.0.0.1:1", cache = cache)
+    fun `falha de rede consulta o cache antes de cair no fallback generico (cache hit)`() =
+        runTest {
+            val cache = InMemoryProviderDirectoryCache()
+            cache.put("id:regional_teste", parsedInfo(id = "regional_teste"))
+            // Porta 1 (privilegiada, sem listener) — conexao recusada imediatamente.
+            val repo = ProviderDirectoryRepository(baseUrl = "http://127.0.0.1:1", cache = cache)
 
-        assertNull(repo.findById("nunca_consultado"))
-    }
+            val info = repo.findById("regional_teste")
 
-    @Test
-    fun `cache expirado ainda e usado como ultimo dado valido quando a rede falha`() = runTest {
-        val cache = InMemoryProviderDirectoryCache()
-        cache.put(
-            "id:regional_expirado",
-            parsedInfo(id = "regional_expirado", cacheExpiresAtMs = 1L), // ja expirado (epoch=1ms)
-        )
-        val repo = ProviderDirectoryRepository(baseUrl = "http://127.0.0.1:1", cache = cache)
-
-        val info = repo.findById("regional_expirado")
-
-        assertEquals("regional_expirado", info?.providerId)
-    }
+            assertEquals("regional_teste", info?.providerId)
+        }
 
     @Test
-    fun `sucesso de rede sobrescreve cache antigo com o dado novo`() = runTest {
-        val cache = InMemoryProviderDirectoryCache()
-        cache.put("id:regional_teste", parsedInfo(id = "regional_teste", cacheVersion = 1))
+    fun `falha de rede sem entrada de cache (cache miss) devolve null`() =
+        runTest {
+            val cache = InMemoryProviderDirectoryCache()
+            val repo = ProviderDirectoryRepository(baseUrl = "http://127.0.0.1:1", cache = cache)
 
-        server.enqueue(MockResponse().setResponseCode(200).setBody(providerJson(cacheVersion = 2)))
-        val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString(), cache = cache)
-        repo.findById("regional_teste")
-
-        assertEquals(2, cache.get("id:regional_teste")?.info?.cacheVersion)
-        assertEquals(1, cache.tamanho())
-    }
+            assertNull(repo.findById("nunca_consultado"))
+        }
 
     @Test
-    fun `searchByName com sucesso grava no cache usando o nome buscado como chave`() = runTest {
-        val cache = InMemoryProviderDirectoryCache()
-        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"items":[${providerJson("regional_a")}]}"""))
-        val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString(), cache = cache)
+    fun `cache expirado ainda e usado como ultimo dado valido quando a rede falha`() =
+        runTest {
+            val cache = InMemoryProviderDirectoryCache()
+            cache.put(
+                "id:regional_expirado",
+                parsedInfo(id = "regional_expirado", cacheExpiresAtMs = 1L), // ja expirado (epoch=1ms)
+            )
+            val repo = ProviderDirectoryRepository(baseUrl = "http://127.0.0.1:1", cache = cache)
 
-        repo.searchByName("Regional")
+            val info = repo.findById("regional_expirado")
 
-        assertEquals("regional_a", cache.get("search:regional")?.info?.providerId)
-    }
-
-    @Test
-    fun `searchByName com falha de rede consulta o cache pela mesma chave normalizada`() = runTest {
-        val cache = InMemoryProviderDirectoryCache()
-        cache.put("search:regional teste isp", parsedInfo(id = "regional_teste"))
-        val repo = ProviderDirectoryRepository(baseUrl = "http://127.0.0.1:1", cache = cache)
-
-        val info = repo.searchByName("  Regional Teste ISP  ")
-
-        assertEquals("regional_teste", info?.providerId)
-    }
+            assertEquals("regional_expirado", info?.providerId)
+        }
 
     @Test
-    fun `searchByName com resultado vazio nao consulta o cache (resposta autoritativa do worker)`() = runTest {
-        val cache = InMemoryProviderDirectoryCache()
-        cache.put("search:nao existe nenhuma", parsedInfo(id = "regional_antigo"))
-        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"items":[]}"""))
-        val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString(), cache = cache)
+    fun `sucesso de rede sobrescreve cache antigo com o dado novo`() =
+        runTest {
+            val cache = InMemoryProviderDirectoryCache()
+            cache.put("id:regional_teste", parsedInfo(id = "regional_teste", cacheVersion = 1))
 
-        assertNull(repo.searchByName("Nao Existe Nenhuma"))
-    }
+            server.enqueue(MockResponse().setResponseCode(200).setBody(providerJson(cacheVersion = 2)))
+            val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString(), cache = cache)
+            repo.findById("regional_teste")
+
+            assertEquals(2, cache.get("id:regional_teste")?.info?.cacheVersion)
+            assertEquals(1, cache.tamanho())
+        }
+
+    @Test
+    fun `searchByName com sucesso grava no cache usando o nome buscado como chave`() =
+        runTest {
+            val cache = InMemoryProviderDirectoryCache()
+            server.enqueue(MockResponse().setResponseCode(200).setBody("""{"items":[${providerJson("regional_a")}]}"""))
+            val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString(), cache = cache)
+
+            repo.searchByName("Regional")
+
+            assertEquals("regional_a", cache.get("search:regional")?.info?.providerId)
+        }
+
+    @Test
+    fun `searchByName com falha de rede consulta o cache pela mesma chave normalizada`() =
+        runTest {
+            val cache = InMemoryProviderDirectoryCache()
+            cache.put("search:regional teste isp", parsedInfo(id = "regional_teste"))
+            val repo = ProviderDirectoryRepository(baseUrl = "http://127.0.0.1:1", cache = cache)
+
+            val info = repo.searchByName("  Regional Teste ISP  ")
+
+            assertEquals("regional_teste", info?.providerId)
+        }
+
+    @Test
+    fun `searchByName com resultado vazio nao consulta o cache (resposta autoritativa do worker)`() =
+        runTest {
+            val cache = InMemoryProviderDirectoryCache()
+            cache.put("search:nao existe nenhuma", parsedInfo(id = "regional_antigo"))
+            server.enqueue(MockResponse().setResponseCode(200).setBody("""{"items":[]}"""))
+            val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString(), cache = cache)
+
+            assertNull(repo.searchByName("Nao Existe Nenhuma"))
+        }
 
     private fun parsedInfo(
         id: String,

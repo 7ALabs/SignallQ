@@ -6,9 +6,8 @@ import kotlin.math.floor
 import kotlin.math.log10
 
 internal object NokiaModemParser {
-
-    fun parseGpon(html: String): GponStatus? {
-        return try {
+    fun parseGpon(html: String): GponStatus? =
+        try {
             val stat = extractJsIntAny(html, listOf("GponConnectionStat"))
             val status = if ((stat ?: 0) == 1) "up" else "down"
             val mode = extractJsStringAny(html, listOf("GponMode", "ConnectionMode")) ?: "—"
@@ -42,15 +41,15 @@ internal object NokiaModemParser {
         } catch (_: Throwable) {
             null
         }
-    }
 
     fun parseWan(html: String): WanStatus? {
         return try {
             // Extrai dados do objeto JS wan_conns (path primário no Nokia G-1425G-B).
-            val connPattern = Regex(
-                """ConnectionStatus:'Connected'[^}]*?ExternalIPAddress:'([^']*)'[^}]*?RemoteIPAddress:'([^']*)'[^}]*?DNSServers:'([^']*)'""",
-                setOf(RegexOption.DOT_MATCHES_ALL),
-            )
+            val connPattern =
+                Regex(
+                    """ConnectionStatus:'Connected'[^}]*?ExternalIPAddress:'([^']*)'[^}]*?RemoteIPAddress:'([^']*)'[^}]*?DNSServers:'([^']*)'""",
+                    setOf(RegexOption.DOT_MATCHES_ALL),
+                )
             val match = connPattern.find(html)
 
             val externalIp = match?.groupValues?.get(1).orEmpty()
@@ -63,7 +62,12 @@ internal object NokiaModemParser {
             val vlanId = Regex("""VLANIDMark:\s*(\d+)""").find(html)?.groupValues?.get(1) ?: ""
             val interfaceName = Regex("""X_ASB_COM_IfName:'([^']*)'""").find(html)?.groupValues?.get(1) ?: ""
             val pppoeConc = Regex("""PPPoEACName:'([^']*)'""").find(html)?.groupValues?.get(1) ?: ""
-            val uptime = Regex("""Uptime:(\d+),""").find(html)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+            val uptime =
+                Regex("""Uptime:(\d+),""")
+                    .find(html)
+                    ?.groupValues
+                    ?.get(1)
+                    ?.toIntOrNull() ?: 0
             val connType = Regex("""ConnectionType:'([^']*)'""").find(html)?.groupValues?.get(1) ?: ""
 
             if (externalIp.isEmpty() && gateway.isEmpty()) return null
@@ -125,36 +129,39 @@ internal object NokiaModemParser {
             val blocks = extractJsKeyedObjectBlocks(html, "wlan_status")
             if (blocks.isEmpty()) return null
 
-            val radios = blocks.mapNotNull { block ->
-                val ssid = extractJsStringAny(block, listOf("SSID")) ?: return@mapNotNull null
-                val standard = extractJsStringAny(block, listOf("Standard")).orEmpty()
-                val banda = if (standard.contains("ac", ignoreCase = true) ||
-                    standard.contains("ax", ignoreCase = true)
-                ) {
-                    "5GHz"
-                } else {
-                    "2.4GHz"
-                }
-                // "Enable" e o flag do SSID especifico (liga/desliga essa rede);
-                // "RadioEnabled" e do radio fisico do band inteiro e fica 1 mesmo
-                // pras redes guest desativadas — usar Enable primeiro, senao todo
-                // SSID guest desligado aparece como ativo. Achado na revalidacao
-                // de 2026-07-10.
-                val habilitado = extractJsBoolAny(block, listOf("Enable", "RadioEnabled")) ?: true
-                val canal = extractJsIntAny(block, listOf("Channel"))
-                val criptografia = extractJsStringAny(block, listOf("BeaconType")) ?: "—"
-                val potenciaRaw = extractJsStringAny(block, listOf("TransmitPower"))
-                    ?: extractJsIntAny(block, listOf("TransmitPower"))?.toString()
+            val radios =
+                blocks.mapNotNull { block ->
+                    val ssid = extractJsStringAny(block, listOf("SSID")) ?: return@mapNotNull null
+                    val standard = extractJsStringAny(block, listOf("Standard")).orEmpty()
+                    val banda =
+                        if (standard.contains("ac", ignoreCase = true) ||
+                            standard.contains("ax", ignoreCase = true)
+                        ) {
+                            "5GHz"
+                        } else {
+                            "2.4GHz"
+                        }
+                    // "Enable" e o flag do SSID especifico (liga/desliga essa rede);
+                    // "RadioEnabled" e do radio fisico do band inteiro e fica 1 mesmo
+                    // pras redes guest desativadas — usar Enable primeiro, senao todo
+                    // SSID guest desligado aparece como ativo. Achado na revalidacao
+                    // de 2026-07-10.
+                    val habilitado = extractJsBoolAny(block, listOf("Enable", "RadioEnabled")) ?: true
+                    val canal = extractJsIntAny(block, listOf("Channel"))
+                    val criptografia = extractJsStringAny(block, listOf("BeaconType")) ?: "—"
+                    val potenciaRaw =
+                        extractJsStringAny(block, listOf("TransmitPower"))
+                            ?: extractJsIntAny(block, listOf("TransmitPower"))?.toString()
 
-                WifiRadioStatus(
-                    banda = banda,
-                    ssid = ssid,
-                    canal = canal,
-                    habilitado = habilitado,
-                    criptografia = criptografia,
-                    potenciaTx = potenciaRaw?.let { "$it%" } ?: "—",
-                )
-            }
+                    WifiRadioStatus(
+                        banda = banda,
+                        ssid = ssid,
+                        canal = canal,
+                        habilitado = habilitado,
+                        criptografia = criptografia,
+                        potenciaTx = potenciaRaw?.let { "$it%" } ?: "—",
+                    )
+                }
 
             if (radios.isEmpty()) null else WifiStatus(radios)
         } catch (_: Throwable) {
@@ -168,16 +175,21 @@ internal object NokiaModemParser {
      * tela `lan_ipv4.cgi`) — GH#865 Fase 1. Ver
      * `docs_ai/technical/NOKIA_GPON_FIELD_MAP.md`.
      */
-    fun parseLan(lanStatusHtml: String, lanConfigHtml: String): LanStatus? {
+    fun parseLan(
+        lanStatusHtml: String,
+        lanConfigHtml: String,
+    ): LanStatus? {
         return try {
-            val routerIp = extractJsStringAny(
-                lanStatusHtml,
-                listOf("IPAddress", "IPInterfaceIPAddress", "LanIPAddress"),
-            )
-            val maskFromStatus = extractJsStringAny(
-                lanStatusHtml,
-                listOf("SubnetMask", "IPInterfaceSubnetMask", "NetMask"),
-            )
+            val routerIp =
+                extractJsStringAny(
+                    lanStatusHtml,
+                    listOf("IPAddress", "IPInterfaceIPAddress", "LanIPAddress"),
+                )
+            val maskFromStatus =
+                extractJsStringAny(
+                    lanStatusHtml,
+                    listOf("SubnetMask", "IPInterfaceSubnetMask", "NetMask"),
+                )
             val maskFromConfig = extractJsStringAny(lanConfigHtml, listOf("SubnetMask"))
             val dhcpMin = extractJsStringAny(lanConfigHtml, listOf("MinAddress"))
             val dhcpMax = extractJsStringAny(lanConfigHtml, listOf("MaxAddress"))
@@ -216,12 +228,12 @@ internal object NokiaModemParser {
                         val mac = extractJsStringAny(block, listOf("MACAddress"))?.lowercase()?.takeIf { it.isNotBlank() }
                         val alias = extractJsStringAny(block, listOf("HostAlias"))?.takeIf { it.isNotBlank() }
                         if (mac != null && alias != null) mac to alias else null
-                    }
-                    .toMap()
+                    }.toMap()
 
             extractJsObjectBlocks(html, "device_cfg").mapNotNull { block ->
-                val mac = extractJsStringAny(block, listOf("MACAddress"))?.takeIf { it.isNotBlank() }
-                    ?: return@mapNotNull null
+                val mac =
+                    extractJsStringAny(block, listOf("MACAddress"))?.takeIf { it.isNotBlank() }
+                        ?: return@mapNotNull null
                 val ip = extractJsStringAny(block, listOf("IPAddress"))?.takeIf { it.isNotBlank() }
                 val hostName = extractJsStringAny(block, listOf("HostName"))?.takeIf { it.isNotBlank() }
                 val tipoConexao = extractJsStringAny(block, listOf("InterfaceType"))?.takeIf { it.isNotBlank() }
@@ -245,7 +257,12 @@ internal object NokiaModemParser {
             val serial = Regex(""""SerialNumber":"([^"]*)"""").find(html)?.groupValues?.get(1) ?: ""
             val firmware = Regex(""""SoftwareVersion":"([^"]*)"""").find(html)?.groupValues?.get(1) ?: ""
             val hardware = Regex(""""HardwareVersion":"([^"]*)"""").find(html)?.groupValues?.get(1) ?: ""
-            val uptime = Regex(""""UpTime":(\d+)""").find(html)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+            val uptime =
+                Regex(""""UpTime":(\d+)""")
+                    .find(html)
+                    ?.groupValues
+                    ?.get(1)
+                    ?.toIntOrNull() ?: 0
 
             if (model.isEmpty() && serial.isEmpty()) return null
 
@@ -264,17 +281,21 @@ internal object NokiaModemParser {
 
     // --- Helpers de extração JS ---
 
-    internal fun extractJsStringAny(source: String, keys: List<String>): String? {
+    internal fun extractJsStringAny(
+        source: String,
+        keys: List<String>,
+    ): String? {
         for (key in keys) {
             val escaped = Regex.escape(key)
-            val patterns = listOf(
-                Regex(""""$escaped"\s*:\s*"([^"]*)""""),
-                Regex(""""$escaped"\s*:\s*'([^']*)'"""),
-                Regex("""\b$escaped\b\s*:\s*"([^"]*)""""),
-                Regex("""\b$escaped\b\s*:\s*'([^']*)'"""),
-                Regex("""\b$escaped\b\s*=\s*"([^"]*)""""),
-                Regex("""\b$escaped\b\s*=\s*'([^']*)'"""),
-            )
+            val patterns =
+                listOf(
+                    Regex(""""$escaped"\s*:\s*"([^"]*)""""),
+                    Regex(""""$escaped"\s*:\s*'([^']*)'"""),
+                    Regex("""\b$escaped\b\s*:\s*"([^"]*)""""),
+                    Regex("""\b$escaped\b\s*:\s*'([^']*)'"""),
+                    Regex("""\b$escaped\b\s*=\s*"([^"]*)""""),
+                    Regex("""\b$escaped\b\s*=\s*'([^']*)'"""),
+                )
             for (p in patterns) {
                 val m = p.find(source) ?: continue
                 return m.groupValues[1]
@@ -283,14 +304,18 @@ internal object NokiaModemParser {
         return null
     }
 
-    internal fun extractJsIntAny(source: String, keys: List<String>): Int? {
+    internal fun extractJsIntAny(
+        source: String,
+        keys: List<String>,
+    ): Int? {
         for (key in keys) {
             val escaped = Regex.escape(key)
-            val patterns = listOf(
-                Regex(""""$escaped"\s*:\s*(-?\d+)"""),
-                Regex("""\b$escaped\b\s*:\s*(-?\d+)"""),
-                Regex("""\b$escaped\b\s*=\s*(-?\d+)"""),
-            )
+            val patterns =
+                listOf(
+                    Regex(""""$escaped"\s*:\s*(-?\d+)"""),
+                    Regex("""\b$escaped\b\s*:\s*(-?\d+)"""),
+                    Regex("""\b$escaped\b\s*=\s*(-?\d+)"""),
+                )
             for (p in patterns) {
                 val m = p.find(source) ?: continue
                 return m.groupValues[1].toIntOrNull()
@@ -299,14 +324,18 @@ internal object NokiaModemParser {
         return null
     }
 
-    internal fun extractJsBoolAny(source: String, keys: List<String>): Boolean? {
+    internal fun extractJsBoolAny(
+        source: String,
+        keys: List<String>,
+    ): Boolean? {
         for (key in keys) {
             val escaped = Regex.escape(key)
-            val patterns = listOf(
-                Regex(""""$escaped"\s*:\s*(true|false)""", RegexOption.IGNORE_CASE),
-                Regex("""\b$escaped\b\s*:\s*(true|false)""", RegexOption.IGNORE_CASE),
-                Regex("""\b$escaped\b\s*=\s*(true|false)""", RegexOption.IGNORE_CASE),
-            )
+            val patterns =
+                listOf(
+                    Regex(""""$escaped"\s*:\s*(true|false)""", RegexOption.IGNORE_CASE),
+                    Regex("""\b$escaped\b\s*:\s*(true|false)""", RegexOption.IGNORE_CASE),
+                    Regex("""\b$escaped\b\s*=\s*(true|false)""", RegexOption.IGNORE_CASE),
+                )
             for (p in patterns) {
                 val m = p.find(source) ?: continue
                 return m.groupValues[1].equals("true", ignoreCase = true)
@@ -325,7 +354,10 @@ internal object NokiaModemParser {
      * em listas (varios radios Wi-Fi, varias portas LAN), diferente dos
      * objetos unicos ja tratados por [extractJsStringAny]/[extractJsIntAny].
      */
-    internal fun extractJsObjectBlocks(source: String, arrayVarName: String): List<String> {
+    internal fun extractJsObjectBlocks(
+        source: String,
+        arrayVarName: String,
+    ): List<String> {
         val escaped = Regex.escape(arrayVarName)
         val varMatch = Regex("""\b$escaped\b\s*[:=]\s*\[""").find(source) ?: return emptyList()
         val arrayStart = varMatch.range.last // índice do '['
@@ -379,7 +411,10 @@ internal object NokiaModemParser {
      * Achado na revalidacao de 2026-07-10: `wlan_status` no Nokia G-1425G-B
      * usa esse formato, nao o de array que o parser original assumia.
      */
-    internal fun extractJsKeyedObjectBlocks(source: String, objVarName: String): List<String> {
+    internal fun extractJsKeyedObjectBlocks(
+        source: String,
+        objVarName: String,
+    ): List<String> {
         val escaped = Regex.escape(objVarName)
         val varMatch = Regex("""\b$escaped\b\s*[:=]\s*\{""").find(source) ?: return emptyList()
         val objStart = varMatch.range.last // índice do '{' de abertura do objeto
@@ -426,16 +461,20 @@ internal object NokiaModemParser {
         return blocks
     }
 
-    private fun extractJsNumberAny(source: String, keys: List<String>): String? {
+    private fun extractJsNumberAny(
+        source: String,
+        keys: List<String>,
+    ): String? {
         val quoted = extractJsStringAny(source, keys)
         if (quoted != null) return quoted
         for (key in keys) {
             val escaped = Regex.escape(key)
-            val patterns = listOf(
-                Regex(""""$escaped"\s*:\s*(-?\d+(?:[,.]\d+)?)"""),
-                Regex("""\b$escaped\b\s*:\s*(-?\d+(?:[,.]\d+)?)"""),
-                Regex("""\b$escaped\b\s*=\s*(-?\d+(?:[,.]\d+)?)"""),
-            )
+            val patterns =
+                listOf(
+                    Regex(""""$escaped"\s*:\s*(-?\d+(?:[,.]\d+)?)"""),
+                    Regex("""\b$escaped\b\s*:\s*(-?\d+(?:[,.]\d+)?)"""),
+                    Regex("""\b$escaped\b\s*=\s*(-?\d+(?:[,.]\d+)?)"""),
+                )
             for (p in patterns) {
                 val m = p.find(source) ?: continue
                 return m.groupValues[1]

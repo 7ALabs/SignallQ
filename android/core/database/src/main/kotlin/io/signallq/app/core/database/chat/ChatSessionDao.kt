@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ChatSessionDao {
-
     @Query("SELECT * FROM chat_sessions ORDER BY atualizadoEmEpochMs DESC")
     fun observarSessoes(): Flow<List<ChatSessionEntity>>
 
@@ -43,7 +42,10 @@ interface ChatSessionDao {
 
     /** Atualiza apenas o campo atualizadoEmEpochMs, sem alterar outros campos. */
     @Query("UPDATE chat_sessions SET atualizadoEmEpochMs = :atualizadoEmEpochMs WHERE id = :id")
-    suspend fun atualizarAtualizadoEm(id: String, atualizadoEmEpochMs: Long)
+    suspend fun atualizarAtualizadoEm(
+        id: String,
+        atualizadoEmEpochMs: Long,
+    )
 
     /**
      * Retorna sessoes concluidas apos [desde] (epoch ms) para sync retroativo.
@@ -64,7 +66,10 @@ interface ChatSessionDao {
     @Query(
         "UPDATE chat_sessions SET diagnosisId = :diagnosisId WHERE id = :id",
     )
-    suspend fun atualizarDiagnosisId(id: String, diagnosisId: String)
+    suspend fun atualizarDiagnosisId(
+        id: String,
+        diagnosisId: String,
+    )
 
     @Query(
         "UPDATE chat_sessions SET promptTokens = :promptTokens, " +

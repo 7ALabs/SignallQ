@@ -83,11 +83,12 @@ fun WifiScanDiagnosticInput?.toNdsWifiScanInfo(bandaConectada: BandaWifi?): NdsW
     // preserva essa distincao em vez de forcar channelCongestion=null nesse caso.
     val scoresPorBanda = evaluateChannels(neighbors)
     val targetBand = bandaConectada?.toCoreBand()
-    val bandScores = targetBand?.let { scoresPorBanda[it] }
-        ?: conectadoCanal?.let { canal ->
-            scoresPorBanda.values.firstOrNull { scores -> scores.any { it.channel == canal } }
-        }
-        ?: emptyList()
+    val bandScores =
+        targetBand?.let { scoresPorBanda[it] }
+            ?: conectadoCanal?.let { canal ->
+                scoresPorBanda.values.firstOrNull { scores -> scores.any { it.channel == canal } }
+            }
+            ?: emptyList()
 
     return mapWifiScanToNds(
         bandScores = bandScores,
@@ -96,12 +97,13 @@ fun WifiScanDiagnosticInput?.toNdsWifiScanInfo(bandaConectada: BandaWifi?): NdsW
     )
 }
 
-private fun RedeWifiVizinha.toNdsNeighborInfo() = NdsWifiNeighborInfo(
-    channel = canal,
-    frequencyMhz = frequenciaMhz,
-    rssiDbm = rssiDbm,
-    widthMhz = larguraCanalMhz,
-)
+private fun RedeWifiVizinha.toNdsNeighborInfo() =
+    NdsWifiNeighborInfo(
+        channel = canal,
+        frequencyMhz = frequenciaMhz,
+        rssiDbm = rssiDbm,
+        widthMhz = larguraCanalMhz,
+    )
 
 /**
  * Converte as redes vizinhas do scan em [Neighbor] para o `ChannelEvaluator`.
@@ -117,35 +119,38 @@ private fun RedeWifiVizinha.toNdsNeighborInfo() = NdsWifiNeighborInfo(
  * ADR-017 — nao vale abrir uma dependencia nova para uma funcao interna de um
  * modulo em saida).
  */
-private fun List<RedeWifiVizinha>.toEvaluatorNeighbors(): List<Neighbor> = mapNotNull { rede ->
-    val freq = rede.frequenciaMhz ?: return@mapNotNull null
-    val rssi = rede.rssiDbm ?: return@mapNotNull null
-    val (band, _) = freqToChannel(freq) ?: return@mapNotNull null
-    val bssid = rede.bssid ?: "synth_${freq}_${rssi}_${rede.ssid?.hashCode() ?: 0}"
-    Neighbor(
-        bssid = bssid,
-        band = band,
-        centerFreqMhz = freq,
-        centerFreq1Mhz = null,
-        width = larguraParaChannelWidth(rede.larguraCanalMhz) ?: ChannelWidth.W20,
-        rssiDbm = rssi,
-    )
-}
+private fun List<RedeWifiVizinha>.toEvaluatorNeighbors(): List<Neighbor> =
+    mapNotNull { rede ->
+        val freq = rede.frequenciaMhz ?: return@mapNotNull null
+        val rssi = rede.rssiDbm ?: return@mapNotNull null
+        val (band, _) = freqToChannel(freq) ?: return@mapNotNull null
+        val bssid = rede.bssid ?: "synth_${freq}_${rssi}_${rede.ssid?.hashCode() ?: 0}"
+        Neighbor(
+            bssid = bssid,
+            band = band,
+            centerFreqMhz = freq,
+            centerFreq1Mhz = null,
+            width = larguraParaChannelWidth(rede.larguraCanalMhz) ?: ChannelWidth.W20,
+            rssiDbm = rssi,
+        )
+    }
 
-private fun larguraParaChannelWidth(larguraMhz: Int?): ChannelWidth? = when (larguraMhz) {
-    20 -> ChannelWidth.W20
-    40 -> ChannelWidth.W40
-    80 -> ChannelWidth.W80
-    160 -> ChannelWidth.W160
-    320 -> ChannelWidth.W320
-    else -> null
-}
+private fun larguraParaChannelWidth(larguraMhz: Int?): ChannelWidth? =
+    when (larguraMhz) {
+        20 -> ChannelWidth.W20
+        40 -> ChannelWidth.W40
+        80 -> ChannelWidth.W80
+        160 -> ChannelWidth.W160
+        320 -> ChannelWidth.W320
+        else -> null
+    }
 
-private fun BandaWifi.toCoreBand(): Band? = when (this) {
-    BandaWifi.ghz24 -> Band.GHZ_24
-    BandaWifi.ghz5 -> Band.GHZ_5
-    BandaWifi.desconhecida -> null
-}
+private fun BandaWifi.toCoreBand(): Band? =
+    when (this) {
+        BandaWifi.ghz24 -> Band.GHZ_24
+        BandaWifi.ghz5 -> Band.GHZ_5
+        BandaWifi.desconhecida -> null
+    }
 
 /**
  * Converte `ChannelScore.score` (interferencia acumulada em mW, quanto menor

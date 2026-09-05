@@ -97,10 +97,12 @@ internal object NdsResponseParser {
         }
         return NdsDiagnosticsResponse(
             recommendation = root.optJSONObject("recommendation")?.let(::parseRecommendation),
-            recommendationText = root.opt("recommendation")
-                ?.takeIf { it is String }
-                ?.let { it as String }
-                ?.takeIf(String::isNotBlank),
+            recommendationText =
+                root
+                    .opt("recommendation")
+                    ?.takeIf { it is String }
+                    ?.let { it as String }
+                    ?.takeIf(String::isNotBlank),
             results = root.optJSONArray("results")?.let(::parseResults) ?: emptyList(),
             traces = root.optJSONArray("traces")?.let(::parseTraces) ?: emptyList(),
         )

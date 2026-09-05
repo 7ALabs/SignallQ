@@ -16,34 +16,78 @@ import org.junit.Test
  * endereço/porta arbitrários, já que a codificação legada é byte a byte direta (sem XOR).
  */
 class StunMessageCodecTest {
-
     private val transactionIdRfc5769 =
         byteArrayOf(
-            0xb7.toByte(), 0xe7.toByte(), 0xa7.toByte(), 0x01,
-            0xbc.toByte(), 0x34, 0xd6.toByte(), 0x86.toByte(),
-            0xfa.toByte(), 0x87.toByte(), 0xdf.toByte(), 0xae.toByte(),
+            0xb7.toByte(),
+            0xe7.toByte(),
+            0xa7.toByte(),
+            0x01,
+            0xbc.toByte(),
+            0x34,
+            0xd6.toByte(),
+            0x86.toByte(),
+            0xfa.toByte(),
+            0x87.toByte(),
+            0xdf.toByte(),
+            0xae.toByte(),
         )
 
     /** Binding Success Response com SOFTWARE + XOR-MAPPED-ADDRESS = 192.0.2.1:32853. */
     private val respostaXorMappedAddress =
         byteArrayOf(
             // header: tipo=0x0101, length=0x001c (28 bytes de corpo)
-            0x01, 0x01, 0x00, 0x1c,
+            0x01,
+            0x01,
+            0x00,
+            0x1c,
             // magic cookie
-            0x21, 0x12, 0xa4.toByte(), 0x42,
+            0x21,
+            0x12,
+            0xa4.toByte(),
+            0x42,
             // transaction ID
-            0xb7.toByte(), 0xe7.toByte(), 0xa7.toByte(), 0x01,
-            0xbc.toByte(), 0x34, 0xd6.toByte(), 0x86.toByte(),
-            0xfa.toByte(), 0x87.toByte(), 0xdf.toByte(), 0xae.toByte(),
+            0xb7.toByte(),
+            0xe7.toByte(),
+            0xa7.toByte(),
+            0x01,
+            0xbc.toByte(),
+            0x34,
+            0xd6.toByte(),
+            0x86.toByte(),
+            0xfa.toByte(),
+            0x87.toByte(),
+            0xdf.toByte(),
+            0xae.toByte(),
             // SOFTWARE (0x8022, length=11) — testa que o parser pula atributo desconhecido
-            0x80.toByte(), 0x22, 0x00, 0x0b,
-            0x74, 0x65, 0x73, 0x74,
-            0x20, 0x76, 0x65, 0x63,
-            0x74, 0x6f, 0x72, 0x20,
+            0x80.toByte(),
+            0x22,
+            0x00,
+            0x0b,
+            0x74,
+            0x65,
+            0x73,
+            0x74,
+            0x20,
+            0x76,
+            0x65,
+            0x63,
+            0x74,
+            0x6f,
+            0x72,
+            0x20,
             // XOR-MAPPED-ADDRESS (0x0020, length=8): família IPv4, porta e endereço com XOR
-            0x00, 0x20, 0x00, 0x08,
-            0x00, 0x01, 0xa1.toByte(), 0x47,
-            0xe1.toByte(), 0x12, 0xa6.toByte(), 0x43,
+            0x00,
+            0x20,
+            0x00,
+            0x08,
+            0x00,
+            0x01,
+            0xa1.toByte(),
+            0x47,
+            0xe1.toByte(),
+            0x12,
+            0xa6.toByte(),
+            0x43,
         )
 
     /** Binding Success Response só com MAPPED-ADDRESS legado (sem XOR) = 203.0.113.5:8080. */
@@ -51,13 +95,28 @@ class StunMessageCodecTest {
     private val respostaMappedAddressLegado =
         byteArrayOf(
             // header: tipo=0x0101, length=0x000c (12 bytes de corpo)
-            0x01, 0x01, 0x00, 0x0c,
-            0x21, 0x12, 0xa4.toByte(), 0x42,
+            0x01,
+            0x01,
+            0x00,
+            0x0c,
+            0x21,
+            0x12,
+            0xa4.toByte(),
+            0x42,
             *transactionIdLegado,
             // MAPPED-ADDRESS (0x0001, length=8): família IPv4, porta=8080, endereço 203.0.113.5 — sem XOR
-            0x00, 0x01, 0x00, 0x08,
-            0x00, 0x01, 0x1f, 0x90.toByte(),
-            0xcb.toByte(), 0x00, 0x71, 0x05,
+            0x00,
+            0x01,
+            0x00,
+            0x08,
+            0x00,
+            0x01,
+            0x1f,
+            0x90.toByte(),
+            0xcb.toByte(),
+            0x00,
+            0x71,
+            0x05,
         )
 
     @Test

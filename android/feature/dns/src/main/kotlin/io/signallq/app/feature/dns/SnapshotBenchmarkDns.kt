@@ -6,4 +6,3 @@ data class SnapshotBenchmarkDns(
     val resultados: List<ResultadoBenchmarkDns>,
     val erroMensagem: String?,
 )
-

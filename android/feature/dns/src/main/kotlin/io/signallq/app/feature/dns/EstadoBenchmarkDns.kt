@@ -6,4 +6,3 @@ enum class EstadoBenchmarkDns {
     concluido,
     erro,
 }
-

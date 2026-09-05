@@ -29,12 +29,12 @@ private const val TEST_DB = "migration-15-16-test"
  */
 @RunWith(AndroidJUnit4::class)
 class Migration15Para16Test {
-
     @get:Rule
-    val helper = MigrationTestHelper(
-        InstrumentationRegistry.getInstrumentation(),
-        SignallQDatabase::class.java,
-    )
+    val helper =
+        MigrationTestHelper(
+            InstrumentationRegistry.getInstrumentation(),
+            SignallQDatabase::class.java,
+        )
 
     private fun inserirMedicaoV15(
         db: SupportSQLiteDatabase,
@@ -63,22 +63,23 @@ class Migration15Para16Test {
 
         val db = helper.runMigrationsAndValidate(TEST_DB, 16, true, getMigracao15Para16())
 
-        db.query(
-            "SELECT executionId, rulesVersion, downloadMbps, uploadMbps, latencyMs, status " +
-                "FROM medicao WHERE id = 'test-id-legado-1'",
-        ).use { cursor ->
-            assertEquals(1, cursor.count)
-            cursor.moveToFirst()
-            // Nenhuma outra coluna/valor foi alterado pela migracao.
-            assertEquals(150.5, cursor.getDouble(cursor.getColumnIndex("downloadMbps")), 0.001)
-            assertEquals(20.0, cursor.getDouble(cursor.getColumnIndex("uploadMbps")), 0.001)
-            assertEquals(15.0, cursor.getDouble(cursor.getColumnIndex("latencyMs")), 0.001)
-            assertEquals("completed", cursor.getString(cursor.getColumnIndex("status")))
-            // executionId legado usa o proprio PK da linha, nunca vazio.
-            assertEquals("legacy-test-id-legado-1", cursor.getString(cursor.getColumnIndex("executionId")))
-            // rulesVersion legado -- nunca inventamos qual regra classificou dados antigos.
-            assertEquals("legacy-unversioned", cursor.getString(cursor.getColumnIndex("rulesVersion")))
-        }
+        db
+            .query(
+                "SELECT executionId, rulesVersion, downloadMbps, uploadMbps, latencyMs, status " +
+                    "FROM medicao WHERE id = 'test-id-legado-1'",
+            ).use { cursor ->
+                assertEquals(1, cursor.count)
+                cursor.moveToFirst()
+                // Nenhuma outra coluna/valor foi alterado pela migracao.
+                assertEquals(150.5, cursor.getDouble(cursor.getColumnIndex("downloadMbps")), 0.001)
+                assertEquals(20.0, cursor.getDouble(cursor.getColumnIndex("uploadMbps")), 0.001)
+                assertEquals(15.0, cursor.getDouble(cursor.getColumnIndex("latencyMs")), 0.001)
+                assertEquals("completed", cursor.getString(cursor.getColumnIndex("status")))
+                // executionId legado usa o proprio PK da linha, nunca vazio.
+                assertEquals("legacy-test-id-legado-1", cursor.getString(cursor.getColumnIndex("executionId")))
+                // rulesVersion legado -- nunca inventamos qual regra classificou dados antigos.
+                assertEquals("legacy-unversioned", cursor.getString(cursor.getColumnIndex("rulesVersion")))
+            }
     }
 
     @Test

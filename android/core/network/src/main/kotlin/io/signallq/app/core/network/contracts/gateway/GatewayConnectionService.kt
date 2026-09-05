@@ -18,7 +18,11 @@ package io.signallq.app.core.network.contracts.gateway
  * a #1511 eliminou — nao reintroduzir um mock equivalente.
  */
 fun interface GatewayConnectionService {
-    suspend fun conectar(ip: String, usuario: String, senha: String): GatewayConnectionResultado
+    suspend fun conectar(
+        ip: String,
+        usuario: String,
+        senha: String,
+    ): GatewayConnectionResultado
 }
 
 sealed interface GatewayConnectionResultado {
@@ -30,7 +34,9 @@ sealed interface GatewayConnectionResultado {
      * algo como "timeout TR-064" ou "HTTP 401") — a implementacao real e
      * responsavel por traduzir o erro tecnico antes de retornar aqui.
      */
-    data class Falha(val mensagemUsuario: String) : GatewayConnectionResultado
+    data class Falha(
+        val mensagemUsuario: String,
+    ) : GatewayConnectionResultado
 
     /**
      * BUG#1511 — nenhuma implementacao real de autenticacao esta conectada a

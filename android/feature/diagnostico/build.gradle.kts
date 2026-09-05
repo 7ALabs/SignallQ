@@ -1,4 +1,6 @@
 plugins {
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.ktlint)
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.kapt")
@@ -50,6 +52,32 @@ android {
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
+configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+    filter {
+        exclude("**/*.kts")
+        // PR #1856 (fix/nds-mobile-resultados-vazio) ainda nao mergeada mexe direto neste
+        // arquivo. Excluido temporariamente do ktlintCheck deste modulo pra nao gerar um diff de
+        // reformatacao concorrente -- remover esta exclusao assim que a #1856 mergear e rodar
+        // ktlintFormat neste arquivo normalmente.
+        exclude("**/nds/e2e/NdsE2ECenariosTest.kt")
+    }
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom("$rootDir/config/detekt.yml")
+    baseline = file("$rootDir/config/detekt-baseline.xml")
+}
+
+ktlint {
+    version = "1.3.1"
+    android = true
+    ignoreFailures = false
+    reporters {
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
     }
 }
 

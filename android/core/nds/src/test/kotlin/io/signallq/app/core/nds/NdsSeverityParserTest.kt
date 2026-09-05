@@ -6,7 +6,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class NdsSeverityParserTest {
-
     @Test
     fun `os 6 valores conhecidos mapeiam para o MetricStatus correspondente`() {
         assertEquals(MetricStatus.excelente, parseNdsVeredicto("excelente"))

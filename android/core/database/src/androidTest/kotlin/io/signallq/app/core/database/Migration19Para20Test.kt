@@ -50,11 +50,12 @@ class Migration19Para20Test {
 
         val dbMigrada = helper.runMigrationsAndValidate(TEST_DB, 20, true, CoreDatabaseModulo.MIGRATION_19_20)
 
-        dbMigrada.query(
-            "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'index_analytics_outbox_nextAttemptAtEpochMs'",
-        ).use { cursor ->
-            assertTrue("índice deve continuar existindo após a migração", cursor.moveToFirst())
-        }
+        dbMigrada
+            .query(
+                "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'index_analytics_outbox_nextAttemptAtEpochMs'",
+            ).use { cursor ->
+                assertTrue("índice deve continuar existindo após a migração", cursor.moveToFirst())
+            }
         dbMigrada.query("SELECT payloadJson FROM analytics_outbox WHERE id = 'event-com-indice'").use { cursor ->
             cursor.moveToFirst()
             assertEquals("{\"name\":\"screen_view\"}", cursor.getString(0))
@@ -73,11 +74,12 @@ class Migration19Para20Test {
 
         val dbMigrada = helper.runMigrationsAndValidate(TEST_DB, 20, true, CoreDatabaseModulo.MIGRATION_19_20)
 
-        dbMigrada.query(
-            "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'index_analytics_outbox_nextAttemptAtEpochMs'",
-        ).use { cursor ->
-            assertTrue("índice deve ser criado pela migração quando não existia", cursor.moveToFirst())
-        }
+        dbMigrada
+            .query(
+                "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'index_analytics_outbox_nextAttemptAtEpochMs'",
+            ).use { cursor ->
+                assertTrue("índice deve ser criado pela migração quando não existia", cursor.moveToFirst())
+            }
         dbMigrada.query("SELECT payloadJson, attemptCount, nextAttemptAtEpochMs FROM analytics_outbox WHERE id = 'event-sem-indice'").use { cursor ->
             cursor.moveToFirst()
             assertEquals("{\"name\":\"app_open\"}", cursor.getString(0))
@@ -90,17 +92,19 @@ class Migration19Para20Test {
     fun instalacaoNova_diretoNaVersaoAtual_jaSaiComIndice() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         val db =
-            Room.databaseBuilder(context, SignallQDatabase::class.java, "instalacao-nova-v20-test")
+            Room
+                .databaseBuilder(context, SignallQDatabase::class.java, "instalacao-nova-v20-test")
                 .build()
         try {
-            db.openHelper.writableDatabase.query(
-                "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'index_analytics_outbox_nextAttemptAtEpochMs'",
-            ).use { cursor ->
-                assertTrue(
-                    "instalação nova (Room cria direto das entidades) deve sair com o índice",
-                    cursor.moveToFirst(),
-                )
-            }
+            db.openHelper.writableDatabase
+                .query(
+                    "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'index_analytics_outbox_nextAttemptAtEpochMs'",
+                ).use { cursor ->
+                    assertTrue(
+                        "instalação nova (Room cria direto das entidades) deve sair com o índice",
+                        cursor.moveToFirst(),
+                    )
+                }
         } finally {
             db.close()
             context.deleteDatabase("instalacao-nova-v20-test")

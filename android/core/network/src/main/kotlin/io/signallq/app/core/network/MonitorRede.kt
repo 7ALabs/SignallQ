@@ -9,4 +9,3 @@ interface MonitorRede {
 
     fun encerrar()
 }
-

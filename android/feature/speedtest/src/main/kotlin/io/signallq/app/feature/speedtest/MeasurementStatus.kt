@@ -45,13 +45,14 @@ enum class MeasurementStatus {
 
 /** Label PT-BR do [MeasurementStatus], usado por telas e PDF (GH#1219/#1225) — unico
  *  ponto de traducao, nao reimplementar em cada consumidor. */
-fun MeasurementStatus.labelPt(): String = when (this) {
-    MeasurementStatus.COMPLETE -> "Completo"
-    MeasurementStatus.PARTIAL -> "Parcial"
-    MeasurementStatus.INCONCLUSIVE -> "Inconclusivo"
-    MeasurementStatus.CONTAMINATED -> "Contaminado"
-    MeasurementStatus.CANCELLED -> "Cancelado"
-}
+fun MeasurementStatus.labelPt(): String =
+    when (this) {
+        MeasurementStatus.COMPLETE -> "Completo"
+        MeasurementStatus.PARTIAL -> "Parcial"
+        MeasurementStatus.INCONCLUSIVE -> "Inconclusivo"
+        MeasurementStatus.CONTAMINATED -> "Contaminado"
+        MeasurementStatus.CANCELLED -> "Cancelado"
+    }
 
 /** Minimo de amostras validas de latencia para o calculo nao ser [MeasurementStatus.INCONCLUSIVE]
  *  (RF-08). Abaixo disso, jitter/perda calculados sobre poucas amostras nao tem confianca
@@ -74,10 +75,11 @@ internal fun calcularMeasurementStatus(
     uploadNaoDetectado: Boolean,
     downloadEncerradaPor: String,
     uploadEncerradaPor: String,
-): MeasurementStatus = when {
-    contaminado -> MeasurementStatus.CONTAMINATED
-    amostrasValidasLatencia < MINIMO_AMOSTRAS_LATENCIA_VALIDAS -> MeasurementStatus.INCONCLUSIVE
-    uploadNaoDetectado -> MeasurementStatus.PARTIAL
-    downloadEncerradaPor == "download_bloqueado_429" -> MeasurementStatus.PARTIAL
-    else -> MeasurementStatus.COMPLETE
-}
+): MeasurementStatus =
+    when {
+        contaminado -> MeasurementStatus.CONTAMINATED
+        amostrasValidasLatencia < MINIMO_AMOSTRAS_LATENCIA_VALIDAS -> MeasurementStatus.INCONCLUSIVE
+        uploadNaoDetectado -> MeasurementStatus.PARTIAL
+        downloadEncerradaPor == "download_bloqueado_429" -> MeasurementStatus.PARTIAL
+        else -> MeasurementStatus.COMPLETE
+    }

@@ -25,13 +25,14 @@ enum class NivelConfiancaIdentidade {
 }
 
 object AvaliadorConfiancaIdentidade {
-    private val NOMES_SEM_CORROBORACAO = setOf(
-        "Dispositivo não identificado",
-        "Host ativo",
-        "Serviço mDNS",
-        "Dispositivo SSDP",
-        "Gateway",
-    )
+    private val NOMES_SEM_CORROBORACAO =
+        setOf(
+            "Dispositivo não identificado",
+            "Host ativo",
+            "Serviço mDNS",
+            "Dispositivo SSDP",
+            "Gateway",
+        )
 
     fun avaliar(dispositivo: DispositivoRede): NivelConfiancaIdentidade {
         // "Este aparelho" é sempre confirmado -- o app sabe quem é via Build.MODEL/MANUFACTURER,
