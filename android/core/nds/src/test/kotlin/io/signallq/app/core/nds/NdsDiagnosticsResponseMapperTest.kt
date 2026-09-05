@@ -217,6 +217,38 @@ class NdsDiagnosticsResponseMapperTest {
     }
 
     @Test
+    fun `card com categoria mobile vai para mobileResultados, nao so para achadosSecundarios`() {
+        val response = responseComScoringEAi().copy(
+            results = responseComScoringEAi().results + NdsModuleResult(
+                module = "diagnostics.mobile",
+                moduleVersion = "1.0.0",
+                requestId = "req-1",
+                warnings = emptyList(),
+                missingInputs = emptyList(),
+                result = emptyMap(),
+                cards = listOf(
+                    mapOf(
+                        "id" to "mobile_signal_critical",
+                        "titulo" to "Sinal móvel muito fraco",
+                        "status" to "critical",
+                        "mensagemUsuario" to "Seu sinal 4G está muito fraco.",
+                        "categoria" to "mobile",
+                    ),
+                ),
+            ),
+        )
+
+        val report = response.toDiagnosticReport(DiagnosticInput(executionId = "exec-1"), 0L)
+
+        assertEquals(listOf("mobile_signal_critical"), report.mobileResultados.map { it.id })
+        assertEquals(DiagnosticStatus.critical, report.mobileResultados.first().status)
+        // continua tambem nos buckets genericos -- mobileResultados nao substitui,
+        // complementa, mesmo padrao ja usado por wifiResultados/fibraResultados/dnsResultados.
+        assertTrue(report.evidenciasRemotas.any { it.id == "mobile_signal_critical" })
+        assertTrue(report.achadosSecundarios.any { it.id == "mobile_signal_critical" })
+    }
+
+    @Test
     fun `cards remotos chegam ao DiagnosticReport e acao preserva ids e passos`() {
         val response = responseComScoringEAi(
             recommendation = NdsNextBestAction(
