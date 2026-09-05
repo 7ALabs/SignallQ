@@ -69,7 +69,6 @@ import org.junit.Test
  * abaixo — ver dívida registrada no PR desta issue.
  */
 class NdsE2ECenariosTest {
-
     private lateinit var server: MockWebServer
 
     @Before
@@ -87,46 +86,52 @@ class NdsE2ECenariosTest {
         }
     }
 
-    private fun repository() = NdsDiagnosticRepository(
-        ndsClient = NdsClient(baseUrl = server.url("/").toString(), apiToken = "test-token", client = OkHttpClient()),
-    )
+    private fun repository() =
+        NdsDiagnosticRepository(
+            ndsClient = NdsClient(baseUrl = server.url("/").toString(), apiToken = "test-token", client = OkHttpClient()),
+        )
 
     // -------------------------------------------------------------------
     // Cenário 1 — Wi-Fi congestionado (issue-mãe #1832, seção 21).
     // Esperado: identificar interferência/rede vizinha, SEM culpar o ISP.
     // -------------------------------------------------------------------
 
-    private fun inputWifiCongestionado() = DiagnosticInput(
-        connectionType = ConnectionType.wifi,
-        wifi = WifiDiagnosticInput(
-            rssiDbm = -58,
-            linkSpeedMbps = 150,
-            frequenciaMhz = 2437, // canal 6, 2.4GHz
-            ssid = "MinhaRede_24G",
-            canal = 6,
-            wifiStandard = "802.11n",
-        ),
-        wifiScan = WifiScanDiagnosticInput(
-            conectadoCanal = 6,
-            conectadoBanda = BandaWifi.ghz24,
-            redes = listOf(
-                RedeWifiVizinha(canal = 6, rssiDbm = -50, frequenciaMhz = 2437, ssid = "Vizinha_1"),
-                RedeWifiVizinha(canal = 6, rssiDbm = -55, frequenciaMhz = 2437, ssid = "Vizinha_2"),
-                RedeWifiVizinha(canal = 6, rssiDbm = -60, frequenciaMhz = 2437, ssid = "Vizinha_3"),
-                RedeWifiVizinha(canal = 1, rssiDbm = -70, frequenciaMhz = 2412, ssid = "Vizinha_4"),
-                RedeWifiVizinha(canal = 11, rssiDbm = -75, frequenciaMhz = 2462, ssid = "Vizinha_5"),
-            ),
-        ),
-        internet = InternetDiagnosticInput(
-            downloadMbps = 180.0,
-            uploadMbps = 40.0,
-            latencyMs = 28.0,
-            jitterMs = 9.0,
-            perdaPercentual = 0.5,
-        ),
-        context = DiagnosticContext(objective = "SITES_DEMORAM"),
-        executionId = "exec-e2e-wifi-congestionado",
-    )
+    private fun inputWifiCongestionado() =
+        DiagnosticInput(
+            connectionType = ConnectionType.wifi,
+            wifi =
+                WifiDiagnosticInput(
+                    rssiDbm = -58,
+                    linkSpeedMbps = 150,
+                    frequenciaMhz = 2437, // canal 6, 2.4GHz
+                    ssid = "MinhaRede_24G",
+                    canal = 6,
+                    wifiStandard = "802.11n",
+                ),
+            wifiScan =
+                WifiScanDiagnosticInput(
+                    conectadoCanal = 6,
+                    conectadoBanda = BandaWifi.ghz24,
+                    redes =
+                        listOf(
+                            RedeWifiVizinha(canal = 6, rssiDbm = -50, frequenciaMhz = 2437, ssid = "Vizinha_1"),
+                            RedeWifiVizinha(canal = 6, rssiDbm = -55, frequenciaMhz = 2437, ssid = "Vizinha_2"),
+                            RedeWifiVizinha(canal = 6, rssiDbm = -60, frequenciaMhz = 2437, ssid = "Vizinha_3"),
+                            RedeWifiVizinha(canal = 1, rssiDbm = -70, frequenciaMhz = 2412, ssid = "Vizinha_4"),
+                            RedeWifiVizinha(canal = 11, rssiDbm = -75, frequenciaMhz = 2462, ssid = "Vizinha_5"),
+                        ),
+                ),
+            internet =
+                InternetDiagnosticInput(
+                    downloadMbps = 180.0,
+                    uploadMbps = 40.0,
+                    latencyMs = 28.0,
+                    jitterMs = 9.0,
+                    perdaPercentual = 0.5,
+                ),
+            context = DiagnosticContext(objective = "SITES_DEMORAM"),
+            executionId = "exec-e2e-wifi-congestionado",
+        )
 
     /** Corpo de resposta do NDS simulando um veredicto "ruim" causado por
      *  congestionamento de canal — card explica a rede vizinha, sem citar ISP. */
@@ -196,81 +201,86 @@ class NdsE2ECenariosTest {
         """.trimIndent()
 
     @Test
-    fun `wifi congestionado - snapshot enviado ao NDS carrega wifiScan com as redes vizinhas`() = runTest {
-        server.enqueue(MockResponse().setResponseCode(200).setBody(respostaWifiCongestionado))
+    fun `wifi congestionado - snapshot enviado ao NDS carrega wifiScan com as redes vizinhas`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(200).setBody(respostaWifiCongestionado))
 
-        repository().evaluate(inputWifiCongestionado())
+            repository().evaluate(inputWifiCongestionado())
 
-        val corpoEnviado = JSONObject(server.takeRequest().body.readUtf8())
+            val corpoEnviado = JSONObject(server.takeRequest().body.readUtf8())
 
-        // Prova que o gap historico da issue-mae (#1832) -- `wifiScan = null` hardcoded
-        // mesmo com redes vizinhas disponiveis -- esta fechado: o bloco chega ao NDS
-        // com a evidencia bruta, nao so a conclusao.
-        assertTrue(corpoEnviado.has("wifiScan"))
-        val wifiScanEnviado = corpoEnviado.getJSONObject("wifiScan")
-        assertEquals(6, wifiScanEnviado.getInt("connectedChannel"))
-        assertEquals(5, wifiScanEnviado.getInt("neighborCount"))
-        assertEquals(5, wifiScanEnviado.getJSONArray("neighbors").length())
-        // congestionamento so existe se o motor de canal rodou de verdade sobre as
-        // vizinhas -- nao e um numero fixo, mas precisa estar presente.
-        assertTrue(wifiScanEnviado.has("channelCongestion"))
+            // Prova que o gap historico da issue-mae (#1832) -- `wifiScan = null` hardcoded
+            // mesmo com redes vizinhas disponiveis -- esta fechado: o bloco chega ao NDS
+            // com a evidencia bruta, nao so a conclusao.
+            assertTrue(corpoEnviado.has("wifiScan"))
+            val wifiScanEnviado = corpoEnviado.getJSONObject("wifiScan")
+            assertEquals(6, wifiScanEnviado.getInt("connectedChannel"))
+            assertEquals(5, wifiScanEnviado.getInt("neighborCount"))
+            assertEquals(5, wifiScanEnviado.getJSONArray("neighbors").length())
+            // congestionamento so existe se o motor de canal rodou de verdade sobre as
+            // vizinhas -- nao e um numero fixo, mas precisa estar presente.
+            assertTrue(wifiScanEnviado.has("channelCongestion"))
 
-        // Contexto do Assist (objective) tambem precisa chegar -- issue-mae secao 18.
-        assertEquals("SITES_DEMORAM", corpoEnviado.getJSONObject("context").getString("objective"))
-    }
+            // Contexto do Assist (objective) tambem precisa chegar -- issue-mae secao 18.
+            assertEquals("SITES_DEMORAM", corpoEnviado.getJSONObject("context").getString("objective"))
+        }
 
     @Test
-    fun `wifi congestionado - DiagnosticReport final explica rede vizinha sem culpar o ISP`() = runTest {
-        server.enqueue(MockResponse().setResponseCode(200).setBody(respostaWifiCongestionado))
+    fun `wifi congestionado - DiagnosticReport final explica rede vizinha sem culpar o ISP`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(200).setBody(respostaWifiCongestionado))
 
-        val report = repository().evaluate(inputWifiCongestionado())
+            val report = repository().evaluate(inputWifiCongestionado())
 
-        assertEquals(DiagnosticEvaluationSource.REMOTE, report.evaluationSource)
-        assertEquals(DiagnosticStatus.attention, report.decisao.status)
-        assertEquals(58, report.scoreEngineResultado?.score)
-        assertEquals("exec-e2e-wifi-congestionado", report.executionId)
+            assertEquals(DiagnosticEvaluationSource.REMOTE, report.evaluationSource)
+            assertEquals(DiagnosticStatus.attention, report.decisao.status)
+            assertEquals(58, report.scoreEngineResultado?.score)
+            assertEquals("exec-e2e-wifi-congestionado", report.executionId)
 
-        val mensagem = report.decisao.mensagemUsuario
-        assertTrue("mensagem deveria citar Wi-Fi/canal: $mensagem", mensagem.contains("Wi-Fi", ignoreCase = true))
-        assertFalse(
-            "mensagem NAO pode culpar o provedor sem evidencia (issue-mae #1832 secao 21): $mensagem",
-            mensagem.contains("provedor", ignoreCase = true) || mensagem.contains("operadora", ignoreCase = true),
-        )
+            val mensagem = report.decisao.mensagemUsuario
+            assertTrue("mensagem deveria citar Wi-Fi/canal: $mensagem", mensagem.contains("Wi-Fi", ignoreCase = true))
+            assertFalse(
+                "mensagem NAO pode culpar o provedor sem evidencia (issue-mae #1832 secao 21): $mensagem",
+                mensagem.contains("provedor", ignoreCase = true) || mensagem.contains("operadora", ignoreCase = true),
+            )
 
-        // O card da rede vizinha precisa estar preservado nas evidencias, nao descartado.
-        val cardWifi = report.wifiResultados.firstOrNull { it.id == "wifi_channel_congested" }
-        assertTrue("card wifi_channel_congested deveria estar em wifiResultados", cardWifi != null)
-        assertEquals(DiagnosticStatus.attention, cardWifi?.status)
+            // O card da rede vizinha precisa estar preservado nas evidencias, nao descartado.
+            val cardWifi = report.wifiResultados.firstOrNull { it.id == "wifi_channel_congested" }
+            assertTrue("card wifi_channel_congested deveria estar em wifiResultados", cardWifi != null)
+            assertEquals(DiagnosticStatus.attention, cardWifi?.status)
 
-        assertEquals("trocar_canal_wifi", report.decisao.recomendacaoId)
-        assertEquals(listOf("wifi_channel_congested"), report.decisao.sourceFindingIds)
-    }
+            assertEquals("trocar_canal_wifi", report.decisao.recomendacaoId)
+            assertEquals(listOf("wifi_channel_congested"), report.decisao.sourceFindingIds)
+        }
 
     // -------------------------------------------------------------------
     // Cenário 2 — móvel com sinal fraco (issue-mãe #1832, seção 21).
     // Esperado: explicar o sinal usando RSRP/RSRQ/SINR e tecnologia.
     // -------------------------------------------------------------------
 
-    private fun inputMovelSinalFraco() = DiagnosticInput(
-        connectionType = ConnectionType.mobile,
-        mobile = MobileDiagnosticInput(
-            carrierName = "TIM",
-            mobileTechnology = "4G",
-            rsrpDbm = -112,
-            rsrqDb = -17,
-            sinrDb = -3,
-            band = "B3",
-        ),
-        internet = InternetDiagnosticInput(
-            downloadMbps = 4.2,
-            uploadMbps = 1.1,
-            latencyMs = 180.0,
-            jitterMs = 45.0,
-            perdaPercentual = 3.5,
-        ),
-        context = DiagnosticContext(objective = "VIDEOS_TRAVAM"),
-        executionId = "exec-e2e-movel-fraco",
-    )
+    private fun inputMovelSinalFraco() =
+        DiagnosticInput(
+            connectionType = ConnectionType.mobile,
+            mobile =
+                MobileDiagnosticInput(
+                    carrierName = "TIM",
+                    mobileTechnology = "4G",
+                    rsrpDbm = -112,
+                    rsrqDb = -17,
+                    sinrDb = -3,
+                    band = "B3",
+                ),
+            internet =
+                InternetDiagnosticInput(
+                    downloadMbps = 4.2,
+                    uploadMbps = 1.1,
+                    latencyMs = 180.0,
+                    jitterMs = 45.0,
+                    perdaPercentual = 3.5,
+                ),
+            context = DiagnosticContext(objective = "VIDEOS_TRAVAM"),
+            executionId = "exec-e2e-movel-fraco",
+        )
 
     /** Corpo de resposta do NDS simulando um veredicto "critico" causado por sinal
      *  móvel fraco — card explica RSRP/RSRQ/SINR, não culpa o app nem inventa causa. */
@@ -340,57 +350,59 @@ class NdsE2ECenariosTest {
         """.trimIndent()
 
     @Test
-    fun `movel com sinal fraco - snapshot enviado ao NDS carrega RSRP RSRQ SINR e tecnologia`() = runTest {
-        server.enqueue(MockResponse().setResponseCode(200).setBody(respostaMovelSinalFraco))
+    fun `movel com sinal fraco - snapshot enviado ao NDS carrega RSRP RSRQ SINR e tecnologia`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(200).setBody(respostaMovelSinalFraco))
 
-        repository().evaluate(inputMovelSinalFraco())
+            repository().evaluate(inputMovelSinalFraco())
 
-        val corpoEnviado = JSONObject(server.takeRequest().body.readUtf8())
+            val corpoEnviado = JSONObject(server.takeRequest().body.readUtf8())
 
-        // Prova que o bloco `mobile` (gap critico da issue-mae, secao 4) chega ao NDS
-        // com as evidencias de sinal, nao so a operadora.
-        assertTrue(corpoEnviado.has("mobile"))
-        val mobileEnviado = corpoEnviado.getJSONObject("mobile")
-        assertEquals("TIM", mobileEnviado.getString("operator"))
-        assertEquals("4G", mobileEnviado.getString("technology"))
-        assertEquals(-112, mobileEnviado.getInt("rsrp_dbm"))
-        assertEquals(-17, mobileEnviado.getInt("rsrq_db"))
-        assertEquals(-3, mobileEnviado.getInt("sinr_db"))
-        assertEquals("B3", mobileEnviado.getString("band"))
+            // Prova que o bloco `mobile` (gap critico da issue-mae, secao 4) chega ao NDS
+            // com as evidencias de sinal, nao so a operadora.
+            assertTrue(corpoEnviado.has("mobile"))
+            val mobileEnviado = corpoEnviado.getJSONObject("mobile")
+            assertEquals("TIM", mobileEnviado.getString("operator"))
+            assertEquals("4G", mobileEnviado.getString("technology"))
+            assertEquals(-112, mobileEnviado.getInt("rsrp_dbm"))
+            assertEquals(-17, mobileEnviado.getInt("rsrq_db"))
+            assertEquals(-3, mobileEnviado.getInt("sinr_db"))
+            assertEquals("B3", mobileEnviado.getString("band"))
 
-        // Nunca deve vazar identificador de celula/torre (issue-mae secao 4, proibicao explicita).
-        assertFalse(mobileEnviado.has("cell_id"))
-        assertFalse(mobileEnviado.has("tac"))
-        assertFalse(mobileEnviado.has("mcc"))
-        assertFalse(mobileEnviado.has("mnc"))
-    }
+            // Nunca deve vazar identificador de celula/torre (issue-mae secao 4, proibicao explicita).
+            assertFalse(mobileEnviado.has("cell_id"))
+            assertFalse(mobileEnviado.has("tac"))
+            assertFalse(mobileEnviado.has("mcc"))
+            assertFalse(mobileEnviado.has("mnc"))
+        }
 
     @Test
-    fun `movel com sinal fraco - DiagnosticReport final explica RSRP RSRQ SINR sem inventar causa`() = runTest {
-        server.enqueue(MockResponse().setResponseCode(200).setBody(respostaMovelSinalFraco))
+    fun `movel com sinal fraco - DiagnosticReport final explica RSRP RSRQ SINR sem inventar causa`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(200).setBody(respostaMovelSinalFraco))
 
-        val report = repository().evaluate(inputMovelSinalFraco())
+            val report = repository().evaluate(inputMovelSinalFraco())
 
-        assertEquals(DiagnosticEvaluationSource.REMOTE, report.evaluationSource)
-        assertEquals(DiagnosticStatus.critical, report.decisao.status)
-        assertEquals(22, report.scoreEngineResultado?.score)
-        assertEquals("exec-e2e-movel-fraco", report.executionId)
+            assertEquals(DiagnosticEvaluationSource.REMOTE, report.evaluationSource)
+            assertEquals(DiagnosticStatus.critical, report.decisao.status)
+            assertEquals(22, report.scoreEngineResultado?.score)
+            assertEquals("exec-e2e-movel-fraco", report.executionId)
 
-        val mensagem = report.decisao.mensagemUsuario
-        assertTrue("mensagem deveria citar RSRP: $mensagem", mensagem.contains("RSRP", ignoreCase = true))
-        assertTrue("mensagem deveria citar SINR: $mensagem", mensagem.contains("SINR", ignoreCase = true))
+            val mensagem = report.decisao.mensagemUsuario
+            assertTrue("mensagem deveria citar RSRP: $mensagem", mensagem.contains("RSRP", ignoreCase = true))
+            assertTrue("mensagem deveria citar SINR: $mensagem", mensagem.contains("SINR", ignoreCase = true))
 
-        // Achado da revisao do PR #1855 (Caio): mobileResultados vinha hardcoded
-        // emptyList() no mapper v1, entao o card so aparecia em achadosSecundarios
-        // (bucket generico, ignorado por SpeedtestPersistenceCoordinator.extrairProblemasRelatorio
-        // e AiModels.findingsRelevantes). Corrigido em NdsDiagnosticsResponseMapper --
-        // agora o card de categoria "mobile" chega em mobileResultados de verdade,
-        // sem precisar do fallback pro bucket generico.
-        val cardMovel = report.mobileResultados.firstOrNull { it.id == "mobile_signal_critical" }
-        assertTrue("card mobile_signal_critical deveria estar em mobileResultados", cardMovel != null)
-        assertEquals(DiagnosticStatus.critical, cardMovel?.status)
+            // Achado da revisao do PR #1855 (Caio): mobileResultados vinha hardcoded
+            // emptyList() no mapper v1, entao o card so aparecia em achadosSecundarios
+            // (bucket generico, ignorado por SpeedtestPersistenceCoordinator.extrairProblemasRelatorio
+            // e AiModels.findingsRelevantes). Corrigido em NdsDiagnosticsResponseMapper --
+            // agora o card de categoria "mobile" chega em mobileResultados de verdade,
+            // sem precisar do fallback pro bucket generico.
+            val cardMovel = report.mobileResultados.firstOrNull { it.id == "mobile_signal_critical" }
+            assertTrue("card mobile_signal_critical deveria estar em mobileResultados", cardMovel != null)
+            assertEquals(DiagnosticStatus.critical, cardMovel?.status)
 
-        assertEquals("aproximar_janela_sinal", report.decisao.recomendacaoId)
-        assertEquals(listOf("mobile_signal_critical"), report.decisao.sourceFindingIds)
-    }
+            assertEquals("aproximar_janela_sinal", report.decisao.recomendacaoId)
+            assertEquals(listOf("mobile_signal_critical"), report.decisao.sourceFindingIds)
+        }
 }

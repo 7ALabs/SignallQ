@@ -77,12 +77,6 @@ kotlin {
 configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
     filter {
         exclude("**/*.kts")
-        // PR #1856 (fix/nds-mobile-resultados-vazio) ainda nao mergeada mexe direto neste
-        // arquivo. Excluido temporariamente do ktlintCheck deste modulo pra nao gerar um diff de
-        // reformatacao concorrente -- remover esta exclusao assim que a #1856 mergear e rodar
-        // ktlintFormat neste arquivo normalmente.
-        exclude("**/NdsDiagnosticsResponseMapper.kt")
-        exclude("**/NdsDiagnosticsResponseMapperTest.kt")
     }
 }
 
