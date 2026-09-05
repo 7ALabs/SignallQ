@@ -15,3 +15,45 @@ ktlint_function_naming_ignore_when_annotated_with = Composable
 [*.kts]
 ktlint_standard_chain-wrapping = disabled
 ktlint_standard_function-naming = disabled
+
+# Issue #1857 (tech-debt) — entries de enum minusculas propositais: o Kotlin `.name` delas e usado
+# como valor persistido/wire (coluna Room `MedicaoEntity.connectionType`, parse do contrato NDS via
+# `DiagnosticStatus.valueOf`, sufixo salvo em `SpeedtestPersistenceCoordinator`). Renomear pra
+# UpperCamelCase sem uma migracao dedicada quebraria dado ja gravado em producao e o parsing do NDS
+# -- ver .claude/rules/higiene-e-padronizacao-repositorio.md §6. Suprime so esta regra, so nestes
+# arquivos (nao o modulo inteiro, nao outras regras). Remover a secao quando a issue #1857 fechar.
+[core/diagnostico/src/main/kotlin/io/signallq/app/core/diagnostico/{DiagnosticInput,DiagnosticStatus,EvidenceProvenance,HistoricalDegradationEngine,MetricClassifier,NivelCongestionamento}.kt]
+ktlint_standard_enum-entry-name-case = disabled
+
+[core/network/src/main/kotlin/io/signallq/app/core/network/EstadoConexao.kt]
+ktlint_standard_enum-entry-name-case = disabled
+
+[core/network/src/main/kotlin/io/signallq/app/core/network/contracts/dispositivo/TipoDispositivoRede.kt]
+ktlint_standard_enum-entry-name-case = disabled
+
+[core/network/src/main/kotlin/io/signallq/app/core/network/contracts/fibra/GponSaudeStatus.kt]
+ktlint_standard_enum-entry-name-case = disabled
+
+[core/network/src/main/kotlin/io/signallq/app/core/network/contracts/wifi/RedeVizinha.kt]
+ktlint_standard_enum-entry-name-case = disabled
+
+[core/network/src/main/kotlin/io/signallq/app/core/network/wifi/SnapshotScanWifi.kt]
+ktlint_standard_enum-entry-name-case = disabled
+
+[core/permissions/src/main/kotlin/io/signallq/app/core/permissions/EstadoPermissao.kt]
+ktlint_standard_enum-entry-name-case = disabled
+
+[feature/speedtest/src/main/kotlin/io/signallq/app/feature/speedtest/{DiagnosticoQualidadeSpeedtest,EstadoExecucaoSpeedtest,FaseSpeedtest,ModoSpeedtest,SeveridadeBufferbloat}.kt]
+ktlint_standard_enum-entry-name-case = disabled
+
+[feature/devices/src/main/kotlin/io/signallq/app/feature/devices/{ClassificadorDispositivoRede,EstadoScanDispositivos}.kt]
+ktlint_standard_enum-entry-name-case = disabled
+
+[feature/diagnostico/src/main/kotlin/io/signallq/app/feature/diagnostico/EstadoDiagnostico.kt]
+ktlint_standard_enum-entry-name-case = disabled
+
+[feature/dns/src/main/kotlin/io/signallq/app/feature/dns/{AvaliadorCoerenciaDns,EstadoBenchmarkDns}.kt]
+ktlint_standard_enum-entry-name-case = disabled
+
+[feature/fibra/src/main/kotlin/io/signallq/app/feature/fibra/EstadoFibra.kt]
+ktlint_standard_enum-entry-name-case = disabled

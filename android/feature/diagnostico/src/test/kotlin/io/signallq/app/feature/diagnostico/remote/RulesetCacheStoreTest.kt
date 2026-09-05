@@ -19,7 +19,6 @@ import java.nio.file.Files
  * conteudo invalido nunca substitui um cache valido ja existente.
  */
 class RulesetCacheStoreTest {
-
     private lateinit var cacheDir: File
     private lateinit var store: FileRulesetCacheStore
 
@@ -70,12 +69,13 @@ class RulesetCacheStoreTest {
     @Test
     fun `hash divergente - trata como corrompido mesmo com JSON bem formado`() {
         cacheDir.mkdirs()
-        val forjado = JSONObject()
-            .put("content", payload("v1"))
-            .put("rulesetVersion", 1)
-            .put("hash", "hash-forjado-nao-bate")
-            .put("syncedAtMs", 1_000L)
-            .toString()
+        val forjado =
+            JSONObject()
+                .put("content", payload("v1"))
+                .put("rulesetVersion", 1)
+                .put("hash", "hash-forjado-nao-bate")
+                .put("syncedAtMs", 1_000L)
+                .toString()
         File(cacheDir, "diagnostic_ruleset_cache.json").writeText(forjado, StandardCharsets.UTF_8)
 
         assertNull(store.load())

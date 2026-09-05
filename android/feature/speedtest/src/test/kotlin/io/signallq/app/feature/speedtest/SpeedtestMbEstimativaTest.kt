@@ -1,6 +1,5 @@
 ﻿package io.signallq.app.feature.speedtest
 
-import io.signallq.app.feature.speedtest.ModoSpeedtest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -11,7 +10,6 @@ import org.junit.Test
  * Android runtime, portanto testamos apenas a logica de estimativas de MB de forma isolada.
  */
 class SpeedtestMbEstimativaTest {
-
     /** Replica a logica de estimativa de MB do SpeedtestViewModel. */
     private fun mbEstimadoPorModo(modo: ModoSpeedtest): Long =
         when (modo) {

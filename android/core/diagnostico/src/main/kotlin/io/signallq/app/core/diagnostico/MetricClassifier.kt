@@ -48,7 +48,6 @@ package io.signallq.app.core.diagnostico
  * engines no [MetricClassifier] e o escopo das proximas issues.
  */
 object MetricClassifier {
-
     // ── Wi-Fi RSSI ────────────────────────────────────────────────────────────
     // Fonte: skill /regras-diagnostico-rede. Thresholds distintos por banda.
 
@@ -56,22 +55,28 @@ object MetricClassifier {
      *  (nao ha tabela propria documentada na skill para Wi-Fi 6E/6GHz). */
     enum class WifiBand { GHZ_2_4, GHZ_5, GHZ_6 }
 
-    fun classificarRssiWifi(rssiDbm: Int, band: WifiBand): MetricStatus = when (band) {
-        WifiBand.GHZ_2_4 -> when {
-            rssiDbm > -50 -> MetricStatus.excelente
-            rssiDbm > -60 -> MetricStatus.bom
-            rssiDbm > -70 -> MetricStatus.regular
-            rssiDbm > -80 -> MetricStatus.ruim
-            else -> MetricStatus.critico
+    fun classificarRssiWifi(
+        rssiDbm: Int,
+        band: WifiBand,
+    ): MetricStatus =
+        when (band) {
+            WifiBand.GHZ_2_4 ->
+                when {
+                    rssiDbm > -50 -> MetricStatus.excelente
+                    rssiDbm > -60 -> MetricStatus.bom
+                    rssiDbm > -70 -> MetricStatus.regular
+                    rssiDbm > -80 -> MetricStatus.ruim
+                    else -> MetricStatus.critico
+                }
+            WifiBand.GHZ_5, WifiBand.GHZ_6 ->
+                when {
+                    rssiDbm > -55 -> MetricStatus.excelente
+                    rssiDbm > -65 -> MetricStatus.bom
+                    rssiDbm > -75 -> MetricStatus.regular
+                    rssiDbm > -82 -> MetricStatus.ruim
+                    else -> MetricStatus.critico
+                }
         }
-        WifiBand.GHZ_5, WifiBand.GHZ_6 -> when {
-            rssiDbm > -55 -> MetricStatus.excelente
-            rssiDbm > -65 -> MetricStatus.bom
-            rssiDbm > -75 -> MetricStatus.regular
-            rssiDbm > -82 -> MetricStatus.ruim
-            else -> MetricStatus.critico
-        }
-    }
 
     /**
      * Sobrecarga que aceita [BandaWifi] (2.4/5GHz + desconhecida) em vez de [WifiBand] --
@@ -81,13 +86,17 @@ object MetricClassifier {
      * GH#1228 Fatia 5 (P0-2): unico ponto de conversao, evita que cada tela reimplemente o
      * mapeamento BandaWifi -> WifiBand.
      */
-    fun classificarRssiWifi(rssiDbm: Int, banda: BandaWifi): MetricStatus =
+    fun classificarRssiWifi(
+        rssiDbm: Int,
+        banda: BandaWifi,
+    ): MetricStatus =
         classificarRssiWifi(
             rssiDbm = rssiDbm,
-            band = when (banda) {
-                BandaWifi.ghz24, BandaWifi.desconhecida -> WifiBand.GHZ_2_4
-                BandaWifi.ghz5 -> WifiBand.GHZ_5
-            },
+            band =
+                when (banda) {
+                    BandaWifi.ghz24, BandaWifi.desconhecida -> WifiBand.GHZ_2_4
+                    BandaWifi.ghz5 -> WifiBand.GHZ_5
+                },
         )
 
     // ── Latencia / jitter / perda de pacotes ────────────────────────────────
@@ -96,26 +105,29 @@ object MetricClassifier {
     // dedicada, pois a skill nao documenta uma. "ruim" e o teto superior.
 
     /** Latencia de internet (ping externo), em ms. */
-    fun classificarLatencia(latenciaMs: Double): MetricStatus = when {
-        latenciaMs < 100.0 -> MetricStatus.excelente
-        latenciaMs <= 150.0 -> MetricStatus.bom
-        latenciaMs <= 200.0 -> MetricStatus.regular
-        else -> MetricStatus.ruim
-    }
+    fun classificarLatencia(latenciaMs: Double): MetricStatus =
+        when {
+            latenciaMs < 100.0 -> MetricStatus.excelente
+            latenciaMs <= 150.0 -> MetricStatus.bom
+            latenciaMs <= 200.0 -> MetricStatus.regular
+            else -> MetricStatus.ruim
+        }
 
-    fun classificarJitter(jitterMs: Double): MetricStatus = when {
-        jitterMs < 5.0 -> MetricStatus.excelente
-        jitterMs <= 10.0 -> MetricStatus.bom
-        jitterMs <= 20.0 -> MetricStatus.regular
-        else -> MetricStatus.ruim
-    }
+    fun classificarJitter(jitterMs: Double): MetricStatus =
+        when {
+            jitterMs < 5.0 -> MetricStatus.excelente
+            jitterMs <= 10.0 -> MetricStatus.bom
+            jitterMs <= 20.0 -> MetricStatus.regular
+            else -> MetricStatus.ruim
+        }
 
-    fun classificarPerdaPacotes(perdaPercentual: Double): MetricStatus = when {
-        perdaPercentual <= 0.0 -> MetricStatus.excelente
-        perdaPercentual < 0.5 -> MetricStatus.bom
-        perdaPercentual <= 2.0 -> MetricStatus.regular
-        else -> MetricStatus.ruim
-    }
+    fun classificarPerdaPacotes(perdaPercentual: Double): MetricStatus =
+        when {
+            perdaPercentual <= 0.0 -> MetricStatus.excelente
+            perdaPercentual < 0.5 -> MetricStatus.bom
+            perdaPercentual <= 2.0 -> MetricStatus.regular
+            else -> MetricStatus.ruim
+        }
 
     // ── RSRP / RSRQ / SINR (4G LTE e 5G NR) ─────────────────────────────────
     // Tabela unica de referencia (fonte: skill /regras-diagnostico-rede). NAO usar
@@ -135,43 +147,59 @@ object MetricClassifier {
 
     enum class RadioTech { LTE_4G, NR_5G }
 
-    fun classificarRsrp(rsrpDbm: Int, tech: RadioTech): MetricStatus = when (tech) {
-        RadioTech.LTE_4G -> when {
-            rsrpDbm > -80 -> MetricStatus.excelente
-            rsrpDbm > -90 -> MetricStatus.bom
-            rsrpDbm > -100 -> MetricStatus.regular
-            else -> MetricStatus.ruim
+    fun classificarRsrp(
+        rsrpDbm: Int,
+        tech: RadioTech,
+    ): MetricStatus =
+        when (tech) {
+            RadioTech.LTE_4G ->
+                when {
+                    rsrpDbm > -80 -> MetricStatus.excelente
+                    rsrpDbm > -90 -> MetricStatus.bom
+                    rsrpDbm > -100 -> MetricStatus.regular
+                    else -> MetricStatus.ruim
+                }
+            RadioTech.NR_5G ->
+                when {
+                    rsrpDbm > -80 -> MetricStatus.excelente
+                    rsrpDbm > -95 -> MetricStatus.bom
+                    rsrpDbm > -110 -> MetricStatus.regular
+                    else -> MetricStatus.ruim
+                }
         }
-        RadioTech.NR_5G -> when {
-            rsrpDbm > -80 -> MetricStatus.excelente
-            rsrpDbm > -95 -> MetricStatus.bom
-            rsrpDbm > -110 -> MetricStatus.regular
-            else -> MetricStatus.ruim
-        }
-    }
 
     /** RSRQ 5G usa a mesma faixa do 4G — sem tabela propria documentada na skill. */
-    fun classificarRsrq(rsrqDb: Int, tech: RadioTech): MetricStatus = when {
-        rsrqDb > -10 -> MetricStatus.excelente
-        rsrqDb > -15 -> MetricStatus.bom
-        rsrqDb > -20 -> MetricStatus.regular
-        else -> MetricStatus.ruim
-    }
+    fun classificarRsrq(
+        rsrqDb: Int,
+        tech: RadioTech,
+    ): MetricStatus =
+        when {
+            rsrqDb > -10 -> MetricStatus.excelente
+            rsrqDb > -15 -> MetricStatus.bom
+            rsrqDb > -20 -> MetricStatus.regular
+            else -> MetricStatus.ruim
+        }
 
-    fun classificarSinr(sinrDb: Int, tech: RadioTech): MetricStatus = when (tech) {
-        RadioTech.LTE_4G -> when {
-            sinrDb > 20 -> MetricStatus.excelente
-            sinrDb > 13 -> MetricStatus.bom
-            sinrDb > 0 -> MetricStatus.regular
-            else -> MetricStatus.ruim
+    fun classificarSinr(
+        sinrDb: Int,
+        tech: RadioTech,
+    ): MetricStatus =
+        when (tech) {
+            RadioTech.LTE_4G ->
+                when {
+                    sinrDb > 20 -> MetricStatus.excelente
+                    sinrDb > 13 -> MetricStatus.bom
+                    sinrDb > 0 -> MetricStatus.regular
+                    else -> MetricStatus.ruim
+                }
+            RadioTech.NR_5G ->
+                when {
+                    sinrDb > 20 -> MetricStatus.excelente
+                    sinrDb > 10 -> MetricStatus.bom
+                    sinrDb > 0 -> MetricStatus.regular
+                    else -> MetricStatus.ruim
+                }
         }
-        RadioTech.NR_5G -> when {
-            sinrDb > 20 -> MetricStatus.excelente
-            sinrDb > 10 -> MetricStatus.bom
-            sinrDb > 0 -> MetricStatus.regular
-            else -> MetricStatus.ruim
-        }
-    }
 
     // ── Download / Upload (throughput do speedtest) ─────────────────────────
     // Fonte: limiares ja em producao na tela de Resultado do speedtest (ate a
@@ -183,32 +211,35 @@ object MetricClassifier {
     // valores. GH#1221 RF-06: unico ponto de verdade, tela de Resultado nao
     // pode mais ter sua propria regua.
 
-    fun classificarDownload(mbps: Double): MetricStatus = when {
-        mbps >= 100.0 -> MetricStatus.excelente
-        mbps >= 50.0 -> MetricStatus.bom
-        mbps >= 25.0 -> MetricStatus.regular
-        mbps >= 10.0 -> MetricStatus.ruim
-        else -> MetricStatus.critico
-    }
+    fun classificarDownload(mbps: Double): MetricStatus =
+        when {
+            mbps >= 100.0 -> MetricStatus.excelente
+            mbps >= 50.0 -> MetricStatus.bom
+            mbps >= 25.0 -> MetricStatus.regular
+            mbps >= 10.0 -> MetricStatus.ruim
+            else -> MetricStatus.critico
+        }
 
-    fun classificarUpload(mbps: Double): MetricStatus = when {
-        mbps >= 20.0 -> MetricStatus.excelente
-        mbps >= 10.0 -> MetricStatus.bom
-        mbps >= 3.0 -> MetricStatus.regular
-        mbps >= 1.0 -> MetricStatus.ruim
-        else -> MetricStatus.critico
-    }
+    fun classificarUpload(mbps: Double): MetricStatus =
+        when {
+            mbps >= 20.0 -> MetricStatus.excelente
+            mbps >= 10.0 -> MetricStatus.bom
+            mbps >= 3.0 -> MetricStatus.regular
+            mbps >= 1.0 -> MetricStatus.ruim
+            else -> MetricStatus.critico
+        }
 
     // ── DNS (latencia) ───────────────────────────────────────────────────────
     // Sem tabela dedicada de 4 faixas na skill para DNS — reaproveita os limiares
     // ja em producao em DnsDiagnosticEngine (50/150/300ms), remapeados para o
     // vocabulario canonico de 6 valores.
-    fun classificarLatenciaDns(latenciaMs: Int): MetricStatus = when {
-        latenciaMs <= 50 -> MetricStatus.excelente
-        latenciaMs <= 150 -> MetricStatus.bom
-        latenciaMs <= 300 -> MetricStatus.regular
-        else -> MetricStatus.ruim
-    }
+    fun classificarLatenciaDns(latenciaMs: Int): MetricStatus =
+        when {
+            latenciaMs <= 50 -> MetricStatus.excelente
+            latenciaMs <= 150 -> MetricStatus.bom
+            latenciaMs <= 300 -> MetricStatus.regular
+            else -> MetricStatus.ruim
+        }
 
     // ── Bufferbloat ──────────────────────────────────────────────────────────
     // Thresholds DSLReports/waveform, usados por InternetDiagnosticEngine (mesmo modulo)
@@ -217,12 +248,13 @@ object MetricClassifier {
     // esta e a UNICA implementacao dos 3 cortes -- SpeedtestQualityClassifier depende deste
     // modulo (:feature* -> :core*, direcao permitida) e so traduz o resultado para o seu
     // proprio vocabulario (SeveridadeBufferbloat). Nao duplicar o corte numerico de novo.
-    fun classificarBufferbloat(deltaMs: Double): MetricStatus = when {
-        deltaMs < 5.0 -> MetricStatus.excelente
-        deltaMs <= 30.0 -> MetricStatus.bom
-        deltaMs <= 100.0 -> MetricStatus.regular
-        else -> MetricStatus.ruim
-    }
+    fun classificarBufferbloat(deltaMs: Double): MetricStatus =
+        when {
+            deltaMs < 5.0 -> MetricStatus.excelente
+            deltaMs <= 30.0 -> MetricStatus.bom
+            deltaMs <= 100.0 -> MetricStatus.regular
+            else -> MetricStatus.ruim
+        }
 }
 
 /**

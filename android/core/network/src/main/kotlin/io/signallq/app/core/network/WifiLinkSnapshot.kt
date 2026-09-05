@@ -12,4 +12,3 @@ data class WifiLinkSnapshot(
      *  RecomendacaoPraticaEngine trata como "desconhecido", nao "sem suporte". */
     val is5GhzCapable: Boolean? = null,
 )
-

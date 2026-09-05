@@ -14,7 +14,6 @@ import org.junit.Test
  * (equals/copy), sem inventar um codec so para o teste.
  */
 class DiagnosticEvaluationTest {
-
     @Test
     fun `todo wireValue de DiagnosticEvaluationSource volta ao enum original`() {
         DiagnosticEvaluationSource.entries.forEach { valor ->
@@ -73,43 +72,50 @@ class DiagnosticEvaluationTest {
 
     @Test
     fun `DiagnosticEvaluation completo preserva todos os campos por copy e equals`() {
-        val finding = DiagnosticEvaluationFinding(
-            findingCode = "WIFI-CANAL-CONGESTIONADO",
-            category = DiagnosticEvaluationFindingCategory.WIFI_CANAL,
-            severity = DiagnosticEvaluationSeverity.WARNING,
-            confidence = DiagnosticEvaluationConfidence.MEDIUM,
-            recommendationId = "REC-WIFI-CANAL-01",
-            matchedRuleId = "rule-wifi-canal-congestionado",
-            matchedRuleVersion = 3,
-        )
+        val finding =
+            DiagnosticEvaluationFinding(
+                findingCode = "WIFI-CANAL-CONGESTIONADO",
+                category = DiagnosticEvaluationFindingCategory.WIFI_CANAL,
+                severity = DiagnosticEvaluationSeverity.WARNING,
+                confidence = DiagnosticEvaluationConfidence.MEDIUM,
+                recommendationId = "REC-WIFI-CANAL-01",
+                matchedRuleId = "rule-wifi-canal-congestionado",
+                matchedRuleVersion = 3,
+            )
 
-        val original = DiagnosticEvaluation(
-            resultSchemaVersion = 1,
-            engineVersion = 2,
-            rulesetVersion = 5,
-            evaluationSource = DiagnosticEvaluationSource.REMOTE,
-            overallStatus = DiagnosticEvaluationStatus.ATTENTION,
-            score = 62,
-            confidence = DiagnosticEvaluationConfidence.MEDIUM,
-            matchedRules = listOf("rule-wifi-canal-congestionado"),
-            findings = listOf(finding),
-            recommendations = listOf("REC-WIFI-CANAL-01"),
-            primaryFlow = DiagnosticEvaluationFlow.WIFI_LOCAL,
-            secondaryFlows = listOf(DiagnosticEvaluationFlow.SAUDAVEL_MONITORAR),
-            humanSummary = "Seu Wi-Fi esta num canal congestionado.",
-            humanResolution = listOf("Troque para o canal 6 ou 11 nas configuracoes do roteador."),
-            missingInputs = emptyList(),
-            nextBestChecks = listOf("Repita o teste apos trocar o canal."),
-            resolvableNow = true,
-            evaluatedAt = "2026-07-26T12:00:00Z",
-            traceId = "trace-123",
-        )
+        val original =
+            DiagnosticEvaluation(
+                resultSchemaVersion = 1,
+                engineVersion = 2,
+                rulesetVersion = 5,
+                evaluationSource = DiagnosticEvaluationSource.REMOTE,
+                overallStatus = DiagnosticEvaluationStatus.ATTENTION,
+                score = 62,
+                confidence = DiagnosticEvaluationConfidence.MEDIUM,
+                matchedRules = listOf("rule-wifi-canal-congestionado"),
+                findings = listOf(finding),
+                recommendations = listOf("REC-WIFI-CANAL-01"),
+                primaryFlow = DiagnosticEvaluationFlow.WIFI_LOCAL,
+                secondaryFlows = listOf(DiagnosticEvaluationFlow.SAUDAVEL_MONITORAR),
+                humanSummary = "Seu Wi-Fi esta num canal congestionado.",
+                humanResolution = listOf("Troque para o canal 6 ou 11 nas configuracoes do roteador."),
+                missingInputs = emptyList(),
+                nextBestChecks = listOf("Repita o teste apos trocar o canal."),
+                resolvableNow = true,
+                evaluatedAt = "2026-07-26T12:00:00Z",
+                traceId = "trace-123",
+            )
 
         // Round trip via copy() sem nenhuma alteracao == mesma instancia logica.
         val roundTrip = original.copy()
 
         assertEquals(original, roundTrip)
         assertEquals(DiagnosticEvaluationFindingCategory.WIFI_CANAL, roundTrip.findings.single().category)
-        assertEquals("wifi-canal", roundTrip.findings.single().category.wireValue)
+        assertEquals(
+            "wifi-canal",
+            roundTrip.findings
+                .single()
+                .category.wireValue,
+        )
     }
 }

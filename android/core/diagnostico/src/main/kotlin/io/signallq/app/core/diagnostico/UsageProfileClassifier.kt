@@ -49,7 +49,6 @@ package io.signallq.app.core.diagnostico
  * (nenhum novo valor inventado aqui).
  */
 object UsageProfileClassifier {
-
     enum class Perfil { NAVEGACAO, STREAMING, JOGOS, VIDEOCHAMADA, TRABALHO }
 
     enum class UsageProfileStatus { OK, Instavel, Comprometido }
@@ -87,7 +86,10 @@ object UsageProfileClassifier {
     fun classificarTodos(input: DiagnosticInput): List<UsageProfileResult> =
         Perfil.entries.map { classificar(it, input) }
 
-    fun classificar(perfil: Perfil, input: DiagnosticInput): UsageProfileResult {
+    fun classificar(
+        perfil: Perfil,
+        input: DiagnosticInput,
+    ): UsageProfileResult {
         val dimensoes = dimensoesPara(perfil, input)
         val disponiveis = dimensoes.filter { it.provenance != Provenance.indisponivel && it.nota != null }
         val dadosAusentes = dimensoes.map { it.nome } - disponiveis.map { it.nome }.toSet()
@@ -109,8 +111,9 @@ object UsageProfileClassifier {
         val score = disponiveis.sumOf { (it.nota ?: 0) * (it.pesoBase / somaPesos) }.toInt().coerceIn(0, 100)
 
         // Pior faixa entre as dimensoes disponiveis vence — nao e so o corte pela media.
-        val piorFaixa = disponiveis.mapNotNull { it.statusFaixa }.maxByOrNull { it.severidade() }
-            ?: statusPorScore(score)
+        val piorFaixa =
+            disponiveis.mapNotNull { it.statusFaixa }.maxByOrNull { it.severidade() }
+                ?: statusPorScore(score)
 
         val temPerdaEstimada = disponiveis.any { it.nome == "perda" && it.provenance == Provenance.estimada }
         val statusComPenalidades = aplicarPenalidadesContextuais(perfil, piorFaixa, input)
@@ -161,27 +164,34 @@ object UsageProfileClassifier {
         return statusBase.rebaixarUmNivel()
     }
 
-    private fun UsageProfileStatus.rebaixarUmNivel(): UsageProfileStatus = when (this) {
-        UsageProfileStatus.OK -> UsageProfileStatus.Instavel
-        UsageProfileStatus.Instavel -> UsageProfileStatus.Comprometido
-        UsageProfileStatus.Comprometido -> UsageProfileStatus.Comprometido
-    }
+    private fun UsageProfileStatus.rebaixarUmNivel(): UsageProfileStatus =
+        when (this) {
+            UsageProfileStatus.OK -> UsageProfileStatus.Instavel
+            UsageProfileStatus.Instavel -> UsageProfileStatus.Comprometido
+            UsageProfileStatus.Comprometido -> UsageProfileStatus.Comprometido
+        }
 
-    private fun UsageProfileStatus.severidade(): Int = when (this) {
-        UsageProfileStatus.OK -> 0
-        UsageProfileStatus.Instavel -> 1
-        UsageProfileStatus.Comprometido -> 2
-    }
+    private fun UsageProfileStatus.severidade(): Int =
+        when (this) {
+            UsageProfileStatus.OK -> 0
+            UsageProfileStatus.Instavel -> 1
+            UsageProfileStatus.Comprometido -> 2
+        }
 
-    private fun statusPorScore(score: Int): UsageProfileStatus = when {
-        score >= 80 -> UsageProfileStatus.OK
-        score >= 50 -> UsageProfileStatus.Instavel
-        else -> UsageProfileStatus.Comprometido
-    }
+    private fun statusPorScore(score: Int): UsageProfileStatus =
+        when {
+            score >= 80 -> UsageProfileStatus.OK
+            score >= 50 -> UsageProfileStatus.Instavel
+            else -> UsageProfileStatus.Comprometido
+        }
 
     // ── Confianca: cai com dados ausentes e com perda de pacotes so estimada ───
 
-    private fun calcularConfianca(disponiveis: List<Dimensao>, ausentes: Int, temPerdaEstimada: Boolean): Double {
+    private fun calcularConfianca(
+        disponiveis: List<Dimensao>,
+        ausentes: Int,
+        temPerdaEstimada: Boolean,
+    ): Double {
         val total = disponiveis.size + ausentes
         if (total == 0) return 0.0
         var confianca = disponiveis.size.toDouble() / total
@@ -191,13 +201,17 @@ object UsageProfileClassifier {
 
     // ── Dimensoes por perfil (pesos e faixas — aba 9 do documento de produto) ──
 
-    private fun dimensoesPara(perfil: Perfil, input: DiagnosticInput): List<Dimensao> = when (perfil) {
-        Perfil.NAVEGACAO -> dimensoesNavegacao(input)
-        Perfil.STREAMING -> dimensoesStreaming(input)
-        Perfil.JOGOS -> dimensoesJogos(input)
-        Perfil.VIDEOCHAMADA -> dimensoesVideochamada(input)
-        Perfil.TRABALHO -> dimensoesTrabalho(input)
-    }
+    private fun dimensoesPara(
+        perfil: Perfil,
+        input: DiagnosticInput,
+    ): List<Dimensao> =
+        when (perfil) {
+            Perfil.NAVEGACAO -> dimensoesNavegacao(input)
+            Perfil.STREAMING -> dimensoesStreaming(input)
+            Perfil.JOGOS -> dimensoesJogos(input)
+            Perfil.VIDEOCHAMADA -> dimensoesVideochamada(input)
+            Perfil.TRABALHO -> dimensoesTrabalho(input)
+        }
 
     /** Navegacao: DNS 35% + latencia 25% + perda 20% + jitter 10% + download 10%. */
     private fun dimensoesNavegacao(input: DiagnosticInput): List<Dimensao> {
@@ -210,21 +224,37 @@ object UsageProfileClassifier {
 
         return listOf(
             dimFaixa(
-                nome = "dns", peso = 0.35, valor = dnsMs?.toDouble(), provenance = Provenance.medida,
-                ok = { it <= 50.0 }, instavel = { it <= 150.0 },
+                nome = "dns",
+                peso = 0.35,
+                valor = dnsMs?.toDouble(),
+                provenance = Provenance.medida,
+                ok = { it <= 50.0 },
+                instavel = { it <= 150.0 },
             ),
             dimFaixa(
-                nome = "latencia", peso = 0.25, valor = latenciaMs, provenance = Provenance.medida,
-                ok = { it <= 80.0 }, instavel = { it <= 150.0 },
+                nome = "latencia",
+                peso = 0.25,
+                valor = latenciaMs,
+                provenance = Provenance.medida,
+                ok = { it <= 80.0 },
+                instavel = { it <= 150.0 },
             ),
             perda,
             dimFaixa(
-                nome = "jitter", peso = 0.10, valor = jitterMs, provenance = Provenance.medida,
-                ok = { it <= 20.0 }, instavel = { it <= 40.0 },
+                nome = "jitter",
+                peso = 0.10,
+                valor = jitterMs,
+                provenance = Provenance.medida,
+                ok = { it <= 20.0 },
+                instavel = { it <= 40.0 },
             ),
             dimFaixa(
-                nome = "download", peso = 0.10, valor = download, provenance = Provenance.medida,
-                ok = { it >= 10.0 }, instavel = { it >= 5.0 },
+                nome = "download",
+                peso = 0.10,
+                valor = download,
+                provenance = Provenance.medida,
+                ok = { it >= 10.0 },
+                instavel = { it >= 5.0 },
             ),
         )
     }
@@ -245,17 +275,29 @@ object UsageProfileClassifier {
 
         return listOf(
             dimFaixa(
-                nome = "download", peso = 0.45, valor = download, provenance = Provenance.medida,
-                ok = { it >= 25.0 }, instavel = { it >= 15.0 },
+                nome = "download",
+                peso = 0.45,
+                valor = download,
+                provenance = Provenance.medida,
+                ok = { it >= 25.0 },
+                instavel = { it >= 15.0 },
             ),
             dimFaixa(
-                nome = "bufferbloat", peso = 0.25, valor = bufferbloat, provenance = Provenance.medida,
-                ok = { it <= 30.0 }, instavel = { it <= 100.0 },
+                nome = "bufferbloat",
+                peso = 0.25,
+                valor = bufferbloat,
+                provenance = Provenance.medida,
+                ok = { it <= 30.0 },
+                instavel = { it <= 100.0 },
             ),
             perda,
             dimFaixa(
-                nome = "jitter", peso = 0.10, valor = jitterMs, provenance = Provenance.medida,
-                ok = { it <= 20.0 }, instavel = { it <= 40.0 },
+                nome = "jitter",
+                peso = 0.10,
+                valor = jitterMs,
+                provenance = Provenance.medida,
+                ok = { it <= 20.0 },
+                instavel = { it <= 40.0 },
             ),
             historico,
         )
@@ -268,26 +310,43 @@ object UsageProfileClassifier {
         val jitterMs = internet?.jitterMs
         val bufferbloat = internet?.bufferbloatMs
         val perda = perdaDimensao(internet, peso = 0.25)
-        val banda = minOf(internet?.downloadMbps ?: Double.MAX_VALUE, internet?.uploadMbps ?: Double.MAX_VALUE)
-            .takeIf { it != Double.MAX_VALUE }
+        val banda =
+            minOf(internet?.downloadMbps ?: Double.MAX_VALUE, internet?.uploadMbps ?: Double.MAX_VALUE)
+                .takeIf { it != Double.MAX_VALUE }
 
         return listOf(
             dimFaixa(
-                nome = "latencia", peso = 0.35, valor = latenciaMs, provenance = Provenance.medida,
-                ok = { it <= 50.0 }, instavel = { it <= 100.0 },
+                nome = "latencia",
+                peso = 0.35,
+                valor = latenciaMs,
+                provenance = Provenance.medida,
+                ok = { it <= 50.0 },
+                instavel = { it <= 100.0 },
             ),
             dimFaixa(
-                nome = "jitter", peso = 0.25, valor = jitterMs, provenance = Provenance.medida,
-                ok = { it <= 15.0 }, instavel = { it <= 30.0 },
+                nome = "jitter",
+                peso = 0.25,
+                valor = jitterMs,
+                provenance = Provenance.medida,
+                ok = { it <= 15.0 },
+                instavel = { it <= 30.0 },
             ),
             perda,
             dimFaixa(
-                nome = "bufferbloat", peso = 0.10, valor = bufferbloat, provenance = Provenance.medida,
-                ok = { it <= 30.0 }, instavel = { it <= 100.0 },
+                nome = "bufferbloat",
+                peso = 0.10,
+                valor = bufferbloat,
+                provenance = Provenance.medida,
+                ok = { it <= 30.0 },
+                instavel = { it <= 100.0 },
             ),
             dimFaixa(
-                nome = "banda", peso = 0.05, valor = banda, provenance = Provenance.medida,
-                ok = { it >= 10.0 }, instavel = { it >= 5.0 },
+                nome = "banda",
+                peso = 0.05,
+                valor = banda,
+                provenance = Provenance.medida,
+                ok = { it >= 10.0 },
+                instavel = { it >= 5.0 },
             ),
         )
     }
@@ -303,21 +362,37 @@ object UsageProfileClassifier {
 
         return listOf(
             dimFaixa(
-                nome = "upload", peso = 0.30, valor = upload, provenance = Provenance.medida,
-                ok = { it >= 5.0 }, instavel = { it >= 2.0 },
+                nome = "upload",
+                peso = 0.30,
+                valor = upload,
+                provenance = Provenance.medida,
+                ok = { it >= 5.0 },
+                instavel = { it >= 2.0 },
             ),
             dimFaixa(
-                nome = "jitter", peso = 0.25, valor = jitterMs, provenance = Provenance.medida,
-                ok = { it <= 20.0 }, instavel = { it <= 40.0 },
+                nome = "jitter",
+                peso = 0.25,
+                valor = jitterMs,
+                provenance = Provenance.medida,
+                ok = { it <= 20.0 },
+                instavel = { it <= 40.0 },
             ),
             perda,
             dimFaixa(
-                nome = "latencia", peso = 0.10, valor = latenciaMs, provenance = Provenance.medida,
-                ok = { it <= 80.0 }, instavel = { it <= 150.0 },
+                nome = "latencia",
+                peso = 0.10,
+                valor = latenciaMs,
+                provenance = Provenance.medida,
+                ok = { it <= 80.0 },
+                instavel = { it <= 150.0 },
             ),
             dimFaixa(
-                nome = "bufferbloat", peso = 0.10, valor = bufferbloat, provenance = Provenance.medida,
-                ok = { it <= 30.0 }, instavel = { it <= 100.0 },
+                nome = "bufferbloat",
+                peso = 0.10,
+                valor = bufferbloat,
+                provenance = Provenance.medida,
+                ok = { it <= 30.0 },
+                instavel = { it <= 100.0 },
             ),
         )
     }
@@ -336,16 +411,28 @@ object UsageProfileClassifier {
         return listOf(
             estabilidade,
             dimFaixa(
-                nome = "dns", peso = 0.20, valor = dnsMs?.toDouble(), provenance = Provenance.medida,
-                ok = { it <= 50.0 }, instavel = { it <= 150.0 },
+                nome = "dns",
+                peso = 0.20,
+                valor = dnsMs?.toDouble(),
+                provenance = Provenance.medida,
+                ok = { it <= 50.0 },
+                instavel = { it <= 150.0 },
             ),
             dimFaixa(
-                nome = "upload", peso = 0.15, valor = upload, provenance = Provenance.medida,
-                ok = { it >= 5.0 }, instavel = { it >= 2.0 },
+                nome = "upload",
+                peso = 0.15,
+                valor = upload,
+                provenance = Provenance.medida,
+                ok = { it >= 5.0 },
+                instavel = { it >= 2.0 },
             ),
             dimFaixa(
-                nome = "latencia", peso = 0.15, valor = latenciaMs, provenance = Provenance.medida,
-                ok = { it <= 100.0 }, instavel = { it <= 180.0 },
+                nome = "latencia",
+                peso = 0.15,
+                valor = latenciaMs,
+                provenance = Provenance.medida,
+                ok = { it <= 100.0 },
+                instavel = { it <= 180.0 },
             ),
             historico,
         )
@@ -358,27 +445,35 @@ object UsageProfileClassifier {
      * apenas quando MEDIDA REAL >=1%. Perda so estimada nunca eleva o status sozinha —
      * conta como Instavel (nao Comprometido) e reduz confianca via [Provenance.estimada].
      */
-    private fun perdaDimensao(internet: InternetDiagnosticInput?, peso: Double, nomeCustom: String = "perda"): Dimensao {
-        val perda = internet?.perdaPercentual
-            ?: return Dimensao(nomeCustom, peso, null, null, Provenance.indisponivel)
+    private fun perdaDimensao(
+        internet: InternetDiagnosticInput?,
+        peso: Double,
+        nomeCustom: String = "perda",
+    ): Dimensao {
+        val perda =
+            internet?.perdaPercentual
+                ?: return Dimensao(nomeCustom, peso, null, null, Provenance.indisponivel)
         val fonte = internet.packetLossSource
-        val provenance = when (fonte) {
-            "estimated" -> Provenance.estimada
-            "naoMedido", "unknown", null -> Provenance.indisponivel
-            else -> Provenance.medida
-        }
+        val provenance =
+            when (fonte) {
+                "estimated" -> Provenance.estimada
+                "naoMedido", "unknown", null -> Provenance.indisponivel
+                else -> Provenance.medida
+            }
         if (provenance == Provenance.indisponivel) return Dimensao(nomeCustom, peso, null, null, provenance)
 
-        val status = when {
-            provenance == Provenance.medida && perda >= 1.0 -> UsageProfileStatus.Comprometido
-            perda > 0.0 -> UsageProfileStatus.Instavel
-            else -> UsageProfileStatus.OK
-        }
-        val nota = when (status) {
-            UsageProfileStatus.OK -> 100
-            UsageProfileStatus.Instavel -> 60
-            UsageProfileStatus.Comprometido -> 15
-        }
+        val status =
+            when {
+                provenance == Provenance.medida && perda >= 1.0 -> UsageProfileStatus.Comprometido
+                perda > 0.0 -> UsageProfileStatus.Instavel
+                else -> UsageProfileStatus.OK
+            }
+        val nota =
+            when (status) {
+                UsageProfileStatus.OK -> 100
+                UsageProfileStatus.Instavel -> 60
+                UsageProfileStatus.Comprometido -> 15
+            }
         return Dimensao(nomeCustom, peso, nota, status, provenance)
     }
 
@@ -386,19 +481,25 @@ object UsageProfileClassifier {
      *  (percentual), nas mesmas faixas do perfil Trabalho (20%/40%) documentadas no
      *  produto — reaproveitadas tambem por Streaming, unico outro perfil com peso
      *  de historico. */
-    private fun historicoDimensao(input: DiagnosticInput, peso: Double): Dimensao {
-        val degradacao = input.historico?.degradationPercent
-            ?: return Dimensao("historico", peso, null, null, Provenance.indisponivel)
-        val status = when {
-            degradacao >= 40.0 -> UsageProfileStatus.Comprometido
-            degradacao >= 20.0 -> UsageProfileStatus.Instavel
-            else -> UsageProfileStatus.OK
-        }
-        val nota = when (status) {
-            UsageProfileStatus.OK -> 100
-            UsageProfileStatus.Instavel -> 60
-            UsageProfileStatus.Comprometido -> 15
-        }
+    private fun historicoDimensao(
+        input: DiagnosticInput,
+        peso: Double,
+    ): Dimensao {
+        val degradacao =
+            input.historico?.degradationPercent
+                ?: return Dimensao("historico", peso, null, null, Provenance.indisponivel)
+        val status =
+            when {
+                degradacao >= 40.0 -> UsageProfileStatus.Comprometido
+                degradacao >= 20.0 -> UsageProfileStatus.Instavel
+                else -> UsageProfileStatus.OK
+            }
+        val nota =
+            when (status) {
+                UsageProfileStatus.OK -> 100
+                UsageProfileStatus.Instavel -> 60
+                UsageProfileStatus.Comprometido -> 15
+            }
         return Dimensao("historico", peso, nota, status, Provenance.medida)
     }
 
@@ -414,30 +515,36 @@ object UsageProfileClassifier {
         instavel: (Double) -> Boolean,
     ): Dimensao {
         if (valor == null) return Dimensao(nome, peso, null, null, Provenance.indisponivel)
-        val status = when {
-            ok(valor) -> UsageProfileStatus.OK
-            instavel(valor) -> UsageProfileStatus.Instavel
-            else -> UsageProfileStatus.Comprometido
-        }
-        val nota = when (status) {
-            UsageProfileStatus.OK -> 100
-            UsageProfileStatus.Instavel -> 60
-            UsageProfileStatus.Comprometido -> 15
-        }
+        val status =
+            when {
+                ok(valor) -> UsageProfileStatus.OK
+                instavel(valor) -> UsageProfileStatus.Instavel
+                else -> UsageProfileStatus.Comprometido
+            }
+        val nota =
+            when (status) {
+                UsageProfileStatus.OK -> 100
+                UsageProfileStatus.Instavel -> 60
+                UsageProfileStatus.Comprometido -> 15
+            }
         return Dimensao(nome, peso, nota, status, provenance)
     }
 
     // ── Texto para o usuario (motivo / evidencias / acao) ───────────────────────
 
-    private fun Perfil.label(): String = when (this) {
-        Perfil.NAVEGACAO -> "navegação"
-        Perfil.STREAMING -> "streaming"
-        Perfil.JOGOS -> "jogos"
-        Perfil.VIDEOCHAMADA -> "videochamada"
-        Perfil.TRABALHO -> "trabalho remoto"
-    }
+    private fun Perfil.label(): String =
+        when (this) {
+            Perfil.NAVEGACAO -> "navegação"
+            Perfil.STREAMING -> "streaming"
+            Perfil.JOGOS -> "jogos"
+            Perfil.VIDEOCHAMADA -> "videochamada"
+            Perfil.TRABALHO -> "trabalho remoto"
+        }
 
-    private fun evidenciasPara(perfil: Perfil, input: DiagnosticInput): List<String> {
+    private fun evidenciasPara(
+        perfil: Perfil,
+        input: DiagnosticInput,
+    ): List<String> {
         val internet = input.internet
         val itens = mutableListOf<String>()
         when (perfil) {
@@ -465,15 +572,20 @@ object UsageProfileClassifier {
         internet?.perdaPercentual?.let { perda ->
             if (perda > 0.0) {
                 val sufixo = if (internet.packetLossSource == "estimated") " (estimada)" else ""
-                itens += "Perda de pacotes ${perda}%$sufixo"
+                itens += "Perda de pacotes $perda%$sufixo"
             }
         }
         return itens
     }
 
-    private fun motivoPara(perfil: Perfil, status: UsageProfileStatus, input: DiagnosticInput): String {
-        val wifiFraco = (input.wifi?.rssiDbm?.let { it <= -75 } == true) ||
-            (input.wifi?.linkSpeedMbps?.let { it < 12 } == true)
+    private fun motivoPara(
+        perfil: Perfil,
+        status: UsageProfileStatus,
+        input: DiagnosticInput,
+    ): String {
+        val wifiFraco =
+            (input.wifi?.rssiDbm?.let { it <= -75 } == true) ||
+                (input.wifi?.linkSpeedMbps?.let { it < 12 } == true)
         return when (status) {
             UsageProfileStatus.OK -> "Conexão adequada para ${perfil.label()}."
             UsageProfileStatus.Instavel ->
@@ -486,7 +598,10 @@ object UsageProfileClassifier {
         }
     }
 
-    private fun acaoRecomendadaPara(perfil: Perfil, status: UsageProfileStatus): String? {
+    private fun acaoRecomendadaPara(
+        perfil: Perfil,
+        status: UsageProfileStatus,
+    ): String? {
         if (status == UsageProfileStatus.OK) return null
         return when (perfil) {
             Perfil.NAVEGACAO -> "Considere trocar o DNS ou verificar a estabilidade da conexão."

@@ -5,4 +5,3 @@ interface GerenciadorPermissoesRede {
 
     fun listarPermissoesPendentes(): List<String>
 }
-

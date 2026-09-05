@@ -8,17 +8,16 @@ import io.signallq.app.core.diagnostico.DiagnosticRunner
 import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.GameReadinessClassifier
 import io.signallq.app.core.diagnostico.UsageProfileClassifier
-import io.signallq.app.core.network.AnalyticsHelper
-import io.signallq.app.core.network.NoOpAnalyticsHelper
 import io.signallq.app.core.nds.NDS_SNAPSHOT_SCHEMA_VERSION
 import io.signallq.app.core.nds.NdsClient
 import io.signallq.app.core.nds.NdsDiagnosticsOutcome
-import io.signallq.app.core.nds.NdsDiagnosticsResponse
 import io.signallq.app.core.nds.NdsSnapshotCoverage
 import io.signallq.app.core.nds.analyzeNdsSnapshotCoverage
 import io.signallq.app.core.nds.asAi
 import io.signallq.app.core.nds.toDiagnosticReport
 import io.signallq.app.core.nds.toNdsDiagnosticsRequest
+import io.signallq.app.core.network.AnalyticsHelper
+import io.signallq.app.core.network.NoOpAnalyticsHelper
 import io.signallq.app.feature.diagnostico.BuildConfig
 import io.signallq.app.feature.diagnostico.RecomendacaoPraticaEngine
 import timber.log.Timber
@@ -73,7 +72,10 @@ class NdsDiagnosticRepository(
      * inalterado; quando `true`, [NdsClient.evaluate] usa v2 mesmo com contexto parcial
      * (ver [io.signallq.app.core.nds.NdsClient.evaluate]).
      */
-    suspend fun evaluateForAssist(input: DiagnosticInput, usarNdsV2: Boolean = false): DiagnosticReport =
+    suspend fun evaluateForAssist(
+        input: DiagnosticInput,
+        usarNdsV2: Boolean = false,
+    ): DiagnosticReport =
         evaluate(
             input = input,
             enabledAreas = DiagnosticArea.entries.toSet(),
@@ -101,11 +103,12 @@ class NdsDiagnosticRepository(
     ): DiagnosticReport {
         val startedAtMs = System.currentTimeMillis()
         val request = input.toNdsDiagnosticsRequest(appVersion = BuildConfig.APP_VERSION, perfilGamer = perfilGamer)
-        val coverage = analyzeNdsSnapshotCoverage(
-            request = request,
-            connectionType = input.connectionType,
-            mobileCapturaReduzida = input.mobile?.capturaReduzida == true,
-        )
+        val coverage =
+            analyzeNdsSnapshotCoverage(
+                request = request,
+                connectionType = input.connectionType,
+                mobileCapturaReduzida = input.mobile?.capturaReduzida == true,
+            )
         logCoverageEmDebug(coverage)
         val outcome = ndsClient.evaluate(request, useV2 = useV2)
         val latenciaMs = System.currentTimeMillis() - startedAtMs
@@ -113,20 +116,27 @@ class NdsDiagnosticRepository(
         return when (outcome) {
             is NdsDiagnosticsOutcome.Success -> {
                 val iaInvocada = outcome.response.resultFor("ai") != null || outcome.response.explanationV2 != null
-                val iaProvider = outcome.response.resultFor("ai")?.asAi()?.aiModelUsed?.takeIf(String::isNotBlank)
+                val iaProvider =
+                    outcome.response
+                        .resultFor("ai")
+                        ?.asAi()
+                        ?.aiModelUsed
+                        ?.takeIf(String::isNotBlank)
                 try {
-                    val relatorio = outcome.response
-                        .toDiagnosticReport(input = input, geradoEmMs = System.currentTimeMillis())
-                        .copy(
-                            evaluationSource = DiagnosticEvaluationSource.REMOTE,
-                            perfisUso = UsageProfileClassifier.classificarTodos(input),
-                            gameReadiness = GameReadinessClassifier.classificarTodos(input),
-                        )
-                    val outcomeLabel = if (relatorio.decisao.status == DiagnosticStatus.inconclusive) {
-                        "remote_inconclusive"
-                    } else {
-                        "success"
-                    }
+                    val relatorio =
+                        outcome.response
+                            .toDiagnosticReport(input = input, geradoEmMs = System.currentTimeMillis())
+                            .copy(
+                                evaluationSource = DiagnosticEvaluationSource.REMOTE,
+                                perfisUso = UsageProfileClassifier.classificarTodos(input),
+                                gameReadiness = GameReadinessClassifier.classificarTodos(input),
+                            )
+                    val outcomeLabel =
+                        if (relatorio.decisao.status == DiagnosticStatus.inconclusive) {
+                            "remote_inconclusive"
+                        } else {
+                            "success"
+                        }
                     analyticsHelper.registrarDiagNdsOutcome(
                         outcome = outcomeLabel,
                         fallbackLocalUsado = false,
@@ -272,9 +282,16 @@ class NdsDiagnosticRepository(
 
     /** Rede de seguranca — mesmo motor 100% offline que [DiagnosticOrchestrator][io.signallq.app.feature.diagnostico.DiagnosticOrchestrator]
      *  ja usa hoje via `RemoteDiagnosticRepository.evaluateShadow`. */
-    private fun fallbackLocal(input: DiagnosticInput, enabledAreas: Set<DiagnosticArea>): DiagnosticReport =
-        DiagnosticRunner.run(input, enabledAreas, gerarRecomendacoes = RecomendacaoPraticaEngine::recomendar)
+    private fun fallbackLocal(
+        input: DiagnosticInput,
+        enabledAreas: Set<DiagnosticArea>,
+    ): DiagnosticReport =
+        DiagnosticRunner
+            .run(input, enabledAreas, gerarRecomendacoes = RecomendacaoPraticaEngine::recomendar)
             .copy(evaluationSource = DiagnosticEvaluationSource.BUNDLED_LOCAL)
 }
 
-class NdsAssistEvaluationException(message: String, cause: Throwable? = null) : IllegalStateException(message, cause)
+class NdsAssistEvaluationException(
+    message: String,
+    cause: Throwable? = null,
+) : IllegalStateException(message, cause)

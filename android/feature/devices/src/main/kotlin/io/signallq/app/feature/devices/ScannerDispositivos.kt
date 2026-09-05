@@ -13,5 +13,8 @@ interface ScannerDispositivos {
      *   disponível nesta sessão. Usada só para nomear dispositivos já descobertos pela
      *   varredura passiva por MAC; não adiciona dispositivo novo à lista.
      */
-    suspend fun iniciarScan(profundo: Boolean = true, clientesGateway: List<ClientSnapshot> = emptyList())
+    suspend fun iniciarScan(
+        profundo: Boolean = true,
+        clientesGateway: List<ClientSnapshot> = emptyList(),
+    )
 }

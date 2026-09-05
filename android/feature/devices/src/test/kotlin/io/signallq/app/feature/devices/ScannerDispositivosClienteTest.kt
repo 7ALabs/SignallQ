@@ -22,14 +22,13 @@ import java.util.concurrent.TimeUnit
  * 3. O comportamento de fallback quando a conexão demora mais que o timeout.
  */
 class ScannerDispositivosClienteTest {
-
     @Test
     fun `upnpScanClient deve ter connectTimeout de 2 segundos`() {
         val client = buildScanClient()
         assertEquals(
             "connectTimeout para scan local deve ser 2000ms",
             2_000,
-            client.connectTimeoutMillis
+            client.connectTimeoutMillis,
         )
     }
 
@@ -39,7 +38,7 @@ class ScannerDispositivosClienteTest {
         assertEquals(
             "readTimeout para scan local deve ser 2000ms",
             2_000,
-            client.readTimeoutMillis
+            client.readTimeoutMillis,
         )
     }
 
@@ -49,7 +48,7 @@ class ScannerDispositivosClienteTest {
         assertEquals(
             "writeTimeout para scan local deve ser 2000ms",
             2_000,
-            client.writeTimeoutMillis
+            client.writeTimeoutMillis,
         )
     }
 
@@ -58,14 +57,16 @@ class ScannerDispositivosClienteTest {
         // Sobe um servidor local mínimo que responde 404 e fecha a conexão
         val server = ServerSocket(0) // porta aleatória
         val porta = server.localPort
-        val thread = Thread {
-            try {
-                val conn = server.accept()
-                val response = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n"
-                conn.getOutputStream().write(response.toByteArray())
-                conn.close()
-            } catch (_: Exception) {}
-        }
+        val thread =
+            Thread {
+                try {
+                    val conn = server.accept()
+                    val response = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n"
+                    conn.getOutputStream().write(response.toByteArray())
+                    conn.close()
+                } catch (_: Exception) {
+                }
+            }
         thread.isDaemon = true
         thread.start()
 
@@ -80,15 +81,17 @@ class ScannerDispositivosClienteTest {
     fun `fetchDescricaoUpnp retorna null quando servidor responde com XML invalido`() {
         val server = ServerSocket(0)
         val porta = server.localPort
-        val thread = Thread {
-            try {
-                val conn = server.accept()
-                val body = "isso nao eh xml valido"
-                val response = "HTTP/1.1 200 OK\r\nContent-Length: ${body.length}\r\n\r\n$body"
-                conn.getOutputStream().write(response.toByteArray())
-                conn.close()
-            } catch (_: Exception) {}
-        }
+        val thread =
+            Thread {
+                try {
+                    val conn = server.accept()
+                    val body = "isso nao eh xml valido"
+                    val response = "HTTP/1.1 200 OK\r\nContent-Length: ${body.length}\r\n\r\n$body"
+                    conn.getOutputStream().write(response.toByteArray())
+                    conn.close()
+                } catch (_: Exception) {
+                }
+            }
         thread.isDaemon = true
         thread.start()
 
@@ -104,10 +107,12 @@ class ScannerDispositivosClienteTest {
     fun `fetchDescricaoUpnp retorna null quando host nao existe`() {
         // IP de documentação RFC 5737 — nunca roteado, conexão falha imediatamente
         // ou após timeout. Usamos 127.0.0.1 em porta fechada para falha imediata.
-        val client = OkHttpClient.Builder()
-            .connectTimeout(100, TimeUnit.MILLISECONDS) // timeout curto para o teste não demorar
-            .readTimeout(100, TimeUnit.MILLISECONDS)
-            .build()
+        val client =
+            OkHttpClient
+                .Builder()
+                .connectTimeout(100, TimeUnit.MILLISECONDS) // timeout curto para o teste não demorar
+                .readTimeout(100, TimeUnit.MILLISECONDS)
+                .build()
 
         // Porta alta improvável de estar em uso
         val resultado = fetchDescricaoUpnpComCliente(client, "http://127.0.0.1:19876/desc.xml")
@@ -118,7 +123,8 @@ class ScannerDispositivosClienteTest {
 
     /** Replica provideUpnpOkHttpClient() do AppModule (timeout 2s para scan local). */
     private fun buildScanClient(): OkHttpClient =
-        OkHttpClient.Builder()
+        OkHttpClient
+            .Builder()
             .connectTimeout(2, TimeUnit.SECONDS)
             .readTimeout(2, TimeUnit.SECONDS)
             .writeTimeout(2, TimeUnit.SECONDS)
@@ -131,9 +137,17 @@ class ScannerDispositivosClienteTest {
      * (que requer Context/WifiManager/ConnectivityManager). A lógica real está em
      * ScannerDispositivosAndroid.fetchDescricaoUpnp() — este helper testa o mesmo fluxo.
      */
-    private fun fetchDescricaoUpnpComCliente(client: OkHttpClient, url: String): XmlDescricaoUpnpParser.Descricao? {
+    private fun fetchDescricaoUpnpComCliente(
+        client: OkHttpClient,
+        url: String,
+    ): XmlDescricaoUpnpParser.Descricao? {
         return try {
-            val request = okhttp3.Request.Builder().url(url).get().build()
+            val request =
+                okhttp3.Request
+                    .Builder()
+                    .url(url)
+                    .get()
+                    .build()
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return null
                 val body = response.body?.string() ?: return null

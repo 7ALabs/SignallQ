@@ -4,7 +4,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HistoricalDegradationEngineTest {
-
     @Test
     fun `insufficient history does not declare degradation`() {
         val input =
@@ -38,4 +37,3 @@ class HistoricalDegradationEngineTest {
         assertTrue(r.any { it.status == DiagnosticStatus.critical || it.status == DiagnosticStatus.attention })
     }
 }
-

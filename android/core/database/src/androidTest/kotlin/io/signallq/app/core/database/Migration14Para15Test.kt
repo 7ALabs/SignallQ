@@ -22,12 +22,12 @@ private const val TEST_DB = "migration-14-15-test"
  */
 @RunWith(AndroidJUnit4::class)
 class Migration14Para15Test {
-
     @get:Rule
-    val helper = MigrationTestHelper(
-        InstrumentationRegistry.getInstrumentation(),
-        SignallQDatabase::class.java,
-    )
+    val helper =
+        MigrationTestHelper(
+            InstrumentationRegistry.getInstrumentation(),
+            SignallQDatabase::class.java,
+        )
 
     @Test
     @Throws(IOException::class)

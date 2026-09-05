@@ -8,7 +8,6 @@ import org.junit.Test
 import java.time.LocalDateTime
 
 class UptimeNarrativaEngineTest {
-
     // ---------------------------------------------------------------------------
     // Helpers de construcao de blocos
     // ---------------------------------------------------------------------------
@@ -17,53 +16,58 @@ class UptimeNarrativaEngineTest {
         hora: Int = 12,
         minuto: Int = 0,
         dia: Int = 1,
-    ): BlocoUptime = BlocoUptime(
-        dataHora = LocalDateTime.of(2025, 5, dia, hora, minuto),
-        status = StatusUptime.OK,
-        latencyMs = 100,
-        latencyMediaMs = 120,
-    )
+    ): BlocoUptime =
+        BlocoUptime(
+            dataHora = LocalDateTime.of(2025, 5, dia, hora, minuto),
+            status = StatusUptime.OK,
+            latencyMs = 100,
+            latencyMediaMs = 120,
+        )
 
     private fun blocoLento(
         hora: Int = 12,
         minuto: Int = 0,
         dia: Int = 1,
-    ): BlocoUptime = BlocoUptime(
-        dataHora = LocalDateTime.of(2025, 5, dia, hora, minuto),
-        status = StatusUptime.LENTO,
-        latencyMs = 500,
-        latencyMediaMs = 550,
-    )
+    ): BlocoUptime =
+        BlocoUptime(
+            dataHora = LocalDateTime.of(2025, 5, dia, hora, minuto),
+            status = StatusUptime.LENTO,
+            latencyMs = 500,
+            latencyMediaMs = 550,
+        )
 
     private fun blocoOffline(
         hora: Int = 12,
         minuto: Int = 0,
         dia: Int = 1,
-    ): BlocoUptime = BlocoUptime(
-        dataHora = LocalDateTime.of(2025, 5, dia, hora, minuto),
-        status = StatusUptime.OFFLINE,
-        latencyMs = null,
-        latencyMediaMs = null,
-    )
+    ): BlocoUptime =
+        BlocoUptime(
+            dataHora = LocalDateTime.of(2025, 5, dia, hora, minuto),
+            status = StatusUptime.OFFLINE,
+            latencyMs = null,
+            latencyMediaMs = null,
+        )
 
     /** GH#1518: latencia > 800ms, mas a rede respondeu — nunca e OFFLINE. */
     private fun blocoLatenciaAlta(
         hora: Int = 12,
         minuto: Int = 0,
         dia: Int = 1,
-    ): BlocoUptime = BlocoUptime(
-        dataHora = LocalDateTime.of(2025, 5, dia, hora, minuto),
-        status = StatusUptime.LATENCIA_ALTA,
-        latencyMs = 1200,
-        latencyMediaMs = 1100,
-    )
+    ): BlocoUptime =
+        BlocoUptime(
+            dataHora = LocalDateTime.of(2025, 5, dia, hora, minuto),
+            status = StatusUptime.LATENCIA_ALTA,
+            latencyMs = 1200,
+            latencyMediaMs = 1100,
+        )
 
-    private fun blocoSemDado(dia: Int = 1): BlocoUptime = BlocoUptime(
-        dataHora = LocalDateTime.of(2025, 5, dia, 0, 0),
-        status = StatusUptime.SEM_DADO,
-        latencyMs = null,
-        latencyMediaMs = null,
-    )
+    private fun blocoSemDado(dia: Int = 1): BlocoUptime =
+        BlocoUptime(
+            dataHora = LocalDateTime.of(2025, 5, dia, 0, 0),
+            status = StatusUptime.SEM_DADO,
+            latencyMs = null,
+            latencyMediaMs = null,
+        )
 
     // ---------------------------------------------------------------------------
     // Caso 1: Rede totalmente estavel
@@ -161,10 +165,11 @@ class UptimeNarrativaEngineTest {
 
     @Test
     fun `mix de offline real e latencia alta narra os dois separadamente`() {
-        val blocos = List(100) { blocoOk() } +
-            List(10) { blocoOffline() } +
-            List(10) { blocoLatenciaAlta() } +
-            List(216) { blocoOk() }
+        val blocos =
+            List(100) { blocoOk() } +
+                List(10) { blocoOffline() } +
+                List(10) { blocoLatenciaAlta() } +
+                List(216) { blocoOk() }
         val narrativa = UptimeNarrativaEngine.gerarNarrativa(blocos)
 
         assertTrue(
@@ -205,10 +210,11 @@ class UptimeNarrativaEngineTest {
 
     @Test
     fun `blocos mistos retorna narrativa com conteudo`() {
-        val blocos = List(200) { blocoOk() } +
-            List(80) { blocoLento() } +
-            List(10) { blocoOffline() } +
-            List(46) { blocoOk() }
+        val blocos =
+            List(200) { blocoOk() } +
+                List(80) { blocoLento() } +
+                List(10) { blocoOffline() } +
+                List(46) { blocoOk() }
         val narrativa = UptimeNarrativaEngine.gerarNarrativa(blocos)
         assertTrue("Narrativa nao deve estar vazia para blocos mistos", narrativa.isNotBlank())
         assertTrue(
@@ -248,11 +254,12 @@ class UptimeNarrativaEngineTest {
     @Test
     fun `detectarPadraoHorario retorna null quando nao ha recorrencia`() {
         // Quedas espalhadas em horas diferentes, cada uma so em 1 dia
-        val blocos = listOf(
-            blocoOffline(hora = 8, dia = 1),
-            blocoOffline(hora = 14, dia = 2),
-            blocoOffline(hora = 20, dia = 3),
-        ) + List(50) { blocoOk() }
+        val blocos =
+            listOf(
+                blocoOffline(hora = 8, dia = 1),
+                blocoOffline(hora = 14, dia = 2),
+                blocoOffline(hora = 20, dia = 3),
+            ) + List(50) { blocoOk() }
 
         val padrao = UptimeNarrativaEngine.detectarPadraoHorario(blocos)
         assertNull("Sem recorrencia nao deve retornar padrao: $padrao", padrao)
@@ -261,12 +268,13 @@ class UptimeNarrativaEngineTest {
     @Test
     fun `detectarPadraoHorario detecta quedas recorrentes no mesmo horario`() {
         // Quedas as 8h em 3 dias distintos — deve detectar padrao
-        val blocos = listOf(
-            blocoOffline(hora = 8, minuto = 0, dia = 1),
-            blocoOffline(hora = 8, minuto = 30, dia = 1),
-            blocoOffline(hora = 8, minuto = 0, dia = 2),
-            blocoOffline(hora = 8, minuto = 0, dia = 3),
-        ) + List(50) { blocoOk() }
+        val blocos =
+            listOf(
+                blocoOffline(hora = 8, minuto = 0, dia = 1),
+                blocoOffline(hora = 8, minuto = 30, dia = 1),
+                blocoOffline(hora = 8, minuto = 0, dia = 2),
+                blocoOffline(hora = 8, minuto = 0, dia = 3),
+            ) + List(50) { blocoOk() }
 
         val padrao = UptimeNarrativaEngine.detectarPadraoHorario(blocos)
         assertNotNull("Deve detectar padrao as 8h em 3 dias: $padrao", padrao)
@@ -279,10 +287,11 @@ class UptimeNarrativaEngineTest {
     @Test
     fun `detectarPadraoHorario descreve periodo do dia corretamente`() {
         // Quedas as 15h (tarde) em 2 dias distintos
-        val blocos = listOf(
-            blocoOffline(hora = 15, dia = 1),
-            blocoOffline(hora = 15, dia = 2),
-        ) + List(50) { blocoOk() }
+        val blocos =
+            listOf(
+                blocoOffline(hora = 15, dia = 1),
+                blocoOffline(hora = 15, dia = 2),
+            ) + List(50) { blocoOk() }
 
         val padrao = UptimeNarrativaEngine.detectarPadraoHorario(blocos)
         assertNotNull("Deve detectar padrao as 15h: $padrao", padrao)
@@ -299,9 +308,10 @@ class UptimeNarrativaEngineTest {
     @Test
     fun `detectarInterrupcoesLongas retorna lista vazia quando nao ha sequencia longa`() {
         // So 1 bloco OFFLINE isolado = 30 min = nao e longa
-        val blocos = List(10) { blocoOk() } +
-            listOf(blocoOffline()) +
-            List(10) { blocoOk() }
+        val blocos =
+            List(10) { blocoOk() } +
+                listOf(blocoOffline()) +
+                List(10) { blocoOk() }
 
         val interrupcoes = UptimeNarrativaEngine.detectarInterrupcoesLongas(blocos)
         assertTrue(
@@ -313,9 +323,10 @@ class UptimeNarrativaEngineTest {
     @Test
     fun `detectarInterrupcoesLongas detecta sequencia de 2 blocos (60 min)`() {
         // 2 blocos consecutivos = 60 min — deve aparecer
-        val blocos = List(10) { blocoOk() } +
-            listOf(blocoOffline(hora = 9, minuto = 0), blocoOffline(hora = 9, minuto = 30)) +
-            List(10) { blocoOk() }
+        val blocos =
+            List(10) { blocoOk() } +
+                listOf(blocoOffline(hora = 9, minuto = 0), blocoOffline(hora = 9, minuto = 30)) +
+                List(10) { blocoOk() }
 
         val interrupcoes = UptimeNarrativaEngine.detectarInterrupcoesLongas(blocos)
         assertEquals("Deve retornar exatamente 1 interrupcao", 1, interrupcoes.size)
@@ -325,11 +336,12 @@ class UptimeNarrativaEngineTest {
     @Test
     fun `detectarInterrupcoesLongas detecta multiplas interrupcoes e ordena por duracao`() {
         // Interrupcao 1: 3 blocos = 90 min; Interrupcao 2: 4 blocos = 120 min
-        val blocos = List(10) { blocoOk() } +
-            List(3) { blocoOffline(hora = 8) } +
-            List(5) { blocoOk() } +
-            List(4) { blocoOffline(hora = 14) } +
-            List(10) { blocoOk() }
+        val blocos =
+            List(10) { blocoOk() } +
+                List(3) { blocoOffline(hora = 8) } +
+                List(5) { blocoOk() } +
+                List(4) { blocoOffline(hora = 14) } +
+                List(10) { blocoOk() }
 
         val interrupcoes = UptimeNarrativaEngine.detectarInterrupcoesLongas(blocos)
         assertEquals("Deve retornar 2 interrupcoes", 2, interrupcoes.size)
@@ -463,11 +475,12 @@ class UptimeNarrativaEngineTest {
     fun `narrativa menciona padrao horario recorrente quando detectado`() {
         // 50 blocos OK como base + quedas as 8h em 3 dias diferentes
         val base = List(50) { blocoOk(dia = 1) }
-        val quedas = listOf(
-            blocoOffline(hora = 8, dia = 1),
-            blocoOffline(hora = 8, dia = 2),
-            blocoOffline(hora = 8, dia = 3),
-        )
+        val quedas =
+            listOf(
+                blocoOffline(hora = 8, dia = 1),
+                blocoOffline(hora = 8, dia = 2),
+                blocoOffline(hora = 8, dia = 3),
+            )
         val enchimento = List(233) { blocoOk(dia = 1) }
         val blocos = base + quedas + enchimento
 

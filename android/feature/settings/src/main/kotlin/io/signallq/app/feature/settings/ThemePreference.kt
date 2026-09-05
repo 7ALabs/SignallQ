@@ -16,11 +16,12 @@ enum class ThemePreference {
     /** Valor persistido no DataStore -- preserva as chaves já gravadas em produção
      *  ("sistema"/"claro"/"escuro"), só a comparação na UI passa a ser seguro. */
     val chaveDataStore: String
-        get() = when (this) {
-            SYSTEM -> "sistema"
-            LIGHT -> "claro"
-            DARK -> "escuro"
-        }
+        get() =
+            when (this) {
+                SYSTEM -> "sistema"
+                LIGHT -> "claro"
+                DARK -> "escuro"
+            }
 
     companion object {
         /** Nunca lança exceção e nunca devolve "nenhuma opção" -- valor não reconhecido

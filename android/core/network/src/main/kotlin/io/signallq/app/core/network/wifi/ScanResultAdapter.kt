@@ -10,15 +10,16 @@ import io.signallq.app.core.network.contracts.wifi.channel.freqToChannel
 fun ScanResult.toNeighbor(): Neighbor? {
     val (band, _) = freqToChannel(frequency) ?: return null
 
-    val width = when (channelWidth) {
-        ScanResult.CHANNEL_WIDTH_20MHZ -> ChannelWidth.W20
-        ScanResult.CHANNEL_WIDTH_40MHZ -> ChannelWidth.W40
-        ScanResult.CHANNEL_WIDTH_80MHZ -> ChannelWidth.W80
-        ScanResult.CHANNEL_WIDTH_160MHZ -> ChannelWidth.W160
-        ScanResult.CHANNEL_WIDTH_80MHZ_PLUS_MHZ -> ChannelWidth.W80 // 80+80; usa centerFreq0 + centerFreq1
-        5 -> ChannelWidth.W320 // CHANNEL_WIDTH_320MHZ (API 33+)
-        else -> ChannelWidth.W20
-    }
+    val width =
+        when (channelWidth) {
+            ScanResult.CHANNEL_WIDTH_20MHZ -> ChannelWidth.W20
+            ScanResult.CHANNEL_WIDTH_40MHZ -> ChannelWidth.W40
+            ScanResult.CHANNEL_WIDTH_80MHZ -> ChannelWidth.W80
+            ScanResult.CHANNEL_WIDTH_160MHZ -> ChannelWidth.W160
+            ScanResult.CHANNEL_WIDTH_80MHZ_PLUS_MHZ -> ChannelWidth.W80 // 80+80; usa centerFreq0 + centerFreq1
+            5 -> ChannelWidth.W320 // CHANNEL_WIDTH_320MHZ (API 33+)
+            else -> ChannelWidth.W20
+        }
 
     // Para W20, centerFreq0 pode ser 0 ou coincidir com frequency; usa frequency nesses casos.
     // Para W40/W80/W160/W320, centerFreq0 é o centro do segmento bondado (≠ frequency).

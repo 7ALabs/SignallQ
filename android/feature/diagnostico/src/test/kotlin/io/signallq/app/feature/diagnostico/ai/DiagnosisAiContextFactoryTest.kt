@@ -20,27 +20,28 @@ import org.junit.Test
  * abaixo cobrem APENAS dados brutos.
  */
 class DiagnosisAiContextFactoryTest {
-
-    private fun fakeReport(): DiagnosticReport = DiagnosticReport(
-        wifiResultados = emptyList(),
-        internetResultados = emptyList(),
-        mobileResultados = emptyList(),
-        fibraResultados = emptyList(),
-        dnsResultados = emptyList(),
-        historicoResultados = emptyList(),
-        wifiCanalResultados = emptyList(),
-        decisao = DiagnosticResult(
-            id = "dec-1",
-            titulo = "Decisao",
-            status = DiagnosticStatus.attention,
-            evidencia = null,
-            mensagemUsuario = "msg",
-            recomendacao = null,
-            categoria = "isp",
-        ),
-        perfisUsoSpeedtest = null,
-        geradoEmMs = 1700000000000L,
-    )
+    private fun fakeReport(): DiagnosticReport =
+        DiagnosticReport(
+            wifiResultados = emptyList(),
+            internetResultados = emptyList(),
+            mobileResultados = emptyList(),
+            fibraResultados = emptyList(),
+            dnsResultados = emptyList(),
+            historicoResultados = emptyList(),
+            wifiCanalResultados = emptyList(),
+            decisao =
+                DiagnosticResult(
+                    id = "dec-1",
+                    titulo = "Decisao",
+                    status = DiagnosticStatus.attention,
+                    evidencia = null,
+                    mensagemUsuario = "msg",
+                    recomendacao = null,
+                    categoria = "isp",
+                ),
+            perfisUsoSpeedtest = null,
+            geradoEmMs = 1700000000000L,
+        )
 
     /**
      * Caso de referencia (294 / 411 / 101 / 25.1):
@@ -49,16 +50,18 @@ class DiagnosisAiContextFactoryTest {
      */
     @Test
     fun v3_envia_metricas_brutas_e_nao_popula_analise_local() {
-        val input = DiagnosticInput(
-            connectionType = ConnectionType.wifi,
-            internet = InternetDiagnosticInput(
-                downloadMbps = 294.0,
-                uploadMbps = 411.0,
-                latencyMs = 101.0,
-                jitterMs = 25.1,
-                perdaPercentual = 0.0,
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                connectionType = ConnectionType.wifi,
+                internet =
+                    InternetDiagnosticInput(
+                        downloadMbps = 294.0,
+                        uploadMbps = 411.0,
+                        latencyMs = 101.0,
+                        jitterMs = 25.1,
+                        perdaPercentual = 0.0,
+                    ),
+            )
 
         val ctx = DiagnosisAiContextFactory.from(fakeReport(), input, ConnectionType.wifi)
 
@@ -75,16 +78,18 @@ class DiagnosisAiContextFactoryTest {
 
     @Test
     fun v3_evidencias_naoPossuemCampoInterpretacao_emTodaForma() {
-        val input = DiagnosticInput(
-            connectionType = ConnectionType.wifi,
-            internet = InternetDiagnosticInput(
-                downloadMbps = 100.0,
-                uploadMbps = null,
-                latencyMs = null,
-                jitterMs = null,
-                perdaPercentual = null,
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                connectionType = ConnectionType.wifi,
+                internet =
+                    InternetDiagnosticInput(
+                        downloadMbps = 100.0,
+                        uploadMbps = null,
+                        latencyMs = null,
+                        jitterMs = null,
+                        perdaPercentual = null,
+                    ),
+            )
         val ctx = DiagnosisAiContextFactory.from(fakeReport(), input, ConnectionType.wifi)
         // Evidencias pode ser vazia (fakeReport sem itens), mas data class nao
         // tem mais o campo `interpretacao` — verificacao reflexiva via campo direto.
@@ -102,44 +107,49 @@ class DiagnosisAiContextFactoryTest {
 
     @Test
     fun fromRaw_aceita_contextoAdicional_sem_inventar_dados() {
-        val input = DiagnosticInput(
-            connectionType = ConnectionType.wifi,
-            internet = InternetDiagnosticInput(
-                downloadMbps = 250.0,
-                uploadMbps = 100.0,
-                latencyMs = null,
-                jitterMs = null,
-                perdaPercentual = null,
-            ),
-            wifi = WifiDiagnosticInput(rssiDbm = -55, linkSpeedMbps = 866, frequenciaMhz = 5180, ssid = "MinhaRede"),
-        )
+        val input =
+            DiagnosticInput(
+                connectionType = ConnectionType.wifi,
+                internet =
+                    InternetDiagnosticInput(
+                        downloadMbps = 250.0,
+                        uploadMbps = 100.0,
+                        latencyMs = null,
+                        jitterMs = null,
+                        perdaPercentual = null,
+                    ),
+                wifi = WifiDiagnosticInput(rssiDbm = -55, linkSpeedMbps = 866, frequenciaMhz = 5180, ssid = "MinhaRede"),
+            )
 
-        val ctx = DiagnosisAiContextFactory.fromRaw(
-            report = fakeReport(),
-            input = input,
-            connectionType = ConnectionType.wifi,
-            wifiLinkBssid = "AA:BB:CC:DD:EE:FF",
-            wifiPadrao = "Wi-Fi 6",
-            wifiLinkSpeedMbps = 866,
-            ispNome = "Vivo Fibra",
-            ispAsn = "AS27699",
-            ipPublico = "200.130.45.10",
-            dnsResolverIp = "1.1.1.1",
-            dnsResolverProvider = "cloudflare",
-            dispositivos = AiDispositivosInfo(
-                fabricante = "Google",
-                modelo = "Pixel 7",
-                sistema = "Android",
-                versaoSO = "14",
-            ),
-            ultimosTestesHistorico = listOf(
-                AiTesteHistorico(
-                    timestampEpochMs = 1700000000000L,
-                    downloadMbps = 200.0,
-                    uploadMbps = 80.0,
-                ),
-            ),
-        )
+        val ctx =
+            DiagnosisAiContextFactory.fromRaw(
+                report = fakeReport(),
+                input = input,
+                connectionType = ConnectionType.wifi,
+                wifiLinkBssid = "AA:BB:CC:DD:EE:FF",
+                wifiPadrao = "Wi-Fi 6",
+                wifiLinkSpeedMbps = 866,
+                ispNome = "Vivo Fibra",
+                ispAsn = "AS27699",
+                ipPublico = "200.130.45.10",
+                dnsResolverIp = "1.1.1.1",
+                dnsResolverProvider = "cloudflare",
+                dispositivos =
+                    AiDispositivosInfo(
+                        fabricante = "Google",
+                        modelo = "Pixel 7",
+                        sistema = "Android",
+                        versaoSO = "14",
+                    ),
+                ultimosTestesHistorico =
+                    listOf(
+                        AiTesteHistorico(
+                            timestampEpochMs = 1700000000000L,
+                            downloadMbps = 200.0,
+                            uploadMbps = 80.0,
+                        ),
+                    ),
+            )
 
         // Bruto presente
         assertEquals("Vivo Fibra", ctx.rede?.operadora)
@@ -149,7 +159,14 @@ class DiagnosisAiContextFactoryTest {
         assertEquals(866, ctx.contextoRede?.linkSpeedMbps)
         assertEquals("Pixel 7", ctx.dispositivos?.modelo)
         assertEquals(1, ctx.historico?.ultimosTestes?.size)
-        assertEquals(200.0, ctx.historico?.ultimosTestes?.first()?.downloadMbps!!, 0.01)
+        assertEquals(
+            200.0,
+            ctx.historico
+                ?.ultimosTestes
+                ?.first()
+                ?.downloadMbps!!,
+            0.01,
+        )
     }
 
     @Test
@@ -173,35 +190,39 @@ class DiagnosisAiContextFactoryTest {
     // -------------------------------------------------------------------------
     @Test
     fun v3_mobile_comDadosTelephony_payloadInclui_movel_completo() {
-        val movel = AiMovelInfo(
-            operadora = "Vivo",
-            tecnologia = "5G NSA",
-            rsrpDbm = -98,
-            rsrqDb = -11,
-            sinrDb = 8,
-            ecnoDb = null,
-            bandaMovel = "n78 (3.5 GHz)",
-            cellId = "123456789",
-            mcc = "724",
-            mnc = "06",
-            tac = "4321",
-            roaming = false,
-        )
-        val ctx = DiagnosisAiContextFactory.fromRaw(
-            report = fakeReport(),
-            input = DiagnosticInput(
+        val movel =
+            AiMovelInfo(
+                operadora = "Vivo",
+                tecnologia = "5G NSA",
+                rsrpDbm = -98,
+                rsrqDb = -11,
+                sinrDb = 8,
+                ecnoDb = null,
+                bandaMovel = "n78 (3.5 GHz)",
+                cellId = "123456789",
+                mcc = "724",
+                mnc = "06",
+                tac = "4321",
+                roaming = false,
+            )
+        val ctx =
+            DiagnosisAiContextFactory.fromRaw(
+                report = fakeReport(),
+                input =
+                    DiagnosticInput(
+                        connectionType = ConnectionType.mobile,
+                        internet =
+                            InternetDiagnosticInput(
+                                downloadMbps = 35.0,
+                                uploadMbps = 12.0,
+                                latencyMs = 45.0,
+                                jitterMs = 8.0,
+                                perdaPercentual = 0.0,
+                            ),
+                    ),
                 connectionType = ConnectionType.mobile,
-                internet = InternetDiagnosticInput(
-                    downloadMbps = 35.0,
-                    uploadMbps = 12.0,
-                    latencyMs = 45.0,
-                    jitterMs = 8.0,
-                    perdaPercentual = 0.0,
-                ),
-            ),
-            connectionType = ConnectionType.mobile,
-            movel = movel,
-        )
+                movel = movel,
+            )
 
         // Bloco movel preservado no contexto
         assertEquals("Vivo", ctx.movel?.operadora)
@@ -212,9 +233,11 @@ class DiagnosisAiContextFactoryTest {
         assertEquals(false, ctx.movel?.roaming)
 
         // Serializacao para JSON inclui o bloco com TODOS os campos preenchidos
-        val repo = io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository(
-            baseUrl = "http://invalid.local", isAuthorized = { true },
-        )
+        val repo =
+            io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository(
+                baseUrl = "http://invalid.local",
+                isAuthorized = { true },
+            )
         val json = repo.contextToJson(ctx).toString()
         assertTrue("payload tem bloco movel", json.contains("\"movel\":"))
         assertTrue("operadora", json.contains("\"operadora\":\"Vivo\""))
@@ -232,26 +255,31 @@ class DiagnosisAiContextFactoryTest {
         // Cenario: connectionType=mobile mas usuario negou READ_PHONE_STATE.
         // O monitor devolve null; o AdditionalAiContext.movel fica null;
         // o payload NAO deve ter a chave "movel".
-        val ctx = DiagnosisAiContextFactory.fromRaw(
-            report = fakeReport(),
-            input = DiagnosticInput(
+        val ctx =
+            DiagnosisAiContextFactory.fromRaw(
+                report = fakeReport(),
+                input =
+                    DiagnosticInput(
+                        connectionType = ConnectionType.mobile,
+                        internet =
+                            InternetDiagnosticInput(
+                                downloadMbps = 35.0,
+                                uploadMbps = 12.0,
+                                latencyMs = 45.0,
+                                jitterMs = 8.0,
+                                perdaPercentual = 0.0,
+                            ),
+                    ),
                 connectionType = ConnectionType.mobile,
-                internet = InternetDiagnosticInput(
-                    downloadMbps = 35.0,
-                    uploadMbps = 12.0,
-                    latencyMs = 45.0,
-                    jitterMs = 8.0,
-                    perdaPercentual = 0.0,
-                ),
-            ),
-            connectionType = ConnectionType.mobile,
-            movel = null,
-        )
+                movel = null,
+            )
 
         assertNull(ctx.movel)
-        val repo = io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository(
-            baseUrl = "http://invalid.local", isAuthorized = { true },
-        )
+        val repo =
+            io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository(
+                baseUrl = "http://invalid.local",
+                isAuthorized = { true },
+            )
         val json = repo.contextToJson(ctx).toString()
         assertFalse("payload sem bloco movel", json.contains("\"movel\":"))
         assertTrue("connectionType=mobile preservado", json.contains("\"connectionType\":\"mobile\""))
@@ -270,66 +298,72 @@ class DiagnosisAiContextFactoryTest {
 
     @Test
     fun instrucaoTom_semMetricasRuins_retornaTudoDentroDoEsperado() {
-        val metricas = AiMetricasAtuais(
-            jitterMs = 10.0,
-            perdaPacotesPercentual = 0.5,
-            rttGatewayMs = 80,
-        )
+        val metricas =
+            AiMetricasAtuais(
+                jitterMs = 10.0,
+                perdaPacotesPercentual = 0.5,
+                rttGatewayMs = 80,
+            )
         val instrucao = DiagnosisAiContextFactory.buildToneInstruction(metricas)
         assertEquals("Tudo dentro do esperado.", instrucao)
     }
 
     @Test
     fun instrucaoTom_umaMetricaRuim_jitter_retornaParcial() {
-        val metricas = AiMetricasAtuais(
-            jitterMs = 55.0,           // ruim: >50ms
-            perdaPacotesPercentual = 0.0,
-            rttGatewayMs = 100,
-        )
+        val metricas =
+            AiMetricasAtuais(
+                jitterMs = 55.0, // ruim: >50ms
+                perdaPacotesPercentual = 0.0,
+                rttGatewayMs = 100,
+            )
         val instrucao = DiagnosisAiContextFactory.buildToneInstruction(metricas)
         assertEquals("Sua conexão está funcionando, mas...", instrucao)
     }
 
     @Test
     fun instrucaoTom_umaMetricaRuim_perda_retornaParcial() {
-        val metricas = AiMetricasAtuais(
-            jitterMs = 10.0,
-            perdaPacotesPercentual = 2.0, // ruim: >=2%
-            rttGatewayMs = 100,
-        )
+        val metricas =
+            AiMetricasAtuais(
+                jitterMs = 10.0,
+                perdaPacotesPercentual = 2.0, // ruim: >=2%
+                rttGatewayMs = 100,
+            )
         val instrucao = DiagnosisAiContextFactory.buildToneInstruction(metricas)
         assertEquals("Sua conexão está funcionando, mas...", instrucao)
     }
 
     @Test
     fun instrucaoTom_umaMetricaRuim_rtt_retornaParcial() {
-        val metricas = AiMetricasAtuais(
-            jitterMs = 10.0,
-            perdaPacotesPercentual = 0.0,
-            rttGatewayMs = 151,          // ruim: >150ms
-        )
+        val metricas =
+            AiMetricasAtuais(
+                jitterMs = 10.0,
+                perdaPacotesPercentual = 0.0,
+                rttGatewayMs = 151, // ruim: >150ms
+            )
         val instrucao = DiagnosisAiContextFactory.buildToneInstruction(metricas)
         assertEquals("Sua conexão está funcionando, mas...", instrucao)
     }
 
     @Test
     fun instrucaoTom_duasMetricasRuins_retornaDetectei() {
-        val metricas = AiMetricasAtuais(
-            jitterMs = 60.0,             // ruim
-            perdaPacotesPercentual = 3.0, // ruim
-            rttGatewayMs = 80,
-        )
+        val metricas =
+            AiMetricasAtuais(
+                jitterMs = 60.0, // ruim
+                perdaPacotesPercentual = 3.0, // ruim
+                rttGatewayMs = 80,
+            )
         val instrucao = DiagnosisAiContextFactory.buildToneInstruction(metricas)
         assertEquals("Detectei...", instrucao)
     }
 
     @Test
     fun instrucaoTom_tresMetricasRuins_retornaDetectei() {
-        val metricas = AiMetricasAtuais(
-            jitterMs = 70.0,              // ruim
-            perdaPacotesPercentual = 5.0,  // ruim
-            rttGatewayMs = 200,            // ruim
-        )
+        val metricas =
+            AiMetricasAtuais(
+                jitterMs = 70.0, // ruim
+                perdaPacotesPercentual = 5.0, // ruim
+                rttGatewayMs = 200, // ruim
+            )
         val instrucao = DiagnosisAiContextFactory.buildToneInstruction(metricas)
         assertEquals("Detectei...", instrucao)
     }
@@ -339,11 +373,12 @@ class DiagnosisAiContextFactoryTest {
         // jitter exatamente 50ms NAO e ruim (threshold e >50, nao >=50)
         // perda exatamente 2% E ruim (threshold e >=2)
         // rtt exatamente 150ms NAO e ruim (threshold e >150, nao >=150)
-        val metricas = AiMetricasAtuais(
-            jitterMs = 50.0,              // limite: NAO ruim
-            perdaPacotesPercentual = 2.0,  // limite: ruim (>=2)
-            rttGatewayMs = 150,            // limite: NAO ruim
-        )
+        val metricas =
+            AiMetricasAtuais(
+                jitterMs = 50.0, // limite: NAO ruim
+                perdaPacotesPercentual = 2.0, // limite: ruim (>=2)
+                rttGatewayMs = 150, // limite: NAO ruim
+            )
         val instrucao = DiagnosisAiContextFactory.buildToneInstruction(metricas)
         // Apenas 1 metrica ruim (perda)
         assertEquals("Sua conexão está funcionando, mas...", instrucao)
@@ -351,22 +386,26 @@ class DiagnosisAiContextFactoryTest {
 
     @Test
     fun instrucaoTom_eSerializadoNoJson_quandoPresente() {
-        val input = DiagnosticInput(
-            connectionType = ConnectionType.wifi,
-            internet = InternetDiagnosticInput(
-                downloadMbps = 50.0,
-                uploadMbps = 20.0,
-                latencyMs = 30.0,
-                jitterMs = 60.0,           // ruim
-                perdaPercentual = 3.0,      // ruim
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                connectionType = ConnectionType.wifi,
+                internet =
+                    InternetDiagnosticInput(
+                        downloadMbps = 50.0,
+                        uploadMbps = 20.0,
+                        latencyMs = 30.0,
+                        jitterMs = 60.0, // ruim
+                        perdaPercentual = 3.0, // ruim
+                    ),
+            )
         val ctx = DiagnosisAiContextFactory.from(fakeReport(), input, ConnectionType.wifi)
         assertTrue("instrucaoTom deve ser Detectei", ctx.instrucaoTom == "Detectei...")
 
-        val repo = AiDiagnosisRepository(
-            baseUrl = "http://invalid.local", isAuthorized = { true },
-        )
+        val repo =
+            AiDiagnosisRepository(
+                baseUrl = "http://invalid.local",
+                isAuthorized = { true },
+            )
         val json = repo.contextToJson(ctx).toString()
         assertTrue("JSON deve conter instrucaoTom", json.contains("\"instrucaoTom\":"))
         assertTrue("JSON deve conter Detectei", json.contains("Detectei..."))
@@ -378,9 +417,11 @@ class DiagnosisAiContextFactoryTest {
         val ctx = DiagnosisAiContextFactory.from(fakeReport(), ConnectionType.wifi)
         assertNull(ctx.instrucaoTom)
 
-        val repo = AiDiagnosisRepository(
-            baseUrl = "http://invalid.local", isAuthorized = { true },
-        )
+        val repo =
+            AiDiagnosisRepository(
+                baseUrl = "http://invalid.local",
+                isAuthorized = { true },
+            )
         val json = repo.contextToJson(ctx).toString()
         assertFalse("JSON sem instrucaoTom quando null", json.contains("\"instrucaoTom\":"))
     }
@@ -392,25 +433,30 @@ class DiagnosisAiContextFactoryTest {
         // gating de "nao iniciar telephony em wifi" e responsabilidade do
         // chamador (MainViewModel), nao do factory. Ver MonitorTelephony.iniciar
         // condicional em MainViewModel.coletarContextoAdicionalIa.
-        val ctx = DiagnosisAiContextFactory.fromRaw(
-            report = fakeReport(),
-            input = DiagnosticInput(
+        val ctx =
+            DiagnosisAiContextFactory.fromRaw(
+                report = fakeReport(),
+                input =
+                    DiagnosticInput(
+                        connectionType = ConnectionType.wifi,
+                        internet =
+                            InternetDiagnosticInput(
+                                downloadMbps = 250.0,
+                                uploadMbps = 100.0,
+                                latencyMs = 12.0,
+                                jitterMs = 2.0,
+                                perdaPercentual = 0.0,
+                            ),
+                    ),
                 connectionType = ConnectionType.wifi,
-                internet = InternetDiagnosticInput(
-                    downloadMbps = 250.0,
-                    uploadMbps = 100.0,
-                    latencyMs = 12.0,
-                    jitterMs = 2.0,
-                    perdaPercentual = 0.0,
-                ),
-            ),
-            connectionType = ConnectionType.wifi,
-            movel = null, // como deveria ser sempre em wifi
-        )
+                movel = null, // como deveria ser sempre em wifi
+            )
         assertNull(ctx.movel)
-        val repo = io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository(
-            baseUrl = "http://invalid.local", isAuthorized = { true },
-        )
+        val repo =
+            io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository(
+                baseUrl = "http://invalid.local",
+                isAuthorized = { true },
+            )
         val json = repo.contextToJson(ctx).toString()
         assertFalse(json.contains("\"movel\":"))
         assertTrue(json.contains("\"connectionType\":\"wifi\""))
@@ -426,11 +472,12 @@ class DiagnosisAiContextFactoryTest {
 
     @Test
     fun equipamentoLocal_ausente_quandoNaoHaLocalDeviceNoInput() {
-        val ctx = DiagnosisAiContextFactory.from(
-            report = fakeReport(),
-            input = DiagnosticInput(connectionType = ConnectionType.wifi),
-            connectionType = ConnectionType.wifi,
-        )
+        val ctx =
+            DiagnosisAiContextFactory.from(
+                report = fakeReport(),
+                input = DiagnosticInput(connectionType = ConnectionType.wifi),
+                connectionType = ConnectionType.wifi,
+            )
         assertNull(ctx.equipamentoLocal)
 
         val repo = AiDiagnosisRepository(baseUrl = "http://invalid.local", isAuthorized = { true })
@@ -440,27 +487,31 @@ class DiagnosisAiContextFactoryTest {
 
     @Test
     fun equipamentoLocal_populado_a_partir_do_resumo_seguro_ja_filtrado() {
-        val snapshot = io.signallq.app.core.network.contracts.localdevice.SafeLocalDeviceContext(
-            vendor = "Nokia",
-            modelo = "G-1425G-B",
-            firmwareVersion = "1.2.3",
-            deviceType = io.signallq.app.core.network.contracts.localdevice.DeviceType.ONT_GPON,
-            supportLevel = io.signallq.app.core.network.contracts.localdevice.SupportLevel.LAB_VALIDATED,
-            capabilities = io.signallq.app.core.network.contracts.localdevice.DeviceCapabilities(suportaFibra = true),
-            connectionStatus = io.signallq.app.core.network.contracts.localdevice.LocalDeviceSectionStatus.OK,
-            statusFibra = io.signallq.app.core.network.contracts.localdevice.LocalDeviceSectionStatus.OK,
-            statusWan = io.signallq.app.core.network.contracts.localdevice.LocalDeviceSectionStatus.OK,
-            statusWifi = io.signallq.app.core.network.contracts.localdevice.LocalDeviceSectionStatus.NAO_SUPORTADO,
-            statusLan = io.signallq.app.core.network.contracts.localdevice.LocalDeviceSectionStatus.NAO_SUPORTADO,
-            quantidadeClientes = 4,
-            warnings = emptyList(),
-            coletadoEmEpochMs = 1_000L,
-        )
-        val ctx = DiagnosisAiContextFactory.from(
-            report = fakeReport(),
-            input = DiagnosticInput(connectionType = ConnectionType.wifi, localDevice = snapshot),
-            connectionType = ConnectionType.wifi,
-        )
+        val snapshot =
+            io.signallq.app.core.network.contracts.localdevice.SafeLocalDeviceContext(
+                vendor = "Nokia",
+                modelo = "G-1425G-B",
+                firmwareVersion = "1.2.3",
+                deviceType = io.signallq.app.core.network.contracts.localdevice.DeviceType.ONT_GPON,
+                supportLevel = io.signallq.app.core.network.contracts.localdevice.SupportLevel.LAB_VALIDATED,
+                capabilities =
+                    io.signallq.app.core.network.contracts.localdevice
+                        .DeviceCapabilities(suportaFibra = true),
+                connectionStatus = io.signallq.app.core.network.contracts.localdevice.LocalDeviceSectionStatus.OK,
+                statusFibra = io.signallq.app.core.network.contracts.localdevice.LocalDeviceSectionStatus.OK,
+                statusWan = io.signallq.app.core.network.contracts.localdevice.LocalDeviceSectionStatus.OK,
+                statusWifi = io.signallq.app.core.network.contracts.localdevice.LocalDeviceSectionStatus.NAO_SUPORTADO,
+                statusLan = io.signallq.app.core.network.contracts.localdevice.LocalDeviceSectionStatus.NAO_SUPORTADO,
+                quantidadeClientes = 4,
+                warnings = emptyList(),
+                coletadoEmEpochMs = 1_000L,
+            )
+        val ctx =
+            DiagnosisAiContextFactory.from(
+                report = fakeReport(),
+                input = DiagnosticInput(connectionType = ConnectionType.wifi, localDevice = snapshot),
+                connectionType = ConnectionType.wifi,
+            )
 
         assertNotNull(ctx.equipamentoLocal)
         assertEquals("Nokia", ctx.equipamentoLocal?.vendor)
@@ -493,17 +544,19 @@ class DiagnosisAiContextFactoryTest {
 
     @Test
     fun objetivoDiagnostico_populado_quando_fromRaw_recebe_a_subcategoria() {
-        val subcategoria = io.signallq.app.feature.diagnostico.ai.AiObjetivoDiagnostico(
-            objetivoId = "JOGOS_COM_LAG",
-            subcategoriaIndice = 1,
-            subcategoriaRotulo = "Cabo de rede",
-        )
-        val ctx = DiagnosisAiContextFactory.fromRaw(
-            report = fakeReport(),
-            input = null,
-            connectionType = ConnectionType.wifi,
-            objetivoDiagnostico = subcategoria,
-        )
+        val subcategoria =
+            io.signallq.app.feature.diagnostico.ai.AiObjetivoDiagnostico(
+                objetivoId = "JOGOS_COM_LAG",
+                subcategoriaIndice = 1,
+                subcategoriaRotulo = "Cabo de rede",
+            )
+        val ctx =
+            DiagnosisAiContextFactory.fromRaw(
+                report = fakeReport(),
+                input = null,
+                connectionType = ConnectionType.wifi,
+                objetivoDiagnostico = subcategoria,
+            )
 
         assertEquals(subcategoria, ctx.objetivoDiagnostico)
 
@@ -517,10 +570,11 @@ class DiagnosisAiContextFactoryTest {
 
     @Test
     fun objetivoDiagnosticoFactory_resolve_rotulo_a_partir_do_indice_respondido() {
-        val resultado = AiObjetivoDiagnosticoFactory.from(
-            objetivo = io.signallq.app.core.diagnostico.ObjetivoDiagnostico.JOGOS_COM_LAG,
-            respostas = listOf(1),
-        )
+        val resultado =
+            AiObjetivoDiagnosticoFactory.from(
+                objetivo = io.signallq.app.core.diagnostico.ObjetivoDiagnostico.JOGOS_COM_LAG,
+                respostas = listOf(1),
+            )
         assertEquals(
             io.signallq.app.feature.diagnostico.ai.AiObjetivoDiagnostico(
                 objetivoId = "JOGOS_COM_LAG",

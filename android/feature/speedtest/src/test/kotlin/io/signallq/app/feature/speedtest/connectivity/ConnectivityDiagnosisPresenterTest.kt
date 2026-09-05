@@ -10,7 +10,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ConnectivityDiagnosisPresenterTest {
-
     private fun diagnostico(
         status: ConnectivityStatus,
         confidence: NivelConfianca = NivelConfianca.ALTA,
@@ -68,25 +67,28 @@ class ConnectivityDiagnosisPresenterTest {
 
     @Test
     fun `gateway inalcancavel com confianca alta usa linguagem de certeza`() {
-        val mensagem = ConnectivityDiagnosisPresenter.apresentar(
-            diagnostico(ConnectivityStatus.GATEWAY_UNREACHABLE, NivelConfianca.ALTA),
-        )
+        val mensagem =
+            ConnectivityDiagnosisPresenter.apresentar(
+                diagnostico(ConnectivityStatus.GATEWAY_UNREACHABLE, NivelConfianca.ALTA),
+            )
         assertTrue(mensagem.mensagem.startsWith("Confirmamos"))
     }
 
     @Test
     fun `gateway inalcancavel com confianca media usa linguagem de probabilidade`() {
-        val mensagem = ConnectivityDiagnosisPresenter.apresentar(
-            diagnostico(ConnectivityStatus.GATEWAY_UNREACHABLE, NivelConfianca.MEDIA),
-        )
+        val mensagem =
+            ConnectivityDiagnosisPresenter.apresentar(
+                diagnostico(ConnectivityStatus.GATEWAY_UNREACHABLE, NivelConfianca.MEDIA),
+            )
         assertTrue(mensagem.mensagem.startsWith("Há sinais de que"))
     }
 
     @Test
     fun `gateway inalcancavel com confianca baixa admite verificacao incompleta`() {
-        val mensagem = ConnectivityDiagnosisPresenter.apresentar(
-            diagnostico(ConnectivityStatus.GATEWAY_UNREACHABLE, NivelConfianca.BAIXA),
-        )
+        val mensagem =
+            ConnectivityDiagnosisPresenter.apresentar(
+                diagnostico(ConnectivityStatus.GATEWAY_UNREACHABLE, NivelConfianca.BAIXA),
+            )
         assertTrue(mensagem.mensagem.contains("não puderam ser concluídas"))
     }
 
@@ -104,9 +106,10 @@ class ConnectivityDiagnosisPresenterTest {
 
     @Test
     fun `sem rota externa com confianca media usa causa mais provavel`() {
-        val mensagem = ConnectivityDiagnosisPresenter.apresentar(
-            diagnostico(ConnectivityStatus.EXTERNAL_ROUTE_FAILURE, NivelConfianca.MEDIA),
-        )
+        val mensagem =
+            ConnectivityDiagnosisPresenter.apresentar(
+                diagnostico(ConnectivityStatus.EXTERNAL_ROUTE_FAILURE, NivelConfianca.MEDIA),
+            )
         assertTrue(mensagem.mensagem.startsWith("A causa mais provável"))
     }
 
@@ -125,9 +128,10 @@ class ConnectivityDiagnosisPresenterTest {
 
     @Test
     fun `sem ip local usa mensagem honesta e sugere reconectar reiniciar e checar limite do roteador`() {
-        val mensagem = ConnectivityDiagnosisPresenter.apresentar(
-            diagnostico(ConnectivityStatus.NO_LOCAL_ADDRESS, localAddressAvailable = false),
-        )
+        val mensagem =
+            ConnectivityDiagnosisPresenter.apresentar(
+                diagnostico(ConnectivityStatus.NO_LOCAL_ADDRESS, localAddressAvailable = false),
+            )
         assertTrue(
             "mensagem deveria explicar que nao recebeu endereco de rede",
             mensagem.mensagem.contains("endereço de rede"),
@@ -144,9 +148,10 @@ class ConnectivityDiagnosisPresenterTest {
 
     @Test
     fun `sem ip local nao promete certeza alem da evidencia disponivel`() {
-        val mensagem = ConnectivityDiagnosisPresenter.apresentar(
-            diagnostico(ConnectivityStatus.NO_LOCAL_ADDRESS, localAddressAvailable = false),
-        )
+        val mensagem =
+            ConnectivityDiagnosisPresenter.apresentar(
+                diagnostico(ConnectivityStatus.NO_LOCAL_ADDRESS, localAddressAvailable = false),
+            )
         assertTrue(
             "mensagem nao deve acusar a operadora por uma falha de DHCP local",
             !mensagem.mensagem.contains("operadora", ignoreCase = true),
@@ -155,18 +160,19 @@ class ConnectivityDiagnosisPresenterTest {
 
     @Test
     fun `todos os 10 estados de conectividade tem apresentacao`() {
-        val estados = setOf(
-            ConnectivityStatus.INTERNET_AVAILABLE,
-            ConnectivityStatus.WIFI_WITHOUT_INTERNET,
-            ConnectivityStatus.NO_LOCAL_ADDRESS,
-            ConnectivityStatus.GATEWAY_UNREACHABLE,
-            ConnectivityStatus.DNS_FAILURE,
-            ConnectivityStatus.EXTERNAL_ROUTE_FAILURE,
-            ConnectivityStatus.CAPTIVE_PORTAL,
-            ConnectivityStatus.PARTIAL_CONNECTIVITY,
-            ConnectivityStatus.WIFI_DISCONNECTED,
-            ConnectivityStatus.INCONCLUSIVE,
-        )
+        val estados =
+            setOf(
+                ConnectivityStatus.INTERNET_AVAILABLE,
+                ConnectivityStatus.WIFI_WITHOUT_INTERNET,
+                ConnectivityStatus.NO_LOCAL_ADDRESS,
+                ConnectivityStatus.GATEWAY_UNREACHABLE,
+                ConnectivityStatus.DNS_FAILURE,
+                ConnectivityStatus.EXTERNAL_ROUTE_FAILURE,
+                ConnectivityStatus.CAPTIVE_PORTAL,
+                ConnectivityStatus.PARTIAL_CONNECTIVITY,
+                ConnectivityStatus.WIFI_DISCONNECTED,
+                ConnectivityStatus.INCONCLUSIVE,
+            )
         assertEquals(estados, ConnectivityStatus.entries.toSet())
         estados.forEach { status ->
             val mensagem = ConnectivityDiagnosisPresenter.apresentar(diagnostico(status))

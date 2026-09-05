@@ -43,7 +43,6 @@ package io.signallq.app.core.diagnostico
  *   medido, não substitui).
  */
 object DiagnosticoGuiadoEngine {
-
     fun avaliar(
         objetivo: ObjetivoDiagnostico,
         respostas: List<Int>,
@@ -79,11 +78,12 @@ object DiagnosticoGuiadoEngine {
         return montarResultado(
             objetivo = ObjetivoDiagnostico.INTERNET_CAI_OSCILA,
             dims = dims,
-            mensagens = MensagensStatus(
-                ok = "Não encontramos falhas na conexão nem oscilação fora do esperado nos últimos testes.",
-                atencao = "Sinais de instabilidade na sua rede: falhas na conexão ou oscilação um pouco acima do ideal.",
-                critica = "Sinal de instabilidade real na sua rede: falhas na conexão e oscilação acima do esperado para uma conexão estável.",
-            ),
+            mensagens =
+                MensagensStatus(
+                    ok = "Não encontramos falhas na conexão nem oscilação fora do esperado nos últimos testes.",
+                    atencao = "Sinais de instabilidade na sua rede: falhas na conexão ou oscilação um pouco acima do ideal.",
+                    critica = "Sinal de instabilidade real na sua rede: falhas na conexão e oscilação acima do esperado para uma conexão estável.",
+                ),
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) {
                     emptyList()
@@ -113,11 +113,12 @@ object DiagnosticoGuiadoEngine {
         return montarResultado(
             objetivo = ObjetivoDiagnostico.VIDEOS_TRAVAM,
             dims = dims,
-            mensagens = MensagensStatus(
-                ok = "Download e atraso sob carga dentro do esperado. Sua rede aguenta streaming em boa qualidade.",
-                atencao = "O atraso sob carga ou o download ficaram no limite. O streaming pode perder qualidade em horário de pico.",
-                critica = "O download cai bastante sob carga, com atraso alto. Isso costuma travar o vídeo ou derrubar a qualidade sozinho.",
-            ),
+            mensagens =
+                MensagensStatus(
+                    ok = "Download e atraso sob carga dentro do esperado. Sua rede aguenta streaming em boa qualidade.",
+                    atencao = "O atraso sob carga ou o download ficaram no limite. O streaming pode perder qualidade em horário de pico.",
+                    critica = "O download cai bastante sob carga, com atraso alto. Isso costuma travar o vídeo ou derrubar a qualidade sozinho.",
+                ),
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) {
                     emptyList()
@@ -156,11 +157,12 @@ object DiagnosticoGuiadoEngine {
         return montarResultado(
             objetivo = ObjetivoDiagnostico.JOGOS_COM_LAG,
             dims = dims,
-            mensagens = MensagensStatus(
-                ok = "Tempo de resposta, variação do tempo de resposta e falhas na conexão dentro da faixa recomendada para jogos online.",
-                atencao = "O tempo de resposta sob carga ou a variação do tempo de resposta estão no limite. Pode haver atraso perceptível em momentos de disputa.",
-                critica = "O tempo de resposta sob carga está prejudicando suas partidas. Faixa crítica para jogos competitivos.",
-            ),
+            mensagens =
+                MensagensStatus(
+                    ok = "Tempo de resposta, variação do tempo de resposta e falhas na conexão dentro da faixa recomendada para jogos online.",
+                    atencao = "O tempo de resposta sob carga ou a variação do tempo de resposta estão no limite. Pode haver atraso perceptível em momentos de disputa.",
+                    critica = "O tempo de resposta sob carga está prejudicando suas partidas. Faixa crítica para jogos competitivos.",
+                ),
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) {
                     emptyList()
@@ -195,11 +197,12 @@ object DiagnosticoGuiadoEngine {
         return montarResultado(
             objetivo = ObjetivoDiagnostico.CHAMADAS_CONGELAM,
             dims = dims,
-            mensagens = MensagensStatus(
-                ok = "A variação do tempo de resposta, a perda e o upload estão dentro do esperado. A rede sustenta uma chamada de vídeo estável.",
-                atencao = "A variação do tempo de resposta ou o upload estão no limite. As chamadas podem sofrer quando a rede está mais ocupada.",
-                critica = "A variação do tempo de resposta está alta e/ou o upload está comprometido. Isso costuma congelar a imagem ou cortar o áudio na chamada.",
-            ),
+            mensagens =
+                MensagensStatus(
+                    ok = "A variação do tempo de resposta, a perda e o upload estão dentro do esperado. A rede sustenta uma chamada de vídeo estável.",
+                    atencao = "A variação do tempo de resposta ou o upload estão no limite. As chamadas podem sofrer quando a rede está mais ocupada.",
+                    critica = "A variação do tempo de resposta está alta e/ou o upload está comprometido. Isso costuma congelar a imagem ou cortar o áudio na chamada.",
+                ),
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) {
                     emptyList()
@@ -232,11 +235,12 @@ object DiagnosticoGuiadoEngine {
         return montarResultado(
             objetivo = ObjetivoDiagnostico.SITES_DEMORAM,
             dims = dims,
-            mensagens = MensagensStatus(
-                ok = "O tempo de resposta está dentro do esperado. Os sites devem abrir sem demora perceptível.",
-                atencao = "A resolução de nomes (serviço que localiza sites) ou a tempo de resposta geral estão um pouco lentas.",
-                critica = "O tempo de resposta do DNS ou o tempo de resposta geral estão altos. Isso costuma atrasar o carregamento de sites.",
-            ),
+            mensagens =
+                MensagensStatus(
+                    ok = "O tempo de resposta está dentro do esperado. Os sites devem abrir sem demora perceptível.",
+                    atencao = "A resolução de nomes (serviço que localiza sites) ou a tempo de resposta geral estão um pouco lentas.",
+                    critica = "O tempo de resposta do DNS ou o tempo de resposta geral estão altos. Isso costuma atrasar o carregamento de sites.",
+                ),
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) {
                     emptyList()
@@ -279,11 +283,12 @@ object DiagnosticoGuiadoEngine {
         return montarResultado(
             objetivo = ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA,
             dims = dims,
-            mensagens = MensagensStatus(
-                ok = "O download medido está próximo ou acima do que você contratou.",
-                atencao = "O download ficou um pouco abaixo do esperado para o plano contratado.",
-                critica = "Resultado bem abaixo do plano contratado.",
-            ),
+            mensagens =
+                MensagensStatus(
+                    ok = "O download medido está próximo ou acima do que você contratou.",
+                    atencao = "O download ficou um pouco abaixo do esperado para o plano contratado.",
+                    critica = "Resultado bem abaixo do plano contratado.",
+                ),
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) {
                     emptyList()
@@ -339,11 +344,12 @@ object DiagnosticoGuiadoEngine {
                 else -> null // "Ainda não testei" -> sem evidência adicional
             }
         if (statusAutoRelato != null) {
-            dims += Dimensao(
-                melhoraDesligandoWifi.rotuloRelatoTrocaDeConexao(emRedeMovel),
-                melhoraDesligandoWifi.valorRelatoTrocaDeConexao(),
-                statusAutoRelato,
-            )
+            dims +=
+                Dimensao(
+                    melhoraDesligandoWifi.rotuloRelatoTrocaDeConexao(emRedeMovel),
+                    melhoraDesligandoWifi.valorRelatoTrocaDeConexao(),
+                    statusAutoRelato,
+                )
         }
 
         return montarResultado(
@@ -398,6 +404,7 @@ object DiagnosticoGuiadoEngine {
         }
 
     // ── Outro problema (texto livre, sem pergunta fechada) ───────────────────
+
     /**
      * [ObjetivoDiagnostico.OUTRO_PROBLEMA] não tem pergunta fechada — a pessoa descreve o
      * problema em texto livre. Esse texto (`DiagnosticoGuiadoEstado.relatoLivre` /
@@ -421,11 +428,12 @@ object DiagnosticoGuiadoEngine {
         return montarResultado(
             objetivo = ObjetivoDiagnostico.OUTRO_PROBLEMA,
             dims = dims,
-            mensagens = MensagensStatus(
-                ok = "As métricas gerais da sua conexão estão dentro do esperado.",
-                atencao = "Encontramos sinais de que sua conexão pode estar com dificuldades em algum momento.",
-                critica = "Encontramos sinais claros de que sua conexão está com problemas.",
-            ),
+            mensagens =
+                MensagensStatus(
+                    ok = "As métricas gerais da sua conexão estão dentro do esperado.",
+                    atencao = "Encontramos sinais de que sua conexão pode estar com dificuldades em algum momento.",
+                    critica = "Encontramos sinais claros de que sua conexão está com problemas.",
+                ),
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) {
                     emptyList()

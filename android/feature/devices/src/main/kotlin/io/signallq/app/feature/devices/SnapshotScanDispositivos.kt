@@ -6,4 +6,3 @@ data class SnapshotScanDispositivos(
     val dispositivos: List<DispositivoRede>,
     val erroMensagem: String?,
 )
-

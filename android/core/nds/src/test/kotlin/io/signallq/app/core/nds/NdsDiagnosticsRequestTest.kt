@@ -6,7 +6,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NdsDiagnosticsRequestTest {
-
     @Test
     fun `toJson omite blocos opcionais nulos em vez de mandar chave vazia ou zero`() {
         val request =
@@ -37,12 +36,13 @@ class NdsDiagnosticsRequestTest {
 
     @Test
     fun `toJson serializa connection natStatus e bloco plan (ADR-018, NDS-Snapshot-09, issue #1841)`() {
-        val request = NdsDiagnosticsRequest(
-            requestId = "req-nat-plan",
-            app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
-            connection = NdsConnectionInfo(type = "WIFI", natStatus = "CGNAT"),
-            plan = NdsPlanInfo(contractedSpeedMbps = 500),
-        )
+        val request =
+            NdsDiagnosticsRequest(
+                requestId = "req-nat-plan",
+                app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+                connection = NdsConnectionInfo(type = "WIFI", natStatus = "CGNAT"),
+                plan = NdsPlanInfo(contractedSpeedMbps = 500),
+            )
 
         val json = request.toJson()
 
@@ -52,11 +52,12 @@ class NdsDiagnosticsRequestTest {
 
     @Test
     fun `toJson omite connection natStatus quando null, sem quebrar os demais campos de connection`() {
-        val request = NdsDiagnosticsRequest(
-            requestId = "req-nat-null",
-            app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
-            connection = NdsConnectionInfo(type = "WIFI", ssid = "MinhaRede", natStatus = null),
-        )
+        val request =
+            NdsDiagnosticsRequest(
+                requestId = "req-nat-null",
+                app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+                connection = NdsConnectionInfo(type = "WIFI", ssid = "MinhaRede", natStatus = null),
+            )
 
         val connectionJson = request.toJson().getJSONObject("connection")
 
@@ -67,11 +68,12 @@ class NdsDiagnosticsRequestTest {
 
     @Test
     fun `toJson omite plan contractedSpeedMbps quando null, mas nao omite o bloco se ja foi construido`() {
-        val request = NdsDiagnosticsRequest(
-            requestId = "req-plan-vazio",
-            app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
-            plan = NdsPlanInfo(contractedSpeedMbps = null),
-        )
+        val request =
+            NdsDiagnosticsRequest(
+                requestId = "req-plan-vazio",
+                app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+                plan = NdsPlanInfo(contractedSpeedMbps = null),
+            )
 
         val planJson = request.toJson().getJSONObject("plan")
 
@@ -147,11 +149,12 @@ class NdsDiagnosticsRequestTest {
     @Test
     fun `toJson serializa cada valor de NdsProvenance em speed packetLossSource com a string minuscula do vocabulario fechado`() {
         NdsProvenance.entries.forEach { provenance ->
-            val request = NdsDiagnosticsRequest(
-                requestId = "req-provenance-${provenance.name}",
-                app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
-                speed = NdsSpeedInfo(packetLossPercent = 1.5, packetLossSource = provenance),
-            )
+            val request =
+                NdsDiagnosticsRequest(
+                    requestId = "req-provenance-${provenance.name}",
+                    app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+                    speed = NdsSpeedInfo(packetLossPercent = 1.5, packetLossSource = provenance),
+                )
 
             val speed = request.toJson().getJSONObject("speed")
 
@@ -179,18 +182,20 @@ class NdsDiagnosticsRequestTest {
 
     @Test
     fun `toJson serializa bloco mobile em snake_case e sem identificadores de celula`() {
-        val request = NdsDiagnosticsRequest(
-            requestId = "req-mobile",
-            app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
-            mobile = NdsMobileInfo(
-                operator = "TIM",
-                technology = "5G",
-                rsrpDbm = -101,
-                rsrqDb = -14,
-                sinrDb = 7,
-                band = "n78",
-            ),
-        )
+        val request =
+            NdsDiagnosticsRequest(
+                requestId = "req-mobile",
+                app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+                mobile =
+                    NdsMobileInfo(
+                        operator = "TIM",
+                        technology = "5G",
+                        rsrpDbm = -101,
+                        rsrqDb = -14,
+                        sinrDb = 7,
+                        band = "n78",
+                    ),
+            )
 
         val mobile = request.toJson().getJSONObject("mobile")
 
@@ -208,11 +213,12 @@ class NdsDiagnosticsRequestTest {
 
     @Test
     fun `toJson omite campos individuais nulos do bloco mobile`() {
-        val request = NdsDiagnosticsRequest(
-            requestId = "req-mobile-parcial",
-            app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
-            mobile = NdsMobileInfo(rsrpDbm = -95, rsrqDb = -12, sinrDb = 3),
-        )
+        val request =
+            NdsDiagnosticsRequest(
+                requestId = "req-mobile-parcial",
+                app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+                mobile = NdsMobileInfo(rsrpDbm = -95, rsrqDb = -12, sinrDb = 3),
+            )
 
         val mobile = request.toJson().getJSONObject("mobile")
 
@@ -254,25 +260,27 @@ class NdsDiagnosticsRequestTest {
 
     @Test
     fun `toJson serializa bloco dns expandido (ADR-018, issue #1840)`() {
-        val request = NdsDiagnosticsRequest(
-            requestId = "req-dns",
-            app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
-            dns = NdsDnsInfo(
-                primary = "1.1.1.1",
-                responseTimeMs = 12,
-                hijacked = null,
-                providerName = "Cloudflare",
-                bestName = "Cloudflare",
-                bestLatencyMs = 12,
-                grade = "A",
-                comparisonAvailable = true,
-                coherenceAlertLevel = "none",
-                coherenceConsecutiveDivergences = 0,
-                coherenceDivergenceRatePercent = 0.0,
-                privateDnsActive = true,
-                privateDnsHostname = "dns.google",
-            ),
-        )
+        val request =
+            NdsDiagnosticsRequest(
+                requestId = "req-dns",
+                app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+                dns =
+                    NdsDnsInfo(
+                        primary = "1.1.1.1",
+                        responseTimeMs = 12,
+                        hijacked = null,
+                        providerName = "Cloudflare",
+                        bestName = "Cloudflare",
+                        bestLatencyMs = 12,
+                        grade = "A",
+                        comparisonAvailable = true,
+                        coherenceAlertLevel = "none",
+                        coherenceConsecutiveDivergences = 0,
+                        coherenceDivergenceRatePercent = 0.0,
+                        privateDnsActive = true,
+                        privateDnsHostname = "dns.google",
+                    ),
+            )
 
         val dns = request.toJson().getJSONObject("dns")
 
@@ -293,11 +301,12 @@ class NdsDiagnosticsRequestTest {
 
     @Test
     fun `toJson sempre serializa comparisonAvailable mesmo false, nunca omite`() {
-        val request = NdsDiagnosticsRequest(
-            requestId = "req-dns-sem-comparacao",
-            app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
-            dns = NdsDnsInfo(primary = "8.8.8.8", comparisonAvailable = false),
-        )
+        val request =
+            NdsDiagnosticsRequest(
+                requestId = "req-dns-sem-comparacao",
+                app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+                dns = NdsDnsInfo(primary = "8.8.8.8", comparisonAvailable = false),
+            )
 
         val dns = request.toJson().getJSONObject("dns")
 
@@ -310,14 +319,16 @@ class NdsDiagnosticsRequestTest {
 
     @Test
     fun `toJson serializa contexto sem PII e omite relato nulo`() {
-        val request = NdsDiagnosticsRequest(
-            requestId = "req-context",
-            app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
-            context = NdsDiagnosticContext(
-                objective = "SITES_DEMORAM",
-                answers = mapOf("pergunta_0" to "resposta_2"),
-            ),
-        )
+        val request =
+            NdsDiagnosticsRequest(
+                requestId = "req-context",
+                app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+                context =
+                    NdsDiagnosticContext(
+                        objective = "SITES_DEMORAM",
+                        answers = mapOf("pergunta_0" to "resposta_2"),
+                    ),
+            )
 
         val context = request.toJson().getJSONObject("context")
         assertFalse(context.has("reported_problem"))

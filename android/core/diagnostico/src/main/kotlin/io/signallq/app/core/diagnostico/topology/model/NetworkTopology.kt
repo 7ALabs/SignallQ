@@ -8,17 +8,17 @@ data class DeviceInfo(
     val vendor: String?,
     val friendlyName: String?,
     val manufacturer: String?,
-    val model: String?
+    val model: String?,
 )
 
 data class NetworkTopology(
     val gatewayIp: String?,
-    val wanIp: String?,        // do IGD GetExternalIPAddress
-    val publicIp: String?,     // serviço externo
+    val wanIp: String?, // do IGD GetExternalIPAddress
+    val publicIp: String?, // serviço externo
     val router: DeviceInfo?,
     val meshNodes: List<DeviceInfo>,
     val nat: NatStatus,
     val isp: String?,
     val region: String?,
-    val traceHops: List<String>?
+    val traceHops: List<String>?,
 )

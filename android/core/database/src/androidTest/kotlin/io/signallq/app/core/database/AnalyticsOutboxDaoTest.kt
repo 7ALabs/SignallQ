@@ -25,25 +25,29 @@ class AnalyticsOutboxDaoTest {
     fun tearDown() = database.close()
 
     @Test
-    fun due_defer_acknowledge_e_clear_persistem_o_ciclo_da_outbox() = runBlocking {
-        val dao = database.analyticsOutboxDao()
-        // enqueue() retorna o rowid interno do SQLite (auto-incrementado por linha inserida,
-        // 1/2/3...), nao um valor derivado do `id` de negocio da entidade -- por isso o segundo
-        // insert (linha nova, id "segundo") retorna 2L, nao 1L.
-        assertEquals(1L, dao.enqueue(event("primeiro", createdAt = 100)))
-        assertEquals(2L, dao.enqueue(event("segundo", createdAt = 200)))
-        assertEquals(-1L, dao.enqueue(event("primeiro", createdAt = 300)))
+    fun due_defer_acknowledge_e_clear_persistem_o_ciclo_da_outbox() =
+        runBlocking {
+            val dao = database.analyticsOutboxDao()
+            // enqueue() retorna o rowid interno do SQLite (auto-incrementado por linha inserida,
+            // 1/2/3...), nao um valor derivado do `id` de negocio da entidade -- por isso o segundo
+            // insert (linha nova, id "segundo") retorna 2L, nao 1L.
+            assertEquals(1L, dao.enqueue(event("primeiro", createdAt = 100)))
+            assertEquals(2L, dao.enqueue(event("segundo", createdAt = 200)))
+            assertEquals(-1L, dao.enqueue(event("primeiro", createdAt = 300)))
 
-        assertEquals(listOf("primeiro"), dao.due(nowEpochMs = 150, limit = 10).map { it.id })
-        assertEquals(1, dao.defer("primeiro", attemptCount = 1, nextAttemptAtEpochMs = 500))
-        assertEquals(listOf("segundo"), dao.due(nowEpochMs = 250, limit = 10).map { it.id })
-        assertEquals(1, dao.acknowledge("segundo"))
-        assertTrue(dao.due(nowEpochMs = 250, limit = 10).isEmpty())
-        assertEquals(listOf("primeiro"), dao.due(nowEpochMs = 500, limit = 10).map { it.id })
+            assertEquals(listOf("primeiro"), dao.due(nowEpochMs = 150, limit = 10).map { it.id })
+            assertEquals(1, dao.defer("primeiro", attemptCount = 1, nextAttemptAtEpochMs = 500))
+            assertEquals(listOf("segundo"), dao.due(nowEpochMs = 250, limit = 10).map { it.id })
+            assertEquals(1, dao.acknowledge("segundo"))
+            assertTrue(dao.due(nowEpochMs = 250, limit = 10).isEmpty())
+            assertEquals(listOf("primeiro"), dao.due(nowEpochMs = 500, limit = 10).map { it.id })
 
-        dao.clear()
-        assertTrue(dao.due(nowEpochMs = Long.MAX_VALUE, limit = 10).isEmpty())
-    }
+            dao.clear()
+            assertTrue(dao.due(nowEpochMs = Long.MAX_VALUE, limit = 10).isEmpty())
+        }
 
-    private fun event(id: String, createdAt: Long) = AnalyticsOutboxEntity(id, "{\"id\":\"$id\"}", createdAt)
+    private fun event(
+        id: String,
+        createdAt: Long,
+    ) = AnalyticsOutboxEntity(id, "{\"id\":\"$id\"}", createdAt)
 }

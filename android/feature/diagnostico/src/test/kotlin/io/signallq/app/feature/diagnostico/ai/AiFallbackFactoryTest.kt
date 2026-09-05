@@ -16,18 +16,18 @@ import org.junit.Test
  * nunca "SignallQ IA — Llama 3.3 70B" (seria mentira).
  */
 class AiFallbackFactoryTest {
-
     private fun fakeReport(status: DiagnosticStatus): DiagnosticReport {
-        val decisao = DiagnosticResult(
-            id = "dec-1",
-            titulo = "Decisao local",
-            status = status,
-            evidencia = null,
-            mensagemUsuario = "Mensagem local de fallback.",
-            recomendacao = "Verifique seu roteador.",
-            categoria = "isp",
-            podeConcluir = true,
-        )
+        val decisao =
+            DiagnosticResult(
+                id = "dec-1",
+                titulo = "Decisao local",
+                status = status,
+                evidencia = null,
+                mensagemUsuario = "Mensagem local de fallback.",
+                recomendacao = "Verifique seu roteador.",
+                categoria = "isp",
+                podeConcluir = true,
+            )
         return DiagnosticReport(
             wifiResultados = emptyList(),
             internetResultados = emptyList(),

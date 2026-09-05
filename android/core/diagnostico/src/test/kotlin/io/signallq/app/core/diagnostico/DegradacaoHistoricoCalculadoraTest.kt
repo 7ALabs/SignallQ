@@ -6,7 +6,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DegradacaoHistoricoCalculadoraTest {
-
     @Test
     fun `queda relevante com testes suficientes marca degradacao detectada`() {
         val resultado =

@@ -12,8 +12,9 @@ private const val USER_AGENT =
 
 // Gerencia sessão HTTP com o modem Nokia G-1425G-B.
 // Protocolo: GET page → extrair crypto material → POST login → usar sid/X-SID para páginas.
-internal class NokiaModemClient(private val host: String) {
-
+internal class NokiaModemClient(
+    private val host: String,
+) {
     init {
         // GH#1213 item 2 — nunca conectar (nem enviar credenciais) a um host que não seja
         // um IP privado/local. Falha rápido, antes de qualquer chamada de rede.
@@ -31,7 +32,10 @@ internal class NokiaModemClient(private val host: String) {
     val isLoggedIn: Boolean get() = sid.isNotEmpty()
 
     @Throws(IOException::class)
-    fun login(username: String, password: String) {
+    fun login(
+        username: String,
+        password: String,
+    ) {
         Timber.i("login: iniciando em $baseUrl")
 
         // Etapa 1: GET página de login para extrair crypto material.
@@ -39,12 +43,15 @@ internal class NokiaModemClient(private val host: String) {
         val html = loginPage.body
         Timber.i("login: page=${html.length} bytes status=${loginPage.statusCode}")
 
-        val pubKeyBase64 = NokiaModemCrypto.extractPublicKeyBase64(html)
-            ?: throw IOException("pubkey nao encontrado na pagina de login")
-        val nonce = NokiaModemCrypto.extractNonce(html)
-            ?: throw IOException("nonce nao encontrado na pagina de login")
-        val csrfToken = NokiaModemCrypto.extractCsrfToken(html)
-            ?: throw IOException("csrf_token nao encontrado na pagina de login")
+        val pubKeyBase64 =
+            NokiaModemCrypto.extractPublicKeyBase64(html)
+                ?: throw IOException("pubkey nao encontrado na pagina de login")
+        val nonce =
+            NokiaModemCrypto.extractNonce(html)
+                ?: throw IOException("nonce nao encontrado na pagina de login")
+        val csrfToken =
+            NokiaModemCrypto.extractCsrfToken(html)
+                ?: throw IOException("csrf_token nao encontrado na pagina de login")
 
         Timber.i("login: pubkey=${pubKeyBase64.length}chars nonce=${nonce.length} token=${csrfToken.length}")
 
@@ -61,12 +68,13 @@ internal class NokiaModemClient(private val host: String) {
 
         // Payload interno (plaintext que será cifrado em ct).
         // Começa com & conforme o crypto_page.js do firmware.
-        val plainPayload = "&username=$username" +
-            "&password=${URLEncoder.encode(password, "UTF-8")}" +
-            "&csrf_token=$csrfToken" +
-            "&nonce=$nonce" +
-            "&enckey=${NokiaModemCrypto.base64UrlEscape(Base64.encodeToString(decKey, Base64.NO_WRAP))}" +
-            "&enciv=${NokiaModemCrypto.base64UrlEscape(Base64.encodeToString(decIv, Base64.NO_WRAP))}"
+        val plainPayload =
+            "&username=$username" +
+                "&password=${URLEncoder.encode(password, "UTF-8")}" +
+                "&csrf_token=$csrfToken" +
+                "&nonce=$nonce" +
+                "&enckey=${NokiaModemCrypto.base64UrlEscape(Base64.encodeToString(decKey, Base64.NO_WRAP))}" +
+                "&enciv=${NokiaModemCrypto.base64UrlEscape(Base64.encodeToString(decIv, Base64.NO_WRAP))}"
 
         // ct = AES-CBC-ISO7816-4(plainPayload) → base64url sem padding.
         val ctBytes = NokiaModemCrypto.aesCbcEncryptSjcl(aesKey, iv, plainPayload.toByteArray(Charsets.UTF_8))
@@ -100,15 +108,21 @@ internal class NokiaModemClient(private val host: String) {
         }
 
         // Diagnosticar falha via err_t no body.
-        val errT = Regex("""err_t\s*=\s*\[([^\]]*)]""").find(resp.body)?.groupValues?.get(1)?.trim()
-        val mensagem = when (errT) {
-            "0" -> "sessao em uso por outro acesso (err_t=0)"
-            "1" -> "credenciais invalidas (err_t=1)"
-            "2" -> "token expirado — retry necessario (err_t=2)"
-            // GH#983 Fase 4 (checklist de seguranca) — nunca logar/propagar HTML cru do gateway,
-            // so tamanho, seguindo o mesmo padrao ja usado pro SID (sid.take(8) acima).
-            else -> "login falhou: status=${resp.statusCode} err_t=$errT bodyLen=${resp.body.length}"
-        }
+        val errT =
+            Regex("""err_t\s*=\s*\[([^\]]*)]""")
+                .find(resp.body)
+                ?.groupValues
+                ?.get(1)
+                ?.trim()
+        val mensagem =
+            when (errT) {
+                "0" -> "sessao em uso por outro acesso (err_t=0)"
+                "1" -> "credenciais invalidas (err_t=1)"
+                "2" -> "token expirado — retry necessario (err_t=2)"
+                // GH#983 Fase 4 (checklist de seguranca) — nunca logar/propagar HTML cru do gateway,
+                // so tamanho, seguindo o mesmo padrao ja usado pro SID (sid.take(8) acima).
+                else -> "login falhou: status=${resp.statusCode} err_t=$errT bodyLen=${resp.body.length}"
+            }
         Timber.w("login: FALHA $mensagem")
         throw IOException(mensagem)
     }
@@ -175,25 +189,29 @@ internal class NokiaModemClient(private val host: String) {
     )
 
     // Executa GET seguindo redirecionamentos manualmente para preservar Set-Cookie de cada hop.
-    private fun httpGet(path: String, extraHeaders: Map<String, String> = emptyMap()): HttpResponse {
+    private fun httpGet(
+        path: String,
+        extraHeaders: Map<String, String> = emptyMap(),
+    ): HttpResponse {
         val accumulatedCookies = mutableMapOf<String, String>()
         var currentUrl = "$baseUrl$path"
         var hops = 0
 
         while (hops < 5) {
-            val conn = (URL(currentUrl).openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                connectTimeout = 15_000
-                readTimeout = 30_000
-                instanceFollowRedirects = false
-                setRequestProperty("User-Agent", USER_AGENT)
-                setRequestProperty("Accept", "text/html,application/xhtml+xml,*/*;q=0.9")
-                if (accumulatedCookies.isNotEmpty()) {
-                    val cookieStr = accumulatedCookies.entries.joinToString("; ") { "${it.key}=${it.value}" }
-                    setRequestProperty("Cookie", cookieStr)
+            val conn =
+                (URL(currentUrl).openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    connectTimeout = 15_000
+                    readTimeout = 30_000
+                    instanceFollowRedirects = false
+                    setRequestProperty("User-Agent", USER_AGENT)
+                    setRequestProperty("Accept", "text/html,application/xhtml+xml,*/*;q=0.9")
+                    if (accumulatedCookies.isNotEmpty()) {
+                        val cookieStr = accumulatedCookies.entries.joinToString("; ") { "${it.key}=${it.value}" }
+                        setRequestProperty("Cookie", cookieStr)
+                    }
+                    extraHeaders.forEach { (k, v) -> setRequestProperty(k, v) }
                 }
-                extraHeaders.forEach { (k, v) -> setRequestProperty(k, v) }
-            }
             val resp = readResponse(conn)
             accumulatedCookies.putAll(resp.cookies)
 
@@ -219,36 +237,39 @@ internal class NokiaModemClient(private val host: String) {
         extraHeaders: Map<String, String> = emptyMap(),
     ): HttpResponse {
         val bodyBytes = body.toByteArray(Charsets.UTF_8)
-        val conn = (URL("$baseUrl$path").openConnection() as HttpURLConnection).apply {
-            requestMethod = "POST"
-            connectTimeout = 15_000
-            readTimeout = 60_000
-            instanceFollowRedirects = false
-            doOutput = true
-            setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-            setRequestProperty("User-Agent", USER_AGENT)
-            setRequestProperty("X-Requested-With", "XMLHttpRequest")
-            setRequestProperty("Referer", "$baseUrl/")
-            setRequestProperty("Origin", baseUrl)
-            setRequestProperty("Accept", "*/*")
-            setRequestProperty("Connection", "close")
-            extraHeaders.forEach { (k, v) -> setRequestProperty(k, v) }
-            setFixedLengthStreamingMode(bodyBytes.size)
-            if (initCookies.isNotEmpty()) {
-                val cookieStr = initCookies.entries.joinToString("; ") { "${it.key}=${it.value}" }
-                setRequestProperty("Cookie", cookieStr)
+        val conn =
+            (URL("$baseUrl$path").openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                connectTimeout = 15_000
+                readTimeout = 60_000
+                instanceFollowRedirects = false
+                doOutput = true
+                setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                setRequestProperty("User-Agent", USER_AGENT)
+                setRequestProperty("X-Requested-With", "XMLHttpRequest")
+                setRequestProperty("Referer", "$baseUrl/")
+                setRequestProperty("Origin", baseUrl)
+                setRequestProperty("Accept", "*/*")
+                setRequestProperty("Connection", "close")
+                extraHeaders.forEach { (k, v) -> setRequestProperty(k, v) }
+                setFixedLengthStreamingMode(bodyBytes.size)
+                if (initCookies.isNotEmpty()) {
+                    val cookieStr = initCookies.entries.joinToString("; ") { "${it.key}=${it.value}" }
+                    setRequestProperty("Cookie", cookieStr)
+                }
+                outputStream.write(bodyBytes)
+                outputStream.flush()
             }
-            outputStream.write(bodyBytes)
-            outputStream.flush()
-        }
         return readResponse(conn)
     }
 
-    private fun readResponse(conn: HttpURLConnection): HttpResponse {
-        return try {
+    private fun readResponse(conn: HttpURLConnection): HttpResponse =
+        try {
             val statusCode = conn.responseCode
-            val body = (if (statusCode >= 400) conn.errorStream else conn.inputStream)
-                ?.bufferedReader()?.readText() ?: ""
+            val body =
+                (if (statusCode >= 400) conn.errorStream else conn.inputStream)
+                    ?.bufferedReader()
+                    ?.readText() ?: ""
             val headers = mutableMapOf<String, String>()
             conn.headerFields.forEach { (k, vs) ->
                 if (k != null) headers[k.lowercase()] = vs.joinToString(", ")
@@ -258,7 +279,6 @@ internal class NokiaModemClient(private val host: String) {
         } finally {
             conn.disconnect()
         }
-    }
 
     private fun parseCookies(conn: HttpURLConnection): Map<String, String> {
         val result = mutableMapOf<String, String>()

@@ -96,7 +96,6 @@ data class PerguntaFechada(
  * sem migrar o motor local para o NDS, que segue fora de escopo.
  */
 object PerguntasDiagnosticoGuiado {
-
     /**
      * @param tipoConexao tipo de conexão do teste mais recente
      * ([DiagnosticInput.connectionType]). Usado só pelos roteiros que citam a conexão

@@ -7,7 +7,6 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class UpnpParserTest {
-
     // --- Fixtures ---
 
     private val ssdpResponseFixture = """HTTP/1.1 200 OK
@@ -66,7 +65,7 @@ USN: uuid:12345678-1234-1234-1234-123456789abc::urn:schemas-upnp-org:device:Inte
         assertNotNull(result)
         assertEquals(
             "uuid:12345678-1234-1234-1234-123456789abc::urn:schemas-upnp-org:device:InternetGatewayDevice:1",
-            result!!.usn
+            result!!.usn,
         )
     }
 

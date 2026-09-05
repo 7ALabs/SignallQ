@@ -13,7 +13,6 @@ import org.junit.Test
  * via `max(x, 0)`. Os casos abaixo replicam esses números.
  */
 class ValidadorBaselineLatenciaTest {
-
     @Test
     fun `baseline maior que latencia sob carga e implausivel`() {
         // Caso real: baseline inflado (host publico) = 408, sob carga (Ookla-like) = 109.
@@ -39,28 +38,30 @@ class ValidadorBaselineLatenciaTest {
 
     @Test
     fun `probe com perda total esta indisponivel`() {
-        val resultado = ResultadoAmostragemPing(
-            latenciaMs = 0.0,
-            jitterMs = 0.0,
-            perdaPercentual = 100.0,
-            totalAmostras = 14,
-            amostrasValidas = 0,
-            timeouts = 14,
-        )
+        val resultado =
+            ResultadoAmostragemPing(
+                latenciaMs = 0.0,
+                jitterMs = 0.0,
+                perdaPercentual = 100.0,
+                totalAmostras = 14,
+                amostrasValidas = 0,
+                timeouts = 14,
+            )
 
         assertTrue(ValidadorBaselineLatencia.probeIndisponivel(resultado))
     }
 
     @Test
     fun `probe com perda parcial nao esta indisponivel`() {
-        val resultado = ResultadoAmostragemPing(
-            latenciaMs = 12.0,
-            jitterMs = 1.0,
-            perdaPercentual = 50.0,
-            totalAmostras = 14,
-            amostrasValidas = 7,
-            timeouts = 7,
-        )
+        val resultado =
+            ResultadoAmostragemPing(
+                latenciaMs = 12.0,
+                jitterMs = 1.0,
+                perdaPercentual = 50.0,
+                totalAmostras = 14,
+                amostrasValidas = 7,
+                timeouts = 7,
+            )
 
         assertFalse(ValidadorBaselineLatencia.probeIndisponivel(resultado))
     }
@@ -69,14 +70,15 @@ class ValidadorBaselineLatenciaTest {
     fun `sem nenhuma amostra coletada nao conta como probe indisponivel`() {
         // Caso de borda: rede mudou antes da 1a amostra (totalAmostras=0) -- nao e
         // "worker fora do ar", e nao deve disparar o fallback publico indevidamente.
-        val resultado = ResultadoAmostragemPing(
-            latenciaMs = 0.0,
-            jitterMs = 0.0,
-            perdaPercentual = 0.0,
-            totalAmostras = 0,
-            amostrasValidas = 0,
-            timeouts = 0,
-        )
+        val resultado =
+            ResultadoAmostragemPing(
+                latenciaMs = 0.0,
+                jitterMs = 0.0,
+                perdaPercentual = 0.0,
+                totalAmostras = 0,
+                amostrasValidas = 0,
+                timeouts = 0,
+            )
 
         assertFalse(ValidadorBaselineLatencia.probeIndisponivel(resultado))
     }

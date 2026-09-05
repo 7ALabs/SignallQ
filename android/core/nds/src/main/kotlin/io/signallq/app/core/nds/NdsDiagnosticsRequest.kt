@@ -85,7 +85,9 @@ data class NdsWifiScanInfo(
  * - [UNKNOWN] — fonte não determinada — usar só quando a própria coleta já
  *   retorna essa incerteza.
  */
-enum class NdsProvenance(val jsonValue: String) {
+enum class NdsProvenance(
+    val jsonValue: String,
+) {
     MEASURED("measured"),
     ESTIMATED("estimated"),
     DERIVED("derived"),
@@ -307,13 +309,16 @@ data class NdsDiagnosticsRequest(
         )
         root.put("locale", locale)
         context?.let { c ->
-            root.put("context", JSONObject().apply {
-                c.reportedProblem?.takeIf(String::isNotBlank)?.let { put("reported_problem", it) }
-                c.objective?.takeIf(String::isNotBlank)?.let { put("objective", it) }
-                c.subcategory?.takeIf(String::isNotBlank)?.let { put("subcategory", it) }
-                if (c.symptoms.isNotEmpty()) put("symptoms", JSONArray(c.symptoms))
-                if (c.answers.isNotEmpty()) put("answers", JSONObject(c.answers))
-            })
+            root.put(
+                "context",
+                JSONObject().apply {
+                    c.reportedProblem?.takeIf(String::isNotBlank)?.let { put("reported_problem", it) }
+                    c.objective?.takeIf(String::isNotBlank)?.let { put("objective", it) }
+                    c.subcategory?.takeIf(String::isNotBlank)?.let { put("subcategory", it) }
+                    if (c.symptoms.isNotEmpty()) put("symptoms", JSONArray(c.symptoms))
+                    if (c.answers.isNotEmpty()) put("answers", JSONObject(c.answers))
+                },
+            )
         }
         profile?.let { root.put("profile", it) }
         if (capabilities.isNotEmpty()) {

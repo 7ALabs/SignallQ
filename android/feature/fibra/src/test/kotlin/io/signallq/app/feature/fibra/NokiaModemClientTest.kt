@@ -8,7 +8,6 @@ import org.junit.Test
  * validação acontece no construtor, antes de qualquer chamada de rede (login/fetchPage).
  */
 class NokiaModemClientTest {
-
     @Test
     fun `construir com host publico lanca IllegalArgumentException`() {
         assertThrows(IllegalArgumentException::class.java) {

@@ -31,22 +31,23 @@ import io.signallq.app.core.network.contracts.topologia.NivelConfianca
  * significa que o Android não confirmou internet funcional nesta rede, com ou sem a
  * capability declarada.
  */
-fun ConnectivityDiagnosis.indicaAusenciaDeInternetParaBloquearSpeedtest(): Boolean = when (status) {
-    ConnectivityStatus.WIFI_WITHOUT_INTERNET,
-    ConnectivityStatus.EXTERNAL_ROUTE_FAILURE,
-    ConnectivityStatus.CAPTIVE_PORTAL,
-    ConnectivityStatus.NO_LOCAL_ADDRESS,
-    -> true
+fun ConnectivityDiagnosis.indicaAusenciaDeInternetParaBloquearSpeedtest(): Boolean =
+    when (status) {
+        ConnectivityStatus.WIFI_WITHOUT_INTERNET,
+        ConnectivityStatus.EXTERNAL_ROUTE_FAILURE,
+        ConnectivityStatus.CAPTIVE_PORTAL,
+        ConnectivityStatus.NO_LOCAL_ADDRESS,
+        -> true
 
-    ConnectivityStatus.DNS_FAILURE,
-    -> confidence == NivelConfianca.ALTA
+        ConnectivityStatus.DNS_FAILURE,
+        -> confidence == NivelConfianca.ALTA
 
-    ConnectivityStatus.GATEWAY_UNREACHABLE,
-    -> confidence == NivelConfianca.ALTA && !androidValidated
+        ConnectivityStatus.GATEWAY_UNREACHABLE,
+        -> confidence == NivelConfianca.ALTA && !androidValidated
 
-    ConnectivityStatus.INTERNET_AVAILABLE,
-    ConnectivityStatus.PARTIAL_CONNECTIVITY,
-    ConnectivityStatus.INCONCLUSIVE,
-    ConnectivityStatus.WIFI_DISCONNECTED,
-    -> false
-}
+        ConnectivityStatus.INTERNET_AVAILABLE,
+        ConnectivityStatus.PARTIAL_CONNECTIVITY,
+        ConnectivityStatus.INCONCLUSIVE,
+        ConnectivityStatus.WIFI_DISCONNECTED,
+        -> false
+    }

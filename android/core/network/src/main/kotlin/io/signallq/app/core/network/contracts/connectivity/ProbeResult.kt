@@ -7,19 +7,29 @@ package io.signallq.app.core.network.contracts.connectivity
  */
 sealed interface ProbeResult {
     /** Sondagem executada e confirmou alcance. [elapsedMs] é informativo, não usado para decisão. */
-    data class Success(val elapsedMs: Long? = null) : ProbeResult
+    data class Success(
+        val elapsedMs: Long? = null,
+    ) : ProbeResult
 
     /** Sondagem executada e falhou de forma conclusiva antes do timeout. */
-    data class Failure(val reason: ProbeFailureReason) : ProbeResult
+    data class Failure(
+        val reason: ProbeFailureReason,
+    ) : ProbeResult
 
     /** Sondagem executada mas excedeu o tempo limite sem resposta conclusiva. */
-    data class Timeout(val afterMs: Long) : ProbeResult
+    data class Timeout(
+        val afterMs: Long,
+    ) : ProbeResult
 
     /** Sondagem não executada nesta rodada (ex.: etapa anterior já falhou, sem sentido tentar). */
-    data class NotExecuted(val reason: String) : ProbeResult
+    data class NotExecuted(
+        val reason: String,
+    ) : ProbeResult
 
     /** Pré-requisito da sondagem está ausente (ex.: sem gateway configurado, sem DNS configurado). */
-    data class Unavailable(val reason: String) : ProbeResult
+    data class Unavailable(
+        val reason: String,
+    ) : ProbeResult
 }
 
 enum class ProbeFailureReason {

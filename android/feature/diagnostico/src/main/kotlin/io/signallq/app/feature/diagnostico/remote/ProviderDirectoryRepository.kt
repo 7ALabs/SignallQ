@@ -68,14 +68,14 @@ data class RemoteProviderInfo(
 class ProviderDirectoryRepository(
     private val baseUrl: String,
     private val client: OkHttpClient =
-        OkHttpClient.Builder()
+        OkHttpClient
+            .Builder()
             .connectTimeout(3, TimeUnit.SECONDS)
             .readTimeout(4, TimeUnit.SECONDS)
             .writeTimeout(3, TimeUnit.SECONDS)
             .build(),
     private val cache: ProviderDirectoryCache = NoOpProviderDirectoryCache,
 ) {
-
     /** Busca por id exato (quando ja se sabe o `providerId`, ex.: vindo de deteccao previa). */
     suspend fun findById(providerId: String): RemoteProviderInfo? {
         val key = keyForId(providerId)
@@ -132,7 +132,12 @@ class ProviderDirectoryRepository(
         return withContext(Dispatchers.IO) {
             withTimeoutOrNull(5_000L) {
                 try {
-                    val request = Request.Builder().url(url).get().build()
+                    val request =
+                        Request
+                            .Builder()
+                            .url(url)
+                            .get()
+                            .build()
                     client.newCall(request).execute().use { response ->
                         if (!response.isSuccessful) return@use null
                         val text = response.body?.string()

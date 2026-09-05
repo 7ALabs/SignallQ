@@ -31,7 +31,6 @@ import io.signallq.app.core.diagnostico.topology.model.NatStatus
  * [DiagnosticInput.natStatus].
  */
 object GameReadinessClassifier {
-
     enum class Categoria { FPS_COMPETITIVO, CLOUD_GAMING, MOBILE_COMPETITIVO }
 
     enum class ReadinessStatus { Bom, Atencao, Ruim }
@@ -48,12 +47,16 @@ object GameReadinessClassifier {
     fun classificarTodos(input: DiagnosticInput): List<GameReadinessResult> =
         Categoria.entries.map { classificar(it, input) }
 
-    fun classificar(categoria: Categoria, input: DiagnosticInput): GameReadinessResult {
-        val avaliador = when (categoria) {
-            Categoria.FPS_COMPETITIVO -> ::avaliarFpsCompetitivo
-            Categoria.CLOUD_GAMING -> ::avaliarCloudGaming
-            Categoria.MOBILE_COMPETITIVO -> ::avaliarMobileCompetitivo
-        }
+    fun classificar(
+        categoria: Categoria,
+        input: DiagnosticInput,
+    ): GameReadinessResult {
+        val avaliador =
+            when (categoria) {
+                Categoria.FPS_COMPETITIVO -> ::avaliarFpsCompetitivo
+                Categoria.CLOUD_GAMING -> ::avaliarCloudGaming
+                Categoria.MOBILE_COMPETITIVO -> ::avaliarMobileCompetitivo
+            }
         return avaliador(input)
     }
 
@@ -71,20 +74,35 @@ object GameReadinessClassifier {
         val ausentes = mutableListOf<String>()
         val faixas = mutableListOf<ReadinessStatus>()
 
-        if (latencia == null) ausentes += "latencia" else faixas += when {
-            latencia <= 50.0 -> ReadinessStatus.Bom
-            latencia <= 100.0 -> ReadinessStatus.Atencao
-            else -> ReadinessStatus.Ruim
+        if (latencia == null) {
+            ausentes += "latencia"
+        } else {
+            faixas +=
+                when {
+                    latencia <= 50.0 -> ReadinessStatus.Bom
+                    latencia <= 100.0 -> ReadinessStatus.Atencao
+                    else -> ReadinessStatus.Ruim
+                }
         }
-        if (jitter == null) ausentes += "jitter" else faixas += when {
-            jitter <= 15.0 -> ReadinessStatus.Bom
-            jitter <= 30.0 -> ReadinessStatus.Atencao
-            else -> ReadinessStatus.Ruim
+        if (jitter == null) {
+            ausentes += "jitter"
+        } else {
+            faixas +=
+                when {
+                    jitter <= 15.0 -> ReadinessStatus.Bom
+                    jitter <= 30.0 -> ReadinessStatus.Atencao
+                    else -> ReadinessStatus.Ruim
+                }
         }
-        if (bufferbloat == null) ausentes += "bufferbloat" else faixas += when {
-            bufferbloat <= 30.0 -> ReadinessStatus.Bom
-            bufferbloat <= 100.0 -> ReadinessStatus.Atencao
-            else -> ReadinessStatus.Ruim
+        if (bufferbloat == null) {
+            ausentes += "bufferbloat"
+        } else {
+            faixas +=
+                when {
+                    bufferbloat <= 30.0 -> ReadinessStatus.Bom
+                    bufferbloat <= 100.0 -> ReadinessStatus.Atencao
+                    else -> ReadinessStatus.Ruim
+                }
         }
         if (perda == null) ausentes += "perda" else faixas += perda
 
@@ -97,7 +115,7 @@ object GameReadinessClassifier {
         latencia?.let { evidencias += "Latência ${it.toInt()}ms" }
         jitter?.let { evidencias += "Jitter ${it.toInt()}ms" }
         bufferbloat?.let { evidencias += "Bufferbloat ${it.toInt()}ms" }
-        internet?.perdaPercentual?.let { p -> if (p > 0.0) evidencias += "Perda ${p}%${sufixoEstimada(internet)}" }
+        internet?.perdaPercentual?.let { p -> if (p > 0.0) evidencias += "Perda $p%${sufixoEstimada(internet)}" }
 
         return GameReadinessResult(
             categoria = Categoria.FPS_COMPETITIVO,
@@ -109,11 +127,15 @@ object GameReadinessClassifier {
         )
     }
 
-    private fun motivoFps(status: ReadinessStatus, input: DiagnosticInput): String = when (status) {
-        ReadinessStatus.Bom -> "Conexão pronta para FPS competitivo (COD/Warzone, Valorant, CS2, Apex, Rainbow Six)."
-        ReadinessStatus.Atencao -> "Métricas no limite para FPS competitivo — pode haver atraso perceptível na mira/registro de tiros."
-        ReadinessStatus.Ruim -> "Conexão não recomendada para FPS competitivo no momento — latência/jitter/perda vão prejudicar a precisão."
-    }
+    private fun motivoFps(
+        status: ReadinessStatus,
+        input: DiagnosticInput,
+    ): String =
+        when (status) {
+            ReadinessStatus.Bom -> "Conexão pronta para FPS competitivo (COD/Warzone, Valorant, CS2, Apex, Rainbow Six)."
+            ReadinessStatus.Atencao -> "Métricas no limite para FPS competitivo — pode haver atraso perceptível na mira/registro de tiros."
+            ReadinessStatus.Ruim -> "Conexão não recomendada para FPS competitivo no momento — latência/jitter/perda vão prejudicar a precisão."
+        }
 
     private fun acaoFps(status: ReadinessStatus): String? {
         if (status == ReadinessStatus.Bom) return null
@@ -135,25 +157,45 @@ object GameReadinessClassifier {
         val ausentes = mutableListOf<String>()
         val faixas = mutableListOf<ReadinessStatus>()
 
-        if (download == null) ausentes += "download" else faixas += when {
-            download >= 50.0 -> ReadinessStatus.Bom
-            download >= 25.0 -> ReadinessStatus.Atencao
-            else -> ReadinessStatus.Ruim
+        if (download == null) {
+            ausentes += "download"
+        } else {
+            faixas +=
+                when {
+                    download >= 50.0 -> ReadinessStatus.Bom
+                    download >= 25.0 -> ReadinessStatus.Atencao
+                    else -> ReadinessStatus.Ruim
+                }
         }
-        if (latencia == null) ausentes += "latencia" else faixas += when {
-            latencia <= 50.0 -> ReadinessStatus.Bom
-            latencia <= 80.0 -> ReadinessStatus.Atencao
-            else -> ReadinessStatus.Ruim
+        if (latencia == null) {
+            ausentes += "latencia"
+        } else {
+            faixas +=
+                when {
+                    latencia <= 50.0 -> ReadinessStatus.Bom
+                    latencia <= 80.0 -> ReadinessStatus.Atencao
+                    else -> ReadinessStatus.Ruim
+                }
         }
-        if (jitter == null) ausentes += "jitter" else faixas += when {
-            jitter <= 15.0 -> ReadinessStatus.Bom
-            jitter <= 30.0 -> ReadinessStatus.Atencao
-            else -> ReadinessStatus.Ruim
+        if (jitter == null) {
+            ausentes += "jitter"
+        } else {
+            faixas +=
+                when {
+                    jitter <= 15.0 -> ReadinessStatus.Bom
+                    jitter <= 30.0 -> ReadinessStatus.Atencao
+                    else -> ReadinessStatus.Ruim
+                }
         }
-        if (bufferbloat == null) ausentes += "bufferbloat" else faixas += when {
-            bufferbloat <= 30.0 -> ReadinessStatus.Bom
-            bufferbloat <= 80.0 -> ReadinessStatus.Atencao
-            else -> ReadinessStatus.Ruim
+        if (bufferbloat == null) {
+            ausentes += "bufferbloat"
+        } else {
+            faixas +=
+                when {
+                    bufferbloat <= 30.0 -> ReadinessStatus.Bom
+                    bufferbloat <= 80.0 -> ReadinessStatus.Atencao
+                    else -> ReadinessStatus.Ruim
+                }
         }
         if (perda == null) ausentes += "perda" else faixas += perda
 
@@ -170,7 +212,7 @@ object GameReadinessClassifier {
         latencia?.let { evidencias += "Latência ${it.toInt()}ms" }
         jitter?.let { evidencias += "Jitter ${it.toInt()}ms" }
         bufferbloat?.let { evidencias += "Bufferbloat ${it.toInt()}ms" }
-        internet?.perdaPercentual?.let { p -> if (p > 0.0) evidencias += "Perda ${p}%${sufixoEstimada(internet)}" }
+        internet?.perdaPercentual?.let { p -> if (p > 0.0) evidencias += "Perda $p%${sufixoEstimada(internet)}" }
 
         return GameReadinessResult(
             categoria = Categoria.CLOUD_GAMING,
@@ -182,11 +224,12 @@ object GameReadinessClassifier {
         )
     }
 
-    private fun motivoCloudGaming(status: ReadinessStatus): String = when (status) {
-        ReadinessStatus.Bom -> "Conexão pronta para cloud gaming (Xbox Cloud Gaming, GeForce NOW, PS Remote Play, Steam Link)."
-        ReadinessStatus.Atencao -> "Métricas no limite para cloud gaming — pode haver perda de qualidade de imagem ou engasgos."
-        ReadinessStatus.Ruim -> "Conexão não recomendada para cloud gaming no momento — o stream de vídeo em tempo real vai sofrer."
-    }
+    private fun motivoCloudGaming(status: ReadinessStatus): String =
+        when (status) {
+            ReadinessStatus.Bom -> "Conexão pronta para cloud gaming (Xbox Cloud Gaming, GeForce NOW, PS Remote Play, Steam Link)."
+            ReadinessStatus.Atencao -> "Métricas no limite para cloud gaming — pode haver perda de qualidade de imagem ou engasgos."
+            ReadinessStatus.Ruim -> "Conexão não recomendada para cloud gaming no momento — o stream de vídeo em tempo real vai sofrer."
+        }
 
     private fun acaoCloudGaming(status: ReadinessStatus): String? {
         if (status == ReadinessStatus.Bom) return null
@@ -207,20 +250,35 @@ object GameReadinessClassifier {
         val ausentes = mutableListOf<String>()
         val faixas = mutableListOf<ReadinessStatus>()
 
-        if (rssi == null) ausentes += "rssi" else faixas += when {
-            rssi >= -60 -> ReadinessStatus.Bom
-            rssi >= -72 -> ReadinessStatus.Atencao
-            else -> ReadinessStatus.Ruim
+        if (rssi == null) {
+            ausentes += "rssi"
+        } else {
+            faixas +=
+                when {
+                    rssi >= -60 -> ReadinessStatus.Bom
+                    rssi >= -72 -> ReadinessStatus.Atencao
+                    else -> ReadinessStatus.Ruim
+                }
         }
-        if (latencia == null) ausentes += "latencia" else faixas += when {
-            latencia <= 60.0 -> ReadinessStatus.Bom
-            latencia <= 120.0 -> ReadinessStatus.Atencao
-            else -> ReadinessStatus.Ruim
+        if (latencia == null) {
+            ausentes += "latencia"
+        } else {
+            faixas +=
+                when {
+                    latencia <= 60.0 -> ReadinessStatus.Bom
+                    latencia <= 120.0 -> ReadinessStatus.Atencao
+                    else -> ReadinessStatus.Ruim
+                }
         }
-        if (jitter == null) ausentes += "jitter" else faixas += when {
-            jitter <= 20.0 -> ReadinessStatus.Bom
-            jitter <= 35.0 -> ReadinessStatus.Atencao
-            else -> ReadinessStatus.Ruim
+        if (jitter == null) {
+            ausentes += "jitter"
+        } else {
+            faixas +=
+                when {
+                    jitter <= 20.0 -> ReadinessStatus.Bom
+                    jitter <= 35.0 -> ReadinessStatus.Atencao
+                    else -> ReadinessStatus.Ruim
+                }
         }
         if (perda == null) ausentes += "perda" else faixas += perda
 
@@ -232,7 +290,7 @@ object GameReadinessClassifier {
         rssi?.let { evidencias += "RSSI ${it}dBm" }
         latencia?.let { evidencias += "Latência ${it.toInt()}ms" }
         jitter?.let { evidencias += "Jitter ${it.toInt()}ms" }
-        internet?.perdaPercentual?.let { p -> if (p > 0.0) evidencias += "Perda ${p}%${sufixoEstimada(internet)}" }
+        internet?.perdaPercentual?.let { p -> if (p > 0.0) evidencias += "Perda $p%${sufixoEstimada(internet)}" }
 
         return GameReadinessResult(
             categoria = Categoria.MOBILE_COMPETITIVO,
@@ -244,7 +302,10 @@ object GameReadinessClassifier {
         )
     }
 
-    private fun motivoMobileCompetitivo(status: ReadinessStatus, input: DiagnosticInput): String {
+    private fun motivoMobileCompetitivo(
+        status: ReadinessStatus,
+        input: DiagnosticInput,
+    ): String {
         val alternanciaRede = input.connectionType == ConnectionType.mobile
         return when (status) {
             ReadinessStatus.Bom -> "Conexão pronta para mobile competitivo (COD Mobile, Free Fire, PUBG Mobile, Wild Rift)."
@@ -265,30 +326,36 @@ object GameReadinessClassifier {
 
     // ── Compartilhado ────────────────────────────────────────────────────────
 
-    private fun semDados(categoria: Categoria, ausentes: List<String>) = GameReadinessResult(
-        categoria = categoria,
-        status = null,
-        motivo = "Sem dados suficientes para avaliar prontidão para ${categoria.labelSemDados()}.",
-        evidencias = emptyList(),
-        recomendacao = null,
-        dadosAusentes = ausentes,
-    )
+    private fun semDados(
+        categoria: Categoria,
+        ausentes: List<String>,
+    ) =
+        GameReadinessResult(
+            categoria = categoria,
+            status = null,
+            motivo = "Sem dados suficientes para avaliar prontidão para ${categoria.labelSemDados()}.",
+            evidencias = emptyList(),
+            recomendacao = null,
+            dadosAusentes = ausentes,
+        )
 
-    private fun Categoria.labelSemDados(): String = when (this) {
-        Categoria.FPS_COMPETITIVO -> "FPS competitivo"
-        Categoria.CLOUD_GAMING -> "cloud gaming"
-        Categoria.MOBILE_COMPETITIVO -> "mobile competitivo"
-    }
+    private fun Categoria.labelSemDados(): String =
+        when (this) {
+            Categoria.FPS_COMPETITIVO -> "FPS competitivo"
+            Categoria.CLOUD_GAMING -> "cloud gaming"
+            Categoria.MOBILE_COMPETITIVO -> "mobile competitivo"
+        }
 
     /** Pior faixa entre as metricas disponiveis vence — mesmo principio do [UsageProfileClassifier]. */
     private fun piorFaixa(faixas: List<ReadinessStatus>): ReadinessStatus =
         faixas.maxByOrNull { it.severidade() } ?: ReadinessStatus.Bom
 
-    private fun ReadinessStatus.severidade(): Int = when (this) {
-        ReadinessStatus.Bom -> 0
-        ReadinessStatus.Atencao -> 1
-        ReadinessStatus.Ruim -> 2
-    }
+    private fun ReadinessStatus.severidade(): Int =
+        when (this) {
+            ReadinessStatus.Bom -> 0
+            ReadinessStatus.Atencao -> 1
+            ReadinessStatus.Ruim -> 2
+        }
 
     /** Perda de pacotes: Bom sem perda real. Atencao quando estimada/qualquer perda
      *  parcial. Ruim apenas com perda REAL MEDIDA >=1% — mesmo principio de
@@ -312,7 +379,10 @@ object GameReadinessClassifier {
     /** Wi-Fi fraco rebaixa 1 nivel — sinais que rebaixam por categoria (aba 10):
      *  RSSI<=-70dBm, linkSpeed baixo, 2.4GHz congestionado/canal sobreposto.
      *  Mesmo principio de [UsageProfileClassifier.aplicarPenalidadesContextuais]. */
-    private fun aplicarPenalidadeWifi(statusBase: ReadinessStatus, input: DiagnosticInput): ReadinessStatus {
+    private fun aplicarPenalidadeWifi(
+        statusBase: ReadinessStatus,
+        input: DiagnosticInput,
+    ): ReadinessStatus {
         val wifi = input.wifi ?: return statusBase
         val rssi = wifi.rssiDbm
         val linkSpeed = wifi.linkSpeedMbps
@@ -325,7 +395,10 @@ object GameReadinessClassifier {
 
     /** Cloud gaming exige Wi-Fi 5/6GHz forte (aba 10) — 2.4GHz sempre rebaixa 1
      *  nivel, mesmo com RSSI bom, alem da penalidade generica de sinal fraco. */
-    private fun aplicarPenalidadeWifiCloudGaming(statusBase: ReadinessStatus, input: DiagnosticInput): ReadinessStatus {
+    private fun aplicarPenalidadeWifiCloudGaming(
+        statusBase: ReadinessStatus,
+        input: DiagnosticInput,
+    ): ReadinessStatus {
         val wifi = input.wifi ?: return statusBase
         val rssi = wifi.rssiDbm
         val linkSpeed = wifi.linkSpeedMbps
@@ -336,11 +409,12 @@ object GameReadinessClassifier {
         return statusBase.rebaixarUmNivel()
     }
 
-    private fun ReadinessStatus.rebaixarUmNivel(): ReadinessStatus = when (this) {
-        ReadinessStatus.Bom -> ReadinessStatus.Atencao
-        ReadinessStatus.Atencao -> ReadinessStatus.Ruim
-        ReadinessStatus.Ruim -> ReadinessStatus.Ruim
-    }
+    private fun ReadinessStatus.rebaixarUmNivel(): ReadinessStatus =
+        when (this) {
+            ReadinessStatus.Bom -> ReadinessStatus.Atencao
+            ReadinessStatus.Atencao -> ReadinessStatus.Ruim
+            ReadinessStatus.Ruim -> ReadinessStatus.Ruim
+        }
 
     /** NAT restrito/duplo NAT/CGNAT piora matchmaking e chat — evidencia adicional,
      *  NUNCA rebaixa o status sozinho (regra transversal de NAT do documento). */

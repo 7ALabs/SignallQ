@@ -6,7 +6,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class MetricClassifierTest {
-
     // ── RSSI Wi-Fi 2.4GHz ────────────────────────────────────────────────────
 
     @Test

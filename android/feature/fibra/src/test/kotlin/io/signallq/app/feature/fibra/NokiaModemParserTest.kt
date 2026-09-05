@@ -17,16 +17,16 @@ import org.junit.Test
  * guest desligado).
  */
 class NokiaModemParserTest {
-
     // ─── parseWifi ──────────────────────────────────────────────────────
 
-    private val wlanStatusFixture = """
+    private val wlanStatusFixture =
+        """
         var wlan_status = {
         1:{"RadioEnabled":1,"Enable":1,"SSID":"CasaWifi","Channel":6,"Standard":"b,g,n","BeaconType":"WPAand11i","TransmitPower":100,"TotalAssociations":5},
         5:{"RadioEnabled":1,"Enable":0,"SSID":"CasaWifi_5G","Channel":44,"Standard":"a,n,ac","BeaconType":"11i","TransmitPower":80,"TotalAssociations":0},
         6:{"RadioEnabled":1,"Enable":1,"Channel":1,"Standard":"b,g,n","BeaconType":"None","TransmitPower":100,"TotalAssociations":0}
         };
-    """.trimIndent()
+        """.trimIndent()
 
     @Test
     fun `parseWifi extrai radios 2_4GHz e 5GHz e ignora bloco sem SSID`() {
@@ -58,11 +58,12 @@ class NokiaModemParserTest {
         // RadioEnabled=1 (radio fisico do band ligado) mas Enable=0 (essa
         // rede especifica desligada) — usar RadioEnabled primeiro faria o
         // guest aparecer como ativo por engano.
-        val fixture = """
+        val fixture =
+            """
             var wlan_status = {
             2:{"RadioEnabled":1,"Enable":0,"SSID":"Guest","Channel":6,"Standard":"b,g,n","BeaconType":"11i","TransmitPower":100,"TotalAssociations":0}
             };
-        """.trimIndent()
+            """.trimIndent()
         val resultado = NokiaModemParser.parseWifi(fixture)
 
         requireNotNull(resultado)
@@ -91,17 +92,19 @@ class NokiaModemParserTest {
 
     // ─── parseLan ───────────────────────────────────────────────────────
 
-    private val lanStatusFixture = """
+    private val lanStatusFixture =
+        """
         var lan_ifip = {IPAddress:'192.168.1.254',SubnetMask:'255.255.255.0'};
         var lan_ether = [
         {Enable:true,Status:'Up',MACAddress:'AA:BB:CC:DD:EE:01',MaxBitRate:'1000',stat:{BytesSent:100,BytesReceived:200}},
         {Enable:true,Status:'NoLink',MACAddress:'AA:BB:CC:DD:EE:02',MaxBitRate:'Auto',stat:{BytesSent:0,BytesReceived:0}}
         ];
-    """.trimIndent()
+        """.trimIndent()
 
-    private val lanConfigFixture = """
+    private val lanConfigFixture =
+        """
         var ipv4_config = {DHCPServerEnable:true,MinAddress:'192.168.1.100',MaxAddress:'192.168.1.200',SubnetMask:'255.255.255.0'};
-    """.trimIndent()
+        """.trimIndent()
 
     @Test
     fun `parseLan combina IP do roteador com faixa de DHCP`() {
