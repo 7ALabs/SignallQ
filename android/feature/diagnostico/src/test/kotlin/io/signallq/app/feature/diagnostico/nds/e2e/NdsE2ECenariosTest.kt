@@ -380,9 +380,14 @@ class NdsE2ECenariosTest {
         assertTrue("mensagem deveria citar RSRP: $mensagem", mensagem.contains("RSRP", ignoreCase = true))
         assertTrue("mensagem deveria citar SINR: $mensagem", mensagem.contains("SINR", ignoreCase = true))
 
+        // Achado da revisao do PR #1855 (Caio): mobileResultados vinha hardcoded
+        // emptyList() no mapper v1, entao o card so aparecia em achadosSecundarios
+        // (bucket generico, ignorado por SpeedtestPersistenceCoordinator.extrairProblemasRelatorio
+        // e AiModels.findingsRelevantes). Corrigido em NdsDiagnosticsResponseMapper --
+        // agora o card de categoria "mobile" chega em mobileResultados de verdade,
+        // sem precisar do fallback pro bucket generico.
         val cardMovel = report.mobileResultados.firstOrNull { it.id == "mobile_signal_critical" }
-            ?: report.achadosSecundarios.firstOrNull { it.id == "mobile_signal_critical" }
-        assertTrue("card mobile_signal_critical deveria estar preservado no relatorio", cardMovel != null)
+        assertTrue("card mobile_signal_critical deveria estar em mobileResultados", cardMovel != null)
         assertEquals(DiagnosticStatus.critical, cardMovel?.status)
 
         assertEquals("aproximar_janela_sinal", report.decisao.recomendacaoId)

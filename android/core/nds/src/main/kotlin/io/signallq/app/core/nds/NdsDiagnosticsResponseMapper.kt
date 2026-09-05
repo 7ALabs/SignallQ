@@ -66,7 +66,7 @@ fun NdsDiagnosticsResponse.toDiagnosticReport(
     return DiagnosticReport(
         wifiResultados = cards.filter { it.categoria == "wifi" },
         internetResultados = cards.filter { it.categoria == "internet" || it.categoria == "connection" },
-        mobileResultados = emptyList(),
+        mobileResultados = cards.filter { it.categoria == "mobile" },
         fibraResultados = cards.filter { it.categoria == "fibra" },
         dnsResultados = cards.filter { it.categoria == "dns" },
         historicoResultados = emptyList(),
@@ -116,6 +116,13 @@ private fun DiagnosticStatus.v2SeverityRank(): Int = when (this) {
  * severidade granular (nada equivalente ao `scoring.veredicto` do v1), então "attention"
  * é o piso honesto para "o NDS encontrou algo a explicar", sem fingir um veredito mais
  * fino do que o contrato realmente entrega.
+ *
+ * ## Listas por domínio (`wifiResultados`, `mobileResultados` etc.)
+ * Ficam TODAS vazias aqui de propósito -- diferente do v1, o contrato v2 não devolve
+ * `results[]`/`cards[]` por módulo, só o `explanation` plano acima. Não há card algum
+ * para filtrar por `categoria`, então fingir uma quebra por domínio inventaria estrutura
+ * que o contrato não entrega. O achado vira só a [decisao] única -- ver
+ * [achadosSecundarios] e [evidenciasRemotas], também vazios pelo mesmo motivo.
  */
 private fun NdsDiagnosticsResponse.toDiagnosticReportV2(
     explanation: NdsExplanationV2,
