@@ -2,6 +2,7 @@ package io.signallq.app.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,27 +21,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.NetworkCheck
-import androidx.compose.material.icons.outlined.RadioButtonChecked
-import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.SportsEsports
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
@@ -55,7 +49,6 @@ import io.signallq.app.feature.diagnostico.topology.lan.StunNatProbe
 import io.signallq.app.feature.speedtest.PingExecutor
 import io.signallq.app.modogamer.ModoGamerEtapa
 import io.signallq.app.modogamer.SelecaoJogoModoGamer
-import io.signallq.app.modogamer.icone
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
@@ -72,7 +65,6 @@ import io.signallq.app.ui.component.corSemantica
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
 private const val AMOSTRAS_PING_ESPECIFICO = 24
@@ -102,7 +94,7 @@ private suspend fun medirPingEspecifico(probeUrl: String): MedicaoPingEspecifico
             latenciaMs = ping.latenciaMs,
             jitterMs = ping.jitterMs,
             perdaPercentual = ping.perdaPercentual,
-            natUdp = nat
+            natUdp = nat,
         )
     }
 
@@ -134,12 +126,12 @@ internal fun ModoGamerMedindoConteudo(
                 .fillMaxSize()
                 .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
     ) {
         CircularProgressIndicator(modifier = Modifier.size(48.dp), color = c.primary)
         Spacer(Modifier.height(LkSpacing.xl))
         Text(
-            text = "Testando conexão com servidores...",
+            text = "Testando a rota do jogo...",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.W600,
             color = c.textPrimary,

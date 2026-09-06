@@ -15,9 +15,8 @@ import org.junit.Test
 
 /**
  * Testes de navegação do [ModoGamerViewModel] (Feature #550, issue #1476, fundido com GH#935
- * pela issue #1487) — as 4 etapas do fluxo (jogo → device → config → resultado), fallback pra
- * jogo fora do catálogo, "voltar" em cada etapa, persistência do padrão só quando "Salvar como
- * padrão" é escolhido, e o refinamento opcional por ping/NAT dedicado.
+ * pela issue #1487) — fluxo jogo → device → medição → resultado, fallback pra jogo fora do
+ * catálogo, "voltar" em cada etapa, persistência do padrão e refinamento por ping/NAT dedicado.
  */
 class ModoGamerViewModelTest {
     private val valorant = CatalogoJogosModoGamer.porId("valorant")!!
@@ -66,26 +65,34 @@ class ModoGamerViewModelTest {
     }
 
     @Test
-    fun `selecionar device avanca para config`() {
+    fun `selecionar device avanca para medicao`() {
         val vm = viewModel()
         vm.selecionarJogo(valorant)
         vm.selecionarDevice(DeviceJogo.PC)
-        val etapa = vm.etapa.value as ModoGamerEtapa.Config
+        val etapa = vm.etapa.value as ModoGamerEtapa.Medindo
         assertEquals(DeviceJogo.PC, etapa.device)
     }
 
     @Test
-    fun `confirmar sem salvar como padrao nao chama onSalvarPadrao`() =
+    fun `confirmar medicao salva como padrao automaticamente`() =
         runTest {
-            var chamado = false
-            val vm = viewModel(onSalvarPadrao = { _, _, _ -> chamado = true })
+            var jogoIdPersistido: String? = null
+            var devicePersistido: String? = null
+            val vm =
+                viewModel(
+                    onSalvarPadrao = { jogoId, _, device ->
+                        jogoIdPersistido = jogoId
+                        devicePersistido = device
+                    },
+                )
             vm.selecionarJogo(valorant)
             vm.selecionarDevice(DeviceJogo.PC)
-            vm.confirmar(salvarComoPadrao = false)
+            vm.confirmarMedicao(null, null, null, null)
 
-            assertFalse(chamado)
+            assertEquals("valorant", jogoIdPersistido)
+            assertEquals("PC", devicePersistido)
             val etapa = vm.etapa.value as ModoGamerEtapa.Resultado
-            assertFalse(etapa.salvoComoPadrao)
+            assertTrue(etapa.salvoComoPadrao)
             assertEquals(CategoriaJogoModoGamer.FPS_COMPETITIVO, etapa.resultado.categoria)
         }
 
@@ -105,7 +112,7 @@ class ModoGamerViewModelTest {
                 )
             vm.selecionarJogo(valorant)
             vm.selecionarDevice(DeviceJogo.XBOX)
-            vm.confirmar(salvarComoPadrao = true)
+            vm.confirmarMedicao(null, null, null, null)
 
             assertEquals("valorant", jogoIdPersistido)
             assertNull(categoriaPersistida)
@@ -127,7 +134,7 @@ class ModoGamerViewModelTest {
                 )
             vm.selecionarCategoriaFallback(CategoriaJogoModoGamer.CASUAL)
             vm.selecionarDevice(DeviceJogo.SWITCH)
-            vm.confirmar(salvarComoPadrao = true)
+            vm.confirmarMedicao(null, null, null, null)
 
             assertNull(jogoIdPersistido)
             assertEquals("CASUAL", categoriaPersistida)
@@ -143,7 +150,7 @@ class ModoGamerViewModelTest {
     }
 
     @Test
-    fun `voltar para selecao de device a partir do config preserva o jogo escolhido`() {
+    fun `voltar para selecao de device a partir da medicao preserva o jogo escolhido`() {
         val vm = viewModel()
         vm.selecionarJogo(valorant)
         vm.selecionarDevice(DeviceJogo.PC)
@@ -158,7 +165,7 @@ class ModoGamerViewModelTest {
             val vm = viewModel()
             vm.selecionarJogo(valorant)
             vm.selecionarDevice(DeviceJogo.PC)
-            vm.confirmar(salvarComoPadrao = false)
+            vm.confirmarMedicao(null, null, null, null)
             vm.trocarJogoOuDevice()
             assertTrue(vm.etapa.value is ModoGamerEtapa.SelecaoJogo)
         }
@@ -166,13 +173,12 @@ class ModoGamerViewModelTest {
     // ── Padrão salvo (abre direto no resultado) ───────────────────────────────
 
     @Test
-    fun `com padrao salvo comeca direto no resultado`() {
+    fun `com padrao salvo comeca direto na medicao`() {
         val vm =
             viewModel(
                 padraoInicial = SelecaoJogoModoGamer.Catalogado(valorant) to DeviceJogo.PLAYSTATION,
             )
-        val etapa = vm.etapa.value as ModoGamerEtapa.Resultado
-        assertTrue(etapa.salvoComoPadrao)
+        val etapa = vm.etapa.value as ModoGamerEtapa.Medindo
         assertEquals(DeviceJogo.PLAYSTATION, etapa.device)
         assertEquals("valorant", (etapa.selecaoJogo as SelecaoJogoModoGamer.Catalogado).jogo.gameId)
     }
@@ -195,7 +201,7 @@ class ModoGamerViewModelTest {
             val vm = viewModel()
             vm.selecionarJogo(valorant)
             vm.selecionarDevice(DeviceJogo.PC)
-            vm.confirmar(salvarComoPadrao = false)
+            vm.confirmarMedicao(null, null, null, null)
             val etapa = vm.etapa.value as ModoGamerEtapa.Resultado
             assertNull(etapa.natUdp)
         }
@@ -207,10 +213,36 @@ class ModoGamerViewModelTest {
             vm.selecionarJogo(valorant)
             vm.selecionarDevice(DeviceJogo.PC)
             val natUdp = NatUdpResultado(NatUdpTipo.MODERADO)
-            vm.confirmar(salvarComoPadrao = false, pingEspecificoMs = 22.0, natUdp = natUdp)
+            vm.confirmarMedicao(pingEspecificoMs = 22.0, jitterMs = 3.0, perdaPercentual = 0.0, natUdp = natUdp)
 
             val etapa = vm.etapa.value as ModoGamerEtapa.Resultado
             assertEquals(natUdp, etapa.natUdp)
             assertTrue(etapa.resultado.evidencias.any { it.label == "Tempo de resposta medido agora" })
+        }
+
+    @Test
+    fun `alternar salvar padrao no resultado limpa o padrao salvo`() =
+        runTest {
+            var jogoIdPersistido: String? = "valorant"
+            var categoriaPersistida: String? = "FPS_COMPETITIVO"
+            var devicePersistido: String? = "PC"
+            val vm =
+                viewModel(
+                    onSalvarPadrao = { jogoId, categoria, device ->
+                        jogoIdPersistido = jogoId
+                        categoriaPersistida = categoria
+                        devicePersistido = device
+                    },
+                )
+            vm.selecionarJogo(valorant)
+            vm.selecionarDevice(DeviceJogo.PC)
+            vm.confirmarMedicao(null, null, null, null)
+
+            vm.alternarSalvarPadrao(false)
+
+            assertNull(jogoIdPersistido)
+            assertNull(categoriaPersistida)
+            assertEquals("PC", devicePersistido)
+            assertFalse((vm.etapa.value as ModoGamerEtapa.Resultado).salvoComoPadrao)
         }
 }

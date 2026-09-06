@@ -17,21 +17,21 @@ import kotlinx.coroutines.flow.update
 sealed interface SelecaoJogoModoGamer {
     val categoria: CategoriaJogoModoGamer
     val nomeExibido: String
-    val officialServerHost: String?
+    val specificProbeHost: String?
 
     data class Catalogado(
         val jogo: JogoCatalogoModoGamer,
     ) : SelecaoJogoModoGamer {
         override val categoria get() = jogo.categoria
         override val nomeExibido get() = jogo.nome
-        override val officialServerHost get() = jogo.officialServerHost
+        override val specificProbeHost get() = jogo.specificProbeHost
     }
 
     data class ForaDoCatalogo(
         override val categoria: CategoriaJogoModoGamer,
     ) : SelecaoJogoModoGamer {
         override val nomeExibido get() = categoria.label
-        override val officialServerHost get() = null
+        override val specificProbeHost get() = null
     }
 }
 
@@ -116,17 +116,25 @@ class ModoGamerViewModel(
         natUdp: NatUdpResultado?,
     ) {
         val medindo = mutableEtapa.value as? ModoGamerEtapa.Medindo ?: return
-        
+
         val salvarComoPadrao = true
-        
+
         if (salvarComoPadrao) {
             val jogoId = (medindo.selecaoJogo as? SelecaoJogoModoGamer.Catalogado)?.jogo?.gameId
             val categoriaFallback = (medindo.selecaoJogo as? SelecaoJogoModoGamer.ForaDoCatalogo)?.categoria?.name
             onSalvarPadrao(jogoId, categoriaFallback, medindo.device.name)
         }
-        
-        val resultado = ModoGamerEngine.avaliar(medindo.selecaoJogo.categoria, medindo.device, inputAtual(), pingEspecificoMs, jitterMs, perdaPercentual)
-        
+
+        val resultado =
+            ModoGamerEngine.avaliar(
+                medindo.selecaoJogo.categoria,
+                medindo.device,
+                inputAtual(),
+                pingEspecificoMs,
+                jitterMs,
+                perdaPercentual,
+            )
+
         mutableEtapa.value =
             ModoGamerEtapa.Resultado(
                 selecaoJogo = medindo.selecaoJogo,
@@ -139,7 +147,7 @@ class ModoGamerViewModel(
 
     suspend fun alternarSalvarPadrao(salvarComoPadrao: Boolean) {
         val resultadoAtual = mutableEtapa.value as? ModoGamerEtapa.Resultado ?: return
-        
+
         if (salvarComoPadrao) {
             val jogoId = (resultadoAtual.selecaoJogo as? SelecaoJogoModoGamer.Catalogado)?.jogo?.gameId
             val categoriaFallback = (resultadoAtual.selecaoJogo as? SelecaoJogoModoGamer.ForaDoCatalogo)?.categoria?.name
@@ -147,7 +155,7 @@ class ModoGamerViewModel(
         } else {
             onSalvarPadrao(null, null, resultadoAtual.device.name)
         }
-        
+
         mutableEtapa.value = resultadoAtual.copy(salvoComoPadrao = salvarComoPadrao)
     }
 

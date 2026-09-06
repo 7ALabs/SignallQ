@@ -63,7 +63,12 @@ object ModoGamerEngine {
         }
     }
 
-    private fun aplicarPingEspecifico(input: DiagnosticInput?, pingEspecificoMs: Double?, jitterMs: Double?, perdaPercentual: Double?): DiagnosticInput? {
+    private fun aplicarPingEspecifico(
+        input: DiagnosticInput?,
+        pingEspecificoMs: Double?,
+        jitterMs: Double?,
+        perdaPercentual: Double?,
+    ): DiagnosticInput? {
         if (pingEspecificoMs == null) return input
         val internetBase =
             input?.internet ?: InternetDiagnosticInput(
@@ -73,11 +78,14 @@ object ModoGamerEngine {
                 jitterMs = null,
                 perdaPercentual = null,
             )
-        return (input ?: DiagnosticInput()).copy(internet = internetBase.copy(
-            latencyMs = pingEspecificoMs,
-            jitterMs = jitterMs ?: internetBase.jitterMs,
-            perdaPercentual = perdaPercentual ?: internetBase.perdaPercentual
-        ))
+        return (input ?: DiagnosticInput()).copy(
+            internet =
+                internetBase.copy(
+                    latencyMs = pingEspecificoMs,
+                    jitterMs = jitterMs ?: internetBase.jitterMs,
+                    perdaPercentual = perdaPercentual ?: internetBase.perdaPercentual,
+                ),
+        )
     }
 
     private fun evidenciaPingEspecifico(pingEspecificoMs: Double): EvidenciaDiagnostico =
@@ -309,7 +317,7 @@ data class JogoCatalogoModoGamer(
     val gameId: String,
     val nome: String,
     val categoria: CategoriaJogoModoGamer,
-    val officialServerHost: String? = null,
+    val specificProbeHost: String? = null,
 )
 
 /**
@@ -344,15 +352,15 @@ object CatalogoJogosModoGamer {
     val jogos: List<JogoCatalogoModoGamer> = listOf(
         // ── Battle royale ────────────────────────────────────────────────────
         JogoCatalogoModoGamer("freefire", "Free Fire", CategoriaJogoModoGamer.BATTLE_ROYALE),
-        JogoCatalogoModoGamer("fortnite", "Fortnite", CategoriaJogoModoGamer.BATTLE_ROYALE, "dynamodb.sa-east-1.amazonaws.com"),
+        JogoCatalogoModoGamer("fortnite", "Fortnite", CategoriaJogoModoGamer.BATTLE_ROYALE),
         JogoCatalogoModoGamer("warzone", "Call of Duty: Warzone", CategoriaJogoModoGamer.BATTLE_ROYALE),
-        JogoCatalogoModoGamer("apex_legends", "Apex Legends", CategoriaJogoModoGamer.BATTLE_ROYALE, "ec2.sa-east-1.amazonaws.com"),
+        JogoCatalogoModoGamer("apex_legends", "Apex Legends", CategoriaJogoModoGamer.BATTLE_ROYALE),
         JogoCatalogoModoGamer("pubg_battlegrounds", "PUBG: Battlegrounds", CategoriaJogoModoGamer.BATTLE_ROYALE),
 
         // ── FPS competitivo ──────────────────────────────────────────────────
         JogoCatalogoModoGamer("valorant", "Valorant", CategoriaJogoModoGamer.FPS_COMPETITIVO, "104.160.152.3"),
         JogoCatalogoModoGamer("codm", "Call of Duty Mobile", CategoriaJogoModoGamer.FPS_COMPETITIVO),
-        JogoCatalogoModoGamer("ea_fc", "EA FC", CategoriaJogoModoGamer.FPS_COMPETITIVO, "ec2.sa-east-1.amazonaws.com"),
+        JogoCatalogoModoGamer("ea_fc", "EA FC", CategoriaJogoModoGamer.FPS_COMPETITIVO),
         JogoCatalogoModoGamer("overwatch", "Overwatch", CategoriaJogoModoGamer.FPS_COMPETITIVO),
         JogoCatalogoModoGamer("rainbow_six_siege", "Rainbow Six Siege", CategoriaJogoModoGamer.FPS_COMPETITIVO),
         JogoCatalogoModoGamer("marvel_rivals", "Marvel Rivals", CategoriaJogoModoGamer.FPS_COMPETITIVO),

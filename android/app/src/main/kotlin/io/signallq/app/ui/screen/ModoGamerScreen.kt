@@ -153,10 +153,10 @@ fun ModoGamerScreen(
                     modifier = Modifier.padding(padding),
                     selecaoJogo = etapaAtual.selecaoJogo,
                     device = etapaAtual.device,
-                    probeUrl = etapaAtual.selecaoJogo.officialServerHost ?: BuildConfig.GAME_LATENCY_PROBE_URL,
+                    probeUrl = etapaAtual.selecaoJogo.specificProbeHost ?: BuildConfig.GAME_LATENCY_PROBE_URL,
                     onConcluido = { medicao ->
                         scope.launch { viewModel.confirmarMedicao(medicao?.latenciaMs, medicao?.jitterMs, medicao?.perdaPercentual, medicao?.natUdp) }
-                    }
+                    },
                 )
             }
             is ModoGamerEtapa.Resultado -> {
@@ -212,7 +212,7 @@ private fun ModoGamerSelecaoJogoConteudo(
             )
             Spacer(Modifier.height(LkSpacing.sm))
             Text(
-                text = "Escolha um jogo para testar os servidores mais próximos.",
+                text = "Escolha um jogo para testar a rota mais relevante.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = c.textSecondary,
             )
