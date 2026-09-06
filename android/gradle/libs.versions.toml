@@ -92,6 +92,6 @@ org-json = { group = "org.json", name = "json", version.ref = "orgJson" }
 [plugins]
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
-ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "12.1.1" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "14.2.0" }
 firebase-crashlytics-plugin = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlytics" }
 play-publisher = { id = "com.github.triplet.play", version.ref = "playPublisher" }
