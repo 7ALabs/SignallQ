@@ -20,7 +20,6 @@ import org.junit.Test
  * alteração — comportamento idêntico, só a duplicação de código muda.
  */
 class ModoGamerConvergenciaCaracterizacaoTest {
-
     private fun internetCompleto(
         latencia: Double? = 40.0,
         jitter: Double? = 3.0,
@@ -35,13 +34,13 @@ class ModoGamerConvergenciaCaracterizacaoTest {
 
     // ── Jogo selecionado (catalogado) — entrada guiada PROBLEMAS_VIDEO_JOGOS por cabo ──────────────
 
-
     @Test
     fun `guiado jogos com lag fica critica com latencia alta`() {
-        val r = DiagnosticoGuiadoEngine.avaliar(
-            ObjetivoDiagnostico.PROBLEMAS_VIDEO_JOGOS,
-            input = DiagnosticInput(internet = internetCompleto(latencia = 250.0)),
-        )
+        val r =
+            DiagnosticoGuiadoEngine.avaliar(
+                ObjetivoDiagnostico.PROBLEMAS_VIDEO_JOGOS,
+                input = DiagnosticInput(internet = internetCompleto(latencia = 250.0)),
+            )
         assertEquals(DiagnosticStatus.critical, r.status)
         assertTrue(r.acoes.isNotEmpty())
     }
@@ -49,21 +48,23 @@ class ModoGamerConvergenciaCaracterizacaoTest {
     // ── Modo gamer direto — mesmas 3 dimensões (FPS_COMPETITIVO/OUTRO) ─────────────────────
     @Test
     fun `modo gamer fps competitivo fica ok com as mesmas metricas boas`() {
-        val r = ModoGamerEngine.avaliar(
-            CategoriaJogoModoGamer.FPS_COMPETITIVO,
-            DeviceJogo.PC,
-            DiagnosticInput(internet = internetCompleto()),
-        )
+        val r =
+            ModoGamerEngine.avaliar(
+                CategoriaJogoModoGamer.FPS_COMPETITIVO,
+                DeviceJogo.PC,
+                DiagnosticInput(internet = internetCompleto()),
+            )
         assertEquals(DiagnosticStatus.ok, r.status)
     }
 
     @Test
     fun `modo gamer outro fallback fica critica com a mesma latencia alta`() {
-        val r = ModoGamerEngine.avaliar(
-            CategoriaJogoModoGamer.OUTRO,
-            DeviceJogo.ANDROID,
-            DiagnosticInput(internet = internetCompleto(latencia = 250.0)),
-        )
+        val r =
+            ModoGamerEngine.avaliar(
+                CategoriaJogoModoGamer.OUTRO,
+                DeviceJogo.ANDROID,
+                DiagnosticInput(internet = internetCompleto(latencia = 250.0)),
+            )
         assertEquals(DiagnosticStatus.critical, r.status)
     }
 
@@ -89,37 +90,42 @@ class ModoGamerConvergenciaCaracterizacaoTest {
     // ── Dados parciais — só parte das métricas presentes ───────────────────────────────────
     @Test
     fun `guiado jogos com lag com dados parciais usa so a metrica disponivel`() {
-        val r = DiagnosticoGuiadoEngine.avaliar(
-            ObjetivoDiagnostico.PROBLEMAS_VIDEO_JOGOS,
-            input = DiagnosticInput(
-                internet = InternetDiagnosticInput(
-                    downloadMbps = null,
-                    uploadMbps = null,
-                    latencyMs = 40.0,
-                    jitterMs = null,
-                    perdaPercentual = null,
-                ),
-            ),
-        )
+        val r =
+            DiagnosticoGuiadoEngine.avaliar(
+                ObjetivoDiagnostico.PROBLEMAS_VIDEO_JOGOS,
+                input =
+                    DiagnosticInput(
+                        internet =
+                            InternetDiagnosticInput(
+                                downloadMbps = null,
+                                uploadMbps = null,
+                                latencyMs = 40.0,
+                                jitterMs = null,
+                                perdaPercentual = null,
+                            ),
+                    ),
+            )
         assertEquals(1, r.evidencias.size)
         assertEquals("Tempo de resposta com a rede ocupada", r.evidencias.first().label)
     }
 
     @Test
     fun `modo gamer com dados parciais usa so a metrica disponivel`() {
-        val r = ModoGamerEngine.avaliar(
-            CategoriaJogoModoGamer.FPS_COMPETITIVO,
-            DeviceJogo.PC,
-            DiagnosticInput(
-                internet = InternetDiagnosticInput(
-                    downloadMbps = null,
-                    uploadMbps = null,
-                    latencyMs = null,
-                    jitterMs = 3.0,
-                    perdaPercentual = null,
+        val r =
+            ModoGamerEngine.avaliar(
+                CategoriaJogoModoGamer.FPS_COMPETITIVO,
+                DeviceJogo.PC,
+                DiagnosticInput(
+                    internet =
+                        InternetDiagnosticInput(
+                            downloadMbps = null,
+                            uploadMbps = null,
+                            latencyMs = null,
+                            jitterMs = 3.0,
+                            perdaPercentual = null,
+                        ),
                 ),
-            ),
-        )
+            )
         // 1 metrica (jitter) + 1 evidencia de device
         assertEquals(2, r.evidencias.size)
     }

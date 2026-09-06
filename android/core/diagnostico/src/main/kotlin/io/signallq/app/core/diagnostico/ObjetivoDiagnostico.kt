@@ -2,7 +2,7 @@ package io.signallq.app.core.diagnostico
 
 /**
  * Os 4 macro-objetivos do diagnóstico guiado (Sanitização - 2026-08).
- * A camada de perguntas de triagem foi removida para reduzir a carga cognitiva, 
+ * A camada de perguntas de triagem foi removida para reduzir a carga cognitiva,
  * unificando sintomas que disparam as mesmas métricas-chave no motor.
  */
 enum class ObjetivoDiagnostico(
@@ -26,4 +26,3 @@ enum class ObjetivoDiagnostico(
         subtitulo = "Descreva com suas palavras o que está acontecendo.",
     ),
 }
-

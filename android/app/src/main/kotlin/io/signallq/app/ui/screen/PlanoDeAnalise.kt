@@ -121,7 +121,7 @@ private fun capacidadesDoObjetivo(
                 Capacidade.COMPORTAMENTO_SOB_CARGA,
                 Capacidade.DOWNLOAD_UPLOAD,
                 // SINAL_WIFI is included when connected to Wi-Fi.
-                if (contexto.conectadoPorWifi) Capacidade.SINAL_WIFI else null
+                if (contexto.conectadoPorWifi) Capacidade.SINAL_WIFI else null,
             ).filterNotNull()
 
         ObjetivoDiagnostico.OUTRO_PROBLEMA ->

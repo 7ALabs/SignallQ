@@ -26,7 +26,6 @@ package io.signallq.app.core.diagnostico
  * - [ObjetivoDiagnostico.OUTRO_PROBLEMA]: dimensões gerais sem inferir causa a partir do texto.
  */
 object DiagnosticoGuiadoEngine {
-
     fun avaliar(
         objetivo: ObjetivoDiagnostico,
         input: DiagnosticInput?,
@@ -75,11 +74,12 @@ object DiagnosticoGuiadoEngine {
         return montarResultado(
             objetivo = ObjetivoDiagnostico.INSTABILIDADE_QUEDAS,
             dims = dims,
-            mensagens = MensagensStatus(
-                ok = "Não encontramos falhas na conexão nem oscilação fora do esperado nos últimos testes.",
-                atencao = "Sinais de instabilidade na sua rede: falhas na conexão ou oscilação um pouco acima do ideal.",
-                critica = "Sinal de instabilidade real na sua rede: falhas na conexão, sinal fraco ou oscilação acima do esperado.",
-            ),
+            mensagens =
+                MensagensStatus(
+                    ok = "Não encontramos falhas na conexão nem oscilação fora do esperado nos últimos testes.",
+                    atencao = "Sinais de instabilidade na sua rede: falhas na conexão ou oscilação um pouco acima do ideal.",
+                    critica = "Sinal de instabilidade real na sua rede: falhas na conexão, sinal fraco ou oscilação acima do esperado.",
+                ),
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) {
                     emptyList()
@@ -137,11 +137,12 @@ object DiagnosticoGuiadoEngine {
         return montarResultado(
             objetivo = ObjetivoDiagnostico.LENTIDAO_GERAL,
             dims = dims,
-            mensagens = MensagensStatus(
-                ok = "Velocidade e tempo de resposta estão dentro do esperado. A navegação não deve apresentar lentidão.",
-                atencao = "O download ou o tempo de resolução de sites estão abaixo do ideal. Pode haver lentidão perceptível.",
-                critica = "Resultado bem abaixo do plano ou com latência muito alta, o que costuma atrasar o carregamento de sites.",
-            ),
+            mensagens =
+                MensagensStatus(
+                    ok = "Velocidade e tempo de resposta estão dentro do esperado. A navegação não deve apresentar lentidão.",
+                    atencao = "O download ou o tempo de resolução de sites estão abaixo do ideal. Pode haver lentidão perceptível.",
+                    critica = "Resultado bem abaixo do plano ou com latência muito alta, o que costuma atrasar o carregamento de sites.",
+                ),
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) {
                     emptyList()
@@ -187,11 +188,12 @@ object DiagnosticoGuiadoEngine {
         return montarResultado(
             objetivo = ObjetivoDiagnostico.PROBLEMAS_VIDEO_JOGOS,
             dims = dims,
-            mensagens = MensagensStatus(
-                ok = "Tempo de resposta, falhas e velocidade dentro do esperado. A rede aguenta streaming e jogos.",
-                atencao = "O atraso sob carga ou o upload estão no limite. O vídeo pode perder qualidade ou haver lag em disputas.",
-                critica = "O tempo de resposta sob carga e a variação prejudicam partidas e chamadas. Faixa crítica para tempo real.",
-            ),
+            mensagens =
+                MensagensStatus(
+                    ok = "Tempo de resposta, falhas e velocidade dentro do esperado. A rede aguenta streaming e jogos.",
+                    atencao = "O atraso sob carga ou o upload estão no limite. O vídeo pode perder qualidade ou haver lag em disputas.",
+                    critica = "O tempo de resposta sob carga e a variação prejudicam partidas e chamadas. Faixa crítica para tempo real.",
+                ),
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) {
                     emptyList()
@@ -226,11 +228,12 @@ object DiagnosticoGuiadoEngine {
         return montarResultado(
             objetivo = ObjetivoDiagnostico.OUTRO_PROBLEMA,
             dims = dims,
-            mensagens = MensagensStatus(
-                ok = "As métricas gerais da sua conexão estão dentro do esperado.",
-                atencao = "Encontramos sinais de que sua conexão pode estar com dificuldades em algum momento.",
-                critica = "Encontramos sinais claros de que sua conexão está com problemas.",
-            ),
+            mensagens =
+                MensagensStatus(
+                    ok = "As métricas gerais da sua conexão estão dentro do esperado.",
+                    atencao = "Encontramos sinais de que sua conexão pode estar com dificuldades em algum momento.",
+                    critica = "Encontramos sinais claros de que sua conexão está com problemas.",
+                ),
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) {
                     emptyList()
