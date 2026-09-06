@@ -108,70 +108,22 @@ private fun capacidadesDoObjetivo(
     respostas: List<Int?>,
 ): List<Capacidade> =
     when (objetivo) {
-        // perda de pacotes + jitter
-        ObjetivoDiagnostico.INTERNET_CAI_OSCILA ->
+        ObjetivoDiagnostico.INSTABILIDADE_QUEDAS ->
             listOf(Capacidade.ESTADO_CONEXAO, Capacidade.LATENCIA_VARIACAO)
 
-        // bufferbloat + download
-        ObjetivoDiagnostico.VIDEOS_TRAVAM ->
-            listOf(
-                Capacidade.ESTADO_CONEXAO,
-                Capacidade.COMPORTAMENTO_SOB_CARGA,
-                Capacidade.DOWNLOAD_UPLOAD,
-            )
+        ObjetivoDiagnostico.LENTIDAO_GERAL ->
+            listOf(Capacidade.ESTADO_CONEXAO, Capacidade.DNS, Capacidade.LATENCIA_VARIACAO, Capacidade.DOWNLOAD_UPLOAD)
 
-        // latência sob carga + jitter + perda + RSSI (este só fora do cabo)
-        //
-        // `avaliarJogosComLag` descarta a dimensão de Wi-Fi quando a resposta 0 é "Cabo de rede"
-        // (`if (!jogaPorCabo)`), e a suíte já assere essa supressão desde a #1683. O plano
-        // prometia mesmo assim — bloqueio B6 de Caio na PR #1732.
-        ObjetivoDiagnostico.JOGOS_COM_LAG ->
-            listOfNotNull(
-                Capacidade.ESTADO_CONEXAO,
-                Capacidade.LATENCIA_VARIACAO,
-                Capacidade.COMPORTAMENTO_SOB_CARGA,
-                Capacidade.SINAL_WIFI.takeIf { respostas.getOrNull(0) != RESPOSTA_JOGA_POR_CABO },
-            )
-
-        // jitter + perda + upload
-        ObjetivoDiagnostico.CHAMADAS_CONGELAM ->
+        ObjetivoDiagnostico.PROBLEMAS_VIDEO_JOGOS ->
             listOf(
                 Capacidade.ESTADO_CONEXAO,
                 Capacidade.LATENCIA_VARIACAO,
+                Capacidade.COMPORTAMENTO_SOB_CARGA,
                 Capacidade.DOWNLOAD_UPLOAD,
-            )
+                // SINAL_WIFI is included when connected to Wi-Fi.
+                if (contexto.conectadoPorWifi) Capacidade.SINAL_WIFI else null
+            ).filterNotNull()
 
-        // tempo de DNS + latência
-        ObjetivoDiagnostico.SITES_DEMORAM ->
-            listOf(Capacidade.ESTADO_CONEXAO, Capacidade.DNS, Capacidade.LATENCIA_VARIACAO)
-
-        // percentual do plano + download
-        ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA ->
-            listOf(Capacidade.ESTADO_CONEXAO, Capacidade.DOWNLOAD_UPLOAD)
-
-        // RSSI do Wi-Fi **ou** sinal da operadora — `avaliarWifiVsOperadora` é um `when` exclusivo
-        // por `connectionType`, nunca produz as duas. O plano prometia as duas incondicionalmente
-        // (bloqueio B7 de Caio na PR #1732).
-        //
-        // O B7 trocou "promete as duas" por "promete uma das duas, sempre" — e o `else` que sobrou
-        // não era "estou no móvel", era "não tenho snapshot de Wi-Fi": cobria também ethernet,
-        // desconectado, desconhecido e Wi-Fi atrás de VPN, prometendo `REDE_MOVEL` em estados onde
-        // o motor cai no `else -> Unit` e não mede nada (bloqueio B10 de Caio na PR #1732).
-        // `REDE_MOVEL` agora exige `estadoConexao == movel`, que é exatamente a condição do motor;
-        // nos demais estados o objetivo fica só com `ESTADO_CONEXAO` — sem prometer o que não vai
-        // medir, e sem precisar de um `limite` para declarar algo que nunca foi prometido.
-        ObjetivoDiagnostico.WIFI_VS_OPERADORA ->
-            listOfNotNull(
-                Capacidade.ESTADO_CONEXAO,
-                when {
-                    contexto.conectadoPorWifi -> Capacidade.SINAL_WIFI
-                    contexto.estadoConexao == EstadoConexao.movel -> Capacidade.REDE_MOVEL
-                    else -> null
-                },
-            )
-
-        // Sem categoria conhecida (texto livre, sem pergunta fechada) — plano genérico com as
-        // dimensões mais amplas, mesmo espírito do que o motor avalia em avaliarOutroProblema.
         ObjetivoDiagnostico.OUTRO_PROBLEMA ->
             listOf(Capacidade.ESTADO_CONEXAO, Capacidade.LATENCIA_VARIACAO, Capacidade.DOWNLOAD_UPLOAD)
     }

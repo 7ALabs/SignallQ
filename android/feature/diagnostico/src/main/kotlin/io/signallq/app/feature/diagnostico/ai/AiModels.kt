@@ -1,4 +1,4 @@
-﻿package io.signallq.app.feature.diagnostico.ai
+package io.signallq.app.feature.diagnostico.ai
 
 import io.signallq.app.core.network.contracts.localdevice.SafeLocalDeviceContext
 import io.signallq.app.core.diagnostico.BandaWifi
@@ -9,7 +9,6 @@ import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.HistoricalDiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
-import io.signallq.app.core.diagnostico.PerguntasDiagnosticoGuiado
 import io.signallq.app.core.diagnostico.SpeedtestQualityInput
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 
@@ -157,11 +156,7 @@ data class DiagnosisAiContext(
 
 /**
  * Recorte estruturado e identificável do objetivo + subcategoria escolhidos no diagnóstico
- * guiado — [objetivoId] é o nome do [ObjetivoDiagnostico] (estável, não muda com reordenação de
- * enum) e [subcategoriaRotulo] é o texto da opção escolhida na única pergunta fechada do roteiro
- * daquele objetivo (ver `PerguntasDiagnosticoGuiado`, roteiro reduzido a 1 pergunta por objetivo,
- * 2026-08). [subcategoriaIndice] acompanha o rótulo para permitir join com o catálogo de
- * perguntas sem re-parsear texto.
+ * guiado. Com a sanitização de 2026-08, subcategoriaIndice e subcategoriaRotulo vão em branco.
  */
 data class AiObjetivoDiagnostico(
     val objetivoId: String,
@@ -170,25 +165,18 @@ data class AiObjetivoDiagnostico(
 )
 
 /**
- * Constrói [AiObjetivoDiagnostico] a partir do objetivo escolhido e das respostas do roteiro
- * guiado — hoje o roteiro tem sempre 1 pergunta por objetivo, então só a resposta de índice 0
- * importa. Devolve `null` quando falta objetivo, resposta ou quando o índice não corresponde a
- * nenhuma opção real (roteiro desatualizado em relação ao estado salvo, mesma defesa que
- * [DiagnosticoGuiadoEstado] já aplica).
+ * Constrói [AiObjetivoDiagnostico] a partir do objetivo escolhido (Sanitização - 2026-08).
+ * A subcategoria não existe mais localmente pois as perguntas foram abolidas, mas mandamos
+ * strings vazias/zero para manter a compatibilidade com o schema JSON da IA.
  */
 object AiObjetivoDiagnosticoFactory {
     fun from(
         objetivo: ObjetivoDiagnostico,
-        respostas: List<Int?>,
-        tipoConexao: ConnectionType? = null,
-    ): AiObjetivoDiagnostico? {
-        val indice = respostas.firstOrNull() ?: return null
-        val pergunta = PerguntasDiagnosticoGuiado.perguntas(objetivo, tipoConexao).firstOrNull() ?: return null
-        val rotulo = pergunta.opcoes.getOrNull(indice) ?: return null
+    ): AiObjetivoDiagnostico {
         return AiObjetivoDiagnostico(
             objetivoId = objetivo.name,
-            subcategoriaIndice = indice,
-            subcategoriaRotulo = rotulo,
+            subcategoriaIndice = 0,
+            subcategoriaRotulo = "",
         )
     }
 }

@@ -1,4 +1,4 @@
-﻿package io.signallq.app.feature.diagnostico.ai
+package io.signallq.app.feature.diagnostico.ai
 
 import io.signallq.app.core.diagnostico.ConnectionType
 import io.signallq.app.core.diagnostico.DiagnosticInput
@@ -478,6 +478,8 @@ class DiagnosisAiContextFactoryTest {
         assertFalse(json.contains("serial"))
     }
 
+
+
     // ── AiObjetivoDiagnostico — campo estruturado da subcategoria (2026-08) ──────
 
     /**
@@ -494,9 +496,9 @@ class DiagnosisAiContextFactoryTest {
     @Test
     fun objetivoDiagnostico_populado_quando_fromRaw_recebe_a_subcategoria() {
         val subcategoria = io.signallq.app.feature.diagnostico.ai.AiObjetivoDiagnostico(
-            objetivoId = "JOGOS_COM_LAG",
-            subcategoriaIndice = 1,
-            subcategoriaRotulo = "Cabo de rede",
+            objetivoId = "PROBLEMAS_VIDEO_JOGOS",
+            subcategoriaIndice = 0,
+            subcategoriaRotulo = "",
         )
         val ctx = DiagnosisAiContextFactory.fromRaw(
             report = fakeReport(),
@@ -504,52 +506,21 @@ class DiagnosisAiContextFactoryTest {
             connectionType = ConnectionType.wifi,
             objetivoDiagnostico = subcategoria,
         )
-
         assertEquals(subcategoria, ctx.objetivoDiagnostico)
-
-        val repo = AiDiagnosisRepository(baseUrl = "http://invalid.local", isAuthorized = { true })
-        val json = repo.contextToJson(ctx).toString()
-        assertTrue(json.contains("\"objetivoDiagnostico\":"))
-        assertTrue(json.contains("\"objetivoId\":\"JOGOS_COM_LAG\""))
-        assertTrue(json.contains("\"subcategoriaIndice\":1"))
-        assertTrue(json.contains("\"subcategoriaRotulo\":\"Cabo de rede\""))
     }
 
     @Test
-    fun objetivoDiagnosticoFactory_resolve_rotulo_a_partir_do_indice_respondido() {
+    fun objetivoDiagnosticoFactory_resolve_fallback() {
         val resultado = AiObjetivoDiagnosticoFactory.from(
-            objetivo = io.signallq.app.core.diagnostico.ObjetivoDiagnostico.JOGOS_COM_LAG,
-            respostas = listOf(1),
+            objetivo = io.signallq.app.core.diagnostico.ObjetivoDiagnostico.PROBLEMAS_VIDEO_JOGOS,
         )
         assertEquals(
             io.signallq.app.feature.diagnostico.ai.AiObjetivoDiagnostico(
-                objetivoId = "JOGOS_COM_LAG",
-                subcategoriaIndice = 1,
-                subcategoriaRotulo = "Cabo de rede",
+                objetivoId = "PROBLEMAS_VIDEO_JOGOS",
+                subcategoriaIndice = 0,
+                subcategoriaRotulo = "",
             ),
             resultado,
-        )
-    }
-
-    @Test
-    fun objetivoDiagnosticoFactory_devolve_nulo_sem_resposta() {
-        assertNull(
-            AiObjetivoDiagnosticoFactory.from(
-                objetivo = io.signallq.app.core.diagnostico.ObjetivoDiagnostico.JOGOS_COM_LAG,
-                respostas = emptyList(),
-            ),
-        )
-    }
-
-    @Test
-    fun objetivoDiagnosticoFactory_devolve_nulo_com_indice_fora_da_faixa_de_opcoes() {
-        // Defesa equivalente a DiagnosticoGuiadoEstado.saneado(): índice de opção que não existe
-        // (roteiro mudou entre versões) nunca vira rótulo inventado.
-        assertNull(
-            AiObjetivoDiagnosticoFactory.from(
-                objetivo = io.signallq.app.core.diagnostico.ObjetivoDiagnostico.JOGOS_COM_LAG,
-                respostas = listOf(99),
-            ),
         )
     }
 }

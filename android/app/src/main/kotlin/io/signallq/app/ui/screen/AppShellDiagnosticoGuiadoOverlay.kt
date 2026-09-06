@@ -149,7 +149,6 @@ internal fun AppShellDiagnosticoGuiadoOverlay(
             analise = entry.analise,
             onBackHandlerReady = { backHandler = it },
             objetivoPreSelecionado = dados.objetivoPreSelecionado,
-            respostaPreSelecionadaPasso0 = dados.respostaPreSelecionadaPasso0,
             analisadorState = dados.analisadorState,
             onAnalisarProblema = entry.acoes.onAnalisarProblema,
             onResetarAnalisador = entry.acoes.onResetarAnalisador,

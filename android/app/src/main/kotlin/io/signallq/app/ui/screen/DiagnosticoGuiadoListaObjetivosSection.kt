@@ -36,13 +36,9 @@ import io.signallq.app.ui.LkTokens
 
 private fun ObjetivoDiagnostico.iconeAssist(): ImageVector =
     when (this) {
-        ObjetivoDiagnostico.INTERNET_CAI_OSCILA -> Icons.Outlined.WifiOff
-        ObjetivoDiagnostico.VIDEOS_TRAVAM -> Icons.Outlined.Tv
-        ObjetivoDiagnostico.JOGOS_COM_LAG -> Icons.Outlined.SportsEsports
-        ObjetivoDiagnostico.CHAMADAS_CONGELAM -> Icons.Outlined.Videocam
-        ObjetivoDiagnostico.SITES_DEMORAM -> Icons.Outlined.Language
-        ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA -> Icons.Outlined.Speed
-        ObjetivoDiagnostico.WIFI_VS_OPERADORA -> Icons.Outlined.CompareArrows
+        ObjetivoDiagnostico.INSTABILIDADE_QUEDAS -> Icons.Outlined.WifiOff
+        ObjetivoDiagnostico.LENTIDAO_GERAL -> Icons.Outlined.Speed
+        ObjetivoDiagnostico.PROBLEMAS_VIDEO_JOGOS -> Icons.Outlined.SportsEsports
         ObjetivoDiagnostico.OUTRO_PROBLEMA -> Icons.Outlined.HelpOutline
     }
 

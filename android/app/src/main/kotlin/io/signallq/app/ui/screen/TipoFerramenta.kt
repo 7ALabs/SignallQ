@@ -71,12 +71,9 @@ object CatalogoFerramentas {
  */
 fun ObjetivoDiagnostico.ferramentaSugerida(): TipoFerramenta? =
     when (this) {
-        ObjetivoDiagnostico.SITES_DEMORAM, ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA -> TipoFerramenta.DNS
-        ObjetivoDiagnostico.INTERNET_CAI_OSCILA -> TipoFerramenta.MONITORAMENTO
-        ObjetivoDiagnostico.WIFI_VS_OPERADORA -> TipoFerramenta.SINAL_WIFI
-        ObjetivoDiagnostico.VIDEOS_TRAVAM,
-        ObjetivoDiagnostico.JOGOS_COM_LAG,
-        ObjetivoDiagnostico.CHAMADAS_CONGELAM,
+        ObjetivoDiagnostico.LENTIDAO_GERAL -> TipoFerramenta.DNS
+        ObjetivoDiagnostico.INSTABILIDADE_QUEDAS -> TipoFerramenta.MONITORAMENTO
+        ObjetivoDiagnostico.PROBLEMAS_VIDEO_JOGOS,
         // Sem categoria conhecida — nenhuma ferramenta específica é forte o bastante.
         ObjetivoDiagnostico.OUTRO_PROBLEMA,
         -> null
