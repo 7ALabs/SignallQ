@@ -369,7 +369,7 @@ fun DiagnosticoGuiadoScreen(
                     estado.irPara(DiagnosticoGuiadoRota.Analise)
                 }
             }
-        
+
         if (podeConcluirSemMedir && onAvaliarAssist != null) {
             estadoChamadaNds = EstadoChamadaNds.EmCurso
         }
@@ -440,7 +440,7 @@ fun DiagnosticoGuiadoScreen(
             objetivoAtual == null ->
                 DiagnosticoGuiadoListaObjetivosSection(
                     modifier = Modifier.padding(padding),
-                    onSelect = { 
+                    onSelect = {
                         estado = estado.copy(objetivo = it)
                         if (it != ObjetivoDiagnostico.OUTRO_PROBLEMA) {
                             avançarOuConcluir()

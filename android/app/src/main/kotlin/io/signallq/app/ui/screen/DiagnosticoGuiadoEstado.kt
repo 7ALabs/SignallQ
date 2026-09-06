@@ -129,19 +129,19 @@ data class DiagnosticoGuiadoEstado(
                     val nomeEntrada = valores.getOrNull(0).orEmpty()
                     val nomeMidia = valores.getOrNull(1).orEmpty()
                     val nomeObjetivo = valores.getOrNull(2).orEmpty()
-                    
+
                     val tokensPilha =
                         valores
                             .getOrNull(3)
                             .orEmpty()
                             .split(',')
                             .filter(String::isNotBlank)
-                            
+
                     val pilhaRestaurada =
                         tokensPilha.map { nome ->
                             DiagnosticoGuiadoRota.entries.firstOrNull { it.name == nome }
                         }
-                        
+
                     if (pilhaRestaurada.any { it == null }) {
                         DiagnosticoGuiadoEstado()
                     } else {
