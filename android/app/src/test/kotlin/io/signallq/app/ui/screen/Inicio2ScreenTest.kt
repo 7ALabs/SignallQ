@@ -116,7 +116,7 @@ class Inicio2ScreenTest {
 
         state.value =
             state.value.copy(
-                analise = Inicio2Analise.EstadoConhecido("Bom"),
+                analise = Inicio2Analise.StatusEmTempoReal("Bom", "Motivo de teste"),
                 geracaoDiagnostico = 1L,
             )
         composeRule.waitForIdle()
@@ -135,7 +135,7 @@ class Inicio2ScreenTest {
                 Inicio2UiState(
                     Inicio2Conexao.Wifi,
                     "Casa",
-                    Inicio2Analise.EstadoConhecido("Bom"),
+                    Inicio2Analise.StatusEmTempoReal("Bom", "Motivo de teste"),
                     geracaoDiagnostico = 4L,
                 ),
             )
