@@ -22,10 +22,9 @@ status=0
 
 for mirror in "${MIRRORS[@]}"; do
   if [[ "$CHECK_ONLY" == true ]]; then
-    # README.md pode ser específico do diretório. Alguns skills de tooling mantêm
-    # arquivos auxiliares próprios de integração; compare o conteúdo compartilhado
-    # sem transformar metadado de ferramenta em segunda governança.
-    diff_out=$(diff -rq --exclude=README.md "$CANONICAL" "$mirror" 2>&1 || true)
+    # README.md é específico do diretório. Pastas chamadas agents dentro de skills
+    # podem conter metadados de integração específicos da ferramenta (ex.: impeccable).
+    diff_out=$(diff -rq --exclude=README.md --exclude=agents "$CANONICAL" "$mirror" 2>&1 || true)
     if [[ -n "$diff_out" ]]; then
       echo "desatualizado: $mirror diverge de $CANONICAL"
       echo "$diff_out"
@@ -33,6 +32,8 @@ for mirror in "${MIRRORS[@]}"; do
     fi
   else
     mkdir -p "$mirror"
+    # Copia procedimentos compartilhados. Metadados extras já existentes no destino
+    # não são apagados; eles não têm autoridade de governança.
     cp -R "$CANONICAL/." "$mirror/"
     echo "sincronizado: $mirror"
   fi
