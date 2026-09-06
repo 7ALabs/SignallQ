@@ -7,7 +7,7 @@ allowed-tools: Bash(gh *), Bash(git *), Bash(./android/gradlew *), Bash(bash scr
 
 # Checar Release
 
-Use quando uma entrega está candidata a TestFlight equivalente/Play Store, beta, release interna ou deploy coordenado de componentes do SignallQ.
+Use quando uma entrega está candidata a Play Store, beta, release interna ou deploy coordenado de componentes do SignallQ.
 
 Esta skill verifica prontidão. Não publica, não faz deploy de produção e não substitui autorização do Luiz.
 
