@@ -1,8 +1,5 @@
 package io.signallq.app.ui.screen
 
-import io.mockk.every
-import io.mockk.mockk
-import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.feature.diagnostico.EstadoDiagnostico
@@ -32,7 +29,7 @@ class Inicio2UiStateTest {
         val offline = map(rede(EstadoConexao.desconectado), idle)
         assertTrue(offline.analise is Inicio2Analise.StatusEmTempoReal)
         assertEquals("Offline", (offline.analise as Inicio2Analise.StatusEmTempoReal).veredito)
-        
+
         // Redes conectadas com wifi e sinal bom/desconhecido devem ter StatusEmTempoReal Conectado/Bom/etc
         val wifi = map(rede(EstadoConexao.wifi), idle)
         assertTrue(wifi.analise is Inicio2Analise.StatusEmTempoReal)
