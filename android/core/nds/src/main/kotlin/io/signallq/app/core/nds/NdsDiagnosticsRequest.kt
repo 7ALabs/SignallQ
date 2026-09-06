@@ -66,6 +66,23 @@ data class NdsWifiScanInfo(
     /** Método/versão do algoritmo de avaliação de canal usado (`ChannelEvaluator`,
      *  `:coreNetwork`). Null quando nenhum canal foi avaliado. */
     val algorithmVersion: String? = null,
+    /** `ChannelScore.score` (mW, quanto menor melhor) do canal atualmente conectado
+     *  -- precisao completa exigida pela regra `WIFI-CANAL-*` do NDS, que faz a
+     *  propria comparacao/normalizacao a partir do valor bruto em vez de depender
+     *  so do percentual ja arredondado em [channelCongestion]. `null` nas mesmas
+     *  condicoes que [channelCongestion] fica nulo (sem canal conectado ou canal
+     *  fora do [bandScores] avaliado). */
+    val currentScoreMw: Double? = null,
+    /** `ChannelScore.score` (mW) do candidato marcado `recommended` em
+     *  [bandScores] -- mesmo criterio usado para [bestChannel]. `null` quando nao
+     *  ha candidato recomendado. */
+    val bestScoreMw: Double? = null,
+    /** Quantidade de vizinhas que o `ChannelEvaluator` conseguiu efetivamente usar
+     *  no calculo (freq/RSSI/banda validos) -- distinto de [neighborCount], que e a
+     *  contagem bruta do scan incluindo vizinhas sem dado suficiente. Necessario
+     *  para a regra `WIFI-CANAL-*` do NDS diferenciar "poucas vizinhas" de "muitas
+     *  vizinhas mas maioria sem dado utilizavel". */
+    val validNetworkCount: Int? = null,
 )
 
 /**
@@ -371,6 +388,9 @@ data class NdsDiagnosticsRequest(
                         )
                     }
                     ws.algorithmVersion?.let { put("algorithmVersion", it) }
+                    ws.currentScoreMw?.let { put("currentScoreMw", it) }
+                    ws.bestScoreMw?.let { put("bestScoreMw", it) }
+                    ws.validNetworkCount?.let { put("validNetworkCount", it) }
                 },
             )
         }

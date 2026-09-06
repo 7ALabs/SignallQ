@@ -35,22 +35,32 @@ private const val CHANNEL_EVALUATOR_VERSION = "channel-evaluator@1"
  * explicar por que um canal foi considerado congestionado, nao so confiar no
  * resultado ja calculado (#1832 secao 3). BSSID nunca entra na evidencia
  * enviada — ver [RedeWifiVizinha.toNdsNeighborInfo].
+ *
+ * Alem do percentual ja normalizado ([NdsWifiScanInfo.channelCongestion]), tambem
+ * propaga os scores brutos em mW do canal conectado e do melhor candidato
+ * ([NdsWifiScanInfo.currentScoreMw]/[NdsWifiScanInfo.bestScoreMw]) e a contagem de
+ * vizinhas efetivamente utilizaveis pelo `ChannelEvaluator`
+ * ([NdsWifiScanInfo.validNetworkCount]) — exigidos pela regra `WIFI-CANAL-*` do
+ * NDS para nao ficar inconclusiva.
  */
 fun mapWifiScanToNds(
     bandScores: List<ChannelScore>,
     canalConectado: Int?,
     redesVizinhas: List<RedeWifiVizinha> = emptyList(),
 ): NdsWifiScanInfo {
-    val bestChannel = bandScores.firstOrNull { it.recommended }?.channel
+    val best = bandScores.firstOrNull { it.recommended }
     val current = canalConectado?.let { canal -> bandScores.firstOrNull { it.channel == canal } }
     val channelCongestion = current?.let { congestionPercent(it.score) }
     return NdsWifiScanInfo(
         connectedChannel = canalConectado,
         channelCongestion = channelCongestion,
-        bestChannel = bestChannel,
+        bestChannel = best?.channel,
         neighborCount = redesVizinhas.size,
         neighbors = redesVizinhas.map { it.toNdsNeighborInfo() },
         algorithmVersion = CHANNEL_EVALUATOR_VERSION.takeIf { bandScores.isNotEmpty() },
+        currentScoreMw = current?.score,
+        bestScoreMw = best?.score,
+        validNetworkCount = redesVizinhas.toEvaluatorNeighbors().size,
     )
 }
 
