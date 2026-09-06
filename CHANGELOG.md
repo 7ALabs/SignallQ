@@ -14,6 +14,12 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 
 ---
 
+## [1.0.4] — 2026-09-06
+
+### Fixed
+
+- Assist passa a apresentar o título, a explicação e as recomendações retornadas pelo NDS, sem sugerir uma ação local que não foi indicada pelo diagnóstico remoto.
+
 ## [0.28.0] — 2026-07-18
 
 Correção funcional do motor de diagnóstico (latência do Speedtest), redesign completo da tela Equipamento de internet e limpeza sistêmica de contraste de status no modo escuro. Ver [`android/CHANGELOG.md`](android/CHANGELOG.md#0280--2026-07-18).
