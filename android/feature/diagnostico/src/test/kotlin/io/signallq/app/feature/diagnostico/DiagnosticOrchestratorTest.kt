@@ -369,9 +369,12 @@ class DiagnosticOrchestratorTest {
             val orchestrator =
                 DiagnosticOrchestrator(
                     ndsDiagnosticRepository = ndsRepo,
-                    // USAR_NDS_V2_NO_FLUXO_PRINCIPAL desligada explicitamente: este teste cobre
-                    // o v1 (comportamento default), o v2 do fluxo principal tem cobertura
-                    // dedicada na secao feat/nds-v2-fluxo-principal abaixo.
+                    // USAR_NDS_V2_NO_FLUXO_PRINCIPAL desligada explicitamente (kill-switch via
+                    // Remote Config): este teste cobre o v1, que deixou de ser o comportamento
+                    // default a partir do feat/nds-v2-fluxo-principal (defaultValue do catalogo
+                    // agora e true) e passou a ser so o fallback de emergencia. O v2 (agora
+                    // default) tem cobertura dedicada na secao feat/nds-v2-fluxo-principal
+                    // abaixo.
                     featureFlagProvider =
                         FakeFeatureFlagProvider(
                             enabled = true,
@@ -474,11 +477,13 @@ class DiagnosticOrchestratorTest {
     // USAR_NDS_V2_NO_FLUXO_PRINCIPAL e repassa pro NdsDiagnosticRepository, mesmo padrao
     // ja coberto acima pra USAR_NDS_V2_NO_ASSIST. So importa quando
     // CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED tambem esta ligada (senao o fluxo nem chama
-    // o NDS).
+    // o NDS). A partir desta PR o defaultValue de USAR_NDS_V2_NO_FLUXO_PRINCIPAL no
+    // catalogo e true (v2 e o padrao para todos os usuarios); desligar a flag (kill-switch
+    // via Remote Config) volta para o v1, coberto no primeiro teste abaixo.
     // -------------------------------------------------------------------
 
     @Test
-    fun `fluxo principal com nds_live ligada e USAR_NDS_V2_NO_FLUXO_PRINCIPAL desligada (default) - chama v1`() =
+    fun `fluxo principal com nds_live ligada e USAR_NDS_V2_NO_FLUXO_PRINCIPAL desligada (kill-switch) - chama v1`() =
         runTest {
             server.enqueue(MockResponse().setResponseCode(200).setBody(ndsSuccessBody()))
             val ndsClient = NdsClient(baseUrl = server.url("/").toString(), apiToken = "t", client = OkHttpClient())
@@ -501,7 +506,7 @@ class DiagnosticOrchestratorTest {
         }
 
     @Test
-    fun `fluxo principal com nds_live ligada e USAR_NDS_V2_NO_FLUXO_PRINCIPAL ligada - chama v2`() =
+    fun `fluxo principal com nds_live ligada e USAR_NDS_V2_NO_FLUXO_PRINCIPAL ligada (default) - chama v2`() =
         runTest {
             server.enqueue(
                 MockResponse().setResponseCode(200).setBody(
