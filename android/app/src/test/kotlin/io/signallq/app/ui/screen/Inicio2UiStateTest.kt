@@ -1,8 +1,5 @@
 package io.signallq.app.ui.screen
 
-import io.mockk.every
-import io.mockk.mockk
-import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.feature.diagnostico.EstadoDiagnostico
@@ -27,14 +24,16 @@ class Inicio2UiStateTest {
     }
 
     @Test
-    fun `relatorio vira estado conhecido e medicao persistida vira resultado anterior sem inferir validade`() {
-        val report = mockk<DiagnosticReport>()
-        every { report.veredito } returns "Bom"
-        val conhecido = map(rede(EstadoConexao.wifi), SnapshotDiagnostico(EstadoDiagnostico.concluido, report, null))
-        assertEquals("Bom", (conhecido.analise as Inicio2Analise.EstadoConhecido).veredito)
+    fun `agora usa o status em tempo real do monitor de conexao leve`() {
+        // Redes offline devem gerar StatusEmTempoReal Offline, não SemAnalise/ResultadoAnterior
+        val offline = map(rede(EstadoConexao.desconectado), idle)
+        assertTrue(offline.analise is Inicio2Analise.StatusEmTempoReal)
+        assertEquals("Offline", (offline.analise as Inicio2Analise.StatusEmTempoReal).veredito)
 
-        val anterior = map(rede(EstadoConexao.wifi), idle, medicaoAnterior())
-        assertEquals(123L, (anterior.analise as Inicio2Analise.ResultadoAnterior).timestampEpochMs)
+        // Redes conectadas com wifi e sinal bom/desconhecido devem ter StatusEmTempoReal Conectado/Bom/etc
+        val wifi = map(rede(EstadoConexao.wifi), idle)
+        assertTrue(wifi.analise is Inicio2Analise.StatusEmTempoReal)
+        assertEquals("Conectado", (wifi.analise as Inicio2Analise.StatusEmTempoReal).veredito)
     }
 
     @Test

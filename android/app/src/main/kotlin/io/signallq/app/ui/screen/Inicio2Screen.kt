@@ -131,10 +131,10 @@ private fun Inicio2Hero(
     val c = LocalLkTokens.current
     val (titulo, mensagem, tone) =
         when (val analise = uiState.analise) {
-            is Inicio2Analise.EstadoConhecido ->
+            is Inicio2Analise.StatusEmTempoReal ->
                 Triple(
                     tituloConexao(analise.veredito),
-                    "Este é o último diagnóstico conhecido. Faça uma nova análise se algo mudou.",
+                    analise.motivo,
                     analise.veredito.feedbackTone(),
                 )
             Inicio2Analise.SemAnalise ->
@@ -143,12 +143,7 @@ private fun Inicio2Hero(
                     "Vídeos em HD e chamadas podem travar agora.",
                     SignallQFeedbackTone.Neutral,
                 )
-            is Inicio2Analise.ResultadoAnterior ->
-                Triple(
-                    "Resultado anterior disponível",
-                    "A medição salva pode não representar a conexão de agora.",
-                    SignallQFeedbackTone.Neutral,
-                )
+
             Inicio2Analise.Carregando ->
                 Triple(
                     "Analisando sua conexão",
@@ -277,7 +272,7 @@ internal fun tituloConexao(veredito: String): String =
 private fun Inicio2ScreenPreview() {
     SignallQTheme {
         Inicio2Screen(
-            uiState = Inicio2UiState(Inicio2Conexao.Wifi, "Casa", Inicio2Analise.SemAnalise),
+            uiState = Inicio2UiState(Inicio2Conexao.Wifi, "Casa", Inicio2Analise.StatusEmTempoReal("Excelente", "Sinal Wi-Fi forte e conexões estáveis.")),
             onAnalisarConexao = { null },
             onAbrirPerfil = {},
             connectionTrail =
