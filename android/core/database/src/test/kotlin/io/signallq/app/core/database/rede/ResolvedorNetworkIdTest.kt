@@ -11,7 +11,6 @@ import org.junit.Test
  *  Movido de `feature/settings` pra `core/database` na issue #1707 (Task 2.0.09e, épico #1647) —
  *  ver kdoc de [ResolvedorNetworkId] pro racional da promoção. */
 class ResolvedorNetworkIdTest {
-
     @Test
     fun `bssid valido gera id estavel e normalizado em minusculas`() {
         val id1 = ResolvedorNetworkId.paraWifi(ssid = "MinhaRede", bssid = "AA:BB:CC:DD:EE:FF")

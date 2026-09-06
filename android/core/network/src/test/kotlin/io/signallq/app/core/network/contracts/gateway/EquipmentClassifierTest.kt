@@ -11,16 +11,16 @@ import org.junit.Test
  * GH#545.
  */
 class EquipmentClassifierTest {
-
     @Test
     fun `Nokia G-1425G-B e classificado como ONT_GPON`() {
-        val evidencia = EquipmentFingerprintEvidence(
-            gatewayIp = "192.168.1.1",
-            vendorHint = "Nokia",
-            modelHint = "G-1425G-B",
-            httpBanner = "ALCL GPON ONT",
-            knownRoutesDetected = setOf("device_status.cgi"),
-        )
+        val evidencia =
+            EquipmentFingerprintEvidence(
+                gatewayIp = "192.168.1.1",
+                vendorHint = "Nokia",
+                modelHint = "G-1425G-B",
+                httpBanner = "ALCL GPON ONT",
+                knownRoutesDetected = setOf("device_status.cgi"),
+            )
 
         val resultado = EquipmentClassifier.classificar(evidencia)
 
@@ -32,11 +32,12 @@ class EquipmentClassifierTest {
 
     @Test
     fun `Archer C20 e classificado como ROUTER`() {
-        val evidencia = EquipmentFingerprintEvidence(
-            vendorHint = "TP-Link",
-            modelHint = "Archer C20",
-            knownRoutesDetected = setOf("cgi-bin/luci"),
-        )
+        val evidencia =
+            EquipmentFingerprintEvidence(
+                vendorHint = "TP-Link",
+                modelHint = "Archer C20",
+                knownRoutesDetected = setOf("cgi-bin/luci"),
+            )
 
         val resultado = EquipmentClassifier.classificar(evidencia)
 
@@ -47,11 +48,12 @@ class EquipmentClassifierTest {
 
     @Test
     fun `Archer C6 e classificado como ROUTER`() {
-        val evidencia = EquipmentFingerprintEvidence(
-            vendorHint = "TP-Link",
-            modelHint = "Archer C6",
-            knownRoutesDetected = setOf("cgi-bin/luci"),
-        )
+        val evidencia =
+            EquipmentFingerprintEvidence(
+                vendorHint = "TP-Link",
+                modelHint = "Archer C6",
+                knownRoutesDetected = setOf("cgi-bin/luci"),
+            )
 
         val resultado = EquipmentClassifier.classificar(evidencia)
 
@@ -71,13 +73,14 @@ class EquipmentClassifierTest {
 
     @Test
     fun `TP-Link nunca recebe capability de fibra mesmo com maior score possivel`() {
-        val evidencia = EquipmentFingerprintEvidence(
-            gatewayIp = "192.168.0.1",
-            vendorHint = "TP-Link",
-            modelHint = "Archer C20",
-            httpBanner = "TP-Link Archer C20",
-            knownRoutesDetected = setOf("cgi-bin/luci"),
-        )
+        val evidencia =
+            EquipmentFingerprintEvidence(
+                gatewayIp = "192.168.0.1",
+                vendorHint = "TP-Link",
+                modelHint = "Archer C20",
+                httpBanner = "TP-Link Archer C20",
+                knownRoutesDetected = setOf("cgi-bin/luci"),
+            )
 
         val resultado = EquipmentClassifier.classificar(evidencia)
 
@@ -102,13 +105,14 @@ class EquipmentClassifierTest {
         DeviceDriverCatalog.entries
             .filter { it.supportLevel != SupportLevel.LAB_VALIDATED }
             .forEach { perfil ->
-                val evidenciaComScoreMaximo = EquipmentFingerprintEvidence(
-                    gatewayIp = perfil.canonicalGatewayIps.firstOrNull() ?: "10.0.0.1",
-                    vendorHint = perfil.modelPatterns.firstOrNull(),
-                    modelHint = perfil.modelPatterns.firstOrNull(),
-                    httpBanner = perfil.bannerPatterns.firstOrNull(),
-                    knownRoutesDetected = perfil.routeSignatures.toSet(),
-                )
+                val evidenciaComScoreMaximo =
+                    EquipmentFingerprintEvidence(
+                        gatewayIp = perfil.canonicalGatewayIps.firstOrNull() ?: "10.0.0.1",
+                        vendorHint = perfil.modelPatterns.firstOrNull(),
+                        modelHint = perfil.modelPatterns.firstOrNull(),
+                        httpBanner = perfil.bannerPatterns.firstOrNull(),
+                        knownRoutesDetected = perfil.routeSignatures.toSet(),
+                    )
 
                 val resultado = EquipmentClassifier.classificar(evidenciaComScoreMaximo, catalog = listOf(perfil))
 
@@ -121,11 +125,12 @@ class EquipmentClassifierTest {
 
     @Test
     fun `equipamento desconhecido com superficie administrativa vira UNKNOWN_SUPPORTED sem quebrar`() {
-        val evidencia = EquipmentFingerprintEvidence(
-            gatewayIp = "192.168.15.1",
-            httpBanner = "lighttpd/1.4.55",
-            knownRoutesDetected = setOf("cgi-bin/status.cgi"),
-        )
+        val evidencia =
+            EquipmentFingerprintEvidence(
+                gatewayIp = "192.168.15.1",
+                httpBanner = "lighttpd/1.4.55",
+                knownRoutesDetected = setOf("cgi-bin/status.cgi"),
+            )
 
         val resultado = EquipmentClassifier.classificar(evidencia)
 
@@ -169,16 +174,17 @@ class EquipmentClassifierTest {
     @Test
     fun `casamento por IP canonico sozinho ja classifica corretamente a Nokia`() {
         val evidencia = EquipmentFingerprintEvidence(gatewayIp = "192.168.1.1")
-        val catalogoComIpUnico = listOf(
-            DeviceDriverProfile(
-                driverId = "nokia-teste-ip",
-                vendor = "Nokia",
-                canonicalGatewayIps = listOf("192.168.1.1"),
-                deviceType = DeviceType.ONT_GPON,
-                supportLevel = SupportLevel.LAB_VALIDATED,
-                fibraCapable = true,
-            ),
-        )
+        val catalogoComIpUnico =
+            listOf(
+                DeviceDriverProfile(
+                    driverId = "nokia-teste-ip",
+                    vendor = "Nokia",
+                    canonicalGatewayIps = listOf("192.168.1.1"),
+                    deviceType = DeviceType.ONT_GPON,
+                    supportLevel = SupportLevel.LAB_VALIDATED,
+                    fibraCapable = true,
+                ),
+            )
 
         val resultado = EquipmentClassifier.classificar(evidencia, catalog = catalogoComIpUnico)
 

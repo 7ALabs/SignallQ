@@ -4,7 +4,7 @@ description: "Cliente HTTP e contrato tipado do Network Diagnostics Service (NDS
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-22"
+last_updated: "2026-09-04"
 ---
 
 # `:core:nds`
@@ -71,6 +71,40 @@ agora porque a NDS-02k depende diretamente dela para os dois mappers novos.
   consomem só os mappers puros (`parseNdsVeredicto`, `classificar*Local` em
   `ClassificacaoMetricaLocal.kt`) — sem chamada de rede, sem depender do `NdsClient` em si.
 
+## Testes
+
+Nenhum teste deste módulo ou de `NdsDiagnosticRepository` bate no NDS real — todos usam
+`okhttp3.mockwebserver.MockWebServer` (dependência `test` já declarada acima), que sobe um
+servidor HTTP real em loopback e simula o contrato do NDS (path, headers, corpo JSON, códigos de
+erro). O `NdsClient`/`NdsDiagnosticRepository` fazem uma chamada HTTP de verdade, só que contra
+esse servidor local — nada no caminho é substituído por um dublê em memória, mas nenhum tráfego sai
+para rede externa nem depende de `NDS_API_TOKEN` real. Rodam 100% no CI (`android-ci.yml`, job de
+testes unitários), sem flag ou variável de ambiente adicional.
+
+| Teste | Cobertura |
+|---|---|
+| `core/nds/src/test/.../NdsClientTest.kt` | `NdsClient` isolado — path v1/v2, headers, parsing de sucesso/erro (401/429/504/5xx), envelope canônico vs. shape antigo |
+| `feature/diagnostico/src/test/.../nds/NdsDiagnosticRepositoryTest.kt` | `NdsDiagnosticRepository` isolado — fallback local em erro, telemetria de outcome/cobertura de snapshot |
+| `feature/diagnostico/src/test/.../nds/e2e/NdsE2ECenariosTest.kt` (NDS-Snapshot-11, issue #1843, épico #1832) | **Teste E2E** cobrindo a cadeia completa `DiagnosticInput -> snapshot (NdsDiagnosticsRequest) -> JSON -> NDS (mock) -> NdsDiagnosticsResponse -> DiagnosticReport`, nos dois cenários do Definition of Done de produto da issue-mãe (seção 21): Wi-Fi congestionado (valida que `wifiScan` chega ao NDS com as redes vizinhas e que a mensagem final explica o canal sem culpar o provedor) e móvel com sinal fraco (valida que `mobile` chega com RSRP/RSRQ/SINR e nunca com Cell ID/TAC/MCC/MNC) |
+
+Rodar localmente (a partir de `android/`):
+
+```bash
+./gradlew :core:nds:testDebugUnitTest
+./gradlew :featureDiagnostico:testDebugUnitTest --tests "io.signallq.app.feature.diagnostico.nds.e2e.NdsE2ECenariosTest"
+```
+
+Ou a suíte completa do critério de aceite (`ktlintCheck`/`detekt`/`test`, já cobre estes três
+arquivos): `./gradlew ktlintCheck detekt test`.
+
+**Fixtures**: o repositório irmão `network-diagnostics-service` não publica um diretório de
+fixtures JSON versionadas para contract tests (auditado em 2026-09-04 — os testes em `tests/api/`
+de lá cobrem regras de contrato via schemas Zod e asserts inline em TypeScript, não fixtures
+exportáveis). As respostas simuladas em `NdsE2ECenariosTest` foram construídas localmente a partir
+do vocabulário confirmado em `NdsSeverityParser` (veredicto), do shape de envelope v1 confirmado em
+`NdsClientTest` e de `docs/api-contract.md` do repositório irmão. Se `network-diagnostics-service`
+publicar fixtures dedicadas no futuro, migrar este teste para consumi-las.
+
 ## Componentes principais
 
 | Arquivo / classe | Responsabilidade |
@@ -85,7 +119,7 @@ agora porque a NDS-02k depende diretamente dela para os dois mappers novos.
 | `NdsProfileCapabilitiesMapper.kt` (NDS-02a/#1747) | `ndsCapabilities()`/`ndsProfile()` — regra `profile`/`capabilities` do payload |
 | `NdsWifiScanMapper.kt` (NDS-02a/#1747) | `mapWifiScanToNds()` — traduz `ChannelScore` (`:coreNetwork`) para o bloco `wifiScan` |
 | `NdsSeverityParser.kt` (NDS-02a/#1747, NDS-02k/#1759) | `parseNdsVeredicto()` (`veredicto` → `MetricStatus`) e `MetricStatus.toDiagnosticStatus()` (segundo salto, `MetricStatus` → `DiagnosticStatus` do `core/diagnostico`) |
-| `NdsDiagnosticsRequestMapper.kt` (NDS-02k/#1759) | `DiagnosticInput.toNdsDiagnosticsRequest()` — ponte pura para o payload real de `evaluate()`; envia qualidade em `quality`, DNS em `dns.latencyMs` e dados do gateway em `gateway`, e documenta os gaps conhecidos (`wifiScan`, `dns.hijacked`) |
+| `NdsDiagnosticsRequestMapper.kt` (NDS-02k/#1759, expandido pelas fatias NDS-Snapshot-02..10 do épico #1832) | `DiagnosticInput.toNdsDiagnosticsRequest()` — ponte pura para o payload real de `evaluate()`; monta `wifiScan` (redes vizinhas + congestionamento via `ChannelEvaluator`), `mobile` (RSRP/RSRQ/SINR/operadora/tecnologia), `historical`, `localEquipment`, `plan`, `connection.natStatus` e `dns` expandido. Gap conhecido restante: `dns.hijacked` (sem coleta real ainda) |
 | `NdsDiagnosticsResponseMapper.kt` (NDS-02k/#1759) | `NdsDiagnosticsResponse.toDiagnosticReport()` — ponte pura de volta para o `DiagnosticReport` que a UI já lê via `SnapshotDiagnostico` |
 
 ## Autenticação (ver ADR-017)
@@ -110,11 +144,11 @@ escopo da fatia NDS-01.
   de produção que disparam em background sem "aguarde" explícito do usuário — ver kdoc do
   construtor de `NdsClient`. Continua acima do `EVALUATE_TIMEOUT_MS` default do servidor (10s), de
   propósito.
-- **Cobertura de rede móvel "Parcial" no NDS** (RSRP/RSRQ/SINR, `network-diagnostics-service#13`) —
-  `NdsDiagnosticsRequestMapper` não tem bloco dedicado para essas métricas; o `DiagnosticInput.mobile`
-  simplesmente não é enviado. `NdsDiagnosticRepository` roda para qualquer `connectionType` mesmo
-  assim (decisão registrada no inventário da issue #1759 — aceitar a granularidade reduzida em vez
-  de complicar a flag com sensibilidade a tipo de conexão).
+- **Cobertura de rede móvel** — RESOLVIDO pela issue #1837 (NDS-Snapshot bloco 10, épico #1832):
+  `NdsDiagnosticsRequestMapper.toNdsMobileInfo` monta o bloco `mobile` (operadora/tecnologia/
+  RSRP/RSRQ/SINR/banda) a partir de `DiagnosticInput.mobile`, omitido só sem conexão móvel, sem
+  `READ_PHONE_STATE` (`capturaReduzida=true`) ou sem nenhuma evidência de sinal. Nunca carrega
+  Cell ID/TAC/MCC/MNC.
 - **`profile`/`capabilities` sem regra de mapeamento formal do app.** O ADR-017 lista como pendência
   em aberto a migração para o modelo `capabilities`/`requested_outputs` do PR#12 — este módulo ainda
   usa o modelo antigo (`ndsCapabilities()`/`ndsProfile()`, NDS-02a), aceito via alias legado.

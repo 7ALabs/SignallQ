@@ -3,5 +3,5 @@
 data class SsdpResponse(
     val location: String,
     val usn: String?,
-    val server: String?
+    val server: String?,
 )

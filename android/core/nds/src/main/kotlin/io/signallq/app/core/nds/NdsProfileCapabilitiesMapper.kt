@@ -51,14 +51,15 @@ fun ndsCapabilities(
     mobile: NdsMobileInfo? = null,
     historical: NdsHistoricalInfo? = null,
     localEquipment: NdsLocalEquipmentInfo? = null,
-): List<String> = ndsCapabilities(
-    incluiWifi = wifi != null,
-    incluiFiber = fiber != null,
-    incluiWifiScan = wifiScan != null,
-    incluiMobile = mobile != null,
-    incluiHistorical = historical != null,
-    incluiLocalEquipment = localEquipment != null,
-)
+): List<String> =
+    ndsCapabilities(
+        incluiWifi = wifi != null,
+        incluiFiber = fiber != null,
+        incluiWifiScan = wifiScan != null,
+        incluiMobile = mobile != null,
+        incluiHistorical = historical != null,
+        incluiLocalEquipment = localEquipment != null,
+    )
 
 /**
  * `profile` do payload NDS. `"gamer"` somente dentro do fluxo Modo Gamer;

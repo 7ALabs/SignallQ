@@ -21,33 +21,38 @@ import org.junit.Test
  */
 class ScoreEvidenceBuilderThresholdCharacterizationTest {
     private fun notaVelocidade(uploadMbps: Double): Int? {
-        val input = DiagnosticInput(
-            internet = InternetDiagnosticInput(
-                downloadMbps = 100.0, // fixo, so upload varia nesta caracterizacao
-                uploadMbps = uploadMbps,
-                latencyMs = 20.0,
-                jitterMs = 5.0,
-                perdaPercentual = 0.0,
-                bufferbloatMs = 0.0,
-            ),
-        )
-        val decisaoNeutra = DiagnosticResult(
-            id = "IN-NORMAL-02",
-            titulo = "Sua conexão está boa",
-            status = DiagnosticStatus.ok,
-            evidencia = null,
-            mensagemUsuario = "Sua conexão está funcionando bem.",
-            recomendacao = null,
-            categoria = "internet",
-        )
-        val report = DiagnosticReport(
-            wifiResultados = emptyList(),
-            internetResultados = emptyList(),
-            fibraResultados = emptyList(),
-            decisao = decisaoNeutra,
-            geradoEmMs = 0L,
-        )
-        return ScoreEvidenceBuilder.construir(input, report)
+        val input =
+            DiagnosticInput(
+                internet =
+                    InternetDiagnosticInput(
+                        downloadMbps = 100.0, // fixo, so upload varia nesta caracterizacao
+                        uploadMbps = uploadMbps,
+                        latencyMs = 20.0,
+                        jitterMs = 5.0,
+                        perdaPercentual = 0.0,
+                        bufferbloatMs = 0.0,
+                    ),
+            )
+        val decisaoNeutra =
+            DiagnosticResult(
+                id = "IN-NORMAL-02",
+                titulo = "Sua conexão está boa",
+                status = DiagnosticStatus.ok,
+                evidencia = null,
+                mensagemUsuario = "Sua conexão está funcionando bem.",
+                recomendacao = null,
+                categoria = "internet",
+            )
+        val report =
+            DiagnosticReport(
+                wifiResultados = emptyList(),
+                internetResultados = emptyList(),
+                fibraResultados = emptyList(),
+                decisao = decisaoNeutra,
+                geradoEmMs = 0L,
+            )
+        return ScoreEvidenceBuilder
+            .construir(input, report)
             .first { it.dimensao == "velocidade" }
             .nota
     }

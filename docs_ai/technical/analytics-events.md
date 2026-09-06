@@ -4,7 +4,7 @@ description: "Funil principal SIG-155 (7 eventos definidos, 5 disparando — os 
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-20"
+last_updated: "2026-09-04"
 ---
 
 # Contrato de Eventos — Firebase Analytics
@@ -428,6 +428,87 @@ Disparado quando a chamada ao Worker falha e o fallback local é ativado.
 como `source: "local"` em `ia_laudo_recebido` (ver acima) — este evento
 separado adicionaria detalhe sobre a causa específica da falha, mas exigiria
 propagar o tipo de erro de `AiDiagnosisRepository` (hoje só loga via Timber).
+
+---
+
+## Eventos — NDS (rollout / observabilidade)
+
+Distintos do funil principal (SIG-155) acima: não medem o resultado do diagnóstico para o
+usuário, medem o comportamento do `NdsDiagnosticRepository` (`feature/diagnostico`) ao chamar o
+Network Diagnostics Service — telemetria operacional de rollout, consumida por Camilo/Claudete,
+não pelo funil de produto.
+
+### `diag_nds_outcome` — implementado (NDS-02k, issue #1759 item 10)
+
+Disparado uma vez por chamada a `NdsClient.evaluate()` feita por `NdsDiagnosticRepository`
+(`evaluate()`/`evaluateForAssist()`), em sucesso ou erro. Mede se o NDS respondeu ou se a rede de
+segurança (`DiagnosticRunner` local) precisou assumir.
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `outcome` | String | Sim | `"success"` \| `"remote_inconclusive"` \| `"known_error"` \| `"unknown_error"` |
+| `fallback_local_usado` | Boolean | Sim | `true` quando o `DiagnosticRunner` local assumiu o relatório final |
+| `latencia_ms` | Long | Sim | Tempo entre o envio do request e o outcome de `NdsClient.evaluate()` |
+| `error_code` | String | Não | Código do envelope de erro do NDS (ex.: `"NDS_TIMEOUT"`) — ausente em sucesso |
+| `versao_app` | String | Sim | |
+
+**Módulo:** `feature/diagnostico` (`NdsDiagnosticRepository`)
+**Plataforma:** Android
+
+**Nota de implementação (correção oportunista desta entrada, issue #1844):** este evento já
+estava implementado desde a NDS-02k, mas nunca tinha sido documentado aqui — gap fechado ao
+lado do evento novo abaixo, que dispara no mesmo ponto do código.
+
+### `nds_snapshot_enviado` — implementado (NDS-Snapshot-12, issue #1844, épico #1832 seção 17)
+
+Disparado no mesmo ponto que `diag_nds_outcome` (uma vez por chamada a
+`NdsClient.evaluate()`), com um evento distinto. Mede a **cobertura** do snapshot
+`DiagnosticSnapshot` (ADR-018) enviado nesta execução — quais blocos do payload foram montados,
+quantos campos têm conteúdo, e se a IA foi de fato invocada — não o resultado do diagnóstico em
+si (isso continua sendo `diag_concluido`, SIG-155). Sem esta telemetria não dá para saber em
+produção quantos usuários realmente enviam os blocos novos (wifiScan, mobile, historical,
+localEquipment, dns expandido, plan) nem por que um bloco fica ausente (sem permissão, tipo de
+conexão não aplicável, sem equipamento, etc.).
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `schema_version` | String | Sim | Versão do contrato `DiagnosticSnapshot` (ADR-018) — `NDS_SNAPSHOT_SCHEMA_VERSION`, hoje fixo `"1"` |
+| `blocks_present` | String | Sim | Nomes de bloco (`NdsSnapshotBlock.jsonKey`) presentes no payload, separados por vírgula — vazio quando nenhum bloco opcional foi montado |
+| `qtd_blocks_present` | Long | Sim | Contagem de blocos presentes |
+| `fields_present_count` | Long | Sim | Contagem de campos-folha não nulos em todo o payload — mede a riqueza do snapshot, não só quantos blocos existem |
+| `missing_critical_blocks` | String | Sim | Nomes de bloco crítico ausentes nesta execução, separados por vírgula — vazio quando nenhum falta. Crítico: `connection`/`speed` sempre, `wifi` quando a conexão é Wi-Fi, `mobile` quando é rede móvel |
+| `ai_invoked` | Boolean | Sim | `true` quando o NDS retornou um resultado do módulo `"ai"` (contrato v1) ou uma explicação v2 |
+| `ai_provider` | String | Não | Modelo/provedor de IA usado (`NdsAiResult.aiModelUsed`) — ausente quando `ai_invoked=false` ou o contrato não informa (v2) |
+| `duration_ms` | Long | Sim | Mesmo valor de `diag_nds_outcome.latencia_ms` — tempo entre o envio do request e o outcome |
+| `result_confidence` | Double | Não | `DiagnosticReport.confianca` (0.0–1.0) — ausente quando não houve relatório (erro sem fallback local) |
+| `outcome` | String | Sim | Mesmo vocabulário de `diag_nds_outcome.outcome` — permite correlacionar os dois eventos sem duplicar a lógica de decisão |
+| `versao_app` | String | Sim | |
+
+**Módulo:** `feature/diagnostico` (`NdsDiagnosticRepository`), análise em
+`core/nds` (`analyzeNdsSnapshotCoverage`, `NdsSnapshotCoverage.kt`)
+**Plataforma:** Android
+
+**Especificado via `/analytics-spec`** antes da implementação (issue #1844) — nenhuma
+propriedade carrega SSID/BSSID/IP ou qualquer valor de campo do snapshot: `blocks_present` e
+`missing_critical_blocks` só citam nomes de bloco (metadado estrutural do payload), nunca
+conteúdo. Confirmado contra `docs_ai/legal/PRIVACY_POLICY.md` seção 3 (Firebase Analytics já
+declarado como consumidor de "eventos anônimos de uso").
+
+**Não dispara quando:** por bloco individual do snapshot (é sempre um evento por chamada ao NDS,
+nunca um por bloco); quando o fallback local roda sem nunca ter chamado o NDS (não há
+request/outcome nesse caminho).
+
+**Log de debug (não analytics, build de debug apenas):** `NdsDiagnosticRepository.logCoverageEmDebug`
+emite via `Timber.d`, só quando `BuildConfig.DEBUG`, uma linha por bloco no formato
+`bloco=present` ou `bloco=missing:motivo` — nunca em build de release. Exemplo real:
+
+```
+NDS snapshot:
+speed=present
+wifi=present
+wifiScan=missing:no_permission
+mobile=missing:not_mobile
+```
 
 ---
 

@@ -98,47 +98,59 @@ private const val NDS_APP_ID = "io.signallq.app"
  *
  * `context.subcategory` e opcional no contrato v2. Quando a tela tiver um recorte
  * canônico, ele é preservado; a ausência dele não impede a avaliação v2.
+ *
+ * ## `speed.packetLossSource` (ADR-018, "Convenção de proveniência" — NDS-Snapshot-10,
+ * issue #1842)
+ * Traduz `InternetDiagnosticInput.packetLossSource` (vocabulario interno legado) para
+ * o vocabulario fechado [NdsProvenance] via [toNdsPacketLossSource]. `null` quando o
+ * usuario nunca mediu perda de pacotes (`"naoMedido"`) ou quando `perdaPercentual`
+ * em si e null — omitido do JSON, nunca um valor inventado.
  */
 fun DiagnosticInput.toNdsDiagnosticsRequest(
     appVersion: String,
     perfilGamer: Boolean = false,
 ): NdsDiagnosticsRequest {
-    val wifiInfo = wifi?.let {
-        NdsWifiInfo(
-            rssi = it.rssiDbm,
-            band = ndsBandaWifi(it.banda()),
-            channel = it.canal,
-            linkSpeed = it.linkSpeedMbps,
-            standard = it.wifiStandard,
-        )
-    }
-    val fiberInfo = fibra?.let {
-        NdsFiberInfo(
-            rxPowerDbm = it.rxPowerDbm,
-            txPowerDbm = it.txPowerDbm,
-            temperatureC = it.temperatureCelsius,
-        )
-    }
-    val speedInfo = internet?.let {
-        NdsSpeedInfo(
-            pingMs = it.latencyMs,
-            jitterMs = it.jitterMs,
-            downloadMbps = it.downloadMbps,
-            uploadMbps = it.uploadMbps,
-            packetLossPercent = it.perdaPercentual,
-        )
-    }
-    val qualityInfo = internet?.let {
-        val loadedLatencyMs =
-            it.latencyMs?.let { latency -> it.bufferbloatMs?.let { bufferbloat -> latency + bufferbloat } }
-        NdsQualityInfo(
-            latencyMs = it.latencyMs,
-            jitterMs = it.jitterMs,
-            packetLossPercent = it.perdaPercentual,
-            loadedLatencyMs = loadedLatencyMs,
-            bufferbloatMs = it.bufferbloatMs,
-        )
-    }
+    val wifiInfo =
+        wifi?.let {
+            NdsWifiInfo(
+                rssi = it.rssiDbm,
+                band = ndsBandaWifi(it.banda()),
+                channel = it.canal,
+                linkSpeed = it.linkSpeedMbps,
+                standard = it.wifiStandard,
+            )
+        }
+    val fiberInfo =
+        fibra?.let {
+            NdsFiberInfo(
+                rxPowerDbm = it.rxPowerDbm,
+                txPowerDbm = it.txPowerDbm,
+                temperatureC = it.temperatureCelsius,
+            )
+        }
+    val speedInfo =
+        internet?.let {
+            NdsSpeedInfo(
+                pingMs = it.latencyMs,
+                jitterMs = it.jitterMs,
+                downloadMbps = it.downloadMbps,
+                uploadMbps = it.uploadMbps,
+                packetLossPercent = it.perdaPercentual,
+                packetLossSource = toNdsPacketLossSource(it.packetLossSource),
+            )
+        }
+    val qualityInfo =
+        internet?.let {
+            val loadedLatencyMs =
+                it.latencyMs?.let { latency -> it.bufferbloatMs?.let { bufferbloat -> latency + bufferbloat } }
+            NdsQualityInfo(
+                latencyMs = it.latencyMs,
+                jitterMs = it.jitterMs,
+                packetLossPercent = it.perdaPercentual,
+                loadedLatencyMs = loadedLatencyMs,
+                bufferbloatMs = it.bufferbloatMs,
+            )
+        }
     val dnsInfo = toNdsDnsInfo(dns)
     val gatewayInfo =
         if (internet?.rttGatewayMs != null || wifi?.dispositivosNaRede != null) {
@@ -159,25 +171,27 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
         requestId = executionId.ifBlank { UUID.randomUUID().toString() },
         app = NdsAppInfo(id = NDS_APP_ID, version = appVersion),
         profile = ndsProfile(perfilGamer, this.context?.objective),
-        capabilities = ndsCapabilities(
-            wifi = wifiInfo,
-            fiber = fiberInfo,
-            wifiScan = wifiScanInfo,
-            mobile = mobileInfo,
-            historical = historicalInfo,
-            localEquipment = localEquipmentInfo,
-        ) +
-            listOfNotNull(
-                "usage_profiles".takeIf {
-                    this.context?.objective in setOf("JOGOS_COM_LAG", "VIDEOS_TRAVAM", "CHAMADAS_CONGELAM", "SITES_DEMORAM")
-                },
+        capabilities =
+            ndsCapabilities(
+                wifi = wifiInfo,
+                fiber = fiberInfo,
+                wifiScan = wifiScanInfo,
+                mobile = mobileInfo,
+                historical = historicalInfo,
+                localEquipment = localEquipmentInfo,
+            ) +
+                listOfNotNull(
+                    "usage_profiles".takeIf {
+                        this.context?.objective in setOf("JOGOS_COM_LAG", "VIDEOS_TRAVAM", "CHAMADAS_CONGELAM", "SITES_DEMORAM")
+                    },
+                ),
+        connection =
+            NdsConnectionInfo(
+                type = ndsConnectionType(connectionType),
+                ssid = wifi?.ssid,
+                bssid = wifi?.bssidMascarado,
+                natStatus = natStatus?.name,
             ),
-        connection = NdsConnectionInfo(
-            type = ndsConnectionType(connectionType),
-            ssid = wifi?.ssid,
-            bssid = wifi?.bssidMascarado,
-            natStatus = natStatus?.name,
-        ),
         wifi = wifiInfo,
         wifiScan = wifiScanInfo,
         speed = speedInfo,
@@ -189,15 +203,16 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
         historical = historicalInfo,
         localEquipment = localEquipmentInfo,
         plan = planInfo,
-        context = this.context?.let { context ->
-            NdsDiagnosticContext(
-                reportedProblem = context.reportedProblem,
-                objective = context.objective,
-                subcategory = context.subcategory,
-                symptoms = context.symptoms,
-                answers = context.answers,
-            )
-        },
+        context =
+            this.context?.let { context ->
+                NdsDiagnosticContext(
+                    reportedProblem = context.reportedProblem,
+                    objective = context.objective,
+                    subcategory = context.subcategory,
+                    symptoms = context.symptoms,
+                    answers = context.answers,
+                )
+            },
     )
 }
 
@@ -216,16 +231,22 @@ fun DiagnosticInput.toNdsDiagnosticsRequest(
  */
 private fun toNdsMobileInfo(mobile: MobileDiagnosticInput?): NdsMobileInfo? {
     if (mobile == null || mobile.capturaReduzida) return null
-    val info = NdsMobileInfo(
-        operator = mobile.carrierName,
-        technology = mobile.mobileTechnology,
-        rsrpDbm = mobile.rsrpDbm,
-        rsrqDb = mobile.rsrqDb,
-        sinrDb = mobile.sinrDb,
-        band = mobile.band,
-    )
-    val temEvidencia = info.operator != null || info.technology != null ||
-        info.rsrpDbm != null || info.rsrqDb != null || info.sinrDb != null || info.band != null
+    val info =
+        NdsMobileInfo(
+            operator = mobile.carrierName,
+            technology = mobile.mobileTechnology,
+            rsrpDbm = mobile.rsrpDbm,
+            rsrqDb = mobile.rsrqDb,
+            sinrDb = mobile.sinrDb,
+            band = mobile.band,
+        )
+    val temEvidencia =
+        info.operator != null ||
+            info.technology != null ||
+            info.rsrpDbm != null ||
+            info.rsrqDb != null ||
+            info.sinrDb != null ||
+            info.band != null
     return info.takeIf { temEvidencia }
 }
 
@@ -269,23 +290,24 @@ private fun toNdsLocalEquipmentInfo(localDevice: SafeLocalDeviceContext?): NdsLo
  *
  * `null` quando `dns` e null — nenhum dado de DNS foi coletado nesta sessao.
  */
-private fun toNdsDnsInfo(dns: DnsDiagnosticInput?): NdsDnsInfo? = dns?.let {
-    NdsDnsInfo(
-        primary = it.currentDnsIp,
-        responseTimeMs = it.currentDnsLatencyMs,
-        hijacked = null,
-        providerName = it.currentDnsName,
-        bestName = it.bestDnsNameFromComparison,
-        bestLatencyMs = it.bestDnsLatencyMsFromComparison,
-        grade = it.dnsGrade,
-        comparisonAvailable = it.dnsComparisonAvailable,
-        coherenceAlertLevel = it.coerenciaNivelAlerta,
-        coherenceConsecutiveDivergences = it.coerenciaDivergenciasConsecutivas,
-        coherenceDivergenceRatePercent = it.coerenciaTaxaDivergenciaPercentual,
-        privateDnsActive = it.privateDnsActive,
-        privateDnsHostname = it.privateDnsHostname,
-    )
-}
+private fun toNdsDnsInfo(dns: DnsDiagnosticInput?): NdsDnsInfo? =
+    dns?.let {
+        NdsDnsInfo(
+            primary = it.currentDnsIp,
+            responseTimeMs = it.currentDnsLatencyMs,
+            hijacked = null,
+            providerName = it.currentDnsName,
+            bestName = it.bestDnsNameFromComparison,
+            bestLatencyMs = it.bestDnsLatencyMsFromComparison,
+            grade = it.dnsGrade,
+            comparisonAvailable = it.dnsComparisonAvailable,
+            coherenceAlertLevel = it.coerenciaNivelAlerta,
+            coherenceConsecutiveDivergences = it.coerenciaDivergenciasConsecutivas,
+            coherenceDivergenceRatePercent = it.coerenciaTaxaDivergenciaPercentual,
+            privateDnsActive = it.privateDnsActive,
+            privateDnsHostname = it.privateDnsHostname,
+        )
+    }
 
 /**
  * Bloco `plan` (ADR-018 bloco 14, NDS-Snapshot-09 — issue #1841). `null` quando
@@ -297,28 +319,59 @@ private fun toNdsDnsInfo(dns: DnsDiagnosticInput?): NdsDnsInfo? = dns?.let {
 private fun toNdsPlanInfo(velocidadeContratadaMbps: Int?): NdsPlanInfo? =
     velocidadeContratadaMbps?.let { NdsPlanInfo(contractedSpeedMbps = it) }
 
-private fun ndsProfile(perfilGamer: Boolean, objective: String?): String? = when {
-    perfilGamer -> "gamer"
-    objective == "JOGOS_COM_LAG" -> "gamer"
-    objective == "VIDEOS_TRAVAM" -> "streaming"
-    objective == "CHAMADAS_CONGELAM" -> "video_call"
-    objective == "SITES_DEMORAM" -> "navigation"
-    else -> null
-}
+/**
+ * Traduz `InternetDiagnosticInput.packetLossSource` (vocabulário interno em
+ * português/legado — `"estimated"`/`"naoMedido"`/`"unknown"`/`"modem"`, ver
+ * KDoc do campo) para o vocabulário fechado [NdsProvenance] do payload NDS
+ * (ADR-018, "Convenção de proveniência" — issue #1842). Não inventa um
+ * terceiro vocabulário: reaproveita exatamente os quatro valores já
+ * existentes.
+ *
+ * - `"modem"` (medição direta do equipamento) -> [NdsProvenance.MEASURED];
+ * - `"estimated"` (indício via timeout HTTP) -> [NdsProvenance.ESTIMATED];
+ * - `"unknown"` (coleta já retorna incerteza) -> [NdsProvenance.UNKNOWN];
+ * - `"naoMedido"` ou `null` -> `null` (omite o campo do payload — nenhuma
+ *   medição de perda de pacotes rodou nesta execução, não é o mesmo que
+ *   "fonte desconhecida");
+ * - qualquer valor não reconhecido -> `null` (nunca propaga string livre
+ *   arbitrária para o payload; vocabulário fechado por decisão da ADR-018).
+ */
+private fun toNdsPacketLossSource(fonte: String?): NdsProvenance? =
+    when (fonte) {
+        "modem" -> NdsProvenance.MEASURED
+        "estimated" -> NdsProvenance.ESTIMATED
+        "unknown" -> NdsProvenance.UNKNOWN
+        else -> null
+    }
 
-private fun ndsBandaWifi(banda: BandaWifi): String? = when (banda) {
-    BandaWifi.ghz24 -> "2.4GHz"
-    BandaWifi.ghz5 -> "5GHz"
-    BandaWifi.desconhecida -> null
-}
+private fun ndsProfile(
+    perfilGamer: Boolean,
+    objective: String?,
+): String? =
+    when {
+        perfilGamer -> "gamer"
+        objective == "JOGOS_COM_LAG" -> "gamer"
+        objective == "VIDEOS_TRAVAM" -> "streaming"
+        objective == "CHAMADAS_CONGELAM" -> "video_call"
+        objective == "SITES_DEMORAM" -> "navigation"
+        else -> null
+    }
+
+private fun ndsBandaWifi(banda: BandaWifi): String? =
+    when (banda) {
+        BandaWifi.ghz24 -> "2.4GHz"
+        BandaWifi.ghz5 -> "5GHz"
+        BandaWifi.desconhecida -> null
+    }
 
 /** Vocabulario livre (nao enum) do bloco `connection.type` — mesmo criterio de
  *  [NdsConnectionInfo.type]: string simples, nunca trava o cliente quando o
  *  servidor aceitar um valor novo. */
-private fun ndsConnectionType(tipo: ConnectionType): String = when (tipo) {
-    ConnectionType.wifi -> "WIFI"
-    ConnectionType.mobile -> "MOBILE"
-    ConnectionType.ethernet -> "ETHERNET"
-    ConnectionType.desconectado -> "DISCONNECTED"
-    ConnectionType.desconhecido -> "UNKNOWN"
-}
+private fun ndsConnectionType(tipo: ConnectionType): String =
+    when (tipo) {
+        ConnectionType.wifi -> "WIFI"
+        ConnectionType.mobile -> "MOBILE"
+        ConnectionType.ethernet -> "ETHERNET"
+        ConnectionType.desconectado -> "DISCONNECTED"
+        ConnectionType.desconhecido -> "UNKNOWN"
+    }

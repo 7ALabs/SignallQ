@@ -59,7 +59,6 @@ class UptimeChartUseCase(
     private val medicaoDao: MedicaoDao,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
-
     suspend fun gerar7dias(): List<BlocoUptime> {
         val agora = System.currentTimeMillis()
         val seteDiasAtras = agora - (DIAS_HISTORICO * 24 * 3600 * 1000L)
@@ -72,14 +71,16 @@ class UptimeChartUseCase(
             val slotFimMs = agora - (blocoAtras * JANELA_MINUTOS * 60 * 1000L)
             val slotInicioMs = slotFimMs - (JANELA_MINUTOS * 60 * 1000L)
 
-            val medicoesNoBloco = medicoes.filter { m ->
-                m.timestampEpochMs in slotInicioMs until slotFimMs
-            }
+            val medicoesNoBloco =
+                medicoes.filter { m ->
+                    m.timestampEpochMs in slotInicioMs until slotFimMs
+                }
 
-            val dataHora = LocalDateTime.ofInstant(
-                Instant.ofEpochMilli(slotInicioMs),
-                ZoneId.systemDefault(),
-            )
+            val dataHora =
+                LocalDateTime.ofInstant(
+                    Instant.ofEpochMilli(slotInicioMs),
+                    ZoneId.systemDefault(),
+                )
 
             classificarBloco(dataHora, medicoesNoBloco)
         }
@@ -120,11 +121,12 @@ class UptimeChartUseCase(
         // — a rede esteve no ar. Nao classificar como OFFLINE (reservado para ausencia real
         // de resposta, ver bloco acima). Thresholds 300/800ms mantidos como estavam
         // (unificacao entre motores e escopo separado, GH#1466).
-        val status = when {
-            mediaLatencia <= LATENCY_OK_MAX_MS -> StatusUptime.OK
-            mediaLatencia <= LATENCY_LENTO_MAX_MS -> StatusUptime.LENTO
-            else -> StatusUptime.LATENCIA_ALTA
-        }
+        val status =
+            when {
+                mediaLatencia <= LATENCY_OK_MAX_MS -> StatusUptime.OK
+                mediaLatencia <= LATENCY_LENTO_MAX_MS -> StatusUptime.LENTO
+                else -> StatusUptime.LATENCIA_ALTA
+            }
 
         return BlocoUptime(
             dataHora = dataHora,

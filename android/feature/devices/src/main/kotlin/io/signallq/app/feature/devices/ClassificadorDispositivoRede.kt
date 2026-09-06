@@ -7,6 +7,7 @@ enum class TipoDispositivo {
     smartphone,
     smarthome,
     impressora,
+
     // #982 (Fase 3) — categoria propria, corrige o console (ex.: Nintendo Switch) caindo em
     // smarthome so por OUI. Mesmo nome/posicao reservados em TipoDispositivoRede (coreNetwork).
     console,
@@ -14,67 +15,85 @@ enum class TipoDispositivo {
 }
 
 internal object ClassificadorDispositivoRede {
-
-    private val fabricantesRoteador = setOf(
-        "TP-Link", "D-Link", "Netgear", "ASUS", "Cisco", "Nokia",
-        "Arris", "Mikrotik", "Intelbras", "ZTE", "Sagemcom", "Huawei", "Tenda",
-    )
+    private val fabricantesRoteador =
+        setOf(
+            "TP-Link",
+            "D-Link",
+            "Netgear",
+            "ASUS",
+            "Cisco",
+            "Nokia",
+            "Arris",
+            "Mikrotik",
+            "Intelbras",
+            "ZTE",
+            "Sagemcom",
+            "Huawei",
+            "Tenda",
+        )
     private val fabricantesComputador = setOf("Intel", "Realtek", "Qualcomm", "Microsoft", "Dell", "HP", "Lenovo")
     private val fabricantesSmartphone = setOf("Apple", "Samsung", "Xiaomi", "Motorola", "LG", "Sony", "OnePlus", "Oppo", "Realme")
-    private val fabricantesSmarthome  = setOf("Google", "Amazon", "Roku")
+    private val fabricantesSmarthome = setOf("Google", "Amazon", "Roku")
     private val fabricantesPontoAcesso = setOf("Ubiquiti", "Aruba", "Linksys", "Ruckus", "Eero", "Extreme Networks", "EnGenius", "Cambium Networks")
+
     // #982 (Fase 3) — Nintendo caia em smarthome hoje so por OUI (fabricantesSmarthome incluia
     // "Nintendo"). Nome (nomesConsole abaixo) roda antes deste fallback e corrobora quando
     // disponivel; OUI aqui e o complemento pro caso de nome generico, nao a unica fonte.
     private val fabricantesConsole = setOf("Nintendo")
 
-    private val nomesImpressora  = listOf("printer", "impressora", "hp laserjet", "epson", "canon", "brother", "xerox", "lexmark", "ricoh", "kyocera")
-    private val nomesApMesh      = listOf("eero", "deco", "orbi", "velop", "aimesh", "ai mesh", "nest wifi", "nest-wifi", "unifi", "ubiquiti", "access point", "accesspoint", "extender", "repeater", "wifi-ap", "wifi_ap", "-ap-", "_ap_")
-    private val nomesApple       = listOf("iphone", "ipad", "macbook", "mac mini", "mac pro", "imac", "ipod", "airpods", "homepod", "apple tv", "apple watch")
-    private val nomesSamsung     = listOf("galaxy", "samsung")
-    private val nomesXiaomi      = listOf("redmi", "xiaomi", " mi ", "poco", "mipad")
-    private val nomesMotorola    = listOf("motorola", "moto g", "moto e")
-    private val nomesAmazon      = listOf("echo", "kindle", "fire tv", "firetv", "alexa", "amazon")
-    private val nomesGoogle      = listOf("chromecast", "nest hub", "nest mini", "google home", "pixel")
-    private val nomesMicrosoft   = listOf("xbox", "surface", "microsoft")
-    private val nomesSony        = listOf("playstation", "ps5", "ps4", "ps3", "bravia", "sony")
-    private val nomesRoteador    = listOf("router", "roteador", "gateway", "modem", "tplink", "tp-link", "dlink", "d-link", "asus rt", "mikrotik", "routeros", "ubnt", "edgerouter")
-    private val nomesComputador  = listOf("desktop", "laptop", "notebook", "workstation", "pc-", "-pc", "thinkpad", "ideapad", "inspiron", "latitude", "elitebook", "probook")
-    private val nomesNas         = listOf("synology", "qnap", "diskstation", "nas", "readynas", "terramaster")
-    private val nomesSmartTv     = listOf("samsung tv", "lg tv", "philips tv", "sony tv", "tcl", "hisense", "vizio", "tizen", "webos")
+    private val nomesImpressora = listOf("printer", "impressora", "hp laserjet", "epson", "canon", "brother", "xerox", "lexmark", "ricoh", "kyocera")
+    private val nomesApMesh = listOf("eero", "deco", "orbi", "velop", "aimesh", "ai mesh", "nest wifi", "nest-wifi", "unifi", "ubiquiti", "access point", "accesspoint", "extender", "repeater", "wifi-ap", "wifi_ap", "-ap-", "_ap_")
+    private val nomesApple = listOf("iphone", "ipad", "macbook", "mac mini", "mac pro", "imac", "ipod", "airpods", "homepod", "apple tv", "apple watch")
+    private val nomesSamsung = listOf("galaxy", "samsung")
+    private val nomesXiaomi = listOf("redmi", "xiaomi", " mi ", "poco", "mipad")
+    private val nomesMotorola = listOf("motorola", "moto g", "moto e")
+    private val nomesAmazon = listOf("echo", "kindle", "fire tv", "firetv", "alexa", "amazon")
+    private val nomesGoogle = listOf("chromecast", "nest hub", "nest mini", "google home", "pixel")
+    private val nomesMicrosoft = listOf("xbox", "surface", "microsoft")
+    private val nomesSony = listOf("playstation", "ps5", "ps4", "ps3", "bravia", "sony")
+    private val nomesRoteador = listOf("router", "roteador", "gateway", "modem", "tplink", "tp-link", "dlink", "d-link", "asus rt", "mikrotik", "routeros", "ubnt", "edgerouter")
+    private val nomesComputador = listOf("desktop", "laptop", "notebook", "workstation", "pc-", "-pc", "thinkpad", "ideapad", "inspiron", "latitude", "elitebook", "probook")
+    private val nomesNas = listOf("synology", "qnap", "diskstation", "nas", "readynas", "terramaster")
+    private val nomesSmartTv = listOf("samsung tv", "lg tv", "philips tv", "sony tv", "tcl", "hisense", "vizio", "tizen", "webos")
+
     // #982 (Fase 3) — Nintendo Switch: nome roda antes do fallback de fabricante/OUI e
     // corrobora quando disponivel ("switch" sozinho fica de fora — colide com switch de rede).
-    private val nomesConsole     = listOf("nintendo switch", "nintendo")
+    private val nomesConsole = listOf("nintendo switch", "nintendo")
+
     // #982 (Fase 3) — evidencia de corroboracao pra porta 554 (RTSP): sozinha nao confirma
     // camera (varios dispositivos abrem essa porta), so em conjunto com nome sugestivo.
-    private val nomesCamera      = listOf("camera", "câmera", "ipcam", "webcam")
+    private val nomesCamera = listOf("camera", "câmera", "ipcam", "webcam")
 
-    private data class MdnsRule(val prefixo: String, val tipo: TipoDispositivo)
-
-    private val mdnsRules = listOf(
-        MdnsRule("_airplay",          TipoDispositivo.smarthome),
-        MdnsRule("_raop",             TipoDispositivo.smarthome),
-        MdnsRule("_companion-link",   TipoDispositivo.smartphone),
-        MdnsRule("_homekit",          TipoDispositivo.smarthome),
-        MdnsRule("_googlecast",       TipoDispositivo.smarthome),
-        MdnsRule("_spotify-connect",  TipoDispositivo.smarthome),
-        // #982 (Fase 3) — Matter e um protocolo generico de smarthome (luz, tomada, sensor,
-        // fechadura...); o mDNS por si so nunca diz qual subtipo, so confirma "e smarthome".
-        MdnsRule("_matter",           TipoDispositivo.smarthome),
-        // #982 (Fase 3) — Android TV Remote: sinal especifico o bastante pra Smart TV, mas
-        // sem categoria propria reservada (TipoDispositivoRede so reserva "console") — cai no
-        // mesmo genérico smarthome que os demais nomesSmartTv abaixo já usam.
-        MdnsRule("_androidtvremote",  TipoDispositivo.smarthome),
-        // #982 (Fase 3) — RTSP anunciado via mDNS e sinal razoavelmente especifico de camera IP
-        // (diferente da porta 554 crua, que varios dispositivos abrem sem ser camera).
-        MdnsRule("_rtsp",             TipoDispositivo.smarthome),
-        MdnsRule("_ipp",              TipoDispositivo.impressora),
-        MdnsRule("_printer",          TipoDispositivo.impressora),
-        MdnsRule("_pdl-datastream",   TipoDispositivo.impressora),
-        MdnsRule("_smb",              TipoDispositivo.computador),
-        MdnsRule("_afpovertcp",       TipoDispositivo.computador),
-        MdnsRule("_ssh",              TipoDispositivo.computador),
+    private data class MdnsRule(
+        val prefixo: String,
+        val tipo: TipoDispositivo,
     )
+
+    private val mdnsRules =
+        listOf(
+            MdnsRule("_airplay", TipoDispositivo.smarthome),
+            MdnsRule("_raop", TipoDispositivo.smarthome),
+            MdnsRule("_companion-link", TipoDispositivo.smartphone),
+            MdnsRule("_homekit", TipoDispositivo.smarthome),
+            MdnsRule("_googlecast", TipoDispositivo.smarthome),
+            MdnsRule("_spotify-connect", TipoDispositivo.smarthome),
+            // #982 (Fase 3) — Matter e um protocolo generico de smarthome (luz, tomada, sensor,
+            // fechadura...); o mDNS por si so nunca diz qual subtipo, so confirma "e smarthome".
+            MdnsRule("_matter", TipoDispositivo.smarthome),
+            // #982 (Fase 3) — Android TV Remote: sinal especifico o bastante pra Smart TV, mas
+            // sem categoria propria reservada (TipoDispositivoRede so reserva "console") — cai no
+            // mesmo genérico smarthome que os demais nomesSmartTv abaixo já usam.
+            MdnsRule("_androidtvremote", TipoDispositivo.smarthome),
+            // #982 (Fase 3) — RTSP anunciado via mDNS e sinal razoavelmente especifico de camera IP
+            // (diferente da porta 554 crua, que varios dispositivos abrem sem ser camera).
+            MdnsRule("_rtsp", TipoDispositivo.smarthome),
+            MdnsRule("_ipp", TipoDispositivo.impressora),
+            MdnsRule("_printer", TipoDispositivo.impressora),
+            MdnsRule("_pdl-datastream", TipoDispositivo.impressora),
+            MdnsRule("_smb", TipoDispositivo.computador),
+            MdnsRule("_afpovertcp", TipoDispositivo.computador),
+            MdnsRule("_ssh", TipoDispositivo.computador),
+        )
 
     private fun classificarPorPortas(portas: Set<Int>): TipoDispositivo? {
         if (portas.isEmpty()) return null
@@ -86,7 +105,10 @@ internal object ClassificadorDispositivoRede {
         return null
     }
 
-    fun classificar(dispositivo: DispositivoRede, fabricante: String?): TipoDispositivo {
+    fun classificar(
+        dispositivo: DispositivoRede,
+        fabricante: String?,
+    ): TipoDispositivo {
         if (dispositivo.fonteNome == "gateway") return TipoDispositivo.roteador
 
         val nome = dispositivo.nomeExibicao.lowercase()
@@ -102,19 +124,19 @@ internal object ClassificadorDispositivoRede {
             if (servicos.any { it.startsWith(rule.prefixo) }) return rule.tipo
         }
 
-        if (nomesApple.any    { nome.contains(it) }) return TipoDispositivo.smartphone
-        if (nomesSamsung.any  { nome.contains(it) }) return TipoDispositivo.smartphone
-        if (nomesXiaomi.any   { nome.contains(it) }) return TipoDispositivo.smartphone
+        if (nomesApple.any { nome.contains(it) }) return TipoDispositivo.smartphone
+        if (nomesSamsung.any { nome.contains(it) }) return TipoDispositivo.smartphone
+        if (nomesXiaomi.any { nome.contains(it) }) return TipoDispositivo.smartphone
         if (nomesMotorola.any { nome.contains(it) }) return TipoDispositivo.smartphone
-        if (nomesSony.any     { nome.contains(it) }) return TipoDispositivo.smarthome
-        if (nomesAmazon.any   { nome.contains(it) }) return TipoDispositivo.smarthome
-        if (nomesGoogle.any   { nome.contains(it) }) return TipoDispositivo.smarthome
-        if (nomesMicrosoft.any{ nome.contains(it) }) return TipoDispositivo.computador
+        if (nomesSony.any { nome.contains(it) }) return TipoDispositivo.smarthome
+        if (nomesAmazon.any { nome.contains(it) }) return TipoDispositivo.smarthome
+        if (nomesGoogle.any { nome.contains(it) }) return TipoDispositivo.smarthome
+        if (nomesMicrosoft.any { nome.contains(it) }) return TipoDispositivo.computador
         if (nomesRoteador.any { nome.contains(it) }) return TipoDispositivo.roteador
-        if (nomesComputador.any{ nome.contains(it) }) return TipoDispositivo.computador
-        if (nomesNas.any      { nome.contains(it) }) return TipoDispositivo.computador
-        if (nomesSmartTv.any  { nome.contains(it) }) return TipoDispositivo.smarthome
-        if (nomesConsole.any  { nome.contains(it) }) return TipoDispositivo.console
+        if (nomesComputador.any { nome.contains(it) }) return TipoDispositivo.computador
+        if (nomesNas.any { nome.contains(it) }) return TipoDispositivo.computador
+        if (nomesSmartTv.any { nome.contains(it) }) return TipoDispositivo.smarthome
+        if (nomesConsole.any { nome.contains(it) }) return TipoDispositivo.console
 
         // #982 (Fase 3) — porta 554 (RTSP) sozinha nao confirma camera (varios dispositivos
         // abrem essa porta sem ser camera) — exige corroboracao por nome. mDNS _rtsp (mais
@@ -126,14 +148,14 @@ internal object ClassificadorDispositivoRede {
 
         return when (fabricante) {
             in fabricantesPontoAcesso -> TipoDispositivo.pontoAcesso
-            in fabricantesRoteador    -> TipoDispositivo.roteador
-            in fabricantesSmarthome   -> TipoDispositivo.smarthome
-            in fabricantesConsole     -> TipoDispositivo.console
-            in fabricantesComputador  -> TipoDispositivo.computador
-            in fabricantesSmartphone  -> TipoDispositivo.smartphone
-            "Huawei"   -> if (dispositivo.fonteNome in setOf("arp", "tcp")) TipoDispositivo.roteador else TipoDispositivo.smartphone
+            in fabricantesRoteador -> TipoDispositivo.roteador
+            in fabricantesSmarthome -> TipoDispositivo.smarthome
+            in fabricantesConsole -> TipoDispositivo.console
+            in fabricantesComputador -> TipoDispositivo.computador
+            in fabricantesSmartphone -> TipoDispositivo.smartphone
+            "Huawei" -> if (dispositivo.fonteNome in setOf("arp", "tcp")) TipoDispositivo.roteador else TipoDispositivo.smartphone
             "Motorola" -> TipoDispositivo.smartphone
-            else       -> TipoDispositivo.desconhecido
+            else -> TipoDispositivo.desconhecido
         }
     }
 }

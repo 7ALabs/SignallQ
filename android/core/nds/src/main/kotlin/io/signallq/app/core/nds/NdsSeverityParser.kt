@@ -43,10 +43,11 @@ fun parseNdsVeredicto(veredicto: String?): MetricStatus {
  * - `critico` -> `critical`;
  * - `inconclusivo` -> `inconclusive`.
  */
-fun MetricStatus.toDiagnosticStatus(): DiagnosticStatus = when (this) {
-    MetricStatus.excelente, MetricStatus.bom -> DiagnosticStatus.ok
-    MetricStatus.regular -> DiagnosticStatus.info
-    MetricStatus.ruim -> DiagnosticStatus.attention
-    MetricStatus.critico -> DiagnosticStatus.critical
-    MetricStatus.inconclusivo -> DiagnosticStatus.inconclusive
-}
+fun MetricStatus.toDiagnosticStatus(): DiagnosticStatus =
+    when (this) {
+        MetricStatus.excelente, MetricStatus.bom -> DiagnosticStatus.ok
+        MetricStatus.regular -> DiagnosticStatus.info
+        MetricStatus.ruim -> DiagnosticStatus.attention
+        MetricStatus.critico -> DiagnosticStatus.critical
+        MetricStatus.inconclusivo -> DiagnosticStatus.inconclusive
+    }

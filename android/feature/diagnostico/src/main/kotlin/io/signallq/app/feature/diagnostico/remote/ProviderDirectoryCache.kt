@@ -12,7 +12,9 @@ import timber.log.Timber
  * -- e o proprio [ProviderDirectoryRepository] quem decide usa-la como "ultimo dado
  * valido" quando uma consulta nova falha (criterio de aceite de #1462).
  */
-data class CachedProviderEntry(val info: RemoteProviderInfo) {
+data class CachedProviderEntry(
+    val info: RemoteProviderInfo,
+) {
     fun isExpired(nowMs: Long = System.currentTimeMillis()): Boolean {
         val expiresAt = info.cacheExpiresAtMs ?: return false
         return nowMs >= expiresAt
@@ -37,7 +39,10 @@ interface ProviderDirectoryCache {
 
     /** Sobrescreve a entrada existente para [key], se houver. Nunca lanca excecao --
      *  falha de escrita e logada e ignorada (cache e otimizacao, nao dado critico). */
-    suspend fun put(key: String, info: RemoteProviderInfo)
+    suspend fun put(
+        key: String,
+        info: RemoteProviderInfo,
+    )
 }
 
 /** Usado quando nao ha [ProviderDirectoryCache] real configurado (ex.: construcao de
@@ -45,7 +50,11 @@ interface ProviderDirectoryCache {
  *  cai direto no fallback generico, sem nivel intermediario de cache. */
 object NoOpProviderDirectoryCache : ProviderDirectoryCache {
     override suspend fun get(key: String): CachedProviderEntry? = null
-    override suspend fun put(key: String, info: RemoteProviderInfo) {}
+
+    override suspend fun put(
+        key: String,
+        info: RemoteProviderInfo,
+    ) {}
 }
 
 /** Implementacao real via Room ([ProviderDirectoryCacheDao], `:coreDatabase`). Falha de
@@ -55,7 +64,6 @@ object NoOpProviderDirectoryCache : ProviderDirectoryCache {
 class RoomProviderDirectoryCache(
     private val dao: ProviderDirectoryCacheDao,
 ) : ProviderDirectoryCache {
-
     override suspend fun get(key: String): CachedProviderEntry? =
         try {
             dao.buscarPorChave(key)?.let(::toCachedEntry)
@@ -64,7 +72,10 @@ class RoomProviderDirectoryCache(
             null
         }
 
-    override suspend fun put(key: String, info: RemoteProviderInfo) {
+    override suspend fun put(
+        key: String,
+        info: RemoteProviderInfo,
+    ) {
         try {
             dao.salvar(toEntity(key, info))
         } catch (t: Throwable) {
@@ -90,7 +101,10 @@ class RoomProviderDirectoryCache(
             ),
         )
 
-    private fun toEntity(key: String, info: RemoteProviderInfo): ProviderDirectoryCacheEntity =
+    private fun toEntity(
+        key: String,
+        info: RemoteProviderInfo,
+    ): ProviderDirectoryCacheEntity =
         ProviderDirectoryCacheEntity(
             cacheKey = key,
             providerId = info.providerId,

@@ -40,7 +40,6 @@ data class DiagnosticRolloutStatus(
  * [DiagnosticRolloutStatus] e condicao aqui, sem reinventar o mecanismo.
  */
 object DiagnosticRolloutEligibility {
-
     fun isEligible(
         status: DiagnosticRolloutStatus,
         installationId: String,

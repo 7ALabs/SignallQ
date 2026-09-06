@@ -18,11 +18,11 @@ import java.util.Locale
 // Assinatura original mantida para compatibilidade com testes JVM existentes.
 // Overload com Context usa WebView.createPrintDocumentAdapter() para layout rico completo.
 
-private const val PAGINA_LARGURA_PX = 595   // A4 em pontos (72dpi)
-private const val PAGINA_ALTURA_PX = 842    // A4 em pontos (72dpi)
+private const val PAGINA_LARGURA_PX = 595 // A4 em pontos (72dpi)
+private const val PAGINA_ALTURA_PX = 842 // A4 em pontos (72dpi)
 private const val MARGEM = 40f
 private const val ALTURA_LINHA = 16f
-private const val LINHAS_CABECALHO = 5      // título + subtítulo + data + header tabela + separador
+private const val LINHAS_CABECALHO = 5 // título + subtítulo + data + header tabela + separador
 private const val LINHAS_UTEIS_POR_PAGINA = 44 // ~(842 - 2*40) / 16
 
 /**
@@ -37,49 +37,57 @@ private const val LINHAS_UTEIS_POR_PAGINA = 44 // ~(842 - 2*40) / 16
  *    consumidor. NAO migra para o core — o Pro gera o proprio HTML de laudo tecnico.
  */
 class ExportadorHistoricoPDF {
-
     private val formatadorDataHora = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
     private val formatadorDataRelatorio = SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", Locale.getDefault())
 
     // ─── Painters ─────────────────────────────────────────────────────────────
 
-    private val paintTitulo = Paint().apply {
-        textSize = 20f
-        isFakeBoldText = true
-        color = Color.parseColor("#1565C0")
-    }
-    private val paintSubtitulo = Paint().apply {
-        textSize = 10f
-        color = Color.parseColor("#757575")
-    }
-    private val paintCabecalhoTabela = Paint().apply {
-        textSize = 10f
-        isFakeBoldText = true
-        color = Color.WHITE
-    }
-    private val paintCabecalhoFundo = Paint().apply {
-        color = Color.parseColor("#1565C0")
-    }
-    private val paintTextoDado = Paint().apply {
-        textSize = 9f
-        color = Color.parseColor("#212121")
-    }
-    private val paintFundoAlternado = Paint().apply {
-        color = Color.parseColor("#F5F5F5")
-    }
-    private val paintLinhaSeparador = Paint().apply {
-        color = Color.parseColor("#E0E0E0")
-        strokeWidth = 0.5f
-    }
-    private val paintRodape = Paint().apply {
-        textSize = 8f
-        color = Color.parseColor("#9E9E9E")
-    }
-    private val paintPaginacao = Paint().apply {
-        textSize = 8f
-        color = Color.parseColor("#757575")
-        textAlign = Paint.Align.RIGHT
-    }
+    private val paintTitulo =
+        Paint().apply {
+            textSize = 20f
+            isFakeBoldText = true
+            color = Color.parseColor("#1565C0")
+        }
+    private val paintSubtitulo =
+        Paint().apply {
+            textSize = 10f
+            color = Color.parseColor("#757575")
+        }
+    private val paintCabecalhoTabela =
+        Paint().apply {
+            textSize = 10f
+            isFakeBoldText = true
+            color = Color.WHITE
+        }
+    private val paintCabecalhoFundo =
+        Paint().apply {
+            color = Color.parseColor("#1565C0")
+        }
+    private val paintTextoDado =
+        Paint().apply {
+            textSize = 9f
+            color = Color.parseColor("#212121")
+        }
+    private val paintFundoAlternado =
+        Paint().apply {
+            color = Color.parseColor("#F5F5F5")
+        }
+    private val paintLinhaSeparador =
+        Paint().apply {
+            color = Color.parseColor("#E0E0E0")
+            strokeWidth = 0.5f
+        }
+    private val paintRodape =
+        Paint().apply {
+            textSize = 8f
+            color = Color.parseColor("#9E9E9E")
+        }
+    private val paintPaginacao =
+        Paint().apply {
+            textSize = 8f
+            color = Color.parseColor("#757575")
+            textAlign = Paint.Align.RIGHT
+        }
 
     // ─── Colunas da tabela ────────────────────────────────────────────────────
 
@@ -100,46 +108,47 @@ class ExportadorHistoricoPDF {
     suspend fun exportar(
         medicoes: List<MedicaoEntity>,
         arquivo: File,
-    ): Boolean = withContext(Dispatchers.IO) {
-        val pdf = PdfDocument()
-        try {
-            val chunks = medicoes.chunked(LINHAS_UTEIS_POR_PAGINA)
-            val totalPaginas = maxOf(1, chunks.size)
+    ): Boolean =
+        withContext(Dispatchers.IO) {
+            val pdf = PdfDocument()
+            try {
+                val chunks = medicoes.chunked(LINHAS_UTEIS_POR_PAGINA)
+                val totalPaginas = maxOf(1, chunks.size)
 
-            if (chunks.isEmpty()) {
-                // PDF vazio mas válido — ao menos uma página
-                val pageInfo = PdfDocument.PageInfo.Builder(PAGINA_LARGURA_PX, PAGINA_ALTURA_PX, 1).create()
-                val page = pdf.startPage(pageInfo)
-                desenharCabecalho(page.canvas, 1, totalPaginas, medicoes.size)
-                desenharRodape(page.canvas, medicoes.size)
-                pdf.finishPage(page)
-            } else {
-                chunks.forEachIndexed { idx, chunk ->
-                    val numeroPagina = idx + 1
-                    val pageInfo = PdfDocument.PageInfo.Builder(PAGINA_LARGURA_PX, PAGINA_ALTURA_PX, numeroPagina).create()
+                if (chunks.isEmpty()) {
+                    // PDF vazio mas válido — ao menos uma página
+                    val pageInfo = PdfDocument.PageInfo.Builder(PAGINA_LARGURA_PX, PAGINA_ALTURA_PX, 1).create()
                     val page = pdf.startPage(pageInfo)
-                    val canvas = page.canvas
-
-                    var y = desenharCabecalho(canvas, numeroPagina, totalPaginas, medicoes.size)
-                    y = desenharHeaderTabela(canvas, y)
-                    chunk.forEachIndexed { linhaIdx, medicao ->
-                        y = desenharLinhaTabela(canvas, medicao, linhaIdx, y)
-                    }
-                    desenharRodape(canvas, medicoes.size)
+                    desenharCabecalho(page.canvas, 1, totalPaginas, medicoes.size)
+                    desenharRodape(page.canvas, medicoes.size)
                     pdf.finishPage(page)
-                }
-            }
+                } else {
+                    chunks.forEachIndexed { idx, chunk ->
+                        val numeroPagina = idx + 1
+                        val pageInfo = PdfDocument.PageInfo.Builder(PAGINA_LARGURA_PX, PAGINA_ALTURA_PX, numeroPagina).create()
+                        val page = pdf.startPage(pageInfo)
+                        val canvas = page.canvas
 
-            FileOutputStream(arquivo).use { stream ->
-                pdf.writeTo(stream)
+                        var y = desenharCabecalho(canvas, numeroPagina, totalPaginas, medicoes.size)
+                        y = desenharHeaderTabela(canvas, y)
+                        chunk.forEachIndexed { linhaIdx, medicao ->
+                            y = desenharLinhaTabela(canvas, medicao, linhaIdx, y)
+                        }
+                        desenharRodape(canvas, medicoes.size)
+                        pdf.finishPage(page)
+                    }
+                }
+
+                FileOutputStream(arquivo).use { stream ->
+                    pdf.writeTo(stream)
+                }
+                true
+            } catch (e: Exception) {
+                false
+            } finally {
+                pdf.close()
             }
-            true
-        } catch (e: Exception) {
-            false
-        } finally {
-            pdf.close()
         }
-    }
 
     // ─── API com Context — WebView rich HTML (overload v2.0) ──────────────────
 
@@ -162,31 +171,35 @@ class ExportadorHistoricoPDF {
      */
     internal fun gerarHtml(medicoes: List<MedicaoEntity>): String {
         val dataGeracao = formatadorDataRelatorio.format(Date())
-        val linhasHtml = medicoes.joinToString("\n") { medicao ->
-            val dataHora = formatadorDataHora.format(Date(medicao.timestampEpochMs))
-            val dl = medicao.downloadMbps?.let { String.format(Locale.US, "%.1f", it) } ?: "—"
-            val ul = medicao.uploadMbps?.let { String.format(Locale.US, "%.1f", it) } ?: "—"
-            val lat = medicao.latencyMs?.let { String.format(Locale.US, "%.0f", it) } ?: "—"
-            val fonte = medicao.fonte?.let { escapeHtml(it) } ?: "—"
-            """        <tr>
+        val linhasHtml =
+            medicoes.joinToString("\n") { medicao ->
+                val dataHora = formatadorDataHora.format(Date(medicao.timestampEpochMs))
+                val dl = medicao.downloadMbps?.let { String.format(Locale.US, "%.1f", it) } ?: "—"
+                val ul = medicao.uploadMbps?.let { String.format(Locale.US, "%.1f", it) } ?: "—"
+                val lat = medicao.latencyMs?.let { String.format(Locale.US, "%.0f", it) } ?: "—"
+                val fonte = medicao.fonte?.let { escapeHtml(it) } ?: "—"
+                """        <tr>
           <td>$dataHora</td>
           <td class="num">$dl Mbps</td>
           <td class="num">$ul Mbps</td>
           <td class="num">$lat ms</td>
           <td>$fonte</td>
         </tr>"""
-        }
+            }
 
         val totalMedicoes = medicoes.size
-        val dlMedia = medicoes.mapNotNull { it.downloadMbps }.let { vals ->
-            if (vals.isEmpty()) "—" else String.format(Locale.US, "%.1f Mbps", vals.average())
-        }
-        val ulMedia = medicoes.mapNotNull { it.uploadMbps }.let { vals ->
-            if (vals.isEmpty()) "—" else String.format(Locale.US, "%.1f Mbps", vals.average())
-        }
-        val latMedia = medicoes.mapNotNull { it.latencyMs }.let { vals ->
-            if (vals.isEmpty()) "—" else String.format(Locale.US, "%.0f ms", vals.average())
-        }
+        val dlMedia =
+            medicoes.mapNotNull { it.downloadMbps }.let { vals ->
+                if (vals.isEmpty()) "—" else String.format(Locale.US, "%.1f Mbps", vals.average())
+            }
+        val ulMedia =
+            medicoes.mapNotNull { it.uploadMbps }.let { vals ->
+                if (vals.isEmpty()) "—" else String.format(Locale.US, "%.1f Mbps", vals.average())
+            }
+        val latMedia =
+            medicoes.mapNotNull { it.latencyMs }.let { vals ->
+                if (vals.isEmpty()) "—" else String.format(Locale.US, "%.0f ms", vals.average())
+            }
 
         return """<!DOCTYPE html>
 <html lang="pt-BR">
@@ -305,7 +318,10 @@ ${if (medicoes.isEmpty()) "      <tr><td colspan=\"5\" class=\"empty\">Nenhuma m
         return y
     }
 
-    private fun desenharHeaderTabela(canvas: android.graphics.Canvas, yInicial: Float): Float {
+    private fun desenharHeaderTabela(
+        canvas: android.graphics.Canvas,
+        yInicial: Float,
+    ): Float {
         val alturaHeader = ALTURA_LINHA + 8f
         canvas.drawRect(MARGEM, yInicial, PAGINA_LARGURA_PX - MARGEM, yInicial + alturaHeader, paintCabecalhoFundo)
         val yTexto = yInicial + alturaHeader - 5f
@@ -351,7 +367,10 @@ ${if (medicoes.isEmpty()) "      <tr><td colspan=\"5\" class=\"empty\">Nenhuma m
         return yLinhaSep
     }
 
-    private fun desenharRodape(canvas: android.graphics.Canvas, totalMedicoes: Int) {
+    private fun desenharRodape(
+        canvas: android.graphics.Canvas,
+        totalMedicoes: Int,
+    ) {
         val yRodape = PAGINA_ALTURA_PX - MARGEM + 10f
         canvas.drawLine(MARGEM, yRodape - 10f, PAGINA_LARGURA_PX - MARGEM, yRodape - 10f, paintLinhaSeparador)
         canvas.drawText(
@@ -365,7 +384,8 @@ ${if (medicoes.isEmpty()) "      <tr><td colspan=\"5\" class=\"empty\">Nenhuma m
     // ─── Utilitários ──────────────────────────────────────────────────────────
 
     private fun escapeHtml(text: String): String =
-        text.replace("&", "&amp;")
+        text
+            .replace("&", "&amp;")
             .replace("<", "&lt;")
             .replace(">", "&gt;")
             .replace("\"", "&quot;")

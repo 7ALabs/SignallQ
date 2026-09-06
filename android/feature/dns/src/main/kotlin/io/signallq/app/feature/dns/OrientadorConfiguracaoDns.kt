@@ -26,8 +26,8 @@ class OrientadorConfiguracaoDns {
         return sugestao
     }
 
-    private fun mapearProvedor(nome: String): ConfiguracaoDnsSugerida? {
-        return when (nome) {
+    private fun mapearProvedor(nome: String): ConfiguracaoDnsSugerida? =
+        when (nome) {
             "cloudflare" ->
                 ConfiguracaoDnsSugerida(
                     nomeProvedor = "cloudflare",
@@ -65,5 +65,4 @@ class OrientadorConfiguracaoDns {
                 )
             else -> null
         }
-    }
 }

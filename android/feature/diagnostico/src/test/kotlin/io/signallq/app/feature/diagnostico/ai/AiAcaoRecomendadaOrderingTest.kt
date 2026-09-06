@@ -14,17 +14,20 @@ import org.junit.Test
  * hoje o unico exercicio da extensao.
  */
 class AiAcaoRecomendadaOrderingTest {
-
-    private fun acao(titulo: String, prioridade: String) =
+    private fun acao(
+        titulo: String,
+        prioridade: String,
+    ) =
         AiAcaoRecomendada(titulo = titulo, descricao = "desc $titulo", prioridade = prioridade)
 
     @Test
     fun `alta vem antes de media e baixa`() {
-        val acoes = listOf(
-            acao("baixa-1", "baixa"),
-            acao("alta-1", "alta"),
-            acao("media-1", "media"),
-        )
+        val acoes =
+            listOf(
+                acao("baixa-1", "baixa"),
+                acao("alta-1", "alta"),
+                acao("media-1", "media"),
+            )
 
         val ordenadas = acoes.ordenadasPorPrioridade()
 
@@ -33,11 +36,12 @@ class AiAcaoRecomendadaOrderingTest {
 
     @Test
     fun `prioridade desconhecida cai no meio, junto com media`() {
-        val acoes = listOf(
-            acao("desconhecida-1", "outra_coisa"),
-            acao("alta-1", "alta"),
-            acao("baixa-1", "baixa"),
-        )
+        val acoes =
+            listOf(
+                acao("desconhecida-1", "outra_coisa"),
+                acao("alta-1", "alta"),
+                acao("baixa-1", "baixa"),
+            )
 
         val ordenadas = acoes.ordenadasPorPrioridade()
 

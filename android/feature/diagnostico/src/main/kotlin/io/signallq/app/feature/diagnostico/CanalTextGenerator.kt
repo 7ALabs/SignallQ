@@ -6,7 +6,6 @@ import io.signallq.app.core.diagnostico.SnapshotEspectroCanal
 private const val LIMITE_REDES_QUASE_VAZIA = 5
 
 object CanalTextGenerator {
-
     fun gerarTexto(
         snapshot: SnapshotEspectroCanal,
         strings: CanalStrings = CanalStrings.PadraoPortugues,
@@ -45,11 +44,12 @@ object CanalTextGenerator {
         // Canal recomendado: sugere o melhor canal disponível
         if (canalRec != null) {
             val canalRecDado = snapshot.dadosPorCanal.find { it.ehCanalRecomendado }
-            val textoBase = if (canalRecDado?.nivel == NivelCongestionamento.livre) {
-                strings.canalRecomendadoLivre(canalRec, snapshot.banda)
-            } else {
-                strings.canalRecomendadoModerado(canalRec, snapshot.banda)
-            }
+            val textoBase =
+                if (canalRecDado?.nivel == NivelCongestionamento.livre) {
+                    strings.canalRecomendadoLivre(canalRec, snapshot.banda)
+                } else {
+                    strings.canalRecomendadoModerado(canalRec, snapshot.banda)
+                }
             return if (snapshot.motivoRecomendacao != null) {
                 "$textoBase\n${snapshot.motivoRecomendacao}"
             } else {

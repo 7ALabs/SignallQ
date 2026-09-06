@@ -8,8 +8,8 @@ import org.junit.Test
  * nenhuma rede). Mesmo estilo de [io.signallq.app.core.diagnostico.topology.NatClassifierTest].
  */
 class StunNatProbeClassificationTest {
-
     private val portaLocal = 50000
+
     private fun resultado(porta: Int) = StunBindingResult(enderecoMapeado = "203.0.113.10", portaMapeada = porta)
 
     @Test

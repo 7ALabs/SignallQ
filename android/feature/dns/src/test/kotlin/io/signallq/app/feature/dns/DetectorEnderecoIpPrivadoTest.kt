@@ -6,7 +6,6 @@ import org.junit.Test
 
 /** GH#1212 item 10 — cobre IPv4 (comportamento preservado) e IPv6 (novo). */
 class DetectorEnderecoIpPrivadoTest {
-
     @Test
     fun `ipv4 RFC-1918 e detectado como privado`() {
         assertTrue(DetectorEnderecoIpPrivado.ehPrivadoOuLocal("192.168.1.1"))

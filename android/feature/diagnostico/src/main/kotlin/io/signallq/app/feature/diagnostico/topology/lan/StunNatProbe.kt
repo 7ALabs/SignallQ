@@ -8,11 +8,16 @@ import java.net.InetAddress
 import java.net.SocketTimeoutException
 import kotlin.random.Random
 
-data class StunServerConfig(val host: String, val porta: Int)
+data class StunServerConfig(
+    val host: String,
+    val porta: Int,
+)
 
 enum class NatUdpTipo { ABERTO, MODERADO, RESTRITO, BLOQUEADO, NAO_VERIFICADO }
 
-data class NatUdpResultado(val tipo: NatUdpTipo)
+data class NatUdpResultado(
+    val tipo: NatUdpTipo,
+)
 
 private val SERVIDORES_STUN_PADRAO =
     listOf(
@@ -70,7 +75,10 @@ class StunNatProbe(
      * datagrama UDP isolado não significa que a rede está bloqueando o tráfego.
      */
     private fun consultarServidores(socket: DatagramSocket): List<StunBindingResult?> {
-        data class Pendencia(val servidor: StunServerConfig, val transactionId: ByteArray)
+        data class Pendencia(
+            val servidor: StunServerConfig,
+            val transactionId: ByteArray,
+        )
 
         val pendencias = servidores.map { Pendencia(it, ByteArray(12).also(Random::nextBytes)) }
         val porTransactionId = pendencias.associateBy { it.transactionId.paraChave() }

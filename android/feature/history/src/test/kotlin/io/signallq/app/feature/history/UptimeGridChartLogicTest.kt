@@ -15,7 +15,6 @@ import java.time.LocalDateTime
  * é validado em UI tests instrumentados (não JVM unit tests).
  */
 class UptimeGridChartLogicTest {
-
     private fun blocoOk(dt: LocalDateTime = LocalDateTime.now()) =
         BlocoUptime(dataHora = dt, status = StatusUptime.OK, latencyMs = 50, latencyMediaMs = 50)
 
@@ -46,16 +45,17 @@ class UptimeGridChartLogicTest {
 
     @Test
     fun `blocos por coluna sao 48 por dia`() {
-        val blocos = List(336) { idx ->
-            val col = idx / 48  // coluna = dia (0..6)
-            val row = idx % 48  // linha = slot 30min (0..47)
-            BlocoUptime(
-                dataHora = LocalDateTime.now(),
-                status = if (col < 5) StatusUptime.OK else StatusUptime.OFFLINE,
-                latencyMs = if (col < 5) 100 else null,
-                latencyMediaMs = if (col < 5) 100 else null,
-            )
-        }
+        val blocos =
+            List(336) { idx ->
+                val col = idx / 48 // coluna = dia (0..6)
+                val row = idx % 48 // linha = slot 30min (0..47)
+                BlocoUptime(
+                    dataHora = LocalDateTime.now(),
+                    status = if (col < 5) StatusUptime.OK else StatusUptime.OFFLINE,
+                    latencyMs = if (col < 5) 100 else null,
+                    latencyMediaMs = if (col < 5) 100 else null,
+                )
+            }
 
         // Verifica que os 5 primeiros dias têm OK e os 2 últimos têm OFFLINE
         val blocosDia0 = blocos.subList(0, 48)
@@ -70,22 +70,24 @@ class UptimeGridChartLogicTest {
     @Test
     fun `bloco com latencia menor que 300ms deve ser OK`() {
         val latencia = 200
-        val status = when {
-            latencia <= 300 -> StatusUptime.OK
-            latencia <= 800 -> StatusUptime.LENTO
-            else -> StatusUptime.LATENCIA_ALTA
-        }
+        val status =
+            when {
+                latencia <= 300 -> StatusUptime.OK
+                latencia <= 800 -> StatusUptime.LENTO
+                else -> StatusUptime.LATENCIA_ALTA
+            }
         assertEquals(StatusUptime.OK, status)
     }
 
     @Test
     fun `bloco com latencia entre 301 e 800ms deve ser LENTO`() {
         val latencia = 500
-        val status = when {
-            latencia <= 300 -> StatusUptime.OK
-            latencia <= 800 -> StatusUptime.LENTO
-            else -> StatusUptime.LATENCIA_ALTA
-        }
+        val status =
+            when {
+                latencia <= 300 -> StatusUptime.OK
+                latencia <= 800 -> StatusUptime.LENTO
+                else -> StatusUptime.LATENCIA_ALTA
+            }
         assertEquals(StatusUptime.LENTO, status)
     }
 
@@ -93,11 +95,12 @@ class UptimeGridChartLogicTest {
     fun `bloco com latencia acima de 800ms deve ser LATENCIA_ALTA, nunca OFFLINE`() {
         // GH#1518: latencia alta != offline — a rede respondeu, so que devagar.
         val latencia = 1200
-        val status = when {
-            latencia <= 300 -> StatusUptime.OK
-            latencia <= 800 -> StatusUptime.LENTO
-            else -> StatusUptime.LATENCIA_ALTA
-        }
+        val status =
+            when {
+                latencia <= 300 -> StatusUptime.OK
+                latencia <= 800 -> StatusUptime.LENTO
+                else -> StatusUptime.LATENCIA_ALTA
+            }
         assertEquals(StatusUptime.LATENCIA_ALTA, status)
         assertTrue("Latencia alta nunca pode ser rotulada como OFFLINE", status != StatusUptime.OFFLINE)
     }
@@ -120,9 +123,10 @@ class UptimeGridChartLogicTest {
     @Test
     fun `narrativa com muitos blocos OFFLINE menciona instabilidade`() {
         // 10% de blocos OFFLINE (34 blocos = ~17h offline)
-        val blocos = List(336) { idx ->
-            if (idx < 34) blocoOffline() else blocoOk()
-        }
+        val blocos =
+            List(336) { idx ->
+                if (idx < 34) blocoOffline() else blocoOk()
+            }
         val narrativa = UptimeNarrativaEngine.gerarNarrativa(blocos)
         assertTrue("Narrativa com offline deve mencionar indisponibilidade", narrativa.isNotBlank())
     }
@@ -130,9 +134,10 @@ class UptimeGridChartLogicTest {
     @Test
     fun `narrativa com poucos dados menciona monitoramento recente`() {
         // Menos de 10 blocos medidos = app recente
-        val blocos = List(336) { idx ->
-            if (idx < 5) blocoOk() else blocoSemDado()
-        }
+        val blocos =
+            List(336) { idx ->
+                if (idx < 5) blocoOk() else blocoSemDado()
+            }
         val narrativa = UptimeNarrativaEngine.gerarNarrativa(blocos)
         assertTrue("Narrativa com poucos dados deve mencionar monitoramento recente", narrativa.isNotBlank())
     }
@@ -141,14 +146,15 @@ class UptimeGridChartLogicTest {
 
     @Test
     fun `subList de coluna 0 retorna primeiros 48 blocos`() {
-        val blocos = List(336) { idx ->
-            BlocoUptime(
-                dataHora = LocalDateTime.now(),
-                status = if (idx < 48) StatusUptime.OK else StatusUptime.SEM_DADO,
-                latencyMs = null,
-                latencyMediaMs = null,
-            )
-        }
+        val blocos =
+            List(336) { idx ->
+                BlocoUptime(
+                    dataHora = LocalDateTime.now(),
+                    status = if (idx < 48) StatusUptime.OK else StatusUptime.SEM_DADO,
+                    latencyMs = null,
+                    latencyMediaMs = null,
+                )
+            }
 
         val coluna0 = blocos.subList(0 * 48, 1 * 48)
         assertEquals("Coluna 0 deve ter 48 blocos", 48, coluna0.size)
@@ -157,14 +163,15 @@ class UptimeGridChartLogicTest {
 
     @Test
     fun `subList de coluna 6 retorna ultimos 48 blocos`() {
-        val blocos = List(336) { idx ->
-            BlocoUptime(
-                dataHora = LocalDateTime.now(),
-                status = if (idx >= 6 * 48) StatusUptime.OFFLINE else StatusUptime.OK,
-                latencyMs = null,
-                latencyMediaMs = null,
-            )
-        }
+        val blocos =
+            List(336) { idx ->
+                BlocoUptime(
+                    dataHora = LocalDateTime.now(),
+                    status = if (idx >= 6 * 48) StatusUptime.OFFLINE else StatusUptime.OK,
+                    latencyMs = null,
+                    latencyMediaMs = null,
+                )
+            }
 
         val coluna6 = blocos.subList(6 * 48, 7 * 48)
         assertEquals("Coluna 6 deve ter 48 blocos", 48, coluna6.size)

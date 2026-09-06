@@ -12,7 +12,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NdsWifiScanMapperTest {
-
     private fun score(
         channel: Int,
         score: Double,
@@ -46,6 +45,48 @@ class NdsWifiScanMapperTest {
         val resultado = mapWifiScanToNds(bandScores, canalConectado = 36)
 
         assertEquals(100, resultado.channelCongestion)
+    }
+
+    @Test
+    fun `currentScoreMw e bestScoreMw propagam o score bruto em mW dos ChannelScore correspondentes`() {
+        val bandScores =
+            listOf(
+                score(channel = 36, score = 500.0, recommended = false),
+                score(channel = 149, score = 10.0, recommended = true),
+            )
+
+        val resultado = mapWifiScanToNds(bandScores, canalConectado = 36)
+
+        assertEquals(500.0, resultado.currentScoreMw!!, 0.0)
+        assertEquals(10.0, resultado.bestScoreMw!!, 0.0)
+    }
+
+    @Test
+    fun `sem canal conectado ou bandScores vazio, currentScoreMw e bestScoreMw ficam nulos`() {
+        val bandScores = listOf(score(channel = 36, score = 500.0, recommended = true))
+
+        val semCanal = mapWifiScanToNds(bandScores, canalConectado = null)
+        val semScores = mapWifiScanToNds(emptyList(), canalConectado = 36)
+
+        assertNull(semCanal.currentScoreMw)
+        assertEquals(500.0, semCanal.bestScoreMw!!, 0.0)
+        assertNull(semScores.currentScoreMw)
+        assertNull(semScores.bestScoreMw)
+    }
+
+    @Test
+    fun `validNetworkCount conta so vizinhas com freq e rssi validos, distinto de neighborCount bruto`() {
+        val bandScores = listOf(score(channel = 36, score = 0.0, recommended = true))
+        val redes =
+            listOf(
+                RedeWifiVizinha(canal = 40, rssiDbm = -55, frequenciaMhz = 5200, larguraCanalMhz = 80),
+                RedeWifiVizinha(canal = 44, rssiDbm = null, frequenciaMhz = 5220),
+            )
+
+        val resultado = mapWifiScanToNds(bandScores, canalConectado = 36, redesVizinhas = redes)
+
+        assertEquals(2, resultado.neighborCount)
+        assertEquals(1, resultado.validNetworkCount)
     }
 
     @Test
@@ -99,10 +140,11 @@ class NdsWifiScanMapperTest {
     @Test
     fun `redes vizinhas viram evidencia sem depender de estarem no bandScores`() {
         val bandScores = listOf(score(channel = 36, score = 0.0, recommended = true))
-        val redes = listOf(
-            RedeWifiVizinha(canal = 40, rssiDbm = -55, frequenciaMhz = 5200, larguraCanalMhz = 80),
-            RedeWifiVizinha(canal = 44, rssiDbm = -70, frequenciaMhz = 5220),
-        )
+        val redes =
+            listOf(
+                RedeWifiVizinha(canal = 40, rssiDbm = -55, frequenciaMhz = 5200, larguraCanalMhz = 80),
+                RedeWifiVizinha(canal = 44, rssiDbm = -70, frequenciaMhz = 5220),
+            )
 
         val resultado = mapWifiScanToNds(bandScores, canalConectado = 36, redesVizinhas = redes)
 
@@ -149,13 +191,15 @@ class NdsWifiScanMapperTest {
 
     @Test
     fun `sem conexao wifi ativa (banda desconhecida) ainda localiza banda pelo canal conectado`() {
-        val scan = WifiScanDiagnosticInput(
-            conectadoCanal = 36,
-            redes = listOf(
-                RedeWifiVizinha(canal = 36, rssiDbm = -60, frequenciaMhz = 5180, bssid = "AA:AA:AA:00:00:01"),
-                RedeWifiVizinha(canal = 40, rssiDbm = -50, frequenciaMhz = 5200, bssid = "AA:AA:AA:00:00:02"),
-            ),
-        )
+        val scan =
+            WifiScanDiagnosticInput(
+                conectadoCanal = 36,
+                redes =
+                    listOf(
+                        RedeWifiVizinha(canal = 36, rssiDbm = -60, frequenciaMhz = 5180, bssid = "AA:AA:AA:00:00:01"),
+                        RedeWifiVizinha(canal = 40, rssiDbm = -50, frequenciaMhz = 5200, bssid = "AA:AA:AA:00:00:02"),
+                    ),
+            )
 
         val resultado = scan.toNdsWifiScanInfo(bandaConectada = BandaWifi.desconhecida)
 
@@ -165,14 +209,16 @@ class NdsWifiScanMapperTest {
 
     @Test
     fun `scan completo com banda conectada calcula congestionamento e melhor canal`() {
-        val scan = WifiScanDiagnosticInput(
-            conectadoCanal = 36,
-            conectadoBanda = BandaWifi.ghz5,
-            redes = listOf(
-                RedeWifiVizinha(canal = 36, rssiDbm = -40, frequenciaMhz = 5180, bssid = "AA:AA:AA:00:00:01"),
-                RedeWifiVizinha(canal = 149, rssiDbm = -80, frequenciaMhz = 5745, bssid = "AA:AA:AA:00:00:02"),
-            ),
-        )
+        val scan =
+            WifiScanDiagnosticInput(
+                conectadoCanal = 36,
+                conectadoBanda = BandaWifi.ghz5,
+                redes =
+                    listOf(
+                        RedeWifiVizinha(canal = 36, rssiDbm = -40, frequenciaMhz = 5180, bssid = "AA:AA:AA:00:00:01"),
+                        RedeWifiVizinha(canal = 149, rssiDbm = -80, frequenciaMhz = 5745, bssid = "AA:AA:AA:00:00:02"),
+                    ),
+            )
 
         val resultado = scan.toNdsWifiScanInfo(bandaConectada = BandaWifi.ghz5)
 
@@ -196,14 +242,16 @@ class NdsWifiScanMapperTest {
 
     @Test
     fun `redes com dados invalidos (sem frequencia ou rssi) nao quebram e viram evidencia parcial`() {
-        val scan = WifiScanDiagnosticInput(
-            conectadoCanal = 36,
-            conectadoBanda = BandaWifi.ghz5,
-            redes = listOf(
-                RedeWifiVizinha(canal = null, rssiDbm = null, frequenciaMhz = null),
-                RedeWifiVizinha(canal = 40, rssiDbm = -60, frequenciaMhz = null),
-            ),
-        )
+        val scan =
+            WifiScanDiagnosticInput(
+                conectadoCanal = 36,
+                conectadoBanda = BandaWifi.ghz5,
+                redes =
+                    listOf(
+                        RedeWifiVizinha(canal = null, rssiDbm = null, frequenciaMhz = null),
+                        RedeWifiVizinha(canal = 40, rssiDbm = -60, frequenciaMhz = null),
+                    ),
+            )
 
         val resultado = scan.toNdsWifiScanInfo(bandaConectada = BandaWifi.ghz5)
 

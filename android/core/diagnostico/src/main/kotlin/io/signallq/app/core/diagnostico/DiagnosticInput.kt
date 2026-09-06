@@ -1,10 +1,10 @@
 ﻿package io.signallq.app.core.diagnostico
 
+import io.signallq.app.core.diagnostico.topology.model.NatStatus
 import io.signallq.app.core.network.contracts.localdevice.SafeLocalDeviceContext
 import io.signallq.app.core.network.contracts.topologia.NivelConfianca
 import io.signallq.app.core.network.contracts.topologia.PapelTopologia
 import io.signallq.app.core.network.contracts.wifi.SegurancaWifi
-import io.signallq.app.core.diagnostico.topology.model.NatStatus
 
 data class WifiDiagnosticInput(
     val rssiDbm: Int?,
@@ -171,11 +171,12 @@ enum class RouterType { roteador, mesh, extensor, desconhecido }
 
 enum class BandaWifi { ghz24, ghz5, desconhecida }
 
-fun WifiDiagnosticInput.banda(): BandaWifi = when {
-    frequenciaMhz == null -> BandaWifi.desconhecida
-    frequenciaMhz < 3000 -> BandaWifi.ghz24
-    else -> BandaWifi.ghz5
-}
+fun WifiDiagnosticInput.banda(): BandaWifi =
+    when {
+        frequenciaMhz == null -> BandaWifi.desconhecida
+        frequenciaMhz < 3000 -> BandaWifi.ghz24
+        else -> BandaWifi.ghz5
+    }
 
 data class DiagnosticInput(
     val connectionType: ConnectionType = ConnectionType.desconhecido,

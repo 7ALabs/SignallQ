@@ -8,7 +8,6 @@ import java.net.SocketTimeoutException
 
 /** GH#1213 (dispatch final) — diferenciação completa de estados de sessão/erro do Nokia G-1425G-B. */
 class ChaveErroFibraTest {
-
     @Test
     fun `host invalido vira erroHostInvalido`() {
         assertEquals("erroHostInvalido", chaveErroFibra(IllegalArgumentException("host invalido")))

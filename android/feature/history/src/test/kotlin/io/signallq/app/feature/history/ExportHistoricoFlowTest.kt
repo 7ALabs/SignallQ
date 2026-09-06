@@ -3,8 +3,6 @@
 import io.signallq.app.core.database.MedicaoEntity
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Ignore
 import org.junit.Rule
@@ -21,7 +19,6 @@ import java.util.UUID
  * ExportHistoricoBottomSheet.
  */
 class ExportHistoricoFlowTest {
-
     @get:Rule
     val tmpFolder = TemporaryFolder()
 
@@ -59,66 +56,71 @@ class ExportHistoricoFlowTest {
     // ─── Task 7e: Export CSV sucesso ────────────────────────────────────────
 
     @Test
-    fun `export CSV com medicoes validas retorna sucesso e arquivo nao vazio`() = runBlocking {
-        val medicoes = List(5) { medicaoSimples() }
-        val arquivo = tmpFolder.newFile("export_sucesso.csv")
+    fun `export CSV com medicoes validas retorna sucesso e arquivo nao vazio`() =
+        runBlocking {
+            val medicoes = List(5) { medicaoSimples() }
+            val arquivo = tmpFolder.newFile("export_sucesso.csv")
 
-        val sucesso = exportadorCsv.exportar(medicoes, arquivo)
+            val sucesso = exportadorCsv.exportar(medicoes, arquivo)
 
-        assertTrue("ExportadorHistoricoCSV deve retornar true", sucesso)
-        assertTrue("Arquivo CSV deve ter conteudo", arquivo.length() > 0)
+            assertTrue("ExportadorHistoricoCSV deve retornar true", sucesso)
+            assertTrue("Arquivo CSV deve ter conteudo", arquivo.length() > 0)
 
-        val linhas = arquivo.readLines().filter { it.isNotBlank() }
-        // Cabeçalho + 5 linhas de dados
-        assertTrue("Deve ter pelo menos 6 linhas (1 header + 5 dados)", linhas.size >= 6)
-        assertTrue("Cabeçalho deve conter campo Download", linhas[0].contains("Download"))
-    }
+            val linhas = arquivo.readLines().filter { it.isNotBlank() }
+            // Cabeçalho + 5 linhas de dados
+            assertTrue("Deve ter pelo menos 6 linhas (1 header + 5 dados)", linhas.size >= 6)
+            assertTrue("Cabeçalho deve conter campo Download", linhas[0].contains("Download"))
+        }
 
     @Test
-    fun `export CSV com medicoes de download alto registra valor correto`() = runBlocking {
-        val medicao = medicaoSimples(downloadMbps = 999.99)
-        val arquivo = tmpFolder.newFile("export_dl_alto.csv")
+    fun `export CSV com medicoes de download alto registra valor correto`() =
+        runBlocking {
+            val medicao = medicaoSimples(downloadMbps = 999.99)
+            val arquivo = tmpFolder.newFile("export_dl_alto.csv")
 
-        exportadorCsv.exportar(listOf(medicao), arquivo)
+            exportadorCsv.exportar(listOf(medicao), arquivo)
 
-        val conteudo = arquivo.readText()
-        assertTrue("CSV deve conter valor 999.99", conteudo.contains("999.99"))
-    }
+            val conteudo = arquivo.readText()
+            assertTrue("CSV deve conter valor 999.99", conteudo.contains("999.99"))
+        }
 
     // ─── Task 7e: Export PDF erro ────────────────────────────────────────────
 
     @Test
-    fun `export PDF em caminho invalido retorna false`() = runBlocking {
-        val medicoes = List(3) { medicaoSimples() }
-        // Caminho inexistente — deve retornar false sem lançar exceção
-        val arquivoInvalido = tmpFolder.root.resolve("subdir_inexistente/historico.pdf")
+    fun `export PDF em caminho invalido retorna false`() =
+        runBlocking {
+            val medicoes = List(3) { medicaoSimples() }
+            // Caminho inexistente — deve retornar false sem lançar exceção
+            val arquivoInvalido = tmpFolder.root.resolve("subdir_inexistente/historico.pdf")
 
-        val sucesso = exportadorPdf.exportar(medicoes, arquivoInvalido)
+            val sucesso = exportadorPdf.exportar(medicoes, arquivoInvalido)
 
-        assertFalse("ExportadorHistoricoPDF deve retornar false para caminho inválido", sucesso)
-    }
+            assertFalse("ExportadorHistoricoPDF deve retornar false para caminho inválido", sucesso)
+        }
 
     @Ignore("PdfDocument usa API Android (Canvas/Paint) que retorna defaults zerados em JVM — export sempre retorna false. Mover para androidTest ou testar via Robolectric com SDK real.")
     @Test
-    fun `export PDF com lista vazia retorna sucesso porem arquivo minimo`() = runBlocking {
-        val arquivo = tmpFolder.newFile("export_vazio.pdf")
+    fun `export PDF com lista vazia retorna sucesso porem arquivo minimo`() =
+        runBlocking {
+            val arquivo = tmpFolder.newFile("export_vazio.pdf")
 
-        val sucesso = exportadorPdf.exportar(emptyList(), arquivo)
+            val sucesso = exportadorPdf.exportar(emptyList(), arquivo)
 
-        assertTrue("PDF sem medicoes ainda deve retornar true (PDF válido)", sucesso)
-        assertTrue("Arquivo PDF deve existir", arquivo.exists())
-    }
+            assertTrue("PDF sem medicoes ainda deve retornar true (PDF válido)", sucesso)
+            assertTrue("Arquivo PDF deve existir", arquivo.exists())
+        }
 
     // ─── Lógica de filtro por período (usada no ExportHistoricoBottomSheet) ─
 
     @Test
     fun `filtrar 7 dias exclui medicoes mais antigas`() {
         val agora = System.currentTimeMillis()
-        val medicoes = listOf(
-            medicaoSimples(timestampEpochMs = agora - (8 * 24 * 3600 * 1000L)),   // 8 dias atrás — excluir
-            medicaoSimples(timestampEpochMs = agora - (6 * 24 * 3600 * 1000L)),   // 6 dias atrás — incluir
-            medicaoSimples(timestampEpochMs = agora - (1 * 24 * 3600 * 1000L)),   // ontem — incluir
-        )
+        val medicoes =
+            listOf(
+                medicaoSimples(timestampEpochMs = agora - (8 * 24 * 3600 * 1000L)), // 8 dias atrás — excluir
+                medicaoSimples(timestampEpochMs = agora - (6 * 24 * 3600 * 1000L)), // 6 dias atrás — incluir
+                medicaoSimples(timestampEpochMs = agora - (1 * 24 * 3600 * 1000L)), // ontem — incluir
+            )
 
         val cutoff = agora - (7 * 24 * 3600 * 1000L)
         val filtradas = medicoes.filter { it.timestampEpochMs >= cutoff }

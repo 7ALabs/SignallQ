@@ -48,7 +48,6 @@ data class ConnectivityStatusResolution(
  * é tratada como sucesso implícito.
  */
 object ConnectivityStatusResolver {
-
     fun resolve(outcome: ConnectivityProbeOutcome): ConnectivityStatusResolution {
         if (!outcome.wifiConnected) {
             return ConnectivityStatusResolution(ConnectivityStatus.WIFI_DISCONNECTED, NivelConfianca.ALTA)
@@ -66,26 +65,28 @@ object ConnectivityStatusResolver {
 
         val gatewaySucesso = outcome.gatewayReachable is ProbeResult.Success
         if (!outcome.gatewayConfigured || !gatewaySucesso) {
-            val confianca = when {
-                !outcome.gatewayConfigured -> NivelConfianca.MEDIA
-                // Timeout causado pelo teto global (etapa nunca terminou de rodar) e uma
-                // evidencia fraca, mesmo que o tipo seja Timeout -- so vira ALTA quando a
-                // propria sondagem estourou seu timeout individual de verdade.
-                outcome.gatewayReachable is ProbeResult.Timeout && outcome.globalTimeoutExceeded -> NivelConfianca.BAIXA
-                outcome.gatewayReachable is ProbeResult.Failure || outcome.gatewayReachable is ProbeResult.Timeout -> NivelConfianca.ALTA
-                else -> NivelConfianca.BAIXA // NotExecuted/Unavailable — evidencia fraca
-            }
+            val confianca =
+                when {
+                    !outcome.gatewayConfigured -> NivelConfianca.MEDIA
+                    // Timeout causado pelo teto global (etapa nunca terminou de rodar) e uma
+                    // evidencia fraca, mesmo que o tipo seja Timeout -- so vira ALTA quando a
+                    // propria sondagem estourou seu timeout individual de verdade.
+                    outcome.gatewayReachable is ProbeResult.Timeout && outcome.globalTimeoutExceeded -> NivelConfianca.BAIXA
+                    outcome.gatewayReachable is ProbeResult.Failure || outcome.gatewayReachable is ProbeResult.Timeout -> NivelConfianca.ALTA
+                    else -> NivelConfianca.BAIXA // NotExecuted/Unavailable — evidencia fraca
+                }
             return ConnectivityStatusResolution(ConnectivityStatus.GATEWAY_UNREACHABLE, confianca)
         }
 
         val dnsSucesso = outcome.dnsReachable is ProbeResult.Success
         if (!outcome.dnsConfigured || !dnsSucesso) {
-            val confianca = when {
-                !outcome.dnsConfigured -> NivelConfianca.MEDIA
-                outcome.dnsReachable is ProbeResult.Timeout && outcome.globalTimeoutExceeded -> NivelConfianca.BAIXA
-                outcome.dnsReachable is ProbeResult.Failure || outcome.dnsReachable is ProbeResult.Timeout -> NivelConfianca.ALTA
-                else -> NivelConfianca.BAIXA
-            }
+            val confianca =
+                when {
+                    !outcome.dnsConfigured -> NivelConfianca.MEDIA
+                    outcome.dnsReachable is ProbeResult.Timeout && outcome.globalTimeoutExceeded -> NivelConfianca.BAIXA
+                    outcome.dnsReachable is ProbeResult.Failure || outcome.dnsReachable is ProbeResult.Timeout -> NivelConfianca.ALTA
+                    else -> NivelConfianca.BAIXA
+                }
             return ConnectivityStatusResolution(ConnectivityStatus.DNS_FAILURE, confianca)
         }
 

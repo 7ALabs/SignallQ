@@ -6,7 +6,6 @@ import org.junit.Test
 
 /** GH#1227 item 5/RF-D — zero, negativo e valores absurdos não podem ser aceitos. */
 class ValidadorVelocidadeContratadaTest {
-
     @Test
     fun `nulo (campo vazio) e sempre valido -- estado explicito de sem dado`() {
         assertTrue(ValidadorVelocidadeContratada.ehValida(null))

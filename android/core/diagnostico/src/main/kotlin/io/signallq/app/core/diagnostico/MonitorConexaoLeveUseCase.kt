@@ -5,16 +5,15 @@ import io.signallq.app.core.network.SnapshotRede
 
 data class StatusTempoReal(
     val veredito: String,
-    val motivo: String
+    val motivo: String,
 )
 
 class MonitorConexaoLeveUseCase {
-    
     fun calcularStatus(snapshotRede: SnapshotRede): StatusTempoReal {
         if (!snapshotRede.conectado) {
             return StatusTempoReal("Offline", "Sem conexão de internet ativa.")
         }
-        
+
         return when (snapshotRede.estadoConexao) {
             EstadoConexao.wifi -> {
                 val rssi = snapshotRede.wifiLinkSnapshot?.rssiDbm

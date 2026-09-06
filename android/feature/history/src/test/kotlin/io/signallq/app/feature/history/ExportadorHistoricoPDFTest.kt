@@ -21,7 +21,6 @@ import java.util.UUID
  * Robolectric ou Android Instrumented Tests.
  */
 class ExportadorHistoricoPDFTest {
-
     @get:Rule
     val tmpFolder = TemporaryFolder()
 
@@ -67,57 +66,62 @@ class ExportadorHistoricoPDFTest {
     private inner class ExportadorPDFFake(
         private val deveSimularSucesso: Boolean = true,
     ) {
-        suspend fun exportar(medicoes: List<MedicaoEntity>, arquivo: java.io.File): Boolean {
-            return try {
+        suspend fun exportar(
+            medicoes: List<MedicaoEntity>,
+            arquivo: java.io.File,
+        ): Boolean =
+            try {
                 if (!deveSimularSucesso) throw Exception("Simulando falha de escrita")
                 arquivo.writeText("PDF_SIMULADO_v2.0 medicoes=${medicoes.size}")
                 true
             } catch (e: Exception) {
                 false
             }
-        }
     }
 
     // ─── Teste 1: lista vazia → retorna true + arquivo existe com tamanho > 0 ─
 
     @Test
-    fun `exportar com lista vazia retorna true e arquivo existe com tamanho maior que zero`() = runBlocking {
-        val fake = ExportadorPDFFake(deveSimularSucesso = true)
-        val arquivo = tmpFolder.newFile("vazio.pdf")
+    fun `exportar com lista vazia retorna true e arquivo existe com tamanho maior que zero`() =
+        runBlocking {
+            val fake = ExportadorPDFFake(deveSimularSucesso = true)
+            val arquivo = tmpFolder.newFile("vazio.pdf")
 
-        val resultado = fake.exportar(emptyList(), arquivo)
+            val resultado = fake.exportar(emptyList(), arquivo)
 
-        assertTrue("Deve retornar true mesmo com lista vazia", resultado)
-        assertTrue("Arquivo deve existir após exportação", arquivo.exists())
-        assertTrue("Arquivo não deve estar vazio", arquivo.length() > 0)
-    }
+            assertTrue("Deve retornar true mesmo com lista vazia", resultado)
+            assertTrue("Arquivo deve existir após exportação", arquivo.exists())
+            assertTrue("Arquivo não deve estar vazio", arquivo.length() > 0)
+        }
 
     // ─── Teste 2: 100 medições → sem exceção + arquivo existe ─────────────────
 
     @Test
-    fun `exportar com 100 medicoes nao lanca excecao e arquivo existe`() = runBlocking {
-        val fake = ExportadorPDFFake(deveSimularSucesso = true)
-        val medicoes = List(100) { medicaoSimples() }
-        val arquivo = tmpFolder.newFile("cem_medicoes.pdf")
+    fun `exportar com 100 medicoes nao lanca excecao e arquivo existe`() =
+        runBlocking {
+            val fake = ExportadorPDFFake(deveSimularSucesso = true)
+            val medicoes = List(100) { medicaoSimples() }
+            val arquivo = tmpFolder.newFile("cem_medicoes.pdf")
 
-        val resultado = fake.exportar(medicoes, arquivo)
+            val resultado = fake.exportar(medicoes, arquivo)
 
-        assertTrue("Exportação de 100 medições deve retornar true", resultado)
-        assertTrue("Arquivo deve existir após exportação de 100 medições", arquivo.exists())
-        assertTrue("Arquivo com 100 medições não deve estar vazio", arquivo.length() > 0)
-    }
+            assertTrue("Exportação de 100 medições deve retornar true", resultado)
+            assertTrue("Arquivo deve existir após exportação de 100 medições", arquivo.exists())
+            assertTrue("Arquivo com 100 medições não deve estar vazio", arquivo.length() > 0)
+        }
 
     // ─── Teste 3: HTML contém dados da primeira medição ───────────────────────
 
     @Test
     fun `gerarHtml contem dados da primeira medicao`() {
-        val medicao = medicaoSimples(
-            downloadMbps = 123.4,
-            uploadMbps = 56.7,
-            latencyMs = 15.0,
-            fonte = "speedtest",
-            timestampEpochMs = 1_716_000_000_000L,
-        )
+        val medicao =
+            medicaoSimples(
+                downloadMbps = 123.4,
+                uploadMbps = 56.7,
+                latencyMs = 15.0,
+                fonte = "speedtest",
+                timestampEpochMs = 1_716_000_000_000L,
+            )
 
         val html = exportador.gerarHtml(listOf(medicao))
 
@@ -162,10 +166,11 @@ class ExportadorHistoricoPDFTest {
 
     @Test
     fun `gerarHtml com multiplas medicoes contem resumo correto`() {
-        val medicoes = listOf(
-            medicaoSimples(downloadMbps = 100.0, uploadMbps = 40.0, latencyMs = 10.0),
-            medicaoSimples(downloadMbps = 200.0, uploadMbps = 60.0, latencyMs = 20.0),
-        )
+        val medicoes =
+            listOf(
+                medicaoSimples(downloadMbps = 100.0, uploadMbps = 40.0, latencyMs = 10.0),
+                medicaoSimples(downloadMbps = 200.0, uploadMbps = 60.0, latencyMs = 20.0),
+            )
         val html = exportador.gerarHtml(medicoes)
 
         // Média de download = 150.0
@@ -177,22 +182,24 @@ class ExportadorHistoricoPDFTest {
     // ─── Testes de falha (fake) ───────────────────────────────────────────────
 
     @Test
-    fun `falha na escrita retorna false`() = runBlocking {
-        val fake = ExportadorPDFFake(deveSimularSucesso = false)
-        val arquivo = tmpFolder.newFile("falha.pdf")
+    fun `falha na escrita retorna false`() =
+        runBlocking {
+            val fake = ExportadorPDFFake(deveSimularSucesso = false)
+            val arquivo = tmpFolder.newFile("falha.pdf")
 
-        val resultado = fake.exportar(listOf(medicaoSimples()), arquivo)
+            val resultado = fake.exportar(listOf(medicaoSimples()), arquivo)
 
-        assertFalse("Deve retornar false em caso de exceção", resultado)
-    }
+            assertFalse("Deve retornar false em caso de exceção", resultado)
+        }
 
     @Test
-    fun `arquivo em diretorio inexistente retorna false`() = runBlocking {
-        val fake = ExportadorPDFFake(deveSimularSucesso = false)
-        val arquivoInvalido = tmpFolder.root.resolve("nao_existe/historico.pdf")
+    fun `arquivo em diretorio inexistente retorna false`() =
+        runBlocking {
+            val fake = ExportadorPDFFake(deveSimularSucesso = false)
+            val arquivoInvalido = tmpFolder.root.resolve("nao_existe/historico.pdf")
 
-        val resultado = fake.exportar(listOf(medicaoSimples()), arquivoInvalido)
+            val resultado = fake.exportar(listOf(medicaoSimples()), arquivoInvalido)
 
-        assertFalse("Deve retornar false para caminho inválido", resultado)
-    }
+            assertFalse("Deve retornar false para caminho inválido", resultado)
+        }
 }

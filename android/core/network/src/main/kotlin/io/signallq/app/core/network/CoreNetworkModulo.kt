@@ -3,11 +3,7 @@
 import android.content.Context
 
 object CoreNetworkModulo {
-    fun criarMonitorRede(context: Context): MonitorRede {
-        return MonitorRedeAndroid(context)
-    }
+    fun criarMonitorRede(context: Context): MonitorRede = MonitorRedeAndroid(context)
 
-    fun criarNetworkCapabilitiesProvider(context: Context): NetworkCapabilitiesProvider {
-        return NetworkCapabilitiesProviderImpl(context)
-    }
+    fun criarNetworkCapabilitiesProvider(context: Context): NetworkCapabilitiesProvider = NetworkCapabilitiesProviderImpl(context)
 }

@@ -35,12 +35,13 @@ class FibraSignalQualityEngineZeroSentinelCharacterizationTest {
 
     @Test
     fun `FibraSignalQualityEngine nao gera nenhum achado FIB-02 quando RX e 0,0`() {
-        val input = FibraDiagnosticInput(
-            rxPowerDbm = 0.0,
-            txPowerDbm = 2.0,
-            temperatureCelsius = 40.0,
-            isUp = true,
-        )
+        val input =
+            FibraDiagnosticInput(
+                rxPowerDbm = 0.0,
+                txPowerDbm = 2.0,
+                temperatureCelsius = 40.0,
+                isUp = true,
+            )
         val achados = FibraSignalQualityEngine.avaliar(input)
 
         // Caracteriza a divergencia: o classificador diria "ruim" para RX=0.0, mas o
@@ -55,12 +56,13 @@ class FibraSignalQualityEngineZeroSentinelCharacterizationTest {
         // Contraste: com um valor real (nao-sentinela) abaixo do limiar, o engine gera
         // o achado FIB-02 normalmente -- confirma que o "pulo" so acontece no sentinela
         // 0.0, nao em qualquer valor ruim.
-        val input = FibraDiagnosticInput(
-            rxPowerDbm = -30.0,
-            txPowerDbm = 2.0,
-            temperatureCelsius = 40.0,
-            isUp = true,
-        )
+        val input =
+            FibraDiagnosticInput(
+                rxPowerDbm = -30.0,
+                txPowerDbm = 2.0,
+                temperatureCelsius = 40.0,
+                isUp = true,
+            )
         val achados = FibraSignalQualityEngine.avaliar(input)
         assertTrue(achados.any { it.id == "FIB-02" })
     }

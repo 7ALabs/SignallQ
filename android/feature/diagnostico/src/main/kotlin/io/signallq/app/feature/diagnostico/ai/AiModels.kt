@@ -1,6 +1,5 @@
 package io.signallq.app.feature.diagnostico.ai
 
-import io.signallq.app.core.network.contracts.localdevice.SafeLocalDeviceContext
 import io.signallq.app.core.diagnostico.BandaWifi
 import io.signallq.app.core.diagnostico.ConnectionType
 import io.signallq.app.core.diagnostico.DiagnosticInput
@@ -9,8 +8,7 @@ import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.HistoricalDiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
-import io.signallq.app.core.diagnostico.SpeedtestQualityInput
-import io.signallq.app.core.diagnostico.WifiDiagnosticInput
+import io.signallq.app.core.network.contracts.localdevice.SafeLocalDeviceContext
 
 // =============================================================================
 // Schema v2 do payload enviado para o Worker
@@ -172,13 +170,12 @@ data class AiObjetivoDiagnostico(
 object AiObjetivoDiagnosticoFactory {
     fun from(
         objetivo: ObjetivoDiagnostico,
-    ): AiObjetivoDiagnostico {
-        return AiObjetivoDiagnostico(
+    ): AiObjetivoDiagnostico =
+        AiObjetivoDiagnostico(
             objetivoId = objetivo.name,
             subcategoriaIndice = 0,
             subcategoriaRotulo = "",
         )
-    }
 }
 
 /**
@@ -437,14 +434,15 @@ data class ModeloIa(
         fun unknown(): ModeloIa = ModeloIa()
 
         /** Usado pelo fallback local quando nenhuma IA respondeu. */
-        fun localFallback(): ModeloIa = ModeloIa(
-            provedor = "local",
-            familia = "Local",
-            nomeExibicao = "Diagnóstico local",
-            nomeCompletoComercial = "Diagnóstico local do SignallQ",
-            descricaoComercial = "Análise feita pelo próprio app, sem IA externa.",
-            textoRodape = "Motor de análise: Diagnóstico local do SignallQ",
-        )
+        fun localFallback(): ModeloIa =
+            ModeloIa(
+                provedor = "local",
+                familia = "Local",
+                nomeExibicao = "Diagnóstico local",
+                nomeCompletoComercial = "Diagnóstico local do SignallQ",
+                descricaoComercial = "Análise feita pelo próprio app, sem IA externa.",
+                textoRodape = "Motor de análise: Diagnóstico local do SignallQ",
+            )
     }
 }
 
@@ -522,13 +520,15 @@ fun normalizeClassificacaoLabel(raw: String?): String {
 // =============================================================================
 
 object DiagnosisAiContextFactory {
-
     /**
      * Overload basica para call sites legados que so tem o report.
      * Sem dados brutos extras — o payload sai enxuto, so com evidencias raw
      * extraidas do report. Util para fluxos de teste.
      */
-    fun from(report: DiagnosticReport, connectionType: ConnectionType): DiagnosisAiContext =
+    fun from(
+        report: DiagnosticReport,
+        connectionType: ConnectionType,
+    ): DiagnosisAiContext =
         buildContext(report, connectionType, input = null)
 
     /**
@@ -582,46 +582,59 @@ object DiagnosisAiContextFactory {
         relatoLivreUsuario: String? = null,
     ): DiagnosisAiContext {
         val base = buildContext(report, connectionType, input)
-        val metricasComExtras = (base.metricasAtuais ?: AiMetricasAtuais()).copy(
-            severidadeBufferbloat = speedtestExtras?.severidadeBufferbloat,
-            stabilityScore = speedtestExtras?.stabilityScore,
-            peakDownloadMbps = speedtestExtras?.peakDownloadMbps,
-            peakUploadMbps = speedtestExtras?.peakUploadMbps,
-            latencyDownloadMs = speedtestExtras?.latencyDownloadMs,
-            latencyUploadMs = speedtestExtras?.latencyUploadMs,
-            packetLossSource = speedtestExtras?.packetLossSource,
-        )
-        val contextoComExtras = (base.contextoRede ?: AiContextoRede(tipoConexao = connectionType.name)).copy(
-            bssid = wifiLinkBssid,
-            linkSpeedMbps = wifiLinkSpeedMbps,
-            padraoWifi = wifiPadrao,
-            privateDnsAtivo = privateDnsAtivo,
-            privateDnsHostname = privateDnsHostname,
-            redesProximas = redesProximas,
-        )
-        val rede = if (
-            ispNome != null || ispAsn != null || ipPublico != null || ipLocal != null ||
-            pais != null || regiao != null || gatewayIp != null ||
-            dnsResolverIp != null || dnsResolverProvider != null || dnsLatenciaMs != null ||
-            servidorTesteCidade != null
-        ) {
-            AiRedeInfo(
-                operadora = ispNome,
-                asn = ispAsn,
-                ipPublico = ipPublico,
-                ipLocal = ipLocal,
-                pais = pais,
-                regiao = regiao,
-                gatewayIp = gatewayIp,
-                dnsResolverIp = dnsResolverIp,
-                dnsResolverProvider = dnsResolverProvider,
-                dnsLatenciaMs = dnsLatenciaMs,
-                servidorTesteCidade = servidorTesteCidade,
+        val metricasComExtras =
+            (base.metricasAtuais ?: AiMetricasAtuais()).copy(
+                severidadeBufferbloat = speedtestExtras?.severidadeBufferbloat,
+                stabilityScore = speedtestExtras?.stabilityScore,
+                peakDownloadMbps = speedtestExtras?.peakDownloadMbps,
+                peakUploadMbps = speedtestExtras?.peakUploadMbps,
+                latencyDownloadMs = speedtestExtras?.latencyDownloadMs,
+                latencyUploadMs = speedtestExtras?.latencyUploadMs,
+                packetLossSource = speedtestExtras?.packetLossSource,
             )
-        } else null
+        val contextoComExtras =
+            (base.contextoRede ?: AiContextoRede(tipoConexao = connectionType.name)).copy(
+                bssid = wifiLinkBssid,
+                linkSpeedMbps = wifiLinkSpeedMbps,
+                padraoWifi = wifiPadrao,
+                privateDnsAtivo = privateDnsAtivo,
+                privateDnsHostname = privateDnsHostname,
+                redesProximas = redesProximas,
+            )
+        val rede =
+            if (
+                ispNome != null ||
+                ispAsn != null ||
+                ipPublico != null ||
+                ipLocal != null ||
+                pais != null ||
+                regiao != null ||
+                gatewayIp != null ||
+                dnsResolverIp != null ||
+                dnsResolverProvider != null ||
+                dnsLatenciaMs != null ||
+                servidorTesteCidade != null
+            ) {
+                AiRedeInfo(
+                    operadora = ispNome,
+                    asn = ispAsn,
+                    ipPublico = ipPublico,
+                    ipLocal = ipLocal,
+                    pais = pais,
+                    regiao = regiao,
+                    gatewayIp = gatewayIp,
+                    dnsResolverIp = dnsResolverIp,
+                    dnsResolverProvider = dnsResolverProvider,
+                    dnsLatenciaMs = dnsLatenciaMs,
+                    servidorTesteCidade = servidorTesteCidade,
+                )
+            } else {
+                null
+            }
 
-        val historicoFinal = base.historico?.copy(ultimosTestes = ultimosTestesHistorico)
-            ?: ultimosTestesHistorico.takeIf { it.isNotEmpty() }?.let { AiHistoricoResumo(ultimosTestes = it) }
+        val historicoFinal =
+            base.historico?.copy(ultimosTestes = ultimosTestesHistorico)
+                ?: ultimosTestesHistorico.takeIf { it.isNotEmpty() }?.let { AiHistoricoResumo(ultimosTestes = it) }
 
         return base.copy(
             metricasAtuais = metricasComExtras,
@@ -666,19 +679,21 @@ object DiagnosisAiContextFactory {
         val historico = input?.historico?.let { historicoFrom(it) }
 
         val findingsRelevantes =
-            (report.wifiResultados + report.internetResultados + report.mobileResultados +
-                report.fibraResultados + report.dnsResultados + report.historicoResultados +
-                report.wifiCanalResultados)
-                .filter { it.status == DiagnosticStatus.critical || it.status == DiagnosticStatus.attention }
+            (
+                report.wifiResultados + report.internetResultados + report.mobileResultados +
+                    report.fibraResultados + report.dnsResultados + report.historicoResultados +
+                    report.wifiCanalResultados
+            ).filter { it.status == DiagnosticStatus.critical || it.status == DiagnosticStatus.attention }
                 .map { it.id }
 
-        val achadosLocais = AchadosDiagnosticoLocal(
-            decisaoId = report.decisao.id,
-            statusGeral = report.decisao.status.name,
-            score = report.scoreConexao,
-            confianca = report.confianca,
-            resultadosRelevantes = findingsRelevantes,
-        )
+        val achadosLocais =
+            AchadosDiagnosticoLocal(
+                decisaoId = report.decisao.id,
+                statusGeral = report.decisao.status.name,
+                score = report.scoreConexao,
+                confianca = report.confianca,
+                resultadosRelevantes = findingsRelevantes,
+            )
 
         return DiagnosisAiContext(
             schemaVersion = "5",
@@ -749,43 +764,53 @@ object DiagnosisAiContextFactory {
             rttGatewayMs = i.rttGatewayMs,
         )
 
-    private fun contextoFrom(input: DiagnosticInput, connectionType: ConnectionType): AiContextoRede {
+    private fun contextoFrom(
+        input: DiagnosticInput,
+        connectionType: ConnectionType,
+    ): AiContextoRede {
         val w = input.wifi
         return AiContextoRede(
             tipoConexao = connectionType.name,
             ssid = w?.ssid,
             rssi = w?.rssiDbm,
-            bandaWifi = when (w?.frequenciaMhz) {
-                null -> null
-                in 0..2999 -> BandaWifi.ghz24.name
-                else -> BandaWifi.ghz5.name
-            },
+            bandaWifi =
+                when (w?.frequenciaMhz) {
+                    null -> null
+                    in 0..2999 -> BandaWifi.ghz24.name
+                    else -> BandaWifi.ghz5.name
+                },
             canal = w?.canal,
             frequenciaMhz = w?.frequenciaMhz,
         )
     }
 
     private fun historicoFrom(h: HistoricalDiagnosticInput): AiHistoricoResumo {
-        val media7d = if (
-            h.avgDownload7d != null || h.avgUpload7d != null || h.avgPing7d != null || h.testsCount7d > 0
-        ) {
-            AiHistoricoMedia(
-                downloadMbps = h.avgDownload7d,
-                uploadMbps = h.avgUpload7d,
-                pingMs = h.avgPing7d,
-                testes = h.testsCount7d.takeIf { it > 0 },
-            )
-        } else null
-        val media30d = if (
-            h.avgDownload30d != null || h.avgUpload30d != null || h.avgPing30d != null || h.testsCount30d > 0
-        ) {
-            AiHistoricoMedia(
-                downloadMbps = h.avgDownload30d,
-                uploadMbps = h.avgUpload30d,
-                pingMs = h.avgPing30d,
-                testes = h.testsCount30d.takeIf { it > 0 },
-            )
-        } else null
+        val media7d =
+            if (
+                h.avgDownload7d != null || h.avgUpload7d != null || h.avgPing7d != null || h.testsCount7d > 0
+            ) {
+                AiHistoricoMedia(
+                    downloadMbps = h.avgDownload7d,
+                    uploadMbps = h.avgUpload7d,
+                    pingMs = h.avgPing7d,
+                    testes = h.testsCount7d.takeIf { it > 0 },
+                )
+            } else {
+                null
+            }
+        val media30d =
+            if (
+                h.avgDownload30d != null || h.avgUpload30d != null || h.avgPing30d != null || h.testsCount30d > 0
+            ) {
+                AiHistoricoMedia(
+                    downloadMbps = h.avgDownload30d,
+                    uploadMbps = h.avgUpload30d,
+                    pingMs = h.avgPing30d,
+                    testes = h.testsCount30d.takeIf { it > 0 },
+                )
+            } else {
+                null
+            }
         return AiHistoricoResumo(media7d = media7d, media30d = media30d)
     }
 }

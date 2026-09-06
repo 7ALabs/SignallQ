@@ -76,16 +76,19 @@ fun correlacionarDispositivoComTopologia(
     clientesGateway: List<ClientSnapshot> = emptyList(),
     redesWifiClassificadas: List<Pair<RedeVizinha, ClassificacaoTopologia>> = emptyList(),
 ): ResultadoCorrelacaoTopologia {
-    val macDispositivo = OuiCatalog.normalizarMacCompleto(dispositivo.mac)
-        ?: return ResultadoCorrelacaoTopologia(dispositivo = dispositivo, nivel = NivelCorrelacao.SEM_MATCH)
+    val macDispositivo =
+        OuiCatalog.normalizarMacCompleto(dispositivo.mac)
+            ?: return ResultadoCorrelacaoTopologia(dispositivo = dispositivo, nivel = NivelCorrelacao.SEM_MATCH)
 
-    val nodeWifiPorMacExato = redesWifiClassificadas.firstOrNull { (rede, _) ->
-        OuiCatalog.normalizarMacCompleto(rede.bssid) == macDispositivo
-    }
+    val nodeWifiPorMacExato =
+        redesWifiClassificadas.firstOrNull { (rede, _) ->
+            OuiCatalog.normalizarMacCompleto(rede.bssid) == macDispositivo
+        }
 
-    val clientSnapshotExato = clientesGateway.firstOrNull { cliente ->
-        OuiCatalog.normalizarMacCompleto(cliente.mac) == macDispositivo
-    }
+    val clientSnapshotExato =
+        clientesGateway.firstOrNull { cliente ->
+            OuiCatalog.normalizarMacCompleto(cliente.mac) == macDispositivo
+        }
 
     if (clientSnapshotExato != null) {
         return ResultadoCorrelacaoTopologia(
@@ -105,18 +108,20 @@ fun correlacionarDispositivoComTopologia(
     }
 
     val prefixoDispositivo = OuiCatalog.normalizarPrefixo(dispositivo.mac)
-    val bateOuiFraco = prefixoDispositivo != null &&
-        redesWifiClassificadas.any { (rede, _) -> OuiCatalog.normalizarPrefixo(rede.bssid) == prefixoDispositivo }
+    val bateOuiFraco =
+        prefixoDispositivo != null &&
+            redesWifiClassificadas.any { (rede, _) -> OuiCatalog.normalizarPrefixo(rede.bssid) == prefixoDispositivo }
 
     if (bateOuiFraco && prefixoDispositivo != null) {
         return ResultadoCorrelacaoTopologia(
             dispositivo = dispositivo,
             nivel = NivelCorrelacao.OUI_FRACO,
-            evidenciaAuxiliar = Evidencia(
-                tipo = TipoEvidencia.OUI,
-                valorBruto = prefixoDispositivo,
-                peso = PesoEvidencia.FRACO,
-            ),
+            evidenciaAuxiliar =
+                Evidencia(
+                    tipo = TipoEvidencia.OUI,
+                    valorBruto = prefixoDispositivo,
+                    peso = PesoEvidencia.FRACO,
+                ),
         )
     }
 

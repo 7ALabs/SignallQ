@@ -69,7 +69,9 @@ class ObservadorHistoricoRoom(
                     ),
             )
 
-    fun cancel() { scope.cancel() }
+    fun cancel() {
+        scope.cancel()
+    }
 
     private fun mediaNaoNula(valores: List<Double>): Double? {
         if (valores.isEmpty()) return null

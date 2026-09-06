@@ -9,12 +9,10 @@ object FeatureSpeedtestModulo {
     fun criarExecutorSpeedtest(
         isMobile: Boolean = false,
         latencyProbeUrl: String? = null,
-    ): ExecutorSpeedtest {
-        return if (latencyProbeUrl.isNullOrBlank()) {
+    ): ExecutorSpeedtest =
+        if (latencyProbeUrl.isNullOrBlank()) {
             ExecutorSpeedtestCloudflare(isMobile)
         } else {
             ExecutorSpeedtestCloudflare(isMobile, latencyProbeUrl)
         }
-    }
 }
-
