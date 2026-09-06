@@ -194,4 +194,34 @@ class FirebaseAnalyticsHelper
                 },
             )
         }
+
+        override fun registrarNdsSnapshotEnviado(
+            schemaVersion: String,
+            blocosPresentes: String,
+            qtdBlocosPresentes: Long,
+            camposPresentesCount: Long,
+            blocosCriticosAusentes: String,
+            iaInvocada: Boolean,
+            iaProvider: String?,
+            duracaoMs: Long,
+            resultConfidence: Double?,
+            outcome: String,
+        ) {
+            firebaseAnalytics.logEvent(
+                "nds_snapshot_enviado",
+                Bundle().apply {
+                    putString("schema_version", schemaVersion)
+                    putString("blocks_present", blocosPresentes)
+                    putLong("qtd_blocks_present", qtdBlocosPresentes)
+                    putLong("fields_present_count", camposPresentesCount)
+                    putString("missing_critical_blocks", blocosCriticosAusentes)
+                    putBoolean("ai_invoked", iaInvocada)
+                    iaProvider?.let { putString("ai_provider", it) }
+                    putLong("duration_ms", duracaoMs)
+                    resultConfidence?.let { putDouble("result_confidence", it) }
+                    putString("outcome", outcome)
+                    putString("versao_app", appVersion)
+                },
+            )
+        }
     }

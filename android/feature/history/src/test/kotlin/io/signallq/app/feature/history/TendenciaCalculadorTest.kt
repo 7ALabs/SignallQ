@@ -5,28 +5,28 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class TendenciaCalculadorTest {
-
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun resumo(
         totalMedicoes: Int = 5,
         ultimoDownloadMbps: Double? = 100.0,
         mediaDownloadMbps5: Double? = 100.0,
-    ): ResumoHistorico = ResumoHistorico(
-        totalMedicoes = totalMedicoes,
-        ultimaMedicaoEpochMs = null,
-        ultimoDownloadMbps = ultimoDownloadMbps,
-        ultimoUploadMbps = null,
-        ultimaLatenciaMs = null,
-        ultimoJitterMs = null,
-        ultimaPerdaPercentual = null,
-        ultimoBufferbloatMs = null,
-        mediaDownloadMbps5 = mediaDownloadMbps5,
-        mediaUploadMbps5 = null,
-        mediaLatenciaMs5 = null,
-        quantidadeContaminadas5 = 0,
-        ultimasMedicoes = emptyList(),
-    )
+    ): ResumoHistorico =
+        ResumoHistorico(
+            totalMedicoes = totalMedicoes,
+            ultimaMedicaoEpochMs = null,
+            ultimoDownloadMbps = ultimoDownloadMbps,
+            ultimoUploadMbps = null,
+            ultimaLatenciaMs = null,
+            ultimoJitterMs = null,
+            ultimaPerdaPercentual = null,
+            ultimoBufferbloatMs = null,
+            mediaDownloadMbps5 = mediaDownloadMbps5,
+            mediaUploadMbps5 = null,
+            mediaLatenciaMs5 = null,
+            quantidadeContaminadas5 = 0,
+            ultimasMedicoes = emptyList(),
+        )
 
     // ── Casos que retornam null ───────────────────────────────────────────────
 

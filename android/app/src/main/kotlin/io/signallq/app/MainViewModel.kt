@@ -2185,7 +2185,7 @@ class MainViewModel
                                 ) { AiFallbackFactory.fromLocal(relatorio) }
                             }
                         when (resultado) {
-                            is AiDiagnosisState.success -> {
+                            is AiDiagnosisState.Success -> {
                                 val texto = resultado.result.textoLaudo.ifBlank { resultado.result.resumo }
                                 _analisadorState.value =
                                     AnalisadorState.Resultado(
@@ -2199,7 +2199,7 @@ class MainViewModel
                                     )
                                 speedtestPersistenceCoordinator.atualizarDiagnosticoIa(texto, problema)
                             }
-                            is AiDiagnosisState.fallback -> {
+                            is AiDiagnosisState.Fallback -> {
                                 val texto = resultado.result.textoLaudo.ifBlank { resultado.result.resumo }
                                 _analisadorState.value =
                                     AnalisadorState.Resultado(

@@ -7,7 +7,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ChannelEvaluatorTest {
-
     // ── Helpers ──────────────────────────────────────────────────────────────────
 
     private fun neighbor24(
@@ -34,9 +33,10 @@ class ChannelEvaluatorTest {
 
     @Test
     fun `criterio1 tres APs fortes no canal 6 recomenda 1 ou 11 nunca 6`() {
-        val aps = List(3) { i ->
-            neighbor24(bssid = "AA:BB:CC:00:00:0$i", channel = 6, rssiDbm = -50)
-        }
+        val aps =
+            List(3) { i ->
+                neighbor24(bssid = "AA:BB:CC:00:00:0$i", channel = 6, rssiDbm = -50)
+            }
         val scores = evaluateChannels(aps)[Band.GHZ_24]!!
         val rec = scores.first { it.recommended }
 
@@ -50,15 +50,18 @@ class ChannelEvaluatorTest {
     fun `criterio2 dois APs a -40dBm pesam mais que dez APs a -85dBm`() {
         // 2 APs muito fortes no canal 6; 10 APs fracos no canal 1.
         // Canais 1 e 6 não se sobrepõem (Δ≥5 canais), então cada um só é penalizado pelos seus próprios APs.
-        val apsFortes = List(2) { i ->
-            neighbor24(bssid = "AA:AA:AA:00:00:0$i", channel = 6, rssiDbm = -40)
-        }
-        val apsFracos = List(10) { i ->
-            neighbor24(bssid = "BB:BB:BB:00:00:0$i", channel = 1, rssiDbm = -85)
-        }
+        val apsFortes =
+            List(2) { i ->
+                neighbor24(bssid = "AA:AA:AA:00:00:0$i", channel = 6, rssiDbm = -40)
+            }
+        val apsFracos =
+            List(10) { i ->
+                neighbor24(bssid = "BB:BB:BB:00:00:0$i", channel = 1, rssiDbm = -85)
+            }
 
-        val scores = evaluateChannels(apsFortes + apsFracos)[Band.GHZ_24]!!
-            .associateBy { it.channel }
+        val scores =
+            evaluateChannels(apsFortes + apsFracos)[Band.GHZ_24]!!
+                .associateBy { it.channel }
 
         val score6 = scores[6]!!.score
         val score1 = scores[1]!!.score
@@ -76,19 +79,21 @@ class ChannelEvaluatorTest {
     @Test
     fun `criterio3 AP em W80 canal 36 penaliza candidatos 36 40 44 48 nao so 36`() {
         // AP com W80 centrado no grupo {36-48} (centerFreqMhz = 5210, span [5170, 5250])
-        val apW80 = Neighbor(
-            bssid = "CC:CC:CC:00:00:01",
-            band = Band.GHZ_5,
-            centerFreqMhz = 5210, // centro do grupo W80 dos canais 36-48
-            centerFreq1Mhz = null,
-            width = ChannelWidth.W80,
-            rssiDbm = -55,
-        )
+        val apW80 =
+            Neighbor(
+                bssid = "CC:CC:CC:00:00:01",
+                band = Band.GHZ_5,
+                centerFreqMhz = 5210, // centro do grupo W80 dos canais 36-48
+                centerFreq1Mhz = null,
+                width = ChannelWidth.W80,
+                rssiDbm = -55,
+            )
 
         // Avalia com W20 para ver todos os candidatos individualmente
         val config = EvalConfig(targetWidth5 = ChannelWidth.W20, avoidDfs = false)
-        val scores = evaluateChannels(listOf(apW80), config)[Band.GHZ_5]!!
-            .associateBy { it.channel }
+        val scores =
+            evaluateChannels(listOf(apW80), config)[Band.GHZ_5]!!
+                .associateBy { it.channel }
 
         // Todos os canais dentro do span [5170, 5250] devem ser penalizados
         listOf(36, 40, 44, 48).forEach { ch ->
@@ -223,8 +228,9 @@ class ChannelEvaluatorTest {
         val apC = neighbor24("AA:00:00:00:00:03", channel = 1, rssiDbm = -50)
 
         val config = EvalConfig(allow24Overlapping = true)
-        val scores = evaluateChannels(listOf(apA, apB, apC), config)[Band.GHZ_24]!!
-            .associateBy { it.channel }
+        val scores =
+            evaluateChannels(listOf(apA, apB, apC), config)[Band.GHZ_24]!!
+                .associateBy { it.channel }
 
         val s1 = scores[1]!!
         val s11 = scores[11]!!
@@ -234,12 +240,16 @@ class ChannelEvaluatorTest {
         assertEquals("Ch 11 deve ter 2 APs sobrepostos", 2, s11.overlappingAps)
 
         // No ranking, ch 1 deve aparecer antes de ch 11
-        val rank1 = scores.values.sortedWith(
-            compareBy({ it.score }, { it.overlappingAps }, { it.channel }),
-        ).indexOfFirst { it.channel == 1 }
-        val rank11 = scores.values.sortedWith(
-            compareBy({ it.score }, { it.overlappingAps }, { it.channel }),
-        ).indexOfFirst { it.channel == 11 }
+        val rank1 =
+            scores.values
+                .sortedWith(
+                    compareBy({ it.score }, { it.overlappingAps }, { it.channel }),
+                ).indexOfFirst { it.channel == 1 }
+        val rank11 =
+            scores.values
+                .sortedWith(
+                    compareBy({ it.score }, { it.overlappingAps }, { it.channel }),
+                ).indexOfFirst { it.channel == 11 }
 
         assertTrue("Ch 1 (rank=$rank1) deve vencer ch 11 (rank=$rank11) no desempate", rank1 < rank11)
     }

@@ -5,7 +5,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ValidadorCidadeUfTest {
-
     @Test
     fun `ambos vazios sao validos (nada a validar)`() {
         assertTrue(ValidadorCidadeUf.ehCombinacaoValida(null, null))

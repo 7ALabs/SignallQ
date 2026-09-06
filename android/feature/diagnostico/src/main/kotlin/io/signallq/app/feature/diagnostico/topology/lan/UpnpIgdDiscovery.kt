@@ -17,22 +17,24 @@ class UpnpIgdDiscovery(
 ) {
     private val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
 
-    suspend fun discover(): UpnpDeviceInfo? = withContext(Dispatchers.IO) {
-        val location = discoverLocation() ?: return@withContext null
-        fetchDescription(location)
-    }
+    suspend fun discover(): UpnpDeviceInfo? =
+        withContext(Dispatchers.IO) {
+            val location = discoverLocation() ?: return@withContext null
+            fetchDescription(location)
+        }
 
     private fun discoverLocation(): String? {
         val lock = wm.createMulticastLock("signallq_topology_ssdp").apply { acquire() }
         return try {
-            val msearch = buildString {
-                appendLine("M-SEARCH * HTTP/1.1")
-                appendLine("HOST: 239.255.255.250:1900")
-                appendLine("MAN: \"ssdp:discover\"")
-                appendLine("MX: 2")
-                appendLine("ST: urn:schemas-upnp-org:device:InternetGatewayDevice:1")
-                appendLine()
-            }.toByteArray(Charsets.UTF_8)
+            val msearch =
+                buildString {
+                    appendLine("M-SEARCH * HTTP/1.1")
+                    appendLine("HOST: 239.255.255.250:1900")
+                    appendLine("MAN: \"ssdp:discover\"")
+                    appendLine("MX: 2")
+                    appendLine("ST: urn:schemas-upnp-org:device:InternetGatewayDevice:1")
+                    appendLine()
+                }.toByteArray(Charsets.UTF_8)
 
             DatagramSocket().use { socket ->
                 socket.soTimeout = 2000
@@ -48,20 +50,29 @@ class UpnpIgdDiscovery(
                         socket.receive(recv)
                         val raw = String(recv.data, 0, recv.length, Charsets.UTF_8)
                         found = UpnpParser.parseSsdpResponse(raw)?.location
-                    } catch (_: java.net.SocketTimeoutException) { break }
+                    } catch (_: java.net.SocketTimeoutException) {
+                        break
+                    }
                 }
                 found
             }
-        } catch (_: Exception) { null }
-        finally { runCatching { lock.release() } }
+        } catch (_: Exception) {
+            null
+        } finally {
+            runCatching { lock.release() }
+        }
     }
 
-    private fun fetchDescription(locationUrl: String): UpnpDeviceInfo? = try {
-        val req = Request.Builder().url(locationUrl).build()
-        val xml = httpClient.newCall(req).execute().use { resp ->
-            if (!resp.isSuccessful) return null
-            resp.body?.string() ?: return null
+    private fun fetchDescription(locationUrl: String): UpnpDeviceInfo? =
+        try {
+            val req = Request.Builder().url(locationUrl).build()
+            val xml =
+                httpClient.newCall(req).execute().use { resp ->
+                    if (!resp.isSuccessful) return null
+                    resp.body?.string() ?: return null
+                }
+            UpnpParser.parseUpnpDescription(xml, locationUrl)
+        } catch (_: Exception) {
+            null
         }
-        UpnpParser.parseUpnpDescription(xml, locationUrl)
-    } catch (_: Exception) { null }
 }

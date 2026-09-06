@@ -80,7 +80,10 @@ interface MedicaoDao {
     )
 
     @Query("UPDATE medicao SET score = :score WHERE id = :id")
-    suspend fun atualizarScore(id: String, score: Double)
+    suspend fun atualizarScore(
+        id: String,
+        score: Double,
+    )
 
     /**
      * GH#1707 (Task 2.0.09e) — última medição concluída na MESMA rede ([networkId]), anterior a

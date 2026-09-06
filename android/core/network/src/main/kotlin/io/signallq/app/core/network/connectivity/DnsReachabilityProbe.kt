@@ -29,38 +29,38 @@ class DnsReachabilityProbe(
     private val binding: ConnectivityProbeBinding,
     private val timeoutMs: Long = TIMEOUT_MS_DEFAULT,
 ) : DnsProbe {
-
     companion object {
         private const val TIMEOUT_MS_DEFAULT = 1500L
     }
 
-    override suspend fun probe(hostnames: List<String>): ProbeResult = runInterruptible(Dispatchers.IO) {
-        var houveTimeout = false
-        for (hostname in hostnames) {
-            val inicio = System.currentTimeMillis()
-            val future = ProbeBlockingExecutor.instance.submit<Array<InetAddress>> { binding.resolveHost(hostname) }
-            try {
-                val enderecos = future.get(timeoutMs, TimeUnit.MILLISECONDS)
-                if (enderecos.isNotEmpty()) {
-                    return@runInterruptible ProbeResult.Success(System.currentTimeMillis() - inicio)
+    override suspend fun probe(hostnames: List<String>): ProbeResult =
+        runInterruptible(Dispatchers.IO) {
+            var houveTimeout = false
+            for (hostname in hostnames) {
+                val inicio = System.currentTimeMillis()
+                val future = ProbeBlockingExecutor.instance.submit<Array<InetAddress>> { binding.resolveHost(hostname) }
+                try {
+                    val enderecos = future.get(timeoutMs, TimeUnit.MILLISECONDS)
+                    if (enderecos.isNotEmpty()) {
+                        return@runInterruptible ProbeResult.Success(System.currentTimeMillis() - inicio)
+                    }
+                } catch (_: TimeoutException) {
+                    houveTimeout = true
+                } catch (e: ExecutionException) {
+                    if (e.cause is SecurityException) {
+                        return@runInterruptible ProbeResult.Unavailable("sem permissao para resolver DNS na rede sob analise")
+                    }
+                    // UnknownHostException (ou outra falha de resolucao) -- tenta o proximo hostname.
+                } catch (_: InterruptedException) {
+                    // Cancelamento/timeout do motor -- correcao (3a revisao, GH#1512): retorna
+                    // IMEDIATAMENTE em vez de continuar o loop. `Future.get` limpa a flag de
+                    // interrupcao da thread ao lancar; continuar para o proximo hostname
+                    // custaria ate mais `timeoutMs` inteiros sem nenhum novo sinal de
+                    // cancelamento (runInterruptible so interrompe a thread uma vez).
+                    Thread.currentThread().interrupt()
+                    return@runInterruptible ProbeResult.Timeout(timeoutMs)
                 }
-            } catch (_: TimeoutException) {
-                houveTimeout = true
-            } catch (e: ExecutionException) {
-                if (e.cause is SecurityException) {
-                    return@runInterruptible ProbeResult.Unavailable("sem permissao para resolver DNS na rede sob analise")
-                }
-                // UnknownHostException (ou outra falha de resolucao) -- tenta o proximo hostname.
-            } catch (_: InterruptedException) {
-                // Cancelamento/timeout do motor -- correcao (3a revisao, GH#1512): retorna
-                // IMEDIATAMENTE em vez de continuar o loop. `Future.get` limpa a flag de
-                // interrupcao da thread ao lancar; continuar para o proximo hostname
-                // custaria ate mais `timeoutMs` inteiros sem nenhum novo sinal de
-                // cancelamento (runInterruptible so interrompe a thread uma vez).
-                Thread.currentThread().interrupt()
-                return@runInterruptible ProbeResult.Timeout(timeoutMs)
             }
+            if (houveTimeout) ProbeResult.Timeout(timeoutMs) else ProbeResult.Failure(ProbeFailureReason.DNS_RESOLUTION_FAILED)
         }
-        if (houveTimeout) ProbeResult.Timeout(timeoutMs) else ProbeResult.Failure(ProbeFailureReason.DNS_RESOLUTION_FAILED)
-    }
 }

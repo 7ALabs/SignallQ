@@ -4,7 +4,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SpeedtestQualityClassifierTest {
-
     @Test
     fun `bufferbloat thresholds are stable`() {
         assertEquals(SeveridadeBufferbloat.none, SpeedtestQualityClassifier.classificarBufferbloat(0.0))
@@ -49,26 +48,28 @@ class SpeedtestQualityClassifierTest {
 
     @Test
     fun `videoChamada good at 10Mbps not only at 25Mbps`() {
-        val good = SpeedtestQualityClassifier.classificarQualidade(
-            dl = 12.0,
-            ul = 4.0,
-            latency = 60.0,
-            jitter = 20.0,
-            packetLoss = 0.5,
-            bufferbloatDeltaMs = 0.0,
-            bufferbloat = SeveridadeBufferbloat.none,
-        )
+        val good =
+            SpeedtestQualityClassifier.classificarQualidade(
+                dl = 12.0,
+                ul = 4.0,
+                latency = 60.0,
+                jitter = 20.0,
+                packetLoss = 0.5,
+                bufferbloatDeltaMs = 0.0,
+                bufferbloat = SeveridadeBufferbloat.none,
+            )
         assertEquals(VereditoUso.good, good.vereditoVideoChamada)
 
-        val acceptable = SpeedtestQualityClassifier.classificarQualidade(
-            dl = 26.0,
-            ul = 2.0,
-            latency = 60.0,
-            jitter = 20.0,
-            packetLoss = 0.5,
-            bufferbloatDeltaMs = 0.0,
-            bufferbloat = SeveridadeBufferbloat.none,
-        )
+        val acceptable =
+            SpeedtestQualityClassifier.classificarQualidade(
+                dl = 26.0,
+                ul = 2.0,
+                latency = 60.0,
+                jitter = 20.0,
+                packetLoss = 0.5,
+                bufferbloatDeltaMs = 0.0,
+                bufferbloat = SeveridadeBufferbloat.none,
+            )
         assertEquals(VereditoUso.acceptable, acceptable.vereditoVideoChamada)
     }
 
@@ -129,23 +130,25 @@ class SpeedtestQualityClassifierTest {
     @Test
     fun `golden - gargalo primario segue ordem packetLoss maior que bufferbloat maior que latency maior que upload`() {
         // packetLoss > 2.0 vence mesmo com bufferbloat severo e upload baixo simultaneos
-        val comTudo = qualidadeBase(
-            ul = 1.0,
-            latency = 200.0,
-            packetLoss = 2.01,
-            bufferbloatDeltaMs = 150.0,
-            bufferbloat = SeveridadeBufferbloat.severe,
-        )
+        val comTudo =
+            qualidadeBase(
+                ul = 1.0,
+                latency = 200.0,
+                packetLoss = 2.01,
+                bufferbloatDeltaMs = 150.0,
+                bufferbloat = SeveridadeBufferbloat.severe,
+            )
         assertEquals(GargaloPrimario.packetLoss, comTudo.gargaloPrimario)
 
         // sem packetLoss, bufferbloat severo vence sobre latencia e upload baixos
-        val semPerda = qualidadeBase(
-            ul = 1.0,
-            latency = 200.0,
-            packetLoss = 0.0,
-            bufferbloatDeltaMs = 150.0,
-            bufferbloat = SeveridadeBufferbloat.severe,
-        )
+        val semPerda =
+            qualidadeBase(
+                ul = 1.0,
+                latency = 200.0,
+                packetLoss = 0.0,
+                bufferbloatDeltaMs = 150.0,
+                bufferbloat = SeveridadeBufferbloat.severe,
+            )
         assertEquals(GargaloPrimario.bufferbloat, semPerda.gargaloPrimario)
 
         // sem perda nem bufferbloat severo, latencia > 100 vence sobre upload baixo
@@ -170,4 +173,3 @@ class SpeedtestQualityClassifierTest {
         assertEquals(GargaloPrimario.bufferbloat, naFronteira.gargaloPrimario)
     }
 }
-

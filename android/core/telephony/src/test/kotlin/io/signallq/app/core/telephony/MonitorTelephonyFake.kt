@@ -14,7 +14,6 @@ import java.util.concurrent.atomic.AtomicInteger
 class MonitorTelephonyFake(
     snapshotInicial: MovelSnapshot? = null,
 ) : MonitorTelephony {
-
     private val mutable = MutableStateFlow(snapshotInicial)
     override val snapshotFlow: StateFlow<MovelSnapshot?> = mutable.asStateFlow()
 

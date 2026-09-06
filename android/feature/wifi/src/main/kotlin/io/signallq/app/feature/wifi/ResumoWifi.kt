@@ -4,4 +4,3 @@ data class ResumoWifi(
     val titulo: String,
     val detalhe: String,
 )
-

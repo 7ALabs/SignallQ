@@ -11,7 +11,6 @@ import org.junit.Test
  * (NDS-Snapshot-06, issue #1838, ADR-018 seção 13).
  */
 class NdsHistoricalMapperTest {
-
     @Test
     fun `input nulo produz bloco ausente`() {
         assertNull((null as HistoricalDiagnosticInput?).toNdsHistoricalInfo())

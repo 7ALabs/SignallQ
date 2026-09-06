@@ -9,13 +9,14 @@ data class DiagSignalSelection(
     val fibra: Boolean = true,
     val dns: Boolean = false,
 ) {
-    fun toEnabledAreas(): Set<DiagnosticArea> = buildSet {
-        if (velocidade) add(DiagnosticArea.VELOCIDADE)
-        if (wifiSinal) add(DiagnosticArea.WIFI_SINAL)
-        if (latencia) add(DiagnosticArea.LATENCIA)
-        if (fibra) add(DiagnosticArea.FIBRA)
-        if (dns) add(DiagnosticArea.DNS)
-    }
+    fun toEnabledAreas(): Set<DiagnosticArea> =
+        buildSet {
+            if (velocidade) add(DiagnosticArea.VELOCIDADE)
+            if (wifiSinal) add(DiagnosticArea.WIFI_SINAL)
+            if (latencia) add(DiagnosticArea.LATENCIA)
+            if (fibra) add(DiagnosticArea.FIBRA)
+            if (dns) add(DiagnosticArea.DNS)
+        }
 
     val anySelected: Boolean get() = velocidade || wifiSinal || latencia || fibra || dns
 }

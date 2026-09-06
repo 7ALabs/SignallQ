@@ -4,9 +4,7 @@ data class SnapshotPermissoesRede(
     val localizacaoFina: EstadoPermissao,
     val nearbyWifi: EstadoPermissao,
 ) {
-    fun estaAptoParaScanRede(): Boolean {
-        return localizacaoFina == EstadoPermissao.concedida &&
+    fun estaAptoParaScanRede(): Boolean =
+        localizacaoFina == EstadoPermissao.concedida &&
             nearbyWifi == EstadoPermissao.concedida
-    }
 }
-

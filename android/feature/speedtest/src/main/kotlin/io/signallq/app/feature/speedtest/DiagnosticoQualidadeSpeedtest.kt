@@ -20,4 +20,3 @@ data class DiagnosticoQualidadeSpeedtest(
     val vereditoVideoChamada: VereditoUso,
     val gargaloPrimario: GargaloPrimario,
 )
-

@@ -10,8 +10,14 @@ package io.signallq.app.feature.dns
  * margem mínima de ganho.
  */
 sealed interface RecomendacaoDns {
-    data class Vencedor(val resultado: ResultadoBenchmarkDns) : RecomendacaoDns
-    data class EmpateTecnico(val candidatos: List<ResultadoBenchmarkDns>) : RecomendacaoDns
+    data class Vencedor(
+        val resultado: ResultadoBenchmarkDns,
+    ) : RecomendacaoDns
+
+    data class EmpateTecnico(
+        val candidatos: List<ResultadoBenchmarkDns>,
+    ) : RecomendacaoDns
+
     data object SemDadosSuficientes : RecomendacaoDns
 }
 

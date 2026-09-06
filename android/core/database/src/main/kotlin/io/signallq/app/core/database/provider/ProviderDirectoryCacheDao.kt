@@ -7,7 +7,6 @@ import androidx.room.Query
 
 @Dao
 interface ProviderDirectoryCacheDao {
-
     @Query("SELECT * FROM provider_directory_cache WHERE cacheKey = :cacheKey LIMIT 1")
     suspend fun buscarPorChave(cacheKey: String): ProviderDirectoryCacheEntity?
 

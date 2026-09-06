@@ -1,8 +1,8 @@
 package io.signallq.app.core.nds
 
 import io.signallq.app.core.diagnostico.ConnectionType
-import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.DiagnosticContext
+import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.DnsDiagnosticInput
 import io.signallq.app.core.diagnostico.FibraDiagnosticInput
 import io.signallq.app.core.diagnostico.HistoricalDiagnosticInput
@@ -28,7 +28,6 @@ import org.junit.Test
  * #1759, item 4).
  */
 class NdsDiagnosticsRequestMapperTest {
-
     @Test
     fun `input vazio gera request minimo, sem blocos opcionais`() {
         val input = DiagnosticInput(connectionType = ConnectionType.desconhecido, executionId = "exec-1")
@@ -67,19 +66,21 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `wifi presente preenche bloco wifi e capabilities inclui wifi`() {
-        val input = DiagnosticInput(
-            connectionType = ConnectionType.wifi,
-            executionId = "exec-2",
-            wifi = WifiDiagnosticInput(
-                rssiDbm = -65,
-                linkSpeedMbps = 433,
-                frequenciaMhz = 5180,
-                ssid = "MinhaRede_5G",
-                bssidMascarado = "00:14:22:01:23:45",
-                canal = 36,
-                wifiStandard = "802.11ac",
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                connectionType = ConnectionType.wifi,
+                executionId = "exec-2",
+                wifi =
+                    WifiDiagnosticInput(
+                        rssiDbm = -65,
+                        linkSpeedMbps = 433,
+                        frequenciaMhz = 5180,
+                        ssid = "MinhaRede_5G",
+                        bssidMascarado = "00:14:22:01:23:45",
+                        canal = 36,
+                        wifiStandard = "802.11ac",
+                    ),
+            )
 
         val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
@@ -96,9 +97,10 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `fibra presente preenche bloco fiber e capabilities inclui fiber`() {
-        val input = DiagnosticInput(
-            fibra = FibraDiagnosticInput(rxPowerDbm = -22.0, txPowerDbm = 2.5, temperatureCelsius = 45.0, isUp = true),
-        )
+        val input =
+            DiagnosticInput(
+                fibra = FibraDiagnosticInput(rxPowerDbm = -22.0, txPowerDbm = 2.5, temperatureCelsius = 45.0, isUp = true),
+            )
 
         val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
@@ -111,18 +113,20 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `internet presente preenche bloco speed`() {
-        val input = DiagnosticInput(
-            internet = InternetDiagnosticInput(
-                downloadMbps = 300.0,
-                uploadMbps = 150.0,
-                latencyMs = 12.0,
-                jitterMs = 2.0,
-                perdaPercentual = 0.5,
-                bufferbloatMs = 65.0,
-                rttGatewayMs = 4,
-            ),
-            wifi = WifiDiagnosticInput(rssiDbm = -55, linkSpeedMbps = 433, frequenciaMhz = 5180, dispositivosNaRede = 6),
-        )
+        val input =
+            DiagnosticInput(
+                internet =
+                    InternetDiagnosticInput(
+                        downloadMbps = 300.0,
+                        uploadMbps = 150.0,
+                        latencyMs = 12.0,
+                        jitterMs = 2.0,
+                        perdaPercentual = 0.5,
+                        bufferbloatMs = 65.0,
+                        rttGatewayMs = 4,
+                    ),
+                wifi = WifiDiagnosticInput(rssiDbm = -55, linkSpeedMbps = 433, frequenciaMhz = 5180, dispositivosNaRede = 6),
+            )
 
         val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
@@ -138,13 +142,83 @@ class NdsDiagnosticsRequestMapperTest {
         assertEquals(65.0, request.quality?.bufferbloatMs)
         assertEquals(4, request.gateway?.rttGatewayMs)
         assertEquals(6, request.gateway?.connectedDevices)
+        assertNull("sem packetLossSource informado na origem, campo fica omitido", request.speed?.packetLossSource)
+    }
+
+    // -------------------------------------------------------------------------
+    // speed.packetLossSource (ADR-018 "Convenção de proveniência" — issue #1842)
+    // -------------------------------------------------------------------------
+
+    private fun internetComPerda(packetLossSource: String?): InternetDiagnosticInput =
+        InternetDiagnosticInput(
+            downloadMbps = 300.0,
+            uploadMbps = 150.0,
+            latencyMs = 12.0,
+            jitterMs = 2.0,
+            perdaPercentual = 2.1,
+            packetLossSource = packetLossSource,
+        )
+
+    @Test
+    fun `packetLossSource modem traduz para NdsProvenance MEASURED (medicao direta do equipamento)`() {
+        val input = DiagnosticInput(internet = internetComPerda("modem"))
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals(NdsProvenance.MEASURED, request.speed?.packetLossSource)
+    }
+
+    @Test
+    fun `packetLossSource estimated traduz para NdsProvenance ESTIMATED (indicio via timeout HTTP)`() {
+        val input = DiagnosticInput(internet = internetComPerda("estimated"))
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals(NdsProvenance.ESTIMATED, request.speed?.packetLossSource)
+    }
+
+    @Test
+    fun `packetLossSource unknown traduz para NdsProvenance UNKNOWN (coleta ja retorna incerteza)`() {
+        val input = DiagnosticInput(internet = internetComPerda("unknown"))
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertEquals(NdsProvenance.UNKNOWN, request.speed?.packetLossSource)
+    }
+
+    @Test
+    fun `packetLossSource naoMedido omite o campo (nenhuma medicao rodou, nao e fonte desconhecida)`() {
+        val input = DiagnosticInput(internet = internetComPerda("naoMedido"))
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertNull(request.speed?.packetLossSource)
+    }
+
+    @Test
+    fun `packetLossSource null omite o campo`() {
+        val input = DiagnosticInput(internet = internetComPerda(null))
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertNull(request.speed?.packetLossSource)
+    }
+
+    @Test
+    fun `packetLossSource com valor nao reconhecido omite o campo (vocabulario fechado, nunca propaga string livre)`() {
+        val input = DiagnosticInput(internet = internetComPerda("valor-desconhecido-futuro"))
+
+        val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
+
+        assertNull(request.speed?.packetLossSource)
     }
 
     @Test
     fun `dns presente preenche bloco dns com hijacked sempre nulo (gap de coleta)`() {
-        val input = DiagnosticInput(
-            dns = DnsDiagnosticInput(currentDnsIp = "8.8.8.8", currentDnsLatencyMs = 35),
-        )
+        val input =
+            DiagnosticInput(
+                dns = DnsDiagnosticInput(currentDnsIp = "8.8.8.8", currentDnsLatencyMs = 35),
+            )
 
         val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
@@ -157,20 +231,22 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `dns coerente preenche provedor, melhor dns, grade e nivel de coerencia`() {
-        val input = DiagnosticInput(
-            dns = DnsDiagnosticInput(
-                currentDnsIp = "1.1.1.1",
-                currentDnsName = "Cloudflare",
-                currentDnsLatencyMs = 12,
-                bestDnsNameFromComparison = "Cloudflare",
-                bestDnsLatencyMsFromComparison = 12,
-                dnsGrade = "A",
-                dnsComparisonAvailable = true,
-                coerenciaNivelAlerta = "none",
-                coerenciaDivergenciasConsecutivas = 0,
-                coerenciaTaxaDivergenciaPercentual = 0.0,
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                dns =
+                    DnsDiagnosticInput(
+                        currentDnsIp = "1.1.1.1",
+                        currentDnsName = "Cloudflare",
+                        currentDnsLatencyMs = 12,
+                        bestDnsNameFromComparison = "Cloudflare",
+                        bestDnsLatencyMsFromComparison = 12,
+                        dnsGrade = "A",
+                        dnsComparisonAvailable = true,
+                        coerenciaNivelAlerta = "none",
+                        coerenciaDivergenciasConsecutivas = 0,
+                        coerenciaTaxaDivergenciaPercentual = 0.0,
+                    ),
+            )
 
         val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
@@ -187,20 +263,22 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `dns divergente reporta nivel critical e taxa de divergencia`() {
-        val input = DiagnosticInput(
-            dns = DnsDiagnosticInput(
-                currentDnsIp = "200.200.200.200",
-                currentDnsName = "DNS do Provedor",
-                currentDnsLatencyMs = 90,
-                bestDnsNameFromComparison = "Cloudflare",
-                bestDnsLatencyMsFromComparison = 15,
-                dnsGrade = "C",
-                dnsComparisonAvailable = true,
-                coerenciaNivelAlerta = "critical",
-                coerenciaDivergenciasConsecutivas = 3,
-                coerenciaTaxaDivergenciaPercentual = 80.0,
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                dns =
+                    DnsDiagnosticInput(
+                        currentDnsIp = "200.200.200.200",
+                        currentDnsName = "DNS do Provedor",
+                        currentDnsLatencyMs = 90,
+                        bestDnsNameFromComparison = "Cloudflare",
+                        bestDnsLatencyMsFromComparison = 15,
+                        dnsGrade = "C",
+                        dnsComparisonAvailable = true,
+                        coerenciaNivelAlerta = "critical",
+                        coerenciaDivergenciasConsecutivas = 3,
+                        coerenciaTaxaDivergenciaPercentual = 80.0,
+                    ),
+            )
 
         val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
@@ -215,14 +293,16 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `dns sem melhor dns calculado mantem bestName bestLatencyMs e grade nulos, comparisonAvailable false`() {
-        val input = DiagnosticInput(
-            dns = DnsDiagnosticInput(
-                currentDnsIp = "8.8.8.8",
-                currentDnsName = "Google DNS",
-                currentDnsLatencyMs = 40,
-                dnsComparisonAvailable = false,
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                dns =
+                    DnsDiagnosticInput(
+                        currentDnsIp = "8.8.8.8",
+                        currentDnsName = "Google DNS",
+                        currentDnsLatencyMs = 40,
+                        dnsComparisonAvailable = false,
+                    ),
+            )
 
         val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
@@ -245,12 +325,14 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `private dns ativo preenche privateDnsActive e hostname`() {
-        val input = DiagnosticInput(
-            dns = DnsDiagnosticInput(
-                privateDnsActive = true,
-                privateDnsHostname = "dns.google",
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                dns =
+                    DnsDiagnosticInput(
+                        privateDnsActive = true,
+                        privateDnsHostname = "dns.google",
+                    ),
+            )
 
         val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
@@ -260,13 +342,15 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `private dns inativo preenche privateDnsActive false e hostname nulo`() {
-        val input = DiagnosticInput(
-            dns = DnsDiagnosticInput(
-                currentDnsIp = "8.8.8.8",
-                privateDnsActive = false,
-                privateDnsHostname = null,
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                dns =
+                    DnsDiagnosticInput(
+                        currentDnsIp = "8.8.8.8",
+                        privateDnsActive = false,
+                        privateDnsHostname = null,
+                    ),
+            )
 
         val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
@@ -276,22 +360,24 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `hijacked permanece nulo mesmo com todos os demais campos de dns preenchidos`() {
-        val input = DiagnosticInput(
-            dns = DnsDiagnosticInput(
-                currentDnsIp = "1.1.1.1",
-                currentDnsName = "Cloudflare",
-                currentDnsLatencyMs = 12,
-                bestDnsNameFromComparison = "Cloudflare",
-                bestDnsLatencyMsFromComparison = 12,
-                dnsGrade = "A",
-                dnsComparisonAvailable = true,
-                coerenciaNivelAlerta = "attention",
-                coerenciaDivergenciasConsecutivas = 2,
-                coerenciaTaxaDivergenciaPercentual = 40.0,
-                privateDnsActive = true,
-                privateDnsHostname = "cloudflare-dns.com",
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                dns =
+                    DnsDiagnosticInput(
+                        currentDnsIp = "1.1.1.1",
+                        currentDnsName = "Cloudflare",
+                        currentDnsLatencyMs = 12,
+                        bestDnsNameFromComparison = "Cloudflare",
+                        bestDnsLatencyMsFromComparison = 12,
+                        dnsGrade = "A",
+                        dnsComparisonAvailable = true,
+                        coerenciaNivelAlerta = "attention",
+                        coerenciaDivergenciasConsecutivas = 2,
+                        coerenciaTaxaDivergenciaPercentual = 40.0,
+                        privateDnsActive = true,
+                        privateDnsHostname = "cloudflare-dns.com",
+                    ),
+            )
 
         val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
@@ -331,18 +417,21 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `wifiScan com redes vizinhas chega ao payload com evidencia e entra em capabilities`() {
-        val input = DiagnosticInput(
-            connectionType = ConnectionType.wifi,
-            wifi = WifiDiagnosticInput(rssiDbm = -60, linkSpeedMbps = 433, frequenciaMhz = 5180, canal = 36),
-            wifiScan = WifiScanDiagnosticInput(
-                conectadoCanal = 36,
-                conectadoBanda = io.signallq.app.core.diagnostico.BandaWifi.ghz5,
-                redes = listOf(
-                    RedeWifiVizinha(canal = 40, rssiDbm = -55, frequenciaMhz = 5200, bssid = "AA:BB:CC:00:00:01"),
-                    RedeWifiVizinha(canal = 36, rssiDbm = -70, frequenciaMhz = 5180, bssid = "AA:BB:CC:00:00:02"),
-                ),
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                connectionType = ConnectionType.wifi,
+                wifi = WifiDiagnosticInput(rssiDbm = -60, linkSpeedMbps = 433, frequenciaMhz = 5180, canal = 36),
+                wifiScan =
+                    WifiScanDiagnosticInput(
+                        conectadoCanal = 36,
+                        conectadoBanda = io.signallq.app.core.diagnostico.BandaWifi.ghz5,
+                        redes =
+                            listOf(
+                                RedeWifiVizinha(canal = 40, rssiDbm = -55, frequenciaMhz = 5200, bssid = "AA:BB:CC:00:00:01"),
+                                RedeWifiVizinha(canal = 36, rssiDbm = -70, frequenciaMhz = 5180, bssid = "AA:BB:CC:00:00:02"),
+                            ),
+                    ),
+            )
 
         val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
@@ -363,35 +452,39 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `caracterizacao -- wifiScan preenchido nao muda serializacao dos outros blocos`() {
-        val input = DiagnosticInput(
-            connectionType = ConnectionType.wifi,
-            executionId = "exec-caracterizacao",
-            wifi = WifiDiagnosticInput(
-                rssiDbm = -65,
-                linkSpeedMbps = 433,
-                frequenciaMhz = 5180,
-                ssid = "MinhaRede_5G",
-                bssidMascarado = "00:14:22:01:23:45",
-                canal = 36,
-                wifiStandard = "802.11ac",
-                dispositivosNaRede = 6,
-            ),
-            wifiScan = WifiScanDiagnosticInput(
-                conectadoCanal = 36,
-                redes = listOf(RedeWifiVizinha(canal = 40, rssiDbm = -55, frequenciaMhz = 5200, bssid = "AA:BB:CC:00:00:01")),
-            ),
-            internet = InternetDiagnosticInput(
-                downloadMbps = 300.0,
-                uploadMbps = 150.0,
-                latencyMs = 12.0,
-                jitterMs = 2.0,
-                perdaPercentual = 0.5,
-                bufferbloatMs = 65.0,
-                rttGatewayMs = 4,
-            ),
-            dns = DnsDiagnosticInput(currentDnsIp = "8.8.8.8", currentDnsLatencyMs = 35),
-            fibra = FibraDiagnosticInput(rxPowerDbm = -22.0, txPowerDbm = 2.5, temperatureCelsius = 45.0, isUp = true),
-        )
+        val input =
+            DiagnosticInput(
+                connectionType = ConnectionType.wifi,
+                executionId = "exec-caracterizacao",
+                wifi =
+                    WifiDiagnosticInput(
+                        rssiDbm = -65,
+                        linkSpeedMbps = 433,
+                        frequenciaMhz = 5180,
+                        ssid = "MinhaRede_5G",
+                        bssidMascarado = "00:14:22:01:23:45",
+                        canal = 36,
+                        wifiStandard = "802.11ac",
+                        dispositivosNaRede = 6,
+                    ),
+                wifiScan =
+                    WifiScanDiagnosticInput(
+                        conectadoCanal = 36,
+                        redes = listOf(RedeWifiVizinha(canal = 40, rssiDbm = -55, frequenciaMhz = 5200, bssid = "AA:BB:CC:00:00:01")),
+                    ),
+                internet =
+                    InternetDiagnosticInput(
+                        downloadMbps = 300.0,
+                        uploadMbps = 150.0,
+                        latencyMs = 12.0,
+                        jitterMs = 2.0,
+                        perdaPercentual = 0.5,
+                        bufferbloatMs = 65.0,
+                        rttGatewayMs = 4,
+                    ),
+                dns = DnsDiagnosticInput(currentDnsIp = "8.8.8.8", currentDnsLatencyMs = 35),
+                fibra = FibraDiagnosticInput(rxPowerDbm = -22.0, txPowerDbm = 2.5, temperatureCelsius = 45.0, isUp = true),
+            )
 
         val json = input.toNdsDiagnosticsRequest(appVersion = "1.0.0").toJson()
 
@@ -440,17 +533,19 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `mobile presente preenche bloco mobile e capabilities inclui mobile`() {
-        val input = DiagnosticInput(
-            connectionType = ConnectionType.mobile,
-            mobile = MobileDiagnosticInput(
-                carrierName = "TIM",
-                mobileTechnology = "5G",
-                rsrpDbm = -101,
-                rsrqDb = -14,
-                sinrDb = 7,
-                band = "n78",
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                connectionType = ConnectionType.mobile,
+                mobile =
+                    MobileDiagnosticInput(
+                        carrierName = "TIM",
+                        mobileTechnology = "5G",
+                        rsrpDbm = -101,
+                        rsrqDb = -14,
+                        sinrDb = 7,
+                        band = "n78",
+                    ),
+            )
 
         val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
@@ -475,15 +570,17 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `mobile omitido quando snapshot foi capturado sem permissao de telefonia`() {
-        val input = DiagnosticInput(
-            connectionType = ConnectionType.mobile,
-            mobile = MobileDiagnosticInput(
-                carrierName = "TIM",
-                // capturaReduzida=true (GH#1662): sem READ_PHONE_STATE so operadora/mcc/mnc
-                // sao lidos -- tecnologia/rsrp/rsrq/sinr sempre null nesse modo.
-                capturaReduzida = true,
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                connectionType = ConnectionType.mobile,
+                mobile =
+                    MobileDiagnosticInput(
+                        carrierName = "TIM",
+                        // capturaReduzida=true (GH#1662): sem READ_PHONE_STATE so operadora/mcc/mnc
+                        // sao lidos -- tecnologia/rsrp/rsrq/sinr sempre null nesse modo.
+                        capturaReduzida = true,
+                    ),
+            )
 
         val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
@@ -493,17 +590,19 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `mobile com tecnologia desconhecida ainda preenche os demais campos de sinal`() {
-        val input = DiagnosticInput(
-            connectionType = ConnectionType.mobile,
-            mobile = MobileDiagnosticInput(
-                carrierName = "Vivo",
-                mobileTechnology = null,
-                rsrpDbm = -95,
-                rsrqDb = -12,
-                sinrDb = 3,
-                band = null,
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                connectionType = ConnectionType.mobile,
+                mobile =
+                    MobileDiagnosticInput(
+                        carrierName = "Vivo",
+                        mobileTechnology = null,
+                        rsrpDbm = -95,
+                        rsrqDb = -12,
+                        sinrDb = 3,
+                        band = null,
+                    ),
+            )
 
         val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
@@ -527,20 +626,22 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `historico presente preenche bloco historical e entra em capabilities`() {
-        val input = DiagnosticInput(
-            historico = HistoricalDiagnosticInput(
-                avgDownload7d = 287.4,
-                avgUpload7d = 141.2,
-                avgPing7d = 19.2,
-                testsCount7d = 8,
-                avgDownload30d = 301.8,
-                avgUpload30d = 149.1,
-                avgPing30d = 17.5,
-                testsCount30d = 31,
-                degradationDetected = true,
-                degradationPercent = 18.3,
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                historico =
+                    HistoricalDiagnosticInput(
+                        avgDownload7d = 287.4,
+                        avgUpload7d = 141.2,
+                        avgPing7d = 19.2,
+                        testsCount7d = 8,
+                        avgDownload30d = 301.8,
+                        avgUpload30d = 149.1,
+                        avgPing30d = 17.5,
+                        testsCount30d = 31,
+                        degradationDetected = true,
+                        degradationPercent = 18.3,
+                    ),
+            )
 
         val request = input.toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
@@ -555,15 +656,17 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `contexto guiado preserva relato objetivo subcategoria e respostas estruturadas`() {
-        val request = DiagnosticInput(
-            executionId = "exec-context",
-            context = DiagnosticContext(
-                reportedProblem = "A conexão cai à noite.",
-                objective = "JOGOS_COM_LAG",
-                subcategory = "lag_horario_pico",
-                answers = mapOf("pergunta_0" to "resposta_1"),
-            ),
-        ).toNdsDiagnosticsRequest(appVersion = "1.0.0")
+        val request =
+            DiagnosticInput(
+                executionId = "exec-context",
+                context =
+                    DiagnosticContext(
+                        reportedProblem = "A conexão cai à noite.",
+                        objective = "JOGOS_COM_LAG",
+                        subcategory = "lag_horario_pico",
+                        answers = mapOf("pergunta_0" to "resposta_1"),
+                    ),
+            ).toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
         assertEquals("gamer", request.profile)
         assertTrue(request.capabilities.contains("usage_profiles"))
@@ -575,28 +678,30 @@ class NdsDiagnosticsRequestMapperTest {
 
     /** Contexto seguro completo (allowlist da issue-mãe #1832 seção 8) para os testes
      *  de `localEquipment` abaixo — mesmos valores do exemplo Nokia G-1425G-B/ONT. */
-    private fun ontContextoCompleto(): SafeLocalDeviceContext = SafeLocalDeviceContext(
-        vendor = "Nokia",
-        modelo = "G-1425G-B",
-        firmwareVersion = "3FE12345AA",
-        deviceType = DeviceType.ONT_GPON,
-        supportLevel = SupportLevel.LAB_VALIDATED,
-        capabilities = DeviceCapabilities(
-            suportaFibra = true,
-            suportaWan = true,
-            suportaWifi = true,
-            suportaLan = true,
-            suportaClientes = true,
-        ),
-        connectionStatus = LocalDeviceSectionStatus.OK,
-        statusFibra = LocalDeviceSectionStatus.OK,
-        statusWan = LocalDeviceSectionStatus.OK,
-        statusWifi = LocalDeviceSectionStatus.OK,
-        statusLan = LocalDeviceSectionStatus.OK,
-        quantidadeClientes = 7,
-        warnings = emptyList(),
-        coletadoEmEpochMs = 1_725_000_000_000L,
-    )
+    private fun ontContextoCompleto(): SafeLocalDeviceContext =
+        SafeLocalDeviceContext(
+            vendor = "Nokia",
+            modelo = "G-1425G-B",
+            firmwareVersion = "3FE12345AA",
+            deviceType = DeviceType.ONT_GPON,
+            supportLevel = SupportLevel.LAB_VALIDATED,
+            capabilities =
+                DeviceCapabilities(
+                    suportaFibra = true,
+                    suportaWan = true,
+                    suportaWifi = true,
+                    suportaLan = true,
+                    suportaClientes = true,
+                ),
+            connectionStatus = LocalDeviceSectionStatus.OK,
+            statusFibra = LocalDeviceSectionStatus.OK,
+            statusWan = LocalDeviceSectionStatus.OK,
+            statusWifi = LocalDeviceSectionStatus.OK,
+            statusLan = LocalDeviceSectionStatus.OK,
+            quantidadeClientes = 7,
+            warnings = emptyList(),
+            coletadoEmEpochMs = 1_725_000_000_000L,
+        )
 
     @Test
     fun `localEquipment presente preenche todos os campos e entra em capabilities`() {
@@ -630,22 +735,23 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `localEquipment com campos opcionais ausentes ainda preenche os campos obrigatorios`() {
-        val contextoParcial = SafeLocalDeviceContext(
-            vendor = null,
-            modelo = null,
-            firmwareVersion = null,
-            deviceType = DeviceType.UNKNOWN_SUPPORTED,
-            supportLevel = SupportLevel.INFERRED_FAMILY,
-            capabilities = DeviceCapabilities(),
-            connectionStatus = LocalDeviceSectionStatus.ATENCAO,
-            statusFibra = LocalDeviceSectionStatus.NAO_SUPORTADO,
-            statusWan = LocalDeviceSectionStatus.INDISPONIVEL,
-            statusWifi = LocalDeviceSectionStatus.NAO_SUPORTADO,
-            statusLan = LocalDeviceSectionStatus.NAO_SUPORTADO,
-            quantidadeClientes = 0,
-            warnings = emptyList(),
-            coletadoEmEpochMs = 1_725_000_000_000L,
-        )
+        val contextoParcial =
+            SafeLocalDeviceContext(
+                vendor = null,
+                modelo = null,
+                firmwareVersion = null,
+                deviceType = DeviceType.UNKNOWN_SUPPORTED,
+                supportLevel = SupportLevel.INFERRED_FAMILY,
+                capabilities = DeviceCapabilities(),
+                connectionStatus = LocalDeviceSectionStatus.ATENCAO,
+                statusFibra = LocalDeviceSectionStatus.NAO_SUPORTADO,
+                statusWan = LocalDeviceSectionStatus.INDISPONIVEL,
+                statusWifi = LocalDeviceSectionStatus.NAO_SUPORTADO,
+                statusLan = LocalDeviceSectionStatus.NAO_SUPORTADO,
+                quantidadeClientes = 0,
+                warnings = emptyList(),
+                coletadoEmEpochMs = 1_725_000_000_000L,
+            )
         val input = DiagnosticInput(localDevice = contextoParcial)
 
         val json = input.toNdsDiagnosticsRequest(appVersion = "1.0.0").toJson()
@@ -664,9 +770,10 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `localEquipment serializado nunca carrega campo fora da allowlist`() {
-        val json = DiagnosticInput(localDevice = ontContextoCompleto())
-            .toNdsDiagnosticsRequest(appVersion = "1.0.0")
-            .toJson()
+        val json =
+            DiagnosticInput(localDevice = ontContextoCompleto())
+                .toNdsDiagnosticsRequest(appVersion = "1.0.0")
+                .toJson()
         val localEquipmentJson = json.getJSONObject("localEquipment")
 
         // Allowlist fechada: exatamente estas chaves, nunca senha/serial completo/
@@ -674,18 +781,39 @@ class NdsDiagnosticsRequestMapperTest {
         // clientes -- nenhuma dessas existe em NdsLocalEquipmentInfo, entao esta
         // asserção também documenta a garantia estrutural (o tipo Kotlin nem tem
         // campo para carregar esses dados), não só o valor do JSON.
-        val chavesEsperadas = setOf(
-            "vendor", "model", "firmwareVersion", "deviceType", "supportLevel",
-            "connectionStatus", "fiberStatus", "wanStatus", "wifiStatus", "lanStatus",
-            "connectedClients",
-        )
+        val chavesEsperadas =
+            setOf(
+                "vendor",
+                "model",
+                "firmwareVersion",
+                "deviceType",
+                "supportLevel",
+                "connectionStatus",
+                "fiberStatus",
+                "wanStatus",
+                "wifiStatus",
+                "lanStatus",
+                "connectedClients",
+            )
         assertEquals(chavesEsperadas, localEquipmentJson.keys().asSequence().toSet())
 
-        val chavesProibidas = listOf(
-            "password", "senha", "serial", "serialNumber", "credentials", "credenciais",
-            "html", "sessionToken", "token", "macaddress", "cookie", "clientlist",
-            "warnings", "coletadoEmEpochMs",
-        )
+        val chavesProibidas =
+            listOf(
+                "password",
+                "senha",
+                "serial",
+                "serialNumber",
+                "credentials",
+                "credenciais",
+                "html",
+                "sessionToken",
+                "token",
+                "macaddress",
+                "cookie",
+                "clientlist",
+                "warnings",
+                "coletadoEmEpochMs",
+            )
         val jsonTexto = localEquipmentJson.toString().lowercase()
         chavesProibidas.forEach { chave ->
             assertFalse(
@@ -699,41 +827,46 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `natStatus DIRECT_PUBLIC (NAT simples) transcreve o nome do enum`() {
-        val request = DiagnosticInput(natStatus = NatStatus.DIRECT_PUBLIC)
-            .toNdsDiagnosticsRequest(appVersion = "1.0.0")
+        val request =
+            DiagnosticInput(natStatus = NatStatus.DIRECT_PUBLIC)
+                .toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
         assertEquals("DIRECT_PUBLIC", request.connection?.natStatus)
     }
 
     @Test
     fun `natStatus CGNAT transcreve o nome do enum`() {
-        val request = DiagnosticInput(natStatus = NatStatus.CGNAT)
-            .toNdsDiagnosticsRequest(appVersion = "1.0.0")
+        val request =
+            DiagnosticInput(natStatus = NatStatus.CGNAT)
+                .toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
         assertEquals("CGNAT", request.connection?.natStatus)
     }
 
     @Test
     fun `natStatus DOUBLE_NAT_OR_CGNAT (NAT duplo) transcreve o nome do enum`() {
-        val request = DiagnosticInput(natStatus = NatStatus.DOUBLE_NAT_OR_CGNAT)
-            .toNdsDiagnosticsRequest(appVersion = "1.0.0")
+        val request =
+            DiagnosticInput(natStatus = NatStatus.DOUBLE_NAT_OR_CGNAT)
+                .toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
         assertEquals("DOUBLE_NAT_OR_CGNAT", request.connection?.natStatus)
     }
 
     @Test
     fun `natStatus UNKNOWN (classificacao rodou mas foi inconclusiva) transcreve UNKNOWN`() {
-        val request = DiagnosticInput(natStatus = NatStatus.UNKNOWN)
-            .toNdsDiagnosticsRequest(appVersion = "1.0.0")
+        val request =
+            DiagnosticInput(natStatus = NatStatus.UNKNOWN)
+                .toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
         assertEquals("UNKNOWN", request.connection?.natStatus)
     }
 
     @Test
     fun `natStatus null (sem classificacao) omite o campo do JSON`() {
-        val json = DiagnosticInput(natStatus = null)
-            .toNdsDiagnosticsRequest(appVersion = "1.0.0")
-            .toJson()
+        val json =
+            DiagnosticInput(natStatus = null)
+                .toNdsDiagnosticsRequest(appVersion = "1.0.0")
+                .toJson()
         val connectionJson = json.getJSONObject("connection")
 
         assertFalse(
@@ -746,8 +879,9 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `plan presente quando usuario informou velocidade contratada`() {
-        val request = DiagnosticInput(velocidadeContratadaMbps = 300)
-            .toNdsDiagnosticsRequest(appVersion = "1.0.0")
+        val request =
+            DiagnosticInput(velocidadeContratadaMbps = 300)
+                .toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
         assertEquals(300, request.plan?.contractedSpeedMbps)
 
@@ -757,16 +891,18 @@ class NdsDiagnosticsRequestMapperTest {
 
     @Test
     fun `plan ausente quando usuario nunca informou velocidade contratada (nunca inferido)`() {
-        val request = DiagnosticInput(
-            velocidadeContratadaMbps = null,
-            internet = InternetDiagnosticInput(
-                downloadMbps = 287.5,
-                uploadMbps = 45.0,
-                latencyMs = null,
-                jitterMs = null,
-                perdaPercentual = null,
-            ),
-        ).toNdsDiagnosticsRequest(appVersion = "1.0.0")
+        val request =
+            DiagnosticInput(
+                velocidadeContratadaMbps = null,
+                internet =
+                    InternetDiagnosticInput(
+                        downloadMbps = 287.5,
+                        uploadMbps = 45.0,
+                        latencyMs = null,
+                        jitterMs = null,
+                        perdaPercentual = null,
+                    ),
+            ).toNdsDiagnosticsRequest(appVersion = "1.0.0")
 
         assertNull(
             "ausencia de plano informado deve omitir o bloco inteiro, nunca inferir da velocidade medida",

@@ -13,7 +13,9 @@ package io.signallq.app.core.diagnostico
  * (0.30/0.65/0.88/0.90, ver `DiagnosticReport.kt`): 0.30 (inconclusivo) cai em [BAIXA], 0.65
  * (decisão conclusiva mas fraca) em [MEDIA], 0.88/0.90 (decisão forte) em [ALTA].
  */
-enum class RotuloConfianca(val wireValue: String) {
+enum class RotuloConfianca(
+    val wireValue: String,
+) {
     BAIXA("baixa"),
     MEDIA("media"),
     ALTA("alta"),

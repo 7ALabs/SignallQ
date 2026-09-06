@@ -6,18 +6,18 @@ import org.junit.Test
 
 /** GH#1227 item 3/RF-A — round-trip de serialização, sem precisar de Context/DataStore. */
 class ConnectionProfilePersistidoTest {
-
     @Test
     fun `round-trip preserva todos os campos preenchidos`() {
-        val original = ConnectionProfilePersistido(
-            networkId = "wifi-bssid:aa:bb:cc:dd:ee:ff",
-            providerFixed = "Vivo Fibra",
-            contractedDownloadMbps = 500,
-            contractedUploadMbps = 250,
-            city = "São Paulo",
-            state = "SP",
-            userConfirmed = true,
-        )
+        val original =
+            ConnectionProfilePersistido(
+                networkId = "wifi-bssid:aa:bb:cc:dd:ee:ff",
+                providerFixed = "Vivo Fibra",
+                contractedDownloadMbps = 500,
+                contractedUploadMbps = 250,
+                city = "São Paulo",
+                state = "SP",
+                userConfirmed = true,
+            )
         val registro = original.serializar()
         val restaurado = desserializarConnectionProfile(registro)
         assertEquals(original, restaurado)
@@ -25,15 +25,16 @@ class ConnectionProfilePersistidoTest {
 
     @Test
     fun `round-trip preserva campos nulos como null, nao como string vazia`() {
-        val original = ConnectionProfilePersistido(
-            networkId = "wifi-ssid:MinhaRede",
-            providerFixed = null,
-            contractedDownloadMbps = null,
-            contractedUploadMbps = null,
-            city = null,
-            state = null,
-            userConfirmed = false,
-        )
+        val original =
+            ConnectionProfilePersistido(
+                networkId = "wifi-ssid:MinhaRede",
+                providerFixed = null,
+                contractedDownloadMbps = null,
+                contractedUploadMbps = null,
+                city = null,
+                state = null,
+                userConfirmed = false,
+            )
         val restaurado = desserializarConnectionProfile(original.serializar())
         assertEquals(original, restaurado)
         assertNull(restaurado?.providerFixed)

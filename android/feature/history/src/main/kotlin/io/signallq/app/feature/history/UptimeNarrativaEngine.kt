@@ -19,16 +19,18 @@ import java.util.Locale
  *       devagar) — nunca descreve o segundo caso como "offline"/"sem conexao".
  */
 object UptimeNarrativaEngine {
-
     private val formatadorHora = DateTimeFormatter.ofPattern("HH'h'", Locale("pt", "BR"))
 
     // Cada bloco representa 30 minutos.
     private const val MINUTOS_POR_BLOCO = 30
+
     // Sequencia minima (em blocos) para considerar interrupcao "longa" — 30 min cada, entao 1 bloco = 30 min.
     // Threshold: >30 min = 2+ blocos consecutivos OFFLINE.
     private const val BLOCOS_INTERRUPCAO_LONGA = 2
+
     // Numero minimo de dias distintos com queda num mesmo horario para considerar padrao recorrente.
     private const val DIAS_MINIMOS_PADRAO_HORARIO = 2
+
     // Blocos por dia para separar janelas de 24h.
     private const val BLOCOS_POR_DIA = 48 // 24h / 30min
 
@@ -59,11 +61,12 @@ object UptimeNarrativaEngine {
         if (offline > 0) {
             val horasOffline = (offline * MINUTOS_POR_BLOCO) / 60
             val minutosOffline = (offline * MINUTOS_POR_BLOCO) % 60
-            val duracaoOffline = when {
-                horasOffline > 0 && minutosOffline > 0 -> "${horasOffline}h ${minutosOffline}min"
-                horasOffline > 0 -> "${horasOffline}h"
-                else -> "${minutosOffline}min"
-            }
+            val duracaoOffline =
+                when {
+                    horasOffline > 0 && minutosOffline > 0 -> "${horasOffline}h ${minutosOffline}min"
+                    horasOffline > 0 -> "${horasOffline}h"
+                    else -> "${minutosOffline}min"
+                }
 
             // v2.0: sequencias longas (>30 min = mais de 1 bloco consecutivo)
             val sequenciasLongas = detectarInterrupcoesLongas(blocos)
@@ -72,11 +75,12 @@ object UptimeNarrativaEngine {
             if (maiorSequencia != null && maiorSequencia.duracaoMinutos > 30) {
                 val horas = maiorSequencia.duracaoMinutos / 60
                 val minutos = maiorSequencia.duracaoMinutos % 60
-                val duracaoStr = when {
-                    horas > 0 && minutos > 0 -> "${horas}h ${minutos}min"
-                    horas > 0 -> "${horas}h"
-                    else -> "${minutos}min"
-                }
+                val duracaoStr =
+                    when {
+                        horas > 0 && minutos > 0 -> "${horas}h ${minutos}min"
+                        horas > 0 -> "${horas}h"
+                        else -> "${minutos}min"
+                    }
                 val descricaoPeriodo = descreverPeriodo(maiorSequencia.inicio)
                 partes.add("Sua rede ficou offline por $duracaoStr $descricaoPeriodo.")
             } else {
@@ -88,11 +92,12 @@ object UptimeNarrativaEngine {
         if (latenciaAlta > 0) {
             val horasLatenciaAlta = (latenciaAlta * MINUTOS_POR_BLOCO) / 60
             val minutosLatenciaAlta = (latenciaAlta * MINUTOS_POR_BLOCO) % 60
-            val duracaoLatenciaAlta = when {
-                horasLatenciaAlta > 0 && minutosLatenciaAlta > 0 -> "${horasLatenciaAlta}h ${minutosLatenciaAlta}min"
-                horasLatenciaAlta > 0 -> "${horasLatenciaAlta}h"
-                else -> "${minutosLatenciaAlta}min"
-            }
+            val duracaoLatenciaAlta =
+                when {
+                    horasLatenciaAlta > 0 && minutosLatenciaAlta > 0 -> "${horasLatenciaAlta}h ${minutosLatenciaAlta}min"
+                    horasLatenciaAlta > 0 -> "${horasLatenciaAlta}h"
+                    else -> "${minutosLatenciaAlta}min"
+                }
 
             val sequenciasLongasLatenciaAlta = detectarInterrupcoesLongas(blocos, StatusUptime.LATENCIA_ALTA)
             val maiorSequenciaLatenciaAlta = sequenciasLongasLatenciaAlta.maxByOrNull { it.duracaoMinutos }
@@ -100,11 +105,12 @@ object UptimeNarrativaEngine {
             if (maiorSequenciaLatenciaAlta != null && maiorSequenciaLatenciaAlta.duracaoMinutos > 30) {
                 val horas = maiorSequenciaLatenciaAlta.duracaoMinutos / 60
                 val minutos = maiorSequenciaLatenciaAlta.duracaoMinutos % 60
-                val duracaoStr = when {
-                    horas > 0 && minutos > 0 -> "${horas}h ${minutos}min"
-                    horas > 0 -> "${horas}h"
-                    else -> "${minutos}min"
-                }
+                val duracaoStr =
+                    when {
+                        horas > 0 && minutos > 0 -> "${horas}h ${minutos}min"
+                        horas > 0 -> "${horas}h"
+                        else -> "${minutos}min"
+                    }
                 val descricaoPeriodo = descreverPeriodo(maiorSequenciaLatenciaAlta.inicio)
                 partes.add("A rede respondeu devagar (latência muito alta) por $duracaoStr $descricaoPeriodo, mas seguiu conectada.")
             } else {
@@ -120,10 +126,11 @@ object UptimeNarrativaEngine {
             } else if (lento >= 2) {
                 val horasLento = (lento * MINUTOS_POR_BLOCO) / 60
                 val minutosLento = (lento * MINUTOS_POR_BLOCO) % 60
-                val duracaoLento = when {
-                    horasLento > 0 -> "${horasLento}h e ${minutosLento}min"
-                    else -> "${minutosLento}min"
-                }
+                val duracaoLento =
+                    when {
+                        horasLento > 0 -> "${horasLento}h e ${minutosLento}min"
+                        else -> "${minutosLento}min"
+                    }
                 partes.add("Houve lentidão por $duracaoLento.")
             }
         }
@@ -166,30 +173,32 @@ object UptimeNarrativaEngine {
      * Retorna uma string legivel descrevendo o padrao, ou null se nenhum encontrado.
      */
     fun detectarPadraoHorario(blocos: List<BlocoUptime>): String? {
-        val offlinePorHora = blocos
-            .filter { it.status == StatusUptime.OFFLINE }
-            .groupBy { it.dataHora.hour }
+        val offlinePorHora =
+            blocos
+                .filter { it.status == StatusUptime.OFFLINE }
+                .groupBy { it.dataHora.hour }
 
         // Para cada hora, conta em quantos dias distintos houve queda
-        val horarioComPadrao = offlinePorHora
-            .mapValues { (_, eventos) ->
-                eventos.map { it.dataHora.toLocalDate() }.toSet().size
-            }
-            .filter { (_, diasDistintos) -> diasDistintos >= DIAS_MINIMOS_PADRAO_HORARIO }
-            .maxByOrNull { (_, diasDistintos) -> diasDistintos }
+        val horarioComPadrao =
+            offlinePorHora
+                .mapValues { (_, eventos) ->
+                    eventos.map { it.dataHora.toLocalDate() }.toSet().size
+                }.filter { (_, diasDistintos) -> diasDistintos >= DIAS_MINIMOS_PADRAO_HORARIO }
+                .maxByOrNull { (_, diasDistintos) -> diasDistintos }
 
         if (horarioComPadrao == null) return null
 
         val hora = horarioComPadrao.key
         val diasDistintos = horarioComPadrao.value
-        val periodoStr = when (hora) {
-            in 5..11 -> "de manhã"
-            in 12..17 -> "à tarde"
-            in 18..22 -> "à noite"
-            else -> "de madrugada"
-        }
+        val periodoStr =
+            when (hora) {
+                in 5..11 -> "de manhã"
+                in 12..17 -> "à tarde"
+                in 18..22 -> "à noite"
+                else -> "de madrugada"
+            }
         val horaStr = "%02dh".format(hora)
-        return "Detectado padrão recorrente: quedas às ${horaStr} ($periodoStr) por $diasDistintos dias."
+        return "Detectado padrão recorrente: quedas às $horaStr ($periodoStr) por $diasDistintos dias."
     }
 
     // ---------------------------------------------------------------------------
@@ -294,7 +303,10 @@ object UptimeNarrativaEngine {
     // ---------------------------------------------------------------------------
 
     /** Retorna o tamanho da maior sequencia continua do status informado. */
-    private fun encontrarMaiorSequencia(blocos: List<BlocoUptime>, status: StatusUptime): Int {
+    private fun encontrarMaiorSequencia(
+        blocos: List<BlocoUptime>,
+        status: StatusUptime,
+    ): Int {
         var maxima = 0
         var atual = 0
         blocos.forEach { bloco ->
@@ -309,7 +321,10 @@ object UptimeNarrativaEngine {
     }
 
     /** Retorna o dataHora do primeiro bloco da maior sequencia continua do status. */
-    private fun encontrarInicioDaMaiorSequencia(blocos: List<BlocoUptime>, status: StatusUptime): LocalDateTime? {
+    private fun encontrarInicioDaMaiorSequencia(
+        blocos: List<BlocoUptime>,
+        status: StatusUptime,
+    ): LocalDateTime? {
         var maxima = 0
         var atual = 0
         var inicioAtual: LocalDateTime? = null

@@ -7,7 +7,6 @@ import androidx.room.Query
 
 @Dao
 interface RecommendationHistoryDao {
-
     /** Registra a exibicao de uma recomendacao. REPLACE por id evita duplicar a mesma decisao. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun registrarExibicao(entrada: RecommendationHistoryEntity)
@@ -23,7 +22,11 @@ interface RecommendationHistoryDao {
         "UPDATE recommendation_history SET feedback = :feedback, feedbackAtEpochMs = :feedbackAtEpochMs " +
             "WHERE id = :id",
     )
-    suspend fun atualizarFeedback(id: String, feedback: String, feedbackAtEpochMs: Long)
+    suspend fun atualizarFeedback(
+        id: String,
+        feedback: String,
+        feedbackAtEpochMs: Long,
+    )
 
     /** Feedback (util/nao util/ocultar) registrado desde o checkpoint -- usado pelo sync
      *  retroativo para o signallq-admin-worker (design-tobe-alinhamento, tela 1a). Só

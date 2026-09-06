@@ -15,7 +15,6 @@ enum class DiagnosticArea {
  * O DiagnosticOrchestrator so faz o "plumbing" e publica snapshots.
  */
 object DiagnosticRunner {
-
     /**
      * @param gerarRecomendacoes Motor de recomendacoes praticas (REC-01..REC-14 no consumidor) —
      *   injetado por inversao de dependencia (issue #1157, Fase 1a) porque esse motor e
@@ -87,35 +86,37 @@ object DiagnosticRunner {
 
         val recomendacoes = gerarRecomendacoes(input, achados)
 
-        val reportParcial = DiagnosticReport(
-            wifiResultados = wifiQuality.resultados,
-            internetResultados = internetResultados,
-            mobileResultados = mobileResultados,
-            fibraResultados = fibraResultados,
-            dnsResultados = dnsResultados,
-            historicoResultados = historicoResultados,
-            wifiCanalResultados = wifiCanalResultados,
-            redeResultados = redeResultados,
-            decisao = achados.principal,
-            achadosSecundarios = achados.secundarios,
-            hipotesesDescartadas = achados.hipotesesDescartadas,
-            dadosAusentes = achados.dadosAusentes,
-            limitacoesEquipamentoLocal = achados.limitacoesEquipamentoLocal,
-            recomendacoes = recomendacoes,
-            perfisUsoSpeedtest = input.internet?.qualidadeUso,
-            perfisUso = UsageProfileClassifier.classificarTodos(input),
-            gameReadiness = GameReadinessClassifier.classificarTodos(input),
-            geradoEmMs = System.currentTimeMillis(),
-            // GH#1228 (Fase 3) — propaga a identidade da execucao de entrada (nunca gera
-            // uma nova aqui) e fixa a versao canonica das regras aplicadas por este motor.
-            executionId = input.executionId,
-            rulesVersion = DiagnosticRulesVersion.CURRENT,
-        )
+        val reportParcial =
+            DiagnosticReport(
+                wifiResultados = wifiQuality.resultados,
+                internetResultados = internetResultados,
+                mobileResultados = mobileResultados,
+                fibraResultados = fibraResultados,
+                dnsResultados = dnsResultados,
+                historicoResultados = historicoResultados,
+                wifiCanalResultados = wifiCanalResultados,
+                redeResultados = redeResultados,
+                decisao = achados.principal,
+                achadosSecundarios = achados.secundarios,
+                hipotesesDescartadas = achados.hipotesesDescartadas,
+                dadosAusentes = achados.dadosAusentes,
+                limitacoesEquipamentoLocal = achados.limitacoesEquipamentoLocal,
+                recomendacoes = recomendacoes,
+                perfisUsoSpeedtest = input.internet?.qualidadeUso,
+                perfisUso = UsageProfileClassifier.classificarTodos(input),
+                gameReadiness = GameReadinessClassifier.classificarTodos(input),
+                geradoEmMs = System.currentTimeMillis(),
+                // GH#1228 (Fase 3) — propaga a identidade da execucao de entrada (nunca gera
+                // uma nova aqui) e fixa a versao canonica das regras aplicadas por este motor.
+                executionId = input.executionId,
+                rulesVersion = DiagnosticRulesVersion.CURRENT,
+            )
 
-        val scoreResultado = ScoreEngine.calcular(
-            tipo = ScoreEvidenceBuilder.tipoConexao(input),
-            evidencias = ScoreEvidenceBuilder.construir(input, reportParcial),
-        )
+        val scoreResultado =
+            ScoreEngine.calcular(
+                tipo = ScoreEvidenceBuilder.tipoConexao(input),
+                evidencias = ScoreEvidenceBuilder.construir(input, reportParcial),
+            )
 
         return reportParcial.copy(scoreEngineResultado = scoreResultado)
     }
@@ -128,13 +129,16 @@ object DiagnosticRunner {
     private fun avaliarNat(nat: NatStatus?): List<DiagnosticResult> {
         if (nat == null || nat == NatStatus.UNKNOWN || nat == NatStatus.DIRECT_PUBLIC) return emptyList()
 
-        val (titulo, mensagem) = when (nat) {
-            NatStatus.CGNAT -> "CGNAT Detectado" to
-                "Sua conexao esta atras de CGNAT (Carrier-Grade NAT) — o IP publico e compartilhado entre varios clientes da operadora."
-            NatStatus.DOUBLE_NAT_OR_CGNAT -> "NAT Duplo Detectado" to
-                "Sua conexao parece estar atras de NAT duplo (roteador + outro NAT antes da internet)."
-            else -> return emptyList()
-        }
+        val (titulo, mensagem) =
+            when (nat) {
+                NatStatus.CGNAT ->
+                    "CGNAT Detectado" to
+                        "Sua conexao esta atras de CGNAT (Carrier-Grade NAT) — o IP publico e compartilhado entre varios clientes da operadora."
+                NatStatus.DOUBLE_NAT_OR_CGNAT ->
+                    "NAT Duplo Detectado" to
+                        "Sua conexao parece estar atras de NAT duplo (roteador + outro NAT antes da internet)."
+                else -> return emptyList()
+            }
 
         return listOf(
             DiagnosticResult(

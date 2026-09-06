@@ -8,29 +8,29 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MedicaoEntityTest {
-
     // Entidade mínima válida — apenas campos obrigatórios
-    private fun entidadeMinima(id: String = "abc-123") = MedicaoEntity(
-        id = id,
-        timestampEpochMs = 1_700_000_000_000L,
-        connectionType = "wifi",
-        connectionTypeStart = null,
-        connectionTypeEnd = null,
-        contaminado = false,
-        speedtestMode = null,
-        specVersion = null,
-        downloadMbps = null,
-        uploadMbps = null,
-        latencyMs = null,
-        jitterMs = null,
-        perdaPercentual = null,
-        bufferbloatMs = null,
-        packetLossSource = null,
-        vereditoStreaming = null,
-        vereditoGamer = null,
-        vereditoVideoChamada = null,
-        gargaloPrimario = null,
-    )
+    private fun entidadeMinima(id: String = "abc-123") =
+        MedicaoEntity(
+            id = id,
+            timestampEpochMs = 1_700_000_000_000L,
+            connectionType = "wifi",
+            connectionTypeStart = null,
+            connectionTypeEnd = null,
+            contaminado = false,
+            speedtestMode = null,
+            specVersion = null,
+            downloadMbps = null,
+            uploadMbps = null,
+            latencyMs = null,
+            jitterMs = null,
+            perdaPercentual = null,
+            bufferbloatMs = null,
+            packetLossSource = null,
+            vereditoStreaming = null,
+            vereditoGamer = null,
+            vereditoVideoChamada = null,
+            gargaloPrimario = null,
+        )
 
     @Test
     fun `entidade minima tem campos nulos para metricas opcionais`() {
@@ -76,29 +76,30 @@ class MedicaoEntityTest {
 
     @Test
     fun `entidade com todas as metricas preserva valores`() {
-        val e = MedicaoEntity(
-            id = "full-001",
-            timestampEpochMs = 1_700_000_000_000L,
-            connectionType = "movel",
-            connectionTypeStart = "wifi",
-            connectionTypeEnd = "movel",
-            contaminado = true,
-            speedtestMode = "full",
-            specVersion = "1.0",
-            downloadMbps = 150.5,
-            uploadMbps = 20.3,
-            latencyMs = 12.0,
-            jitterMs = 2.5,
-            perdaPercentual = 0.1,
-            bufferbloatMs = 30.0,
-            packetLossSource = "modem",
-            vereditoStreaming = "bom",
-            vereditoGamer = "ruim",
-            vereditoVideoChamada = "regular",
-            gargaloPrimario = "upload",
-            fonte = "speedtest",
-            operadoraMovel = "Vivo",
-        )
+        val e =
+            MedicaoEntity(
+                id = "full-001",
+                timestampEpochMs = 1_700_000_000_000L,
+                connectionType = "movel",
+                connectionTypeStart = "wifi",
+                connectionTypeEnd = "movel",
+                contaminado = true,
+                speedtestMode = "full",
+                specVersion = "1.0",
+                downloadMbps = 150.5,
+                uploadMbps = 20.3,
+                latencyMs = 12.0,
+                jitterMs = 2.5,
+                perdaPercentual = 0.1,
+                bufferbloatMs = 30.0,
+                packetLossSource = "modem",
+                vereditoStreaming = "bom",
+                vereditoGamer = "ruim",
+                vereditoVideoChamada = "regular",
+                gargaloPrimario = "upload",
+                fonte = "speedtest",
+                operadoraMovel = "Vivo",
+            )
 
         assertEquals(150.5, e.downloadMbps)
         assertEquals(20.3, e.uploadMbps)

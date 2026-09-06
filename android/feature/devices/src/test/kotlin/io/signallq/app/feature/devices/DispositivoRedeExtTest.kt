@@ -9,7 +9,6 @@ import org.junit.Test
 /** GH#531 — cobre a regra de "dispositivo-cliente real" usada nas contagens
  *  de subtítulo do gateway em Ajustes e Dispositivos. */
 class DispositivoRedeExtTest {
-
     private fun dispositivo(
         fonteNome: String,
         tipo: TipoDispositivo,

@@ -13,13 +13,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CompareArrows
 import androidx.compose.material.icons.outlined.HelpOutline
-import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.SportsEsports
-import androidx.compose.material.icons.outlined.Tv
-import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material3.Icon

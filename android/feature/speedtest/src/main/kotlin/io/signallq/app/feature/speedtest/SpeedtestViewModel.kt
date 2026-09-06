@@ -290,10 +290,11 @@ class SpeedtestViewModel
                     ModoSpeedtest.complete -> 25L
                 }
             val cal = java.util.Calendar.getInstance()
-            val mesAtual = "%04d-%02d".format(
-                cal.get(java.util.Calendar.YEAR),
-                cal.get(java.util.Calendar.MONTH) + 1,
-            )
+            val mesAtual =
+                "%04d-%02d".format(
+                    cal.get(java.util.Calendar.YEAR),
+                    cal.get(java.util.Calendar.MONTH) + 1,
+                )
             viewModelScope.launch {
                 withContext(kotlinx.coroutines.NonCancellable) {
                     val mesReferencia = preferenciasAppRepository.speedtestMesReferencia.first()

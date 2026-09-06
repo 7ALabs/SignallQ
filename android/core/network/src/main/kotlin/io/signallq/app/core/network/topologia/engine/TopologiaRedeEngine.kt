@@ -122,11 +122,12 @@ object TopologiaRedeEngine {
             if (papel == PapelTopologia.DESCONHECIDO) {
                 val evidenciaA = Evidencia(TipoEvidencia.OUI, oui, PesoEvidencia.MEDIO)
                 val evidenciaB = Evidencia(TipoEvidencia.OUI, oui, PesoEvidencia.MEDIO)
-                conflitos += ConflitoSinal(
-                    evidenciaA,
-                    evidenciaB,
-                    "OUI $oui consta como nó mesh e como gateway ISP — sem outro nó no grupo pra desempatar",
-                )
+                conflitos +=
+                    ConflitoSinal(
+                        evidenciaA,
+                        evidenciaB,
+                        "OUI $oui consta como nó mesh e como gateway ISP — sem outro nó no grupo pra desempatar",
+                    )
             }
         }
 
@@ -166,10 +167,12 @@ object TopologiaRedeEngine {
         papel: PapelTopologia,
         evidencias: List<Evidencia>,
     ): ConflitoSinal {
-        val evidenciaOui = evidencias.firstOrNull { it.tipo == TipoEvidencia.OUI }
-            ?: Evidencia(TipoEvidencia.OUI, oui, PesoEvidencia.FORTE)
-        val evidenciaSsid = evidencias.firstOrNull { it.tipo == TipoEvidencia.SSID }
-            ?: Evidencia(TipoEvidencia.SSID, ssid.orEmpty(), PesoEvidencia.MEDIO)
+        val evidenciaOui =
+            evidencias.firstOrNull { it.tipo == TipoEvidencia.OUI }
+                ?: Evidencia(TipoEvidencia.OUI, oui, PesoEvidencia.FORTE)
+        val evidenciaSsid =
+            evidencias.firstOrNull { it.tipo == TipoEvidencia.SSID }
+                ?: Evidencia(TipoEvidencia.SSID, ssid.orEmpty(), PesoEvidencia.MEDIO)
         return ConflitoSinal(
             evidenciaA = evidenciaOui,
             evidenciaB = evidenciaSsid,
@@ -177,11 +180,12 @@ object TopologiaRedeEngine {
         )
     }
 
-    private fun subirConfianca(atual: NivelConfianca): NivelConfianca = when (atual) {
-        NivelConfianca.BAIXA -> NivelConfianca.MEDIA
-        NivelConfianca.MEDIA -> NivelConfianca.ALTA
-        NivelConfianca.ALTA -> NivelConfianca.ALTA
-    }
+    private fun subirConfianca(atual: NivelConfianca): NivelConfianca =
+        when (atual) {
+            NivelConfianca.BAIXA -> NivelConfianca.MEDIA
+            NivelConfianca.MEDIA -> NivelConfianca.ALTA
+            NivelConfianca.ALTA -> NivelConfianca.ALTA
+        }
 
     private fun decidirPapelPorOuiEBanda(
         rede: RedeVizinha,

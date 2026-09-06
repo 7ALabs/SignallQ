@@ -143,7 +143,7 @@ private fun Inicio2Hero(
                     "Vídeos em HD e chamadas podem travar agora.",
                     SignallQFeedbackTone.Neutral,
                 )
-    
+
             Inicio2Analise.Carregando ->
                 Triple(
                     "Analisando sua conexão",

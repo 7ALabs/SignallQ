@@ -64,11 +64,11 @@ data class ContextoDoPlano(
     /**
      * Estado real da conexão (`snapshotRede.estadoConexao`). Existe porque `conectadoPorWifi`
      * responde "o motor vai medir o RSSI do Wi-Fi?" — uma pergunta boa para `SINAL_WIFI`, errada
-     * para `REDE_MOVEL`. `REDE_MOVEL` só sai do motor quando `connectionType == mobile`
-     * (`DiagnosticoGuiadoEngine.avaliarWifiVsOperadora`), e `!conectadoPorWifi` é bem mais largo
+     * para `REDE_MOVEL`. A dimensão de rede móvel só sai do motor quando
+     * `connectionType == mobile`, e `!conectadoPorWifi` é bem mais largo
      * que isso — cobre também ethernet, desconectado, desconhecido e Wi-Fi com VPN ativa (onde
      * `wifiLinkSnapshot` vem `null` mas `estadoConexao` continua `wifi`). Bloqueio B10 de Caio na
-     * PR #1732: o `else` de `WIFI_VS_OPERADORA` prometia rede móvel para quem estava em qualquer
+     * PR #1732: o plano prometia rede móvel para quem estava em qualquer
      * um desses estados, atribuindo causa errada ao limite.
      */
     val estadoConexao: EstadoConexao = EstadoConexao.desconhecido,
@@ -121,7 +121,7 @@ private fun capacidadesDoObjetivo(
                 Capacidade.COMPORTAMENTO_SOB_CARGA,
                 Capacidade.DOWNLOAD_UPLOAD,
                 // SINAL_WIFI is included when connected to Wi-Fi.
-                if (contexto.conectadoPorWifi) Capacidade.SINAL_WIFI else null
+                if (contexto.conectadoPorWifi) Capacidade.SINAL_WIFI else null,
             ).filterNotNull()
 
         ObjetivoDiagnostico.OUTRO_PROBLEMA ->
@@ -179,13 +179,8 @@ fun montarPlano(
     objetivo: ObjetivoDiagnostico,
     contexto: ContextoDoPlano,
     /**
-     * Respostas já dadas no roteiro, **indexadas por passo, sem buraco**. Mudam o que o motor
-     * avalia — ver `JOGOS_COM_LAG`. RESSALVA R9 de Caio na PR #1732: o motor recebe
-     * `respostas.filterNotNull()` (`DiagnosticoGuiadoScreen.kt`), que **compacta** os índices; esta
-     * função indexa a lista crua por posição (`respostas.getOrNull(0)`). Hoje os dois contratos
-     * não divergem porque o botão de avançar exige seleção antes de liberar o próximo passo — não
-     * há buraco antes da resposta mais recente. Se uma pergunta virar opcional, os dois lados vão
-     * ler índices diferentes em silêncio.
+     * Mantido por compatibilidade com chamadores/testes da fase anterior. A triagem atual não
+     * coleta respostas fechadas, então o plano é derivado do objetivo e do contexto medido.
      */
     respostas: List<Int?> = emptyList(),
 ): PlanoDeAnalise {

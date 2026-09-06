@@ -14,7 +14,6 @@ import org.junit.Test
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class DevicesViewModelTest {
-
     /** Helper: cria um DispositivoRede minimo para teste. */
     private fun dispositivo(
         ip: String? = "192.168.1.1",

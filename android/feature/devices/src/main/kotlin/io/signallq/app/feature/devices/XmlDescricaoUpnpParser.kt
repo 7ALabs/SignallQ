@@ -11,7 +11,6 @@
  * Exposto como objeto singleton para facilitar testes unitários sem Context.
  */
 internal object XmlDescricaoUpnpParser {
-
     /** Dados extraídos do XML de descrição UPnP. */
     data class Descricao(
         val friendlyName: String,
@@ -42,8 +41,15 @@ internal object XmlDescricaoUpnpParser {
      * Extrai o conteúdo textual da primeira ocorrência de [tag] no [xml].
      * Suporta atributos na tag de abertura. Case-insensitive.
      */
-    private fun extrairTag(xml: String, tag: String): String {
+    private fun extrairTag(
+        xml: String,
+        tag: String,
+    ): String {
         val regex = Regex("<$tag[^>]*>([^<]*)</$tag>", RegexOption.IGNORE_CASE)
-        return regex.find(xml)?.groupValues?.getOrNull(1)?.trim() ?: ""
+        return regex
+            .find(xml)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.trim() ?: ""
     }
 }

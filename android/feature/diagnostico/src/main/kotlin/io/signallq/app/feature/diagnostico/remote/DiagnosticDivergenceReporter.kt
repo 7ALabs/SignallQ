@@ -6,7 +6,6 @@ import io.signallq.app.core.diagnostico.DiagnosticRolloutEligibility
 import io.signallq.app.core.diagnostico.DiagnosticRolloutStatus
 import io.signallq.app.core.featureflags.FeatureFlagKeys
 import io.signallq.app.core.featureflags.FeatureFlagProvider
-import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -14,6 +13,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import timber.log.Timber
 
 /**
  * Shadow mode (GH#1444, parte de #952) — envia o registro JA CLASSIFICADO
@@ -117,13 +117,16 @@ class DiagnosticDivergenceReporter(
 
         runCatching {
             withContext(Dispatchers.IO) {
-                val body = toJson(executionId, snapshotHash, comparison, localSource, remoteSource, localDurationMs, remoteDurationMs)
-                    .toString()
-                    .toRequestBody("application/json; charset=utf-8".toMediaType())
-                val request = Request.Builder()
-                    .url(baseUrl.trimEnd('/') + "/ingest/diagnostic-divergence")
-                    .post(body)
-                    .build()
+                val body =
+                    toJson(executionId, snapshotHash, comparison, localSource, remoteSource, localDurationMs, remoteDurationMs)
+                        .toString()
+                        .toRequestBody("application/json; charset=utf-8".toMediaType())
+                val request =
+                    Request
+                        .Builder()
+                        .url(baseUrl.trimEnd('/') + "/ingest/diagnostic-divergence")
+                        .post(body)
+                        .build()
                 client.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) {
                         Timber.w("DiagnosticDivergenceReporter: worker HTTP ${response.code} — execution=$executionId")

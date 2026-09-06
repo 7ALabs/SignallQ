@@ -25,8 +25,9 @@ import java.net.Socket
  * @param timeoutMs timeout por tentativa TCP em ms. Padrão 1000ms em produção;
  *   use valor menor (ex: 100ms) em testes para evitar espera desnecessária em CI.
  */
-class GatewayLatencyMeasurer(private val timeoutMs: Int = TIMEOUT_MS_DEFAULT) {
-
+class GatewayLatencyMeasurer(
+    private val timeoutMs: Int = TIMEOUT_MS_DEFAULT,
+) {
     companion object {
         private val PORTAS_TENTATIVA = listOf(80, 443, 53)
         private const val TIMEOUT_MS_DEFAULT = 1000
@@ -41,23 +42,27 @@ class GatewayLatencyMeasurer(private val timeoutMs: Int = TIMEOUT_MS_DEFAULT) {
      *
      * @return Mediana em ms das medições bem-sucedidas, ou null se todas falharem.
      */
-    suspend fun measureRttGateway(gatewayIp: String): Int? = withContext(Dispatchers.IO) {
-        val amostras = mutableListOf<Long>()
+    suspend fun measureRttGateway(gatewayIp: String): Int? =
+        withContext(Dispatchers.IO) {
+            val amostras = mutableListOf<Long>()
 
-        for (porta in PORTAS_TENTATIVA) {
-            val amostrasPorta = medirPorta(gatewayIp, porta)
-            amostras.addAll(amostrasPorta)
-            // Se conseguiu pelo menos 2 amostras nessa porta, já temos material
-            if (amostrasPorta.size >= 2) break
+            for (porta in PORTAS_TENTATIVA) {
+                val amostrasPorta = medirPorta(gatewayIp, porta)
+                amostras.addAll(amostrasPorta)
+                // Se conseguiu pelo menos 2 amostras nessa porta, já temos material
+                if (amostrasPorta.size >= 2) break
+            }
+
+            if (amostras.isEmpty()) return@withContext null
+
+            amostras.sort()
+            amostras[amostras.size / 2].toInt()
         }
 
-        if (amostras.isEmpty()) return@withContext null
-
-        amostras.sort()
-        amostras[amostras.size / 2].toInt()
-    }
-
-    private fun medirPorta(gatewayIp: String, porta: Int): List<Long> {
+    private fun medirPorta(
+        gatewayIp: String,
+        porta: Int,
+    ): List<Long> {
         val resultados = mutableListOf<Long>()
         repeat(AMOSTRAS) {
             val ms = medirConexaoTcp(gatewayIp, porta)
@@ -66,8 +71,11 @@ class GatewayLatencyMeasurer(private val timeoutMs: Int = TIMEOUT_MS_DEFAULT) {
         return resultados
     }
 
-    private fun medirConexaoTcp(gatewayIp: String, porta: Int): Long? {
-        return try {
+    private fun medirConexaoTcp(
+        gatewayIp: String,
+        porta: Int,
+    ): Long? =
+        try {
             // .use {} garante que o socket é fechado mesmo se connect() lançar exceção
             Socket().use { socket ->
                 val inicio = System.currentTimeMillis()
@@ -79,5 +87,4 @@ class GatewayLatencyMeasurer(private val timeoutMs: Int = TIMEOUT_MS_DEFAULT) {
             // Porta fechada, timeout ou gateway não responde nessa porta — normal
             null
         }
-    }
 }

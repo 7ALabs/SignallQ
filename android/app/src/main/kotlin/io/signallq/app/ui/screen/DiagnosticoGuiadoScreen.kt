@@ -151,8 +151,8 @@ fun DiagnosticoGuiadoScreen(
     resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity,
     resolveOperadoraContatoRemoto: suspend (String?, Boolean) -> ResolvedOperadoraContact,
     /** Só #1476 (Modo gamer) preenche este callback — enquanto `null`, o botão "Ver
-     *  diagnóstico por jogo" (mostrado só para [ObjetivoDiagnostico.JOGOS_COM_LAG])
-     *  não aparece. Mantém o contrato pronto sem implementar o fluxo de jogo aqui. */
+     *  diagnóstico por jogo" não aparece. Mantém o contrato pronto sem implementar o
+     *  fluxo de jogo aqui. */
     onIniciarModoGamer: (() -> Unit)? = null,
     /** Camada A (issue #1503) — card "próximo passo sugerido" no resultado. Chamado com a
      *  ferramenta mapeada por [ObjetivoDiagnostico.ferramentaSugerida]; quem trata a
@@ -369,7 +369,7 @@ fun DiagnosticoGuiadoScreen(
                     estado.irPara(DiagnosticoGuiadoRota.Analise)
                 }
             }
-        
+
         if (podeConcluirSemMedir && onAvaliarAssist != null) {
             estadoChamadaNds = EstadoChamadaNds.EmCurso
         }
@@ -440,7 +440,7 @@ fun DiagnosticoGuiadoScreen(
             objetivoAtual == null ->
                 DiagnosticoGuiadoListaObjetivosSection(
                     modifier = Modifier.padding(padding),
-                    onSelect = { 
+                    onSelect = {
                         estado = estado.copy(objetivo = it)
                         if (it != ObjetivoDiagnostico.OUTRO_PROBLEMA) {
                             avançarOuConcluir()
