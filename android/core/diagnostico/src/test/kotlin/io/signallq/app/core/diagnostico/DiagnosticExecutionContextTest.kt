@@ -12,7 +12,6 @@ import org.junit.Test
  * com a versão canônica de regras e o instante de início.
  */
 class DiagnosticExecutionContextTest {
-
     @Test
     fun `iniciar preserva o executionId recebido, nunca gera outro`() {
         val contexto = DiagnosticExecutionContext.iniciar(executionId = "exec-original-001")

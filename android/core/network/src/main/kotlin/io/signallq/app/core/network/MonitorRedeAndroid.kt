@@ -51,27 +51,28 @@ class MonitorRedeAndroid(
     // Sem debounce, o usuário vê "desconectado" por 1-3 segundos mesmo com internet ativa.
     private val runnableDesconectado = Runnable { atualizarSnapshot() }
 
-    private val callbackRede = object : ConnectivityManager.NetworkCallback() {
-        override fun onAvailable(network: Network) {
-            // Cancela debounce de desconexão pendente — a rede voltou antes da janela expirar.
-            mainHandler.removeCallbacks(runnableDesconectado)
-            atualizarSnapshot()
-        }
+    private val callbackRede =
+        object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                // Cancela debounce de desconexão pendente — a rede voltou antes da janela expirar.
+                mainHandler.removeCallbacks(runnableDesconectado)
+                atualizarSnapshot()
+            }
 
-        override fun onLost(network: Network) {
-            // Não emite desconectado imediatamente: aguarda 2000ms para ver se onAvailable
-            // chega em seguida (handoff entre redes). Se não chegar, confirma desconexão.
-            mainHandler.removeCallbacks(runnableDesconectado)
-            mainHandler.postDelayed(runnableDesconectado, 2000)
-        }
+            override fun onLost(network: Network) {
+                // Não emite desconectado imediatamente: aguarda 2000ms para ver se onAvailable
+                // chega em seguida (handoff entre redes). Se não chegar, confirma desconexão.
+                mainHandler.removeCallbacks(runnableDesconectado)
+                mainHandler.postDelayed(runnableDesconectado, 2000)
+            }
 
-        override fun onCapabilitiesChanged(
-            network: Network,
-            networkCapabilities: NetworkCapabilities,
-        ) {
-            atualizarSnapshot()
+            override fun onCapabilitiesChanged(
+                network: Network,
+                networkCapabilities: NetworkCapabilities,
+            ) {
+                atualizarSnapshot()
+            }
         }
-    }
 
     @SuppressLint("MissingPermission")
     override fun iniciar() {
@@ -130,32 +131,33 @@ class MonitorRedeAndroid(
         // estadoConexao (wifi/movel/desconectado) não exige VALIDATED — permanece inalterado.
         val temInternet = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
         val temValidated = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-        val conectado = when {
-            temInternet && temValidated -> {
-                tentativasAguardandoValidated.set(0)
-                true
-            }
-            temInternet && !temValidated -> {
-                // VALIDATED ainda não chegou — pode ser Samsung One UI disparando onAvailable cedo,
-                // captive portal, VPN ou proxy de operadora.
-                if (tentativasAguardandoValidated.get() >= 1) {
-                    // Já esperamos 1 ciclo de retry (600 ms) — fallback: considera conectado
-                    // para não travar o usuário. onCapabilitiesChanged vai corrigir se mudar.
+        val conectado =
+            when {
+                temInternet && temValidated -> {
                     tentativasAguardandoValidated.set(0)
                     true
-                } else {
-                    tentativasAguardandoValidated.incrementAndGet()
-                    // Agenda retry: onCapabilitiesChanged normalmente chega com VALIDATED em seguida.
-                    // Se não chegar, o retry dispara e no próximo ciclo o fallback acima assume.
-                    mainHandler.postDelayed(runnableRetry, 600)
+                }
+                temInternet && !temValidated -> {
+                    // VALIDATED ainda não chegou — pode ser Samsung One UI disparando onAvailable cedo,
+                    // captive portal, VPN ou proxy de operadora.
+                    if (tentativasAguardandoValidated.get() >= 1) {
+                        // Já esperamos 1 ciclo de retry (600 ms) — fallback: considera conectado
+                        // para não travar o usuário. onCapabilitiesChanged vai corrigir se mudar.
+                        tentativasAguardandoValidated.set(0)
+                        true
+                    } else {
+                        tentativasAguardandoValidated.incrementAndGet()
+                        // Agenda retry: onCapabilitiesChanged normalmente chega com VALIDATED em seguida.
+                        // Se não chegar, o retry dispara e no próximo ciclo o fallback acima assume.
+                        mainHandler.postDelayed(runnableRetry, 600)
+                        false
+                    }
+                }
+                else -> {
+                    tentativasAguardandoValidated.set(0)
                     false
                 }
             }
-            else -> {
-                tentativasAguardandoValidated.set(0)
-                false
-            }
-        }
         val linkProperties = connectivityManager.getLinkProperties(network)
         val privateDnsHostname = linkProperties?.privateDnsServerName?.trim()?.ifBlank { null }
         val dnsServidores =
@@ -182,7 +184,10 @@ class MonitorRedeAndroid(
     }
 
     @SuppressLint("MissingPermission")
-    private fun capturarWifiLinkSnapshot(networkCapabilities: NetworkCapabilities, locationAtivado: Boolean): WifiLinkSnapshot? {
+    private fun capturarWifiLinkSnapshot(
+        networkCapabilities: NetworkCapabilities,
+        locationAtivado: Boolean,
+    ): WifiLinkSnapshot? {
         return try {
             val transportInfo: TransportInfo = networkCapabilities.transportInfo ?: return null
             val wifiInfo = transportInfo as? WifiInfo ?: return null
@@ -200,7 +205,9 @@ class MonitorRedeAndroid(
                         ssid = normalizarSsid(legacyInfo.ssid)
                         if (bssidConfiavel == null) bssidConfiavel = bssidValido(legacyInfo.bssid)
                     }
-                } catch (_: SecurityException) { /* sem permissão — ignora */ }
+                } catch (_: SecurityException) {
+                    // sem permissão — ignora
+                }
             }
             WifiLinkSnapshot(
                 ssid = ssid,
@@ -208,38 +215,41 @@ class MonitorRedeAndroid(
                 rssiDbm = wifiInfo.rssi,
                 linkSpeedMbps = wifiInfo.linkSpeed,
                 frequenciaMhz = freq,
-                padraoWifi = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    @Suppress("NewApi")
-                    when (wifiInfo.wifiStandard) {
-                        1 -> null // LEGACY (a/b/g) — sem MIMO, não exibir
-                        4 -> "Wi-Fi 4 (n)"
-                        5 -> "Wi-Fi 5 (ac)"
-                        6 -> if (freq >= 5945) "Wi-Fi 6E (ax)" else "Wi-Fi 6 (ax)"
-                        7 -> "WiGig (ad)"
-                        8 -> "Wi-Fi 7 (be)"
-                        else -> null
-                    }
-                } else null,
-                is5GhzCapable = try {
-                    wifiManager.is5GHzBandSupported
-                } catch (_: Exception) {
-                    null
-                },
+                padraoWifi =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        @Suppress("NewApi")
+                        when (wifiInfo.wifiStandard) {
+                            1 -> null // LEGACY (a/b/g) — sem MIMO, não exibir
+                            4 -> "Wi-Fi 4 (n)"
+                            5 -> "Wi-Fi 5 (ac)"
+                            6 -> if (freq >= 5945) "Wi-Fi 6E (ax)" else "Wi-Fi 6 (ax)"
+                            7 -> "WiGig (ad)"
+                            8 -> "Wi-Fi 7 (be)"
+                            else -> null
+                        }
+                    } else {
+                        null
+                    },
+                is5GhzCapable =
+                    try {
+                        wifiManager.is5GHzBandSupported
+                    } catch (_: Exception) {
+                        null
+                    },
             )
         } catch (_: SecurityException) {
             null
         }
     }
 
-    private fun estaLocalizacaoAtivada(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+    private fun estaLocalizacaoAtivada(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             locationManager.isLocationEnabled
         } else {
             @Suppress("DEPRECATION")
             locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) ||
                 locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
         }
-    }
 
     private fun bssidValido(bssid: String?): String? {
         if (bssid == null) return null

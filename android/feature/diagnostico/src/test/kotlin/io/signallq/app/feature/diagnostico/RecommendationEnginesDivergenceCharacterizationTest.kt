@@ -37,35 +37,39 @@ import org.junit.Test
  * `docs_ai/ARQUITETURA/AUDITORIA_1228_FASE0_INVENTARIO_COMPLETO.md`, Parte 8, P1-1/P1-2.
  */
 class RecommendationEnginesDivergenceCharacterizationTest {
-    private fun wifiFracoNaBanda24Input(): DiagnosticInput = DiagnosticInput(
-        connectionType = ConnectionType.wifi,
-        wifi = WifiDiagnosticInput(
-            rssiDbm = -68, // acima do piso de -70 que bloquearia a recomendacao de troca
-            linkSpeedMbps = 72, // < 144, dispara a condicao "linkBaixo"
-            frequenciaMhz = 2412, // 2.4GHz
-            is5GhzCapable = true,
-        ),
-        internet = InternetDiagnosticInput(
-            downloadMbps = 15.0,
-            uploadMbps = 10.0,
-            latencyMs = 20.0,
-            jitterMs = 5.0,
-            perdaPercentual = 0.0,
-        ),
-    )
+    private fun wifiFracoNaBanda24Input(): DiagnosticInput =
+        DiagnosticInput(
+            connectionType = ConnectionType.wifi,
+            wifi =
+                WifiDiagnosticInput(
+                    rssiDbm = -68, // acima do piso de -70 que bloquearia a recomendacao de troca
+                    linkSpeedMbps = 72, // < 144, dispara a condicao "linkBaixo"
+                    frequenciaMhz = 2412, // 2.4GHz
+                    is5GhzCapable = true,
+                ),
+            internet =
+                InternetDiagnosticInput(
+                    downloadMbps = 15.0,
+                    uploadMbps = 10.0,
+                    latencyMs = 20.0,
+                    jitterMs = 5.0,
+                    perdaPercentual = 0.0,
+                ),
+        )
 
     @Test
     fun `motor legado suprime REC-01 quando o achado principal aponta causa externa`() {
         val input = wifiFracoNaBanda24Input()
-        val achadoExterno = DiagnosticResult(
-            id = "DECISAO-DNS-01",
-            titulo = "DNS lento",
-            status = DiagnosticStatus.critical,
-            evidencia = null,
-            mensagemUsuario = "O DNS configurado está lento.",
-            recomendacao = null,
-            categoria = "dns",
-        )
+        val achadoExterno =
+            DiagnosticResult(
+                id = "DECISAO-DNS-01",
+                titulo = "DNS lento",
+                status = DiagnosticStatus.critical,
+                evidencia = null,
+                mensagemUsuario = "O DNS configurado está lento.",
+                recomendacao = null,
+                categoria = "dns",
+            )
         val achados = FindingResult(principal = achadoExterno)
 
         val recomendacoes = RecomendacaoPraticaEngine.recomendar(input, achados)
@@ -82,12 +86,14 @@ class RecommendationEnginesDivergenceCharacterizationTest {
         // montado a mao -- currentDnsLatencyMs=320 gera DNS-01 critico, que faz
         // DECISAO-DNS-01 vencer o desempate por score contra o achado de Wi-Fi (rssi=-68 so
         // gera WIFI-03/attention, confianca menor que a correlacao DNS critica).
-        val input = wifiFracoNaBanda24Input().copy(
-            dns = DnsDiagnosticInput(
-                currentDnsName = "operadora",
-                currentDnsLatencyMs = 320,
-            ),
-        )
+        val input =
+            wifiFracoNaBanda24Input().copy(
+                dns =
+                    DnsDiagnosticInput(
+                        currentDnsName = "operadora",
+                        currentDnsLatencyMs = 320,
+                    ),
+            )
 
         val report = DiagnosticRunner.run(input, gerarRecomendacoes = RecomendacaoPraticaEngine::recomendar)
 
@@ -112,25 +118,29 @@ class RecommendationEnginesDivergenceCharacterizationTest {
         // comparativo -- REC-06 (recomendarDnsLento) exige bestDnsLatencyMsFromComparison/
         // bestDnsNameFromComparison com margem segura de 5ms para disparar; sem isso, retorna
         // null mesmo com o achado bruto DNS-02 presente.
-        val input = DiagnosticInput(
-            connectionType = ConnectionType.wifi,
-            wifi = WifiDiagnosticInput(
-                rssiDbm = -50,
-                linkSpeedMbps = 300,
-                frequenciaMhz = 5200,
-            ),
-            internet = InternetDiagnosticInput(
-                downloadMbps = 100.0,
-                uploadMbps = 20.0,
-                latencyMs = 15.0,
-                jitterMs = 3.0,
-                perdaPercentual = 0.0,
-            ),
-            dns = DnsDiagnosticInput(
-                currentDnsName = "operadora",
-                currentDnsLatencyMs = 200,
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                connectionType = ConnectionType.wifi,
+                wifi =
+                    WifiDiagnosticInput(
+                        rssiDbm = -50,
+                        linkSpeedMbps = 300,
+                        frequenciaMhz = 5200,
+                    ),
+                internet =
+                    InternetDiagnosticInput(
+                        downloadMbps = 100.0,
+                        uploadMbps = 20.0,
+                        latencyMs = 15.0,
+                        jitterMs = 3.0,
+                        perdaPercentual = 0.0,
+                    ),
+                dns =
+                    DnsDiagnosticInput(
+                        currentDnsName = "operadora",
+                        currentDnsLatencyMs = 200,
+                    ),
+            )
 
         val report = DiagnosticRunner.run(input, gerarRecomendacoes = RecomendacaoPraticaEngine::recomendar)
 
@@ -148,22 +158,25 @@ class RecommendationEnginesDivergenceCharacterizationTest {
     fun `mapTags gera BUFFERBLOAT_ALTO quando REC-05 dispara normalmente`() {
         // Cenario sem nenhuma causa externa concorrendo -- REC-05 (bufferbloat) nao tem
         // gating por achado principal, dispara direto quando bufferbloatMs > 30ms.
-        val input = DiagnosticInput(
-            connectionType = ConnectionType.wifi,
-            wifi = WifiDiagnosticInput(
-                rssiDbm = -50,
-                linkSpeedMbps = 300,
-                frequenciaMhz = 5200,
-            ),
-            internet = InternetDiagnosticInput(
-                downloadMbps = 100.0,
-                uploadMbps = 20.0,
-                latencyMs = 15.0,
-                jitterMs = 3.0,
-                perdaPercentual = 0.0,
-                bufferbloatMs = 150.0,
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                connectionType = ConnectionType.wifi,
+                wifi =
+                    WifiDiagnosticInput(
+                        rssiDbm = -50,
+                        linkSpeedMbps = 300,
+                        frequenciaMhz = 5200,
+                    ),
+                internet =
+                    InternetDiagnosticInput(
+                        downloadMbps = 100.0,
+                        uploadMbps = 20.0,
+                        latencyMs = 15.0,
+                        jitterMs = 3.0,
+                        perdaPercentual = 0.0,
+                        bufferbloatMs = 150.0,
+                    ),
+            )
 
         val report = DiagnosticRunner.run(input, gerarRecomendacoes = RecomendacaoPraticaEngine::recomendar)
 

@@ -3,7 +3,5 @@
 import android.content.Context
 
 object CorePermissionsModulo {
-    fun criarGerenciadorPermissoesRede(context: Context): GerenciadorPermissoesRede {
-        return GerenciadorPermissoesRedeAndroid(context)
-    }
+    fun criarGerenciadorPermissoesRede(context: Context): GerenciadorPermissoesRede = GerenciadorPermissoesRedeAndroid(context)
 }

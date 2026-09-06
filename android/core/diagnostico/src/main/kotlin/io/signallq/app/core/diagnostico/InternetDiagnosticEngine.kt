@@ -3,7 +3,6 @@
 private const val CAT = "internet"
 
 object InternetDiagnosticEngine {
-
     fun avaliar(
         input: InternetDiagnosticInput?,
         wifiConfiavelParaTeste: Boolean,
@@ -60,33 +59,36 @@ object InternetDiagnosticEngine {
         val emRedeMovel = connectionType == ConnectionType.mobile
         if (perda != null) {
             when {
-                perda >= 3.0 -> resultados.add(
-                    DiagnosticResult(
-                        id = "IN-NORMAL-07",
-                        titulo = "Muitas falhas na conexão",
-                        status = DiagnosticStatus.critical,
-                        evidencia = "perda=${"%.1f".format(perda)}%",
-                        mensagemUsuario = "Sua conexão está com muitas falhas (${"%.1f".format(perda)}%). Chamadas de vídeo e jogos serão gravemente afetados.",
-                        recomendacao = if (emRedeMovel) {
-                            "Teste em outro local ou horário. Se persistir, contate a operadora."
-                        } else {
-                            "Reinicie o roteador e o modem. Se persistir, contate a operadora."
-                        },
-                        categoria = CAT,
-                        podeConcluir = true,
-                    ),
-                )
-                perda >= 1.0 -> resultados.add(
-                    DiagnosticResult(
-                        id = "IN-NORMAL-07b",
-                        titulo = "Algumas falhas na conexão",
-                        status = DiagnosticStatus.attention,
-                        evidencia = "perda=${"%.1f".format(perda)}%",
-                        mensagemUsuario = "Sua conexão está com algumas falhas (${"%.1f".format(perda)}%). Jogos e chamadas podem ser afetados.",
-                        recomendacao = "Verifique interferências no Wi-Fi ou instabilidade no link.",
-                        categoria = CAT,
-                    ),
-                )
+                perda >= 3.0 ->
+                    resultados.add(
+                        DiagnosticResult(
+                            id = "IN-NORMAL-07",
+                            titulo = "Muitas falhas na conexão",
+                            status = DiagnosticStatus.critical,
+                            evidencia = "perda=${"%.1f".format(perda)}%",
+                            mensagemUsuario = "Sua conexão está com muitas falhas (${"%.1f".format(perda)}%). Chamadas de vídeo e jogos serão gravemente afetados.",
+                            recomendacao =
+                                if (emRedeMovel) {
+                                    "Teste em outro local ou horário. Se persistir, contate a operadora."
+                                } else {
+                                    "Reinicie o roteador e o modem. Se persistir, contate a operadora."
+                                },
+                            categoria = CAT,
+                            podeConcluir = true,
+                        ),
+                    )
+                perda >= 1.0 ->
+                    resultados.add(
+                        DiagnosticResult(
+                            id = "IN-NORMAL-07b",
+                            titulo = "Algumas falhas na conexão",
+                            status = DiagnosticStatus.attention,
+                            evidencia = "perda=${"%.1f".format(perda)}%",
+                            mensagemUsuario = "Sua conexão está com algumas falhas (${"%.1f".format(perda)}%). Jogos e chamadas podem ser afetados.",
+                            recomendacao = "Verifique interferências no Wi-Fi ou instabilidade no link.",
+                            categoria = CAT,
+                        ),
+                    )
             }
         }
 
@@ -154,10 +156,12 @@ object InternetDiagnosticEngine {
                     titulo = if (isCritico) "A internet fica muito lenta quando está em uso" else "A internet fica mais lenta quando está em uso",
                     status = if (isCritico) DiagnosticStatus.critical else DiagnosticStatus.attention,
                     evidencia = "bufferbloat=${"%.0f".format(bb)} ms",
-                    mensagemUsuario = if (isCritico)
-                        "A lentidão com a rede ocupada está muito alta (${"%.0f".format(bb)} ms). Streaming, jogos e chamadas serão gravemente prejudicados mesmo com velocidade adequada."
-                    else
-                        "A lentidão com a rede ocupada está elevada (${"%.0f".format(bb)} ms). Jogos e chamadas podem ter instabilidade sob carga.",
+                    mensagemUsuario =
+                        if (isCritico) {
+                            "A lentidão com a rede ocupada está muito alta (${"%.0f".format(bb)} ms). Streaming, jogos e chamadas serão gravemente prejudicados mesmo com velocidade adequada."
+                        } else {
+                            "A lentidão com a rede ocupada está elevada (${"%.0f".format(bb)} ms). Jogos e chamadas podem ter instabilidade sob carga."
+                        },
                     recomendacao = "Verifique se o roteador suporta priorização de tráfego. Reduza o número de dispositivos usando a rede simultaneamente.",
                     categoria = CAT,
                     podeConcluir = isCritico,

@@ -7,4 +7,3 @@ enum class EstadoConexao {
     desconectado,
     desconhecido,
 }
-

@@ -38,12 +38,14 @@ data class PublicCompatibilityCatalog(
         fun montar(catalog: List<DeviceDriverProfile> = DeviceDriverCatalog.entries): PublicCompatibilityCatalog {
             val porSuporte = catalog.groupBy { it.supportLevel }
 
-            val validado = (porSuporte[SupportLevel.LAB_VALIDATED] ?: emptyList())
-                .paraEntradasPublicas()
+            val validado =
+                (porSuporte[SupportLevel.LAB_VALIDATED] ?: emptyList())
+                    .paraEntradasPublicas()
 
-            val experimental = (
-                (porSuporte[SupportLevel.PARSER_IMPORTED] ?: emptyList()) +
-                    (porSuporte[SupportLevel.INFERRED_FAMILY] ?: emptyList())
+            val experimental =
+                (
+                    (porSuporte[SupportLevel.PARSER_IMPORTED] ?: emptyList()) +
+                        (porSuporte[SupportLevel.INFERRED_FAMILY] ?: emptyList())
                 ).paraEntradasPublicas()
 
             return PublicCompatibilityCatalog(validado = validado, experimental = experimental)

@@ -1,6 +1,6 @@
 package io.signallq.app.core.network
 
-/**
+/*
  * Funil do diagnostico guiado 2.0 — issue #1706 (2.0.09d), spec §12, epico #1647.
  *
  * Complementa os eventos do Assist (`AssistAnalytics.kt`), que cobrem a escolha do sintoma e o

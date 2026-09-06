@@ -55,7 +55,6 @@ enum class NivelSinalOpticoTx {
 
 /** Função pura, sem dependência de Android/HTTP — testável isoladamente. */
 object ClassificadorOpticoNokiaG1425GB {
-
     fun classificarRx(
         rxPowerDbm: Double?,
         profile: NokiaG1425GBProfile = NokiaG1425GBProfile.PADRAO,

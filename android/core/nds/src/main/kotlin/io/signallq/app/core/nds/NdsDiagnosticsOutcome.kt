@@ -6,7 +6,9 @@ package io.signallq.app.core.nds
  * inesperado) vira um destes estados.
  */
 sealed class NdsDiagnosticsOutcome {
-    data class Success(val response: NdsDiagnosticsResponse) : NdsDiagnosticsOutcome()
+    data class Success(
+        val response: NdsDiagnosticsResponse,
+    ) : NdsDiagnosticsOutcome()
 
     /**
      * Corpo de erro reconhecido — dois shapes possiveis (NDS-02k, issue #1759,

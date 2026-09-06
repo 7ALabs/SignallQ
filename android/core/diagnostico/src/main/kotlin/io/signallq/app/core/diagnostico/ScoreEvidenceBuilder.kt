@@ -10,15 +10,18 @@ package io.signallq.app.core.diagnostico
  * pontuacao em camadas separadas (regra do motor-diagnostico).
  */
 object ScoreEvidenceBuilder {
+    fun tipoConexao(input: DiagnosticInput): ScoreEngine.TipoConexao =
+        when {
+            input.connectionType == ConnectionType.mobile -> ScoreEngine.TipoConexao.MOVEL
+            input.fibra?.isUp == true -> ScoreEngine.TipoConexao.FIBRA
+            input.connectionType == ConnectionType.wifi -> ScoreEngine.TipoConexao.WIFI
+            else -> ScoreEngine.TipoConexao.DESCONHECIDO
+        }
 
-    fun tipoConexao(input: DiagnosticInput): ScoreEngine.TipoConexao = when {
-        input.connectionType == ConnectionType.mobile -> ScoreEngine.TipoConexao.MOVEL
-        input.fibra?.isUp == true -> ScoreEngine.TipoConexao.FIBRA
-        input.connectionType == ConnectionType.wifi -> ScoreEngine.TipoConexao.WIFI
-        else -> ScoreEngine.TipoConexao.DESCONHECIDO
-    }
-
-    fun construir(input: DiagnosticInput, report: DiagnosticReport): List<EvidenceScore> =
+    fun construir(
+        input: DiagnosticInput,
+        report: DiagnosticReport,
+    ): List<EvidenceScore> =
         listOfNotNull(
             estabilidade(input),
             wifiRedeLocal(input),
@@ -58,19 +61,21 @@ object ScoreEvidenceBuilder {
         val rssi = wifi.rssiDbm
         if (rssi == null) return EvidenceScore("wifiRedeLocal", null, Provenance.indisponivel)
 
-        val banda = when (wifi.banda()) {
-            BandaWifi.ghz24 -> MetricClassifier.WifiBand.GHZ_2_4
-            BandaWifi.ghz5 -> MetricClassifier.WifiBand.GHZ_5
-            BandaWifi.desconhecida -> MetricClassifier.WifiBand.GHZ_5
-        }
+        val banda =
+            when (wifi.banda()) {
+                BandaWifi.ghz24 -> MetricClassifier.WifiBand.GHZ_2_4
+                BandaWifi.ghz5 -> MetricClassifier.WifiBand.GHZ_5
+                BandaWifi.desconhecida -> MetricClassifier.WifiBand.GHZ_5
+            }
         val notaRssi = ScoreEngine.notaParaStatus(MetricClassifier.classificarRssiWifi(rssi, banda))
         val linkSpeed = wifi.linkSpeedMbps
-        val notaLink = when {
-            linkSpeed == null -> null
-            linkSpeed < 54 -> 40
-            linkSpeed < 144 -> 70
-            else -> 100
-        }
+        val notaLink =
+            when {
+                linkSpeed == null -> null
+                linkSpeed < 54 -> 40
+                linkSpeed < 144 -> 70
+                else -> 100
+            }
         val nota = if (notaLink != null) minOf(notaRssi, notaLink) else notaRssi
         return EvidenceScore("wifiRedeLocal", nota, Provenance.medida)
     }
@@ -81,34 +86,40 @@ object ScoreEvidenceBuilder {
         val dl = internet?.downloadMbps
         if (dl == null) return EvidenceScore("velocidade", null, Provenance.indisponivel)
 
-        val notaDownload = when {
-            dl >= 100.0 -> 100
-            dl >= 50.0 -> 85
-            dl >= 25.0 -> 70
-            dl >= 10.0 -> 45
-            else -> 15
-        }
+        val notaDownload =
+            when {
+                dl >= 100.0 -> 100
+                dl >= 50.0 -> 85
+                dl >= 25.0 -> 70
+                dl >= 10.0 -> 45
+                else -> 15
+            }
         val ul = internet.uploadMbps
-        val notaUpload = when {
-            ul == null -> null
-            ul <= 0.0 -> 15
-            ul < 5.0 -> 55
-            else -> 100
-        }
+        val notaUpload =
+            when {
+                ul == null -> null
+                ul <= 0.0 -> 15
+                ul < 5.0 -> 55
+                else -> 100
+            }
         val nota = if (notaUpload != null) minOf(notaDownload, notaUpload) else notaDownload
         return EvidenceScore("velocidade", nota, Provenance.medida)
     }
 
     // ── DNS ──────────────────────────────────────────────────────────────────
     private fun dns(input: DiagnosticInput): EvidenceScore {
-        val latencia = input.dns?.currentDnsLatencyMs
-            ?: return EvidenceScore("dns", null, Provenance.indisponivel)
+        val latencia =
+            input.dns?.currentDnsLatencyMs
+                ?: return EvidenceScore("dns", null, Provenance.indisponivel)
         val nota = ScoreEngine.notaParaStatus(MetricClassifier.classificarLatenciaDns(latencia))
         return EvidenceScore("dns", nota, Provenance.medida)
     }
 
     // ── Historico: reaproveita o status ja calculado pelo HistoricalDegradationEngine ──
-    private fun historico(input: DiagnosticInput, report: DiagnosticReport): EvidenceScore {
+    private fun historico(
+        input: DiagnosticInput,
+        report: DiagnosticReport,
+    ): EvidenceScore {
         if (input.historico == null) return EvidenceScore("historico", null, Provenance.indisponivel)
         val resultados = report.historicoResultados
         if (resultados.isEmpty() || resultados.any { it.status == DiagnosticStatus.inconclusive }) {
@@ -125,17 +136,19 @@ object ScoreEvidenceBuilder {
         if (f.rxPowerDbm == null && f.txPowerDbm == null && f.temperatureCelsius == null) {
             return EvidenceScore("fibra", null, Provenance.indisponivel)
         }
-        val status = io.signallq.app.core.network.contracts.fibra.ClassificadorSaudeGpon.classificar(
-            isUp = f.isUp,
-            rxPowerDbm = f.rxPowerDbm ?: 0.0,
-            txPowerDbm = f.txPowerDbm ?: 0.0,
-            temperatureCelsius = f.temperatureCelsius ?: 0.0,
-        )
-        val nota = when (status) {
-            io.signallq.app.core.network.contracts.fibra.GponSaudeStatus.boa -> 100
-            io.signallq.app.core.network.contracts.fibra.GponSaudeStatus.regular -> 60
-            io.signallq.app.core.network.contracts.fibra.GponSaudeStatus.ruim -> 15
-        }
+        val status =
+            io.signallq.app.core.network.contracts.fibra.ClassificadorSaudeGpon.classificar(
+                isUp = f.isUp,
+                rxPowerDbm = f.rxPowerDbm ?: 0.0,
+                txPowerDbm = f.txPowerDbm ?: 0.0,
+                temperatureCelsius = f.temperatureCelsius ?: 0.0,
+            )
+        val nota =
+            when (status) {
+                io.signallq.app.core.network.contracts.fibra.GponSaudeStatus.boa -> 100
+                io.signallq.app.core.network.contracts.fibra.GponSaudeStatus.regular -> 60
+                io.signallq.app.core.network.contracts.fibra.GponSaudeStatus.ruim -> 15
+            }
         return EvidenceScore("fibra", nota, Provenance.medida)
     }
 
@@ -167,17 +180,19 @@ object ScoreEvidenceBuilder {
         val internet = input.internet
         val perda = internet?.perdaPercentual ?: return EvidenceScore("perdaPacotesStatus", null, Provenance.indisponivel)
         val fonte = internet.packetLossSource
-        val provenance = when (fonte) {
-            "estimated" -> Provenance.estimada
-            "naoMedido", "unknown", null -> Provenance.indisponivel
-            else -> Provenance.medida
-        }
+        val provenance =
+            when (fonte) {
+                "estimated" -> Provenance.estimada
+                "naoMedido", "unknown", null -> Provenance.indisponivel
+                else -> Provenance.medida
+            }
         if (provenance == Provenance.indisponivel) return EvidenceScore("perdaPacotesStatus", null, provenance)
-        val nota = when {
-            perda >= 3.0 -> ScoreEngine.notaParaStatus(MetricStatus.critico)
-            perda >= 1.0 -> ScoreEngine.notaParaStatus(MetricStatus.ruim)
-            else -> ScoreEngine.notaParaStatus(MetricClassifier.classificarPerdaPacotes(perda))
-        }
+        val nota =
+            when {
+                perda >= 3.0 -> ScoreEngine.notaParaStatus(MetricStatus.critico)
+                perda >= 1.0 -> ScoreEngine.notaParaStatus(MetricStatus.ruim)
+                else -> ScoreEngine.notaParaStatus(MetricClassifier.classificarPerdaPacotes(perda))
+            }
         return EvidenceScore("perdaPacotesStatus", nota, provenance)
     }
 
@@ -188,32 +203,37 @@ object ScoreEvidenceBuilder {
 
     private fun fibraRxStatus(input: DiagnosticInput): EvidenceScore {
         val rx = input.fibra?.rxPowerDbm ?: return EvidenceScore("fibraRxStatus", null, Provenance.indisponivel)
-        val status = io.signallq.app.core.network.contracts.fibra.ClassificadorSaudeGpon.classificarRx(rx)
-        val nota = when (status) {
-            io.signallq.app.core.network.contracts.fibra.GponSaudeStatus.boa -> 100
-            io.signallq.app.core.network.contracts.fibra.GponSaudeStatus.regular -> 60
-            io.signallq.app.core.network.contracts.fibra.GponSaudeStatus.ruim -> 15
-        }
+        val status =
+            io.signallq.app.core.network.contracts.fibra.ClassificadorSaudeGpon
+                .classificarRx(rx)
+        val nota =
+            when (status) {
+                io.signallq.app.core.network.contracts.fibra.GponSaudeStatus.boa -> 100
+                io.signallq.app.core.network.contracts.fibra.GponSaudeStatus.regular -> 60
+                io.signallq.app.core.network.contracts.fibra.GponSaudeStatus.ruim -> 15
+            }
         return EvidenceScore("fibraRxStatus", nota, Provenance.medida)
     }
 
     private fun rssiStatus(input: DiagnosticInput): EvidenceScore {
         val wifi = input.wifi ?: return EvidenceScore("rssiStatus", null, Provenance.indisponivel)
         val rssi = wifi.rssiDbm ?: return EvidenceScore("rssiStatus", null, Provenance.indisponivel)
-        val banda = when (wifi.banda()) {
-            BandaWifi.ghz24 -> MetricClassifier.WifiBand.GHZ_2_4
-            BandaWifi.ghz5 -> MetricClassifier.WifiBand.GHZ_5
-            BandaWifi.desconhecida -> MetricClassifier.WifiBand.GHZ_5
-        }
+        val banda =
+            when (wifi.banda()) {
+                BandaWifi.ghz24 -> MetricClassifier.WifiBand.GHZ_2_4
+                BandaWifi.ghz5 -> MetricClassifier.WifiBand.GHZ_5
+                BandaWifi.desconhecida -> MetricClassifier.WifiBand.GHZ_5
+            }
         val nota = ScoreEngine.notaParaStatus(MetricClassifier.classificarRssiWifi(rssi, banda))
         return EvidenceScore("rssiStatus", nota, Provenance.medida)
     }
 
-    private fun severidade(status: DiagnosticStatus): Int = when (status) {
-        DiagnosticStatus.critical -> 4
-        DiagnosticStatus.attention -> 2
-        DiagnosticStatus.info -> 1
-        DiagnosticStatus.inconclusive -> 1
-        DiagnosticStatus.ok -> 0
-    }
+    private fun severidade(status: DiagnosticStatus): Int =
+        when (status) {
+            DiagnosticStatus.critical -> 4
+            DiagnosticStatus.attention -> 2
+            DiagnosticStatus.info -> 1
+            DiagnosticStatus.inconclusive -> 1
+            DiagnosticStatus.ok -> 0
+        }
 }

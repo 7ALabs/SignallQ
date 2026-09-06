@@ -14,15 +14,18 @@ import kotlinx.coroutines.flow.StateFlow
  * Fallback: se o AndroidKeyStore nao estiver disponivel (ex: testes unitarios com
  * Robolectric), usa SharedPreferences normal. Em device real o KeyStore sempre existe.
  */
-class CredenciaisModemStore(private val context: Context) {
-
+class CredenciaisModemStore(
+    private val context: Context,
+) {
     private val prefs: SharedPreferences by lazy { criarPrefs() }
 
     private fun criarPrefs(): SharedPreferences =
         try {
-            val masterKey = MasterKey.Builder(context)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .build()
+            val masterKey =
+                MasterKey
+                    .Builder(context)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build()
             EncryptedSharedPreferences.create(
                 context,
                 "signallq_modem_credentials",
@@ -97,7 +100,10 @@ class CredenciaisModemStore(private val context: Context) {
      * Chamado uma vez pelo PreferenciasAppRepository na inicializacao.
      * Retorna true se houve migracao (para que o caller remova as chaves do DataStore).
      */
-    fun migrarSeNecessario(usernamePlaintext: String?, passwordPlaintext: String?): Boolean {
+    fun migrarSeNecessario(
+        usernamePlaintext: String?,
+        passwordPlaintext: String?,
+    ): Boolean {
         if (prefs.getBoolean(CHAVE_MIGRADO, false)) return false
 
         val temDadosParaMigrar = !usernamePlaintext.isNullOrBlank() || !passwordPlaintext.isNullOrBlank()

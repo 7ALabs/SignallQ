@@ -31,7 +31,6 @@ private const val MIN_REDES_PARA_ANALISE = 6
  *    não mais contagem crua de APs.
  */
 object WifiChannelDiagnosticEngine {
-
     // ── Diagnóstico de congestionamento ────────────────────────────────────────
 
     fun avaliar(
@@ -73,27 +72,31 @@ object WifiChannelDiagnosticEngine {
         val (neighbors, _) = redesValidas.toNeighbors()
 
         // Busca o score do canal atual (incluindo canais não-padrão e DFS)
-        val wideConfig = EvalConfig(
-            targetWidth24 = ChannelWidth.W20,
-            targetWidth5 = ChannelWidth.W20,
-            allow24Overlapping = true,
-            avoidDfs = false,
-        )
-        val scoreAtual = evaluateChannels(neighbors, wideConfig)[targetBand]
-            ?.firstOrNull { it.channel == canalAtual }
-            ?.score
-            ?: return emptyList()
+        val wideConfig =
+            EvalConfig(
+                targetWidth24 = ChannelWidth.W20,
+                targetWidth5 = ChannelWidth.W20,
+                allow24Overlapping = true,
+                avoidDfs = false,
+            )
+        val scoreAtual =
+            evaluateChannels(neighbors, wideConfig)[targetBand]
+                ?.firstOrNull { it.channel == canalAtual }
+                ?.score
+                ?: return emptyList()
 
         // Busca o melhor canal entre os padrões recomendados
-        val recConfig = EvalConfig(
-            targetWidth24 = ChannelWidth.W20,
-            targetWidth5 = ChannelWidth.W20,
-            allow24Overlapping = false,
-            avoidDfs = true,
-        )
-        val rec = evaluateChannels(neighbors, recConfig)[targetBand]
-            ?.firstOrNull { it.recommended }
-            ?: return emptyList()
+        val recConfig =
+            EvalConfig(
+                targetWidth24 = ChannelWidth.W20,
+                targetWidth5 = ChannelWidth.W20,
+                allow24Overlapping = false,
+                avoidDfs = true,
+            )
+        val rec =
+            evaluateChannels(neighbors, recConfig)[targetBand]
+                ?.firstOrNull { it.recommended }
+                ?: return emptyList()
 
         // Congestionado se o melhor canal reduz ao menos 50% da interferência atual
         val congestionado = rec.channel != canalAtual && scoreAtual > 0.0 && rec.score < scoreAtual * 0.5
@@ -145,52 +148,62 @@ object WifiChannelDiagnosticEngine {
         val proprioPorBssid = redes.associate { r -> (r.bssid ?: "") to ehRedePropria(r, seuSSID) }
 
         // Config de visualização: W real por canal quando disponível, todos os canais incluindo DFS
-        val vizConfig = EvalConfig(
-            targetWidth24 = ChannelWidth.W20,
-            targetWidth5 = ChannelWidth.W20,
-            targetWidth6 = ChannelWidth.W20,
-            allow24Overlapping = true,
-            avoidDfs = false,
-            preferPsc = true,
-        )
+        val vizConfig =
+            EvalConfig(
+                targetWidth24 = ChannelWidth.W20,
+                targetWidth5 = ChannelWidth.W20,
+                targetWidth6 = ChannelWidth.W20,
+                allow24Overlapping = true,
+                avoidDfs = false,
+                preferPsc = true,
+            )
         val vizScores = evaluateChannels(neighbors, vizConfig)
 
         // Config de recomendação: melhores práticas (sem DFS, sem canais sobrepostos, 1/6/11, PSC)
-        val recConfig = EvalConfig(
-            targetWidth24 = ChannelWidth.W20,
-            targetWidth5 = ChannelWidth.W20,
-            allow24Overlapping = false,
-            avoidDfs = true,
-            preferPsc = true,
-        )
+        val recConfig =
+            EvalConfig(
+                targetWidth24 = ChannelWidth.W20,
+                targetWidth5 = ChannelWidth.W20,
+                allow24Overlapping = false,
+                avoidDfs = true,
+                preferPsc = true,
+            )
 
-        val (recChannel, recBanda, motivo) = if (targetBand != null) {
-            val rec = evaluateChannels(neighbors, recConfig)[targetBand]?.firstOrNull { it.recommended }
-            if (rec != null) {
-                val m = if (rec.score == 0.0) {
-                    "Canal livre — sem interferência espectral"
-                } else when (targetBand) {
-                    Band.GHZ_24 -> "Menor interferência espectral entre 1, 6 e 11"
-                    else -> "Menor interferência espectral na faixa $banda"
+        val (recChannel, recBanda, motivo) =
+            if (targetBand != null) {
+                val rec = evaluateChannels(neighbors, recConfig)[targetBand]?.firstOrNull { it.recommended }
+                if (rec != null) {
+                    val m =
+                        if (rec.score == 0.0) {
+                            "Canal livre — sem interferência espectral"
+                        } else {
+                            when (targetBand) {
+                                Band.GHZ_24 -> "Menor interferência espectral entre 1, 6 e 11"
+                                else -> "Menor interferência espectral na faixa $banda"
+                            }
+                        }
+                    Triple(rec.channel, bandLabel(targetBand), m)
+                } else {
+                    Triple(null, null, null)
                 }
-                Triple(rec.channel, bandLabel(targetBand), m)
             } else {
                 Triple(null, null, null)
             }
-        } else {
-            Triple(null, null, null)
-        }
 
-        fun construirDado(bandaCanal: Band, cs: ChannelScore): DadoCanal {
+        fun construirDado(
+            bandaCanal: Band,
+            cs: ChannelScore,
+        ): DadoCanal {
             // Visualização sempre em granularidade de 20 MHz (vizConfig) — a largura real de
             // cada vizinho já foi usada em toNeighbors() pro cálculo de sobreposição espectral.
-            val (proprios, terceiros) = contarProprioETerceiro(
-                candidatoCanal = cs.channel,
-                bandaCanal = bandaCanal,
-                width = ChannelWidth.W20,
-                neighbors = neighbors,
-                proprioPorBssid = proprioPorBssid,
-            )
+            val (proprios, terceiros) =
+                contarProprioETerceiro(
+                    candidatoCanal = cs.channel,
+                    bandaCanal = bandaCanal,
+                    width = ChannelWidth.W20,
+                    neighbors = neighbors,
+                    proprioPorBssid = proprioPorBssid,
+                )
             return DadoCanal(
                 canal = cs.channel,
                 banda = bandLabel(bandaCanal),
@@ -206,29 +219,32 @@ object WifiChannelDiagnosticEngine {
             )
         }
 
-        val dadosPorCanal = when {
-            targetBand != null -> {
-                (vizScores[targetBand] ?: emptyList())
-                    .map { cs -> construirDado(targetBand, cs) }
-                    .sortedBy { it.canal }
+        val dadosPorCanal =
+            when {
+                targetBand != null -> {
+                    (vizScores[targetBand] ?: emptyList())
+                        .map { cs -> construirDado(targetBand, cs) }
+                        .sortedBy { it.canal }
+                }
+                else -> {
+                    // "Todos": combina todas as bandas, exibe apenas canais com APs presentes.
+                    // GH#1207 item 2 — cada DadoCanal carrega `banda`, então canais com o mesmo
+                    // número em bandas diferentes (ex.: canal 1 em 2,4GHz e canal 1 em 6GHz) não
+                    // colidem mais como se fossem o mesmo canal.
+                    Band.entries
+                        .flatMap { b ->
+                            (vizScores[b] ?: emptyList())
+                                .filter { it.overlappingAps > 0 }
+                                .map { cs -> construirDado(b, cs) }
+                        }.sortedWith(compareBy({ it.banda }, { it.canal }))
+                }
             }
-            else -> {
-                // "Todos": combina todas as bandas, exibe apenas canais com APs presentes.
-                // GH#1207 item 2 — cada DadoCanal carrega `banda`, então canais com o mesmo
-                // número em bandas diferentes (ex.: canal 1 em 2,4GHz e canal 1 em 6GHz) não
-                // colidem mais como se fossem o mesmo canal.
-                Band.entries.flatMap { b ->
-                    (vizScores[b] ?: emptyList())
-                        .filter { it.overlappingAps > 0 }
-                        .map { cs -> construirDado(b, cs) }
-                }.sortedWith(compareBy({ it.banda }, { it.canal }))
-            }
-        }
 
-        val confianca = calcularConfianca(
-            totalRedes = redes.size,
-            larguraEstimada = larguraEstimadaGlobal,
-        )
+        val confianca =
+            calcularConfianca(
+                totalRedes = redes.size,
+                larguraEstimada = larguraEstimadaGlobal,
+            )
 
         return SnapshotEspectroCanal(
             dadosPorCanal = dadosPorCanal,
@@ -250,7 +266,12 @@ object WifiChannelDiagnosticEngine {
         if (historicoRecomendados.size < 2) return true
         val naoNulos = historicoRecomendados.filterNotNull()
         if (naoNulos.isEmpty()) return true
-        val maisFrequente = naoNulos.groupingBy { it }.eachCount().maxByOrNull { it.value }?.value ?: 0
+        val maisFrequente =
+            naoNulos
+                .groupingBy { it }
+                .eachCount()
+                .maxByOrNull { it.value }
+                ?.value ?: 0
         // Estável quando o canal mais recomendado aparece em pelo menos 2/3 das leituras.
         return maisFrequente.toDouble() / naoNulos.size >= 2.0 / 3.0
     }
@@ -285,11 +306,12 @@ object WifiChannelDiagnosticEngine {
     private fun calcularConfianca(
         totalRedes: Int,
         larguraEstimada: Boolean,
-    ): NivelConfianca = when {
-        totalRedes < MIN_REDES_PARA_ANALISE -> NivelConfianca.BAIXA
-        larguraEstimada -> NivelConfianca.MEDIA
-        else -> NivelConfianca.ALTA
-    }
+    ): NivelConfianca =
+        when {
+            totalRedes < MIN_REDES_PARA_ANALISE -> NivelConfianca.BAIXA
+            larguraEstimada -> NivelConfianca.MEDIA
+            else -> NivelConfianca.ALTA
+        }
 
     /** GH#1207 item 1 — sinal combinado de "rede própria": SSID igual ao conectado OU já
      *  classificada pelo motor de topologia unificado (papelTopologia != null/DESCONHECIDO).
@@ -324,30 +346,34 @@ object WifiChannelDiagnosticEngine {
         return proprios to terceiros
     }
 
-    fun classificarCongestionamento(count: Int): NivelCongestionamento = when {
-        count <= 2 -> NivelCongestionamento.livre
-        count <= 5 -> NivelCongestionamento.moderado
-        else -> NivelCongestionamento.congestionado
-    }
+    fun classificarCongestionamento(count: Int): NivelCongestionamento =
+        when {
+            count <= 2 -> NivelCongestionamento.livre
+            count <= 5 -> NivelCongestionamento.moderado
+            else -> NivelCongestionamento.congestionado
+        }
 
-    private fun BandaWifi.toCoreBand(): Band? = when (this) {
-        BandaWifi.ghz24 -> Band.GHZ_24
-        BandaWifi.ghz5 -> Band.GHZ_5
-        BandaWifi.desconhecida -> null
-    }
+    private fun BandaWifi.toCoreBand(): Band? =
+        when (this) {
+            BandaWifi.ghz24 -> Band.GHZ_24
+            BandaWifi.ghz5 -> Band.GHZ_5
+            BandaWifi.desconhecida -> null
+        }
 
-    private fun bandaStringToBand(banda: String): Band? = when (banda) {
-        "2.4GHz" -> Band.GHZ_24
-        "5GHz" -> Band.GHZ_5
-        "6GHz" -> Band.GHZ_6
-        else -> null
-    }
+    private fun bandaStringToBand(banda: String): Band? =
+        when (banda) {
+            "2.4GHz" -> Band.GHZ_24
+            "5GHz" -> Band.GHZ_5
+            "6GHz" -> Band.GHZ_6
+            else -> null
+        }
 
-    private fun bandLabel(band: Band): String = when (band) {
-        Band.GHZ_24 -> "2.4GHz"
-        Band.GHZ_5 -> "5GHz"
-        Band.GHZ_6 -> "6GHz"
-    }
+    private fun bandLabel(band: Band): String =
+        when (band) {
+            Band.GHZ_24 -> "2.4GHz"
+            Band.GHZ_5 -> "5GHz"
+            Band.GHZ_6 -> "6GHz"
+        }
 }
 
 // Converte RedeWifiVizinha → Neighbor para o motor de avaliação espectral.
@@ -355,30 +381,32 @@ object WifiChannelDiagnosticEngine {
 // assume 20 MHz e devolve `true` no segundo componente do par (largura estimada).
 private fun List<RedeWifiVizinha>.toNeighbors(): Pair<List<Neighbor>, Boolean> {
     var larguraEstimada = false
-    val neighbors = mapNotNull { r ->
-        val freq = r.frequenciaMhz ?: return@mapNotNull null
-        val rssi = r.rssiDbm ?: return@mapNotNull null
-        val (band, _) = freqToChannel(freq) ?: return@mapNotNull null
-        val bssid = r.bssid ?: "synth_${freq}_${rssi}_${r.ssid?.hashCode() ?: 0}"
-        val width = larguraParaChannelWidth(r.larguraCanalMhz)
-        if (width == null) larguraEstimada = true
-        Neighbor(
-            bssid = bssid,
-            band = band,
-            centerFreqMhz = freq,
-            centerFreq1Mhz = null,
-            width = width ?: ChannelWidth.W20,
-            rssiDbm = rssi,
-        )
-    }
+    val neighbors =
+        mapNotNull { r ->
+            val freq = r.frequenciaMhz ?: return@mapNotNull null
+            val rssi = r.rssiDbm ?: return@mapNotNull null
+            val (band, _) = freqToChannel(freq) ?: return@mapNotNull null
+            val bssid = r.bssid ?: "synth_${freq}_${rssi}_${r.ssid?.hashCode() ?: 0}"
+            val width = larguraParaChannelWidth(r.larguraCanalMhz)
+            if (width == null) larguraEstimada = true
+            Neighbor(
+                bssid = bssid,
+                band = band,
+                centerFreqMhz = freq,
+                centerFreq1Mhz = null,
+                width = width ?: ChannelWidth.W20,
+                rssiDbm = rssi,
+            )
+        }
     return neighbors to larguraEstimada
 }
 
-private fun larguraParaChannelWidth(larguraMhz: Int?): ChannelWidth? = when (larguraMhz) {
-    20 -> ChannelWidth.W20
-    40 -> ChannelWidth.W40
-    80 -> ChannelWidth.W80
-    160 -> ChannelWidth.W160
-    320 -> ChannelWidth.W320
-    else -> null
-}
+private fun larguraParaChannelWidth(larguraMhz: Int?): ChannelWidth? =
+    when (larguraMhz) {
+        20 -> ChannelWidth.W20
+        40 -> ChannelWidth.W40
+        80 -> ChannelWidth.W80
+        160 -> ChannelWidth.W160
+        320 -> ChannelWidth.W320
+        else -> null
+    }

@@ -3,7 +3,5 @@
 import android.content.Context
 
 object CoreTelephonyModulo {
-    fun criarMonitorTelephony(context: Context): MonitorTelephony {
-        return MonitorTelephonyImpl(context)
-    }
+    fun criarMonitorTelephony(context: Context): MonitorTelephony = MonitorTelephonyImpl(context)
 }

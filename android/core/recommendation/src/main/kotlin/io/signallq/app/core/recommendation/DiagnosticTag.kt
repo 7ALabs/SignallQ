@@ -8,8 +8,9 @@ package io.signallq.app.core.recommendation
  * pode introduzir tags novas sem exigir release do app.
  */
 @JvmInline
-value class DiagnosticTag(val id: String) {
-
+value class DiagnosticTag(
+    val id: String,
+) {
     companion object {
         val WIFI_FRACO = DiagnosticTag("wifi_fraco")
         val BUFFERBLOAT_ALTO = DiagnosticTag("bufferbloat_alto")

@@ -8,52 +8,61 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RemoteDiagnosticReportMapperTest {
-
     private fun cardJson(
         id: String = "TEST-01",
         titulo: String = "Titulo",
         status: String = "attention",
         categoria: String = "wifi",
-    ): JSONObject = JSONObject().apply {
-        put("id", id)
-        put("titulo", titulo)
-        put("status", status)
-        put("evidencia", "RSSI -75 dBm")
-        put("mensagemUsuario", "mensagem")
-        put("recomendacao", "recomendacao")
-        put("categoria", categoria)
-        put("podeConcluir", true)
-        put("categoriaOrigem", "wifi")
-    }
+    ): JSONObject =
+        JSONObject().apply {
+            put("id", id)
+            put("titulo", titulo)
+            put("status", status)
+            put("evidencia", "RSSI -75 dBm")
+            put("mensagemUsuario", "mensagem")
+            put("recomendacao", "recomendacao")
+            put("categoria", categoria)
+            put("podeConcluir", true)
+            put("categoriaOrigem", "wifi")
+        }
 
-    private fun minimalPayload(): JSONObject = JSONObject().apply {
-        put("evaluationSource", "REMOTE")
-        put("wifiResultados", org.json.JSONArray().put(cardJson()))
-        put("internetResultados", org.json.JSONArray())
-        put("mobileResultados", org.json.JSONArray())
-        put("fibraResultados", org.json.JSONArray())
-        put("dnsResultados", org.json.JSONArray())
-        put("historicoResultados", org.json.JSONArray())
-        put("wifiCanalResultados", org.json.JSONArray())
-        put("redeResultados", org.json.JSONArray())
-        put("decisao", cardJson(id = "DECISAO-WIFI_LOCAL", status = "attention", categoria = "decisao"))
-        put("achadosSecundarios", org.json.JSONArray())
-        put("hipotesesDescartadas", org.json.JSONArray())
-        put("dadosAusentes", org.json.JSONArray().put("fibra"))
-        put("limitacoesEquipamentoLocal", org.json.JSONArray())
-        put("recomendacoes", org.json.JSONArray())
-        put(
-            "scoreEngineResultado",
-            JSONObject().apply {
-                put("score", 62)
-                put("veredictoHumano", "regular")
-                put("dimensoes", org.json.JSONArray().put(JSONObject().apply { put("id", "wifi"); put("score", 62) }))
-            },
-        )
-        put("perfisUso", org.json.JSONArray())
-        put("gameReadiness", org.json.JSONArray())
-        put("geradoEmMs", 1_000_000L)
-    }
+    private fun minimalPayload(): JSONObject =
+        JSONObject().apply {
+            put("evaluationSource", "REMOTE")
+            put("wifiResultados", org.json.JSONArray().put(cardJson()))
+            put("internetResultados", org.json.JSONArray())
+            put("mobileResultados", org.json.JSONArray())
+            put("fibraResultados", org.json.JSONArray())
+            put("dnsResultados", org.json.JSONArray())
+            put("historicoResultados", org.json.JSONArray())
+            put("wifiCanalResultados", org.json.JSONArray())
+            put("redeResultados", org.json.JSONArray())
+            put("decisao", cardJson(id = "DECISAO-WIFI_LOCAL", status = "attention", categoria = "decisao"))
+            put("achadosSecundarios", org.json.JSONArray())
+            put("hipotesesDescartadas", org.json.JSONArray())
+            put("dadosAusentes", org.json.JSONArray().put("fibra"))
+            put("limitacoesEquipamentoLocal", org.json.JSONArray())
+            put("recomendacoes", org.json.JSONArray())
+            put(
+                "scoreEngineResultado",
+                JSONObject().apply {
+                    put("score", 62)
+                    put("veredictoHumano", "regular")
+                    put(
+                        "dimensoes",
+                        org.json.JSONArray().put(
+                            JSONObject().apply {
+                                put("id", "wifi")
+                                put("score", 62)
+                            },
+                        ),
+                    )
+                },
+            )
+            put("perfisUso", org.json.JSONArray())
+            put("gameReadiness", org.json.JSONArray())
+            put("geradoEmMs", 1_000_000L)
+        }
 
     @Test
     fun `mapeia buckets de resultado 1 para 1`() {

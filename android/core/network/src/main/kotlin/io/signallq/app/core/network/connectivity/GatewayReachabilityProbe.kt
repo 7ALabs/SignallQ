@@ -21,7 +21,6 @@ class GatewayReachabilityProbe(
     private val timeoutMs: Int = TIMEOUT_MS_DEFAULT,
     private val portas: List<Int> = PORTAS_PADRAO,
 ) : GatewayProbe {
-
     companion object {
         private const val TIMEOUT_MS_DEFAULT = 1200
         private val PORTAS_PADRAO = listOf(53, 80, 443)
@@ -42,26 +41,27 @@ class GatewayReachabilityProbe(
      * resolução e por isso precisa de um mecanismo adicional de prazo real
      * ([ProbeBlockingExecutor]).
      */
-    override suspend fun probe(gatewayIp: String): ProbeResult = runInterruptible(Dispatchers.IO) {
-        var houveTimeout = false
-        for (porta in portas) {
-            try {
-                Socket().use { socket ->
-                    binding.bindSocket(socket)
-                    val inicio = System.currentTimeMillis()
-                    socket.connect(InetSocketAddress(gatewayIp, porta), timeoutMs)
-                    return@runInterruptible ProbeResult.Success(System.currentTimeMillis() - inicio)
+    override suspend fun probe(gatewayIp: String): ProbeResult =
+        runInterruptible(Dispatchers.IO) {
+            var houveTimeout = false
+            for (porta in portas) {
+                try {
+                    Socket().use { socket ->
+                        binding.bindSocket(socket)
+                        val inicio = System.currentTimeMillis()
+                        socket.connect(InetSocketAddress(gatewayIp, porta), timeoutMs)
+                        return@runInterruptible ProbeResult.Success(System.currentTimeMillis() - inicio)
+                    }
+                } catch (_: SocketTimeoutException) {
+                    houveTimeout = true
+                } catch (_: IOException) {
+                    // porta fechada/recusada -- tenta a proxima, a menos que a interrupcao
+                    // (cancelamento/timeout do motor) tenha disparado esta excecao
+                    if (Thread.currentThread().isInterrupted) return@runInterruptible ProbeResult.Timeout(timeoutMs.toLong())
+                } catch (_: SecurityException) {
+                    return@runInterruptible ProbeResult.Unavailable("sem permissao para socket na rede sob analise")
                 }
-            } catch (_: SocketTimeoutException) {
-                houveTimeout = true
-            } catch (_: IOException) {
-                // porta fechada/recusada -- tenta a proxima, a menos que a interrupcao
-                // (cancelamento/timeout do motor) tenha disparado esta excecao
-                if (Thread.currentThread().isInterrupted) return@runInterruptible ProbeResult.Timeout(timeoutMs.toLong())
-            } catch (_: SecurityException) {
-                return@runInterruptible ProbeResult.Unavailable("sem permissao para socket na rede sob analise")
             }
+            if (houveTimeout) ProbeResult.Timeout(timeoutMs.toLong()) else ProbeResult.Failure(ProbeFailureReason.HOST_UNREACHABLE)
         }
-        if (houveTimeout) ProbeResult.Timeout(timeoutMs.toLong()) else ProbeResult.Failure(ProbeFailureReason.HOST_UNREACHABLE)
-    }
 }

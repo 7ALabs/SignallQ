@@ -24,34 +24,34 @@ class ExternalIpReachabilityProbe(
     private val enderecos: List<String> = ENDERECOS_PADRAO,
     private val porta: Int = 443,
 ) : ExternalIpProbe {
-
     companion object {
         private const val TIMEOUT_MS_DEFAULT = 1500
         private val ENDERECOS_PADRAO = listOf("1.1.1.1", "8.8.8.8", "9.9.9.9")
     }
 
     /** `runInterruptible`: ver KDoc equivalente em [GatewayReachabilityProbe.probe]. */
-    override suspend fun probe(): ProbeResult = runInterruptible(Dispatchers.IO) {
-        var houveTimeout = false
-        for (endereco in enderecos) {
-            try {
-                Socket().use { socket ->
-                    binding.bindSocket(socket)
-                    val alvo = InetSocketAddress(InetAddress.getByName(endereco), porta)
-                    val inicio = System.currentTimeMillis()
-                    socket.connect(alvo, timeoutMs)
-                    return@runInterruptible ProbeResult.Success(System.currentTimeMillis() - inicio)
+    override suspend fun probe(): ProbeResult =
+        runInterruptible(Dispatchers.IO) {
+            var houveTimeout = false
+            for (endereco in enderecos) {
+                try {
+                    Socket().use { socket ->
+                        binding.bindSocket(socket)
+                        val alvo = InetSocketAddress(InetAddress.getByName(endereco), porta)
+                        val inicio = System.currentTimeMillis()
+                        socket.connect(alvo, timeoutMs)
+                        return@runInterruptible ProbeResult.Success(System.currentTimeMillis() - inicio)
+                    }
+                } catch (_: SocketTimeoutException) {
+                    houveTimeout = true
+                } catch (_: IOException) {
+                    // recusado/inalcancavel nesse IP -- tenta o proximo, a menos que a
+                    // interrupcao (cancelamento/timeout do motor) tenha disparado esta excecao
+                    if (Thread.currentThread().isInterrupted) return@runInterruptible ProbeResult.Timeout(timeoutMs.toLong())
+                } catch (_: SecurityException) {
+                    return@runInterruptible ProbeResult.Unavailable("sem permissao para socket na rede sob analise")
                 }
-            } catch (_: SocketTimeoutException) {
-                houveTimeout = true
-            } catch (_: IOException) {
-                // recusado/inalcancavel nesse IP -- tenta o proximo, a menos que a
-                // interrupcao (cancelamento/timeout do motor) tenha disparado esta excecao
-                if (Thread.currentThread().isInterrupted) return@runInterruptible ProbeResult.Timeout(timeoutMs.toLong())
-            } catch (_: SecurityException) {
-                return@runInterruptible ProbeResult.Unavailable("sem permissao para socket na rede sob analise")
             }
+            if (houveTimeout) ProbeResult.Timeout(timeoutMs.toLong()) else ProbeResult.Failure(ProbeFailureReason.HOST_UNREACHABLE)
         }
-        if (houveTimeout) ProbeResult.Timeout(timeoutMs.toLong()) else ProbeResult.Failure(ProbeFailureReason.HOST_UNREACHABLE)
-    }
 }

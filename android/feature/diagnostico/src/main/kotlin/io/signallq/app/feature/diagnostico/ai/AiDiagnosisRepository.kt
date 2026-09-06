@@ -1,8 +1,6 @@
 ﻿package io.signallq.app.feature.diagnostico.ai
 
-import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -14,6 +12,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import timber.log.Timber
 import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -32,19 +31,31 @@ import java.util.concurrent.TimeUnit
 // =============================================================================
 
 sealed class AiDiagnosisState {
-    data object idle : AiDiagnosisState()
-    data object loading : AiDiagnosisState()
-    data class success(val result: AiDiagnosisResult) : AiDiagnosisState()
-    data class fallback(val result: AiDiagnosisResult) : AiDiagnosisState()
-    data class error(val code: String) : AiDiagnosisState()
-    data object timeout : AiDiagnosisState()
+    data object Idle : AiDiagnosisState()
+
+    data object Loading : AiDiagnosisState()
+
+    data class Success(
+        val result: AiDiagnosisResult,
+    ) : AiDiagnosisState()
+
+    data class Fallback(
+        val result: AiDiagnosisResult,
+    ) : AiDiagnosisState()
+
+    data class Error(
+        val code: String,
+    ) : AiDiagnosisState()
+
+    data object Timeout : AiDiagnosisState()
 }
 
 class AiDiagnosisRepository(
     private val baseUrl: String,
     private val isAuthorized: () -> Boolean,
     private val client: OkHttpClient =
-        OkHttpClient.Builder()
+        OkHttpClient
+            .Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             // Gemma 4 26B gera reasoning (500-2500 tokens) + JSON (700-1100 tokens)
             // antes de devolver resposta. Inferencia tipica: 40-60 s no free tier.
@@ -76,15 +87,22 @@ class AiDiagnosisRepository(
      * Verifica se o worker de IA está acessível.
      * Faz um HEAD request com timeout de 5s. Retorna false em qualquer falha.
      */
-    suspend fun checkAvailability(): Boolean {
-        return try {
+    suspend fun checkAvailability(): Boolean =
+        try {
             withContext(Dispatchers.IO) {
                 val url = baseUrl.trimEnd('/') + "/api/ai/diagnostico-conexao"
-                val req = Request.Builder().url(url).head().build()
-                val availabilityClient = OkHttpClient.Builder()
-                    .connectTimeout(5, TimeUnit.SECONDS)
-                    .readTimeout(5, TimeUnit.SECONDS)
-                    .build()
+                val req =
+                    Request
+                        .Builder()
+                        .url(url)
+                        .head()
+                        .build()
+                val availabilityClient =
+                    OkHttpClient
+                        .Builder()
+                        .connectTimeout(5, TimeUnit.SECONDS)
+                        .readTimeout(5, TimeUnit.SECONDS)
+                        .build()
                 availabilityClient.newCall(req).execute().use { resp ->
                     // 405 Method Not Allowed também indica que o servidor está vivo
                     resp.isSuccessful || resp.code == 405
@@ -93,7 +111,6 @@ class AiDiagnosisRepository(
         } catch (_: Exception) {
             false
         }
-    }
 
     /**
      * Envia o contexto bruto para o Worker e devolve o estado parseado.
@@ -110,62 +127,66 @@ class AiDiagnosisRepository(
         decisaoLocalStatus: String = "",
         localFallback: () -> AiDiagnosisResult,
     ): AiDiagnosisState {
-        if (!isAuthorized()) return AiDiagnosisState.fallback(localFallback())
+        if (!isAuthorized()) return AiDiagnosisState.Fallback(localFallback())
 
         val key = cacheKey(context)
         cache[key]?.let { (result, timestamp) ->
             if (clock() - timestamp > CACHE_TTL_MS) {
                 cache.remove(key)
             } else {
-                return AiDiagnosisState.success(result.copy(source = "cache"))
+                return AiDiagnosisState.Success(result.copy(source = "cache"))
             }
         }
 
         return withContext(Dispatchers.IO) {
-            val result = withTimeoutOrNull(40_000L) {
-                try {
-                    val url = baseUrl.trimEnd('/') + "/api/ai/diagnostico-conexao"
-                    val json = contextToJson(context).toString()
-                    val body = json.toRequestBody("application/json; charset=utf-8".toMediaType())
-                    val req =
-                        Request.Builder()
-                            .url(url)
-                            .post(body)
-                            .build()
+            val result =
+                withTimeoutOrNull(40_000L) {
+                    try {
+                        val url = baseUrl.trimEnd('/') + "/api/ai/diagnostico-conexao"
+                        val json = contextToJson(context).toString()
+                        val body = json.toRequestBody("application/json; charset=utf-8".toMediaType())
+                        val req =
+                            Request
+                                .Builder()
+                                .url(url)
+                                .post(body)
+                                .build()
 
-                    client.newCall(req).execute().use { resp ->
-                        if (!resp.isSuccessful) {
-                            val errorBody = resp.body?.string()?.take(300) ?: "(vazio)"
-                            Timber.w("Worker HTTP ${resp.code} — body: $errorBody — ativando fallback local")
-                            return@use AiDiagnosisState.fallback(localFallback())
+                        client.newCall(req).execute().use { resp ->
+                            if (!resp.isSuccessful) {
+                                val errorBody = resp.body?.string()?.take(300) ?: "(vazio)"
+                                Timber.w("Worker HTTP ${resp.code} — body: $errorBody — ativando fallback local")
+                                return@use AiDiagnosisState.Fallback(localFallback())
+                            }
+                            val txt = resp.body?.string()
+                            if (txt.isNullOrBlank()) {
+                                Timber.w("Worker retornou body vazio — ativando fallback local")
+                                return@use AiDiagnosisState.Fallback(localFallback())
+                            }
+                            val parsed = parseResult(txt)
+                            if (parsed == null) {
+                                Timber.w("Falha ao parsear JSON do Worker — ativando fallback local. Body: ${txt.take(200)}")
+                                return@use AiDiagnosisState.Fallback(localFallback())
+                            }
+                            val normalized =
+                                parsed.copy(
+                                    status =
+                                        normalizeStatus(
+                                            aiStatus = parsed.status,
+                                            decisaoStatus = decisaoLocalStatus,
+                                            problemaPrincipalTipo = parsed.problemaPrincipal.tipo,
+                                            hasSpeedtestData = context.metricasAtuais?.downloadMbps != null,
+                                        ),
+                                )
+                            cache[key] = Pair(normalized, clock())
+                            AiDiagnosisState.Success(normalized)
                         }
-                        val txt = resp.body?.string()
-                        if (txt.isNullOrBlank()) {
-                            Timber.w("Worker retornou body vazio — ativando fallback local")
-                            return@use AiDiagnosisState.fallback(localFallback())
-                        }
-                        val parsed = parseResult(txt)
-                        if (parsed == null) {
-                            Timber.w("Falha ao parsear JSON do Worker — ativando fallback local. Body: ${txt.take(200)}")
-                            return@use AiDiagnosisState.fallback(localFallback())
-                        }
-                        val normalized = parsed.copy(
-                            status = normalizeStatus(
-                                aiStatus = parsed.status,
-                                decisaoStatus = decisaoLocalStatus,
-                                problemaPrincipalTipo = parsed.problemaPrincipal.tipo,
-                                hasSpeedtestData = context.metricasAtuais?.downloadMbps != null,
-                            ),
-                        )
-                        cache[key] = Pair(normalized, clock())
-                        AiDiagnosisState.success(normalized)
+                    } catch (t: Throwable) {
+                        Timber.e("explainDiagnosis falhou: ${t::class.simpleName} — ${t.message}")
+                        AiDiagnosisState.Fallback(localFallback())
                     }
-                } catch (t: Throwable) {
-                    Timber.e("explainDiagnosis falhou: ${t::class.simpleName} — ${t.message}")
-                    AiDiagnosisState.fallback(localFallback())
                 }
-            }
-            result ?: AiDiagnosisState.timeout
+            result ?: AiDiagnosisState.Timeout
         }
     }
 
@@ -174,57 +195,65 @@ class AiDiagnosisRepository(
     // Fallback silencioso se Content-Type nao for text/event-stream.
     // call.cancel() no finally garante cancelamento ao sair da tela.
     // --------------------------------------------------------------------------
-    fun explainDiagnosisStream(context: DiagnosisAiContext): Flow<String> = flow {
-        if (!isAuthorized()) return@flow
+    fun explainDiagnosisStream(context: DiagnosisAiContext): Flow<String> =
+        flow {
+            if (!isAuthorized()) return@flow
 
-        lastStreamUsage = null
+            lastStreamUsage = null
 
-        val url = baseUrl.trimEnd('/') + "/api/ai/diagnostico-conexao?stream=true"
-        val json = contextToJson(context).toString()
-        val body = json.toRequestBody("application/json; charset=utf-8".toMediaType())
-        val req = Request.Builder().url(url).post(body).build()
+            val url = baseUrl.trimEnd('/') + "/api/ai/diagnostico-conexao?stream=true"
+            val json = contextToJson(context).toString()
+            val body = json.toRequestBody("application/json; charset=utf-8".toMediaType())
+            val req =
+                Request
+                    .Builder()
+                    .url(url)
+                    .post(body)
+                    .build()
 
-        val call = client.newCall(req)
-        try {
-            val resp = call.execute()
-            if (!resp.isSuccessful) return@flow
-            val contentType = resp.header("Content-Type") ?: ""
-            if (!contentType.contains("text/event-stream")) return@flow // fallback silencioso
+            val call = client.newCall(req)
+            try {
+                val resp = call.execute()
+                if (!resp.isSuccessful) return@flow
+                val contentType = resp.header("Content-Type") ?: ""
+                if (!contentType.contains("text/event-stream")) return@flow // fallback silencioso
 
-            val source = resp.body?.source() ?: return@flow
-            while (!source.exhausted()) {
-                val line = source.readUtf8Line() ?: break
-                if (line.startsWith("data: ")) {
-                    val data = line.removePrefix("data: ").trim()
-                    if (data == "[DONE]") break
-                    try {
-                        val obj = JSONObject(data)
-                        val token = obj.optString("response", "")
-                        if (token.isNotEmpty()) emit(token)
-                        // Captura uso de tokens quando o worker envia o bloco de usage
-                        // (tipicamente no último evento SSE antes de [DONE]).
-                        val usageObj = obj.optJSONObject("usage")
-                        if (usageObj != null) {
-                            val prompt = usageObj.optInt("prompt_tokens", 0)
-                            val completion = usageObj.optInt("completion_tokens", 0)
-                            val total = usageObj.optInt("total_tokens", prompt + completion)
-                            if (total > 0) {
-                                lastStreamUsage = AiStreamUsage(prompt, completion, total)
+                val source = resp.body?.source() ?: return@flow
+                while (!source.exhausted()) {
+                    val line = source.readUtf8Line() ?: break
+                    if (line.startsWith("data: ")) {
+                        val data = line.removePrefix("data: ").trim()
+                        if (data == "[DONE]") break
+                        try {
+                            val obj = JSONObject(data)
+                            val token = obj.optString("response", "")
+                            if (token.isNotEmpty()) emit(token)
+                            // Captura uso de tokens quando o worker envia o bloco de usage
+                            // (tipicamente no último evento SSE antes de [DONE]).
+                            val usageObj = obj.optJSONObject("usage")
+                            if (usageObj != null) {
+                                val prompt = usageObj.optInt("prompt_tokens", 0)
+                                val completion = usageObj.optInt("completion_tokens", 0)
+                                val total = usageObj.optInt("total_tokens", prompt + completion)
+                                if (total > 0) {
+                                    lastStreamUsage = AiStreamUsage(prompt, completion, total)
+                                }
                             }
+                        } catch (_: Exception) {
+                            // evento malformado — ignorar
                         }
-                    } catch (_: Exception) { /* evento malformado — ignorar */ }
+                    }
                 }
+            } finally {
+                call.cancel()
             }
-        } finally {
-            call.cancel()
-        }
-    }.flowOn(Dispatchers.IO)
+        }.flowOn(Dispatchers.IO)
 
     // --------------------------------------------------------------------------
     // Parser tolerante: aceita schema v1 e v2.
     // --------------------------------------------------------------------------
-    internal fun parseResult(txt: String): AiDiagnosisResult? {
-        return try {
+    internal fun parseResult(txt: String): AiDiagnosisResult? =
+        try {
             val o = JSONObject(txt)
 
             val schemaVersion = o.optString("schemaVersion", "1")
@@ -234,20 +263,22 @@ class AiDiagnosisRepository(
 
             // problemaPrincipal pode vir nulo em respostas malformadas.
             val ppObj = o.optJSONObject("problemaPrincipal")
-            val problemaPrincipal = AiProblemaPrincipal(
-                tipo = ppObj?.optString("tipo", "desconhecido") ?: "desconhecido",
-                descricao = ppObj?.optString("descricao", "") ?: "",
-                confianca = ppObj?.optDouble("confianca", 0.5) ?: 0.5,
-            )
+            val problemaPrincipal =
+                AiProblemaPrincipal(
+                    tipo = ppObj?.optString("tipo", "desconhecido") ?: "desconhecido",
+                    descricao = ppObj?.optString("descricao", "") ?: "",
+                    confianca = ppObj?.optDouble("confianca", 0.5) ?: 0.5,
+                )
 
             val impactoObj = o.optJSONObject("impacto")
-            val impacto = AiImpacto(
-                navegacao = impactoObj?.optString("navegacao", "") ?: "",
-                streaming = impactoObj?.optString("streaming", "") ?: "",
-                videochamada = impactoObj?.optString("videochamada", "") ?: "",
-                jogos = impactoObj?.optString("jogos", "") ?: "",
-                trabalho = impactoObj?.optString("trabalho", "") ?: "",
-            )
+            val impacto =
+                AiImpacto(
+                    navegacao = impactoObj?.optString("navegacao", "") ?: "",
+                    streaming = impactoObj?.optString("streaming", "") ?: "",
+                    videochamada = impactoObj?.optString("videochamada", "") ?: "",
+                    jogos = impactoObj?.optString("jogos", "") ?: "",
+                    trabalho = impactoObj?.optString("trabalho", "") ?: "",
+                )
 
             val acoes = parseAcoes(o.optJSONArray("acoesRecomendadas"))
             val evidencias = parseEvidencias(o.optJSONArray("evidencias"))
@@ -287,7 +318,6 @@ class AiDiagnosisRepository(
         } catch (_: Throwable) {
             null
         }
-    }
 
     private fun parseModeloIa(obj: JSONObject?): ModeloIa {
         if (obj == null) return ModeloIa.unknown()
@@ -301,8 +331,10 @@ class AiDiagnosisRepository(
             nomeExibicao = obj.optString("nomeExibicao", "SignallQ IA").ifBlank { "SignallQ IA" },
             nomeCompletoComercial = obj.optString("nomeCompletoComercial", "SignallQ IA").ifBlank { "SignallQ IA" },
             descricaoComercial = obj.optString("descricaoComercial", ""),
-            textoRodape = obj.optString("textoRodape", "Motor de análise: SignallQ IA")
-                .ifBlank { "Motor de análise: SignallQ IA" },
+            textoRodape =
+                obj
+                    .optString("textoRodape", "Motor de análise: SignallQ IA")
+                    .ifBlank { "Motor de análise: SignallQ IA" },
         )
     }
 
@@ -685,7 +717,10 @@ class AiDiagnosisRepository(
 
 // --- helpers JSON ---------------------------------------------------------
 
-private fun JSONObject.putOrNull(name: String, value: Double?) {
+private fun JSONObject.putOrNull(
+    name: String,
+    value: Double?,
+) {
     if (value == null) put(name, JSONObject.NULL) else put(name, value)
 }
 

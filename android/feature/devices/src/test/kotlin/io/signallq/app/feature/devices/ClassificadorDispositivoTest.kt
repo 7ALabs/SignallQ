@@ -9,7 +9,6 @@ import org.junit.Test
  * portas abertas e fabricante.
  */
 class ClassificadorDispositivoTest {
-
     private fun dispositivo(
         nome: String = "Dispositivo não identificado",
         fonteNome: String = "arp",

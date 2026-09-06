@@ -15,7 +15,6 @@ import org.junit.Test
  * #1759, item 4).
  */
 class NdsDiagnosticsResponseMapperTest {
-
     private fun responseComScoringEAi(
         veredicto: String = "regular",
         score: Int = 50,
@@ -24,56 +23,61 @@ class NdsDiagnosticsResponseMapperTest {
         resumo: String? = "Score 50, regular.",
         missingInputs: List<String> = emptyList(),
     ): NdsDiagnosticsResponse {
-        val aiResult = mutableMapOf<String, Any?>(
-            "tokens_used" to 0,
-            "ai_model_used" to "copy-catalog",
-            "fallback_used" to false,
-            "explanation_source" to "copy_catalog",
-            "explanation_status" to "catalog_hit",
-            "source_finding_ids" to emptyList<String>(),
-        )
-        if (tituloAmigavel != null && resumo != null) {
-            aiResult["explanation"] = mapOf(
-                "titulo_amigavel" to tituloAmigavel,
-                "resumo_tecnico_traduzido" to resumo,
+        val aiResult =
+            mutableMapOf<String, Any?>(
+                "tokens_used" to 0,
+                "ai_model_used" to "copy-catalog",
+                "fallback_used" to false,
+                "explanation_source" to "copy_catalog",
+                "explanation_status" to "catalog_hit",
+                "source_finding_ids" to emptyList<String>(),
             )
+        if (tituloAmigavel != null && resumo != null) {
+            aiResult["explanation"] =
+                mapOf(
+                    "titulo_amigavel" to tituloAmigavel,
+                    "resumo_tecnico_traduzido" to resumo,
+                )
         }
         return NdsDiagnosticsResponse(
             recommendation = recommendation,
-            results = listOf(
-                NdsModuleResult(
-                    module = "scoring",
-                    moduleVersion = "1.1.0",
-                    requestId = "req-1",
-                    warnings = emptyList(),
-                    missingInputs = missingInputs,
-                    result = mapOf(
-                        "score" to score,
-                        "veredicto" to veredicto,
-                        "tipo_conexao" to "WIFI",
-                        "observed_dimensions" to 1,
-                        "dimensoes" to emptyList<String>(),
+            results =
+                listOf(
+                    NdsModuleResult(
+                        module = "scoring",
+                        moduleVersion = "1.1.0",
+                        requestId = "req-1",
+                        warnings = emptyList(),
+                        missingInputs = missingInputs,
+                        result =
+                            mapOf(
+                                "score" to score,
+                                "veredicto" to veredicto,
+                                "tipo_conexao" to "WIFI",
+                                "observed_dimensions" to 1,
+                                "dimensoes" to emptyList<String>(),
+                            ),
+                        cards = emptyList(),
                     ),
-                    cards = emptyList(),
+                    NdsModuleResult(
+                        module = "ai",
+                        moduleVersion = "1.5.0",
+                        requestId = "req-1",
+                        warnings = emptyList(),
+                        missingInputs = emptyList(),
+                        result = aiResult,
+                        cards = emptyList(),
+                    ),
                 ),
-                NdsModuleResult(
-                    module = "ai",
-                    moduleVersion = "1.5.0",
-                    requestId = "req-1",
-                    warnings = emptyList(),
-                    missingInputs = emptyList(),
-                    result = aiResult,
-                    cards = emptyList(),
-                ),
-            ),
             traces = emptyList(),
         )
     }
 
     @Test
     fun `mapeia veredicto regular para status info e usa explicacao da IA`() {
-        val report = responseComScoringEAi(veredicto = "regular", score = 50)
-            .toDiagnosticReport(input = DiagnosticInput(executionId = "exec-1"), geradoEmMs = 123L)
+        val report =
+            responseComScoringEAi(veredicto = "regular", score = 50)
+                .toDiagnosticReport(input = DiagnosticInput(executionId = "exec-1"), geradoEmMs = 123L)
 
         assertEquals(DiagnosticStatus.info, report.decisao.status)
         assertEquals("nds:regular", report.decisao.id)
@@ -88,8 +92,9 @@ class NdsDiagnosticsResponseMapperTest {
 
     @Test
     fun `veredicto critico vira status critical`() {
-        val report = responseComScoringEAi(veredicto = "critico")
-            .toDiagnosticReport(input = DiagnosticInput(), geradoEmMs = 0L)
+        val report =
+            responseComScoringEAi(veredicto = "critico")
+                .toDiagnosticReport(input = DiagnosticInput(), geradoEmMs = 0L)
 
         assertEquals(DiagnosticStatus.critical, report.decisao.status)
         assertEquals("nds:critico", report.decisao.id)
@@ -108,33 +113,36 @@ class NdsDiagnosticsResponseMapperTest {
 
     @Test
     fun `sem modulo ai, mensagemUsuario cai para recommendation e depois para texto padrao`() {
-        val comRecommendation = responseComScoringEAi(
-            tituloAmigavel = null,
-            resumo = null,
-            recommendation = NdsNextBestAction(
-                id = "restart_router",
-                type = "resolution",
-                title = "Reinicie o roteador",
-                description = "Reinicie o roteador.",
-                sourceFindingIds = emptyList(),
-                steps = listOf("Desligue o roteador.", "Ligue o roteador novamente."),
-            ),
-        )
-            .toDiagnosticReport(input = DiagnosticInput(), geradoEmMs = 0L)
+        val comRecommendation =
+            responseComScoringEAi(
+                tituloAmigavel = null,
+                resumo = null,
+                recommendation =
+                    NdsNextBestAction(
+                        id = "restart_router",
+                        type = "resolution",
+                        title = "Reinicie o roteador",
+                        description = "Reinicie o roteador.",
+                        sourceFindingIds = emptyList(),
+                        steps = listOf("Desligue o roteador.", "Ligue o roteador novamente."),
+                    ),
+            ).toDiagnosticReport(input = DiagnosticInput(), geradoEmMs = 0L)
         assertEquals("Reinicie o roteador.", comRecommendation.decisao.mensagemUsuario)
         assertEquals("Reinicie o roteador.", comRecommendation.decisao.recomendacao)
         assertEquals(listOf("Desligue o roteador.", "Ligue o roteador novamente."), comRecommendation.decisao.recomendacaoPassos)
 
-        val semNada = responseComScoringEAi(tituloAmigavel = null, resumo = null, recommendation = null)
-            .toDiagnosticReport(input = DiagnosticInput(), geradoEmMs = 0L)
+        val semNada =
+            responseComScoringEAi(tituloAmigavel = null, resumo = null, recommendation = null)
+                .toDiagnosticReport(input = DiagnosticInput(), geradoEmMs = 0L)
         assertEquals("Diagnóstico concluído.", semNada.decisao.mensagemUsuario)
     }
 
     @Test
     fun `mapeia recommendation textual legado sem fabricar passos`() {
-        val report = responseComScoringEAi(tituloAmigavel = null, resumo = null)
-            .copy(recommendationText = "Reinicie o roteador.")
-            .toDiagnosticReport(input = DiagnosticInput(), geradoEmMs = 0L)
+        val report =
+            responseComScoringEAi(tituloAmigavel = null, resumo = null)
+                .copy(recommendationText = "Reinicie o roteador.")
+                .toDiagnosticReport(input = DiagnosticInput(), geradoEmMs = 0L)
 
         assertEquals("Reinicie o roteador.", report.decisao.mensagemUsuario)
         assertEquals("Reinicie o roteador.", report.decisao.recomendacao)
@@ -171,12 +179,18 @@ class NdsDiagnosticsResponseMapperTest {
     @Test
     fun `perfisUsoSpeedtest e repassado do input, nao do NDS`() {
         val qualidade = SpeedtestQualityInput(vereditoGamer = "boa")
-        val input = DiagnosticInput(
-            internet = InternetDiagnosticInput(
-                downloadMbps = 1.0, uploadMbps = 1.0, latencyMs = 1.0, jitterMs = 1.0, perdaPercentual = 0.0,
-                qualidadeUso = qualidade,
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                internet =
+                    InternetDiagnosticInput(
+                        downloadMbps = 1.0,
+                        uploadMbps = 1.0,
+                        latencyMs = 1.0,
+                        jitterMs = 1.0,
+                        perdaPercentual = 0.0,
+                        qualidadeUso = qualidade,
+                    ),
+            )
 
         val report = responseComScoringEAi().toDiagnosticReport(input = input, geradoEmMs = 0L)
 
@@ -194,21 +208,23 @@ class NdsDiagnosticsResponseMapperTest {
 
     @Test
     fun `modulo scoring sem campos obrigatorios (score ou veredicto) e tratado como ausente`() {
-        val response = NdsDiagnosticsResponse(
-            recommendation = null,
-            results = listOf(
-                NdsModuleResult(
-                    module = "scoring",
-                    moduleVersion = "1.1.0",
-                    requestId = "req-1",
-                    warnings = emptyList(),
-                    missingInputs = emptyList(),
-                    result = mapOf("veredicto" to "bom"), // falta "score"
-                    cards = emptyList(),
-                ),
-            ),
-            traces = emptyList(),
-        )
+        val response =
+            NdsDiagnosticsResponse(
+                recommendation = null,
+                results =
+                    listOf(
+                        NdsModuleResult(
+                            module = "scoring",
+                            moduleVersion = "1.1.0",
+                            requestId = "req-1",
+                            warnings = emptyList(),
+                            missingInputs = emptyList(),
+                            result = mapOf("veredicto" to "bom"), // falta "score"
+                            cards = emptyList(),
+                        ),
+                    ),
+                traces = emptyList(),
+            )
 
         val report = response.toDiagnosticReport(input = DiagnosticInput(), geradoEmMs = 0L)
 
@@ -217,36 +233,77 @@ class NdsDiagnosticsResponseMapperTest {
     }
 
     @Test
+    fun `card com categoria mobile vai para mobileResultados, nao so para achadosSecundarios`() {
+        val response =
+            responseComScoringEAi().copy(
+                results =
+                    responseComScoringEAi().results +
+                        NdsModuleResult(
+                            module = "diagnostics.mobile",
+                            moduleVersion = "1.0.0",
+                            requestId = "req-1",
+                            warnings = emptyList(),
+                            missingInputs = emptyList(),
+                            result = emptyMap(),
+                            cards =
+                                listOf(
+                                    mapOf(
+                                        "id" to "mobile_signal_critical",
+                                        "titulo" to "Sinal móvel muito fraco",
+                                        "status" to "critical",
+                                        "mensagemUsuario" to "Seu sinal 4G está muito fraco.",
+                                        "categoria" to "mobile",
+                                    ),
+                                ),
+                        ),
+            )
+
+        val report = response.toDiagnosticReport(DiagnosticInput(executionId = "exec-1"), 0L)
+
+        assertEquals(listOf("mobile_signal_critical"), report.mobileResultados.map { it.id })
+        assertEquals(DiagnosticStatus.critical, report.mobileResultados.first().status)
+        // continua tambem nos buckets genericos -- mobileResultados nao substitui,
+        // complementa, mesmo padrao ja usado por wifiResultados/fibraResultados/dnsResultados.
+        assertTrue(report.evidenciasRemotas.any { it.id == "mobile_signal_critical" })
+        assertTrue(report.achadosSecundarios.any { it.id == "mobile_signal_critical" })
+    }
+
+    @Test
     fun `cards remotos chegam ao DiagnosticReport e acao preserva ids e passos`() {
-        val response = responseComScoringEAi(
-            recommendation = NdsNextBestAction(
-                id = "retest_near_router",
-                type = "diagnostic",
-                title = "Repita perto do roteador",
-                description = "Repita a medição perto do roteador.",
-                sourceFindingIds = listOf("wifi_signal_critical"),
-                steps = listOf("Aproxime-se do roteador.", "Repita a medição."),
-            ),
-        ).copy(
-            results = responseComScoringEAi().results + NdsModuleResult(
-                module = "diagnostics.extended",
-                moduleVersion = "1.0.0",
-                requestId = "req-1",
-                warnings = listOf("gateway ausente"),
-                missingInputs = listOf("gateway.rtt"),
-                result = emptyMap(),
-                cards = listOf(
-                    mapOf(
-                        "id" to "wifi_signal_critical",
-                        "titulo" to "Sinal Wi-Fi fraco",
-                        "status" to "critical",
-                        "evidencia" to "-84 dBm",
-                        "mensagemUsuario" to "O sinal está fraco.",
-                        "categoria" to "wifi",
+        val response =
+            responseComScoringEAi(
+                recommendation =
+                    NdsNextBestAction(
+                        id = "retest_near_router",
+                        type = "diagnostic",
+                        title = "Repita perto do roteador",
+                        description = "Repita a medição perto do roteador.",
+                        sourceFindingIds = listOf("wifi_signal_critical"),
+                        steps = listOf("Aproxime-se do roteador.", "Repita a medição."),
                     ),
-                ),
-            ),
-        )
+            ).copy(
+                results =
+                    responseComScoringEAi().results +
+                        NdsModuleResult(
+                            module = "diagnostics.extended",
+                            moduleVersion = "1.0.0",
+                            requestId = "req-1",
+                            warnings = listOf("gateway ausente"),
+                            missingInputs = listOf("gateway.rtt"),
+                            result = emptyMap(),
+                            cards =
+                                listOf(
+                                    mapOf(
+                                        "id" to "wifi_signal_critical",
+                                        "titulo" to "Sinal Wi-Fi fraco",
+                                        "status" to "critical",
+                                        "evidencia" to "-84 dBm",
+                                        "mensagemUsuario" to "O sinal está fraco.",
+                                        "categoria" to "wifi",
+                                    ),
+                                ),
+                        ),
+            )
 
         val report = response.toDiagnosticReport(DiagnosticInput(executionId = "exec-1"), 0L)
 
@@ -266,19 +323,21 @@ class NdsDiagnosticsResponseMapperTest {
 
     @Test
     fun `v2 mapeia explanation para titulo mensagem e passo unico de recomendacao`() {
-        val response = NdsDiagnosticsResponse(
-            recommendation = null,
-            results = emptyList(),
-            traces = emptyList(),
-            explanationV2 = NdsExplanationV2(
-                titulo = "Pico de latência no horário de maior uso",
-                descricao = "A rede fica congestionada entre 19h e 22h.",
-                dados = listOf("LATENCY_HIGH"),
-                acaoUsuario = "Evite downloads grandes nesse horário.",
-                semCausaIdentificada = false,
-            ),
-            rawV2 = mapOf("score" to 42),
-        )
+        val response =
+            NdsDiagnosticsResponse(
+                recommendation = null,
+                results = emptyList(),
+                traces = emptyList(),
+                explanationV2 =
+                    NdsExplanationV2(
+                        titulo = "Pico de latência no horário de maior uso",
+                        descricao = "A rede fica congestionada entre 19h e 22h.",
+                        dados = listOf("LATENCY_HIGH"),
+                        acaoUsuario = "Evite downloads grandes nesse horário.",
+                        semCausaIdentificada = false,
+                    ),
+                rawV2 = mapOf("score" to 42),
+            )
 
         val report = response.toDiagnosticReport(DiagnosticInput(executionId = "exec-v2"), 0L)
 
@@ -295,18 +354,20 @@ class NdsDiagnosticsResponseMapperTest {
 
     @Test
     fun `v2 com sem_causa_identificada vira inconclusive com mensagem transparente`() {
-        val response = NdsDiagnosticsResponse(
-            recommendation = null,
-            results = emptyList(),
-            traces = emptyList(),
-            explanationV2 = NdsExplanationV2(
-                titulo = "Não foi possível identificar a causa",
-                descricao = null,
-                dados = emptyList(),
-                acaoUsuario = null,
-                semCausaIdentificada = true,
-            ),
-        )
+        val response =
+            NdsDiagnosticsResponse(
+                recommendation = null,
+                results = emptyList(),
+                traces = emptyList(),
+                explanationV2 =
+                    NdsExplanationV2(
+                        titulo = "Não foi possível identificar a causa",
+                        descricao = null,
+                        dados = emptyList(),
+                        acaoUsuario = null,
+                        semCausaIdentificada = true,
+                    ),
+            )
 
         val report = response.toDiagnosticReport(DiagnosticInput(executionId = "exec-v2"), 0L)
 
@@ -319,18 +380,20 @@ class NdsDiagnosticsResponseMapperTest {
 
     @Test
     fun `v2 sem titulo nem descricao usa fallback honesto`() {
-        val response = NdsDiagnosticsResponse(
-            recommendation = null,
-            results = emptyList(),
-            traces = emptyList(),
-            explanationV2 = NdsExplanationV2(
-                titulo = null,
-                descricao = null,
-                dados = emptyList(),
-                acaoUsuario = null,
-                semCausaIdentificada = false,
-            ),
-        )
+        val response =
+            NdsDiagnosticsResponse(
+                recommendation = null,
+                results = emptyList(),
+                traces = emptyList(),
+                explanationV2 =
+                    NdsExplanationV2(
+                        titulo = null,
+                        descricao = null,
+                        dados = emptyList(),
+                        acaoUsuario = null,
+                        semCausaIdentificada = false,
+                    ),
+            )
 
         val report = response.toDiagnosticReport(DiagnosticInput(executionId = "exec-v2"), 0L)
 

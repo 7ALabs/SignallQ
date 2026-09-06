@@ -91,7 +91,11 @@ object AnalisadorAmostragemPing {
     private fun percentil95(valores: List<Double>): Double {
         if (valores.isEmpty()) return 0.0
         val ordenadas = valores.sorted()
-        val posto = kotlin.math.ceil(0.95 * ordenadas.size).toInt().coerceIn(1, ordenadas.size)
+        val posto =
+            kotlin.math
+                .ceil(0.95 * ordenadas.size)
+                .toInt()
+                .coerceIn(1, ordenadas.size)
         return ordenadas[posto - 1]
     }
 }

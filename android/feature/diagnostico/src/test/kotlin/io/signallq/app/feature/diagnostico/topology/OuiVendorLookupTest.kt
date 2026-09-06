@@ -8,13 +8,13 @@ import org.junit.Test
 import java.io.ByteArrayInputStream
 
 class OuiVendorLookupTest {
-
-    private val ouiData = """
+    private val ouiData =
+        """
         50C7BF	TP-Link
         000000	Xerox
         001882	Huawei
         AC84C6	TP-Link
-    """.trimIndent()
+        """.trimIndent()
 
     private fun createLookup(): OuiVendorLookup =
         OuiVendorLookup { ByteArrayInputStream(ouiData.toByteArray(Charsets.UTF_8)) }

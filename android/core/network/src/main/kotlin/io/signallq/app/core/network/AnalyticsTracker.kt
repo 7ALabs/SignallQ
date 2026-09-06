@@ -24,13 +24,27 @@ interface AnalyticsTracker {
      * a feature ativa for um diagnostico em andamento com sessao ja criada;
      * default `null` preserva o comportamento anterior (UUID de instancia).
      */
-    fun registrarFeatureUsada(featureId: String, sessionIdOverride: String? = null)
+    fun registrarFeatureUsada(
+        featureId: String,
+        sessionIdOverride: String? = null,
+    )
+
     fun registrarScreenView(screenName: String)
+
     fun registrarSessionStart()
+
     /** Fecha a sessao de foreground iniciada por [registrarSessionStart]. */
     fun registrarSessionEnd()
-    fun registrarFeatureCrash(featureId: String, errorType: String)
-    fun registrarBatterySnapshot(level: Int, charging: Boolean)
+
+    fun registrarFeatureCrash(
+        featureId: String,
+        errorType: String,
+    )
+
+    fun registrarBatterySnapshot(
+        level: Int,
+        charging: Boolean,
+    )
 
     /**
      * GH#1480 (Epico #1347, F4) — usuario tentou alcancar rota/overlay de um modulo

@@ -17,4 +17,3 @@ data class DispositivoRede(
      *  [NivelConfiancaIdentidade]). Computado no enriquecimento final do scan. */
     val confiancaIdentidade: NivelConfiancaIdentidade = NivelConfiancaIdentidade.DESCONHECIDA,
 )
-

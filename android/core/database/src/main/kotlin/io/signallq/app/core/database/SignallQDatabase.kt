@@ -2,6 +2,8 @@
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import io.signallq.app.core.database.analytics.AnalyticsOutboxDao
+import io.signallq.app.core.database.analytics.AnalyticsOutboxEntity
 import io.signallq.app.core.database.chat.ChatMessageEntity
 import io.signallq.app.core.database.chat.ChatSessionDao
 import io.signallq.app.core.database.chat.ChatSessionEntity
@@ -11,8 +13,6 @@ import io.signallq.app.core.database.provider.ProviderDirectoryCacheDao
 import io.signallq.app.core.database.provider.ProviderDirectoryCacheEntity
 import io.signallq.app.core.database.recommendation.RecommendationHistoryDao
 import io.signallq.app.core.database.recommendation.RecommendationHistoryEntity
-import io.signallq.app.core.database.analytics.AnalyticsOutboxDao
-import io.signallq.app.core.database.analytics.AnalyticsOutboxEntity
 
 @Database(
     entities = [
@@ -30,10 +30,16 @@ import io.signallq.app.core.database.analytics.AnalyticsOutboxEntity
 )
 abstract class SignallQDatabase : RoomDatabase() {
     abstract fun medicaoDao(): MedicaoDao
+
     abstract fun apelidoDispositivoDao(): ApelidoDispositivoDao
+
     abstract fun chatSessionDao(): ChatSessionDao
+
     abstract fun recommendationHistoryDao(): RecommendationHistoryDao
+
     abstract fun connectivityDiagnosisHistoryDao(): ConnectivityDiagnosisHistoryDao
+
     abstract fun providerDirectoryCacheDao(): ProviderDirectoryCacheDao
+
     abstract fun analyticsOutboxDao(): AnalyticsOutboxDao
 }

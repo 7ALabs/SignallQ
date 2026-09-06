@@ -4,8 +4,8 @@ import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 
 class MontarResumoWifiUseCase {
-    fun executar(snapshotRede: SnapshotRede): ResumoWifi {
-        return when (snapshotRede.estadoConexao) {
+    fun executar(snapshotRede: SnapshotRede): ResumoWifi =
+        when (snapshotRede.estadoConexao) {
             EstadoConexao.wifi ->
                 ResumoWifi(
                     titulo = "WiFi conectado",
@@ -32,7 +32,6 @@ class MontarResumoWifiUseCase {
                     detalhe = "Valide o tipo de rede antes do teste.",
                 )
         }
-    }
 
     private fun montarDetalheWifi(snapshotRede: SnapshotRede): String {
         val wifi = snapshotRede.wifiLinkSnapshot

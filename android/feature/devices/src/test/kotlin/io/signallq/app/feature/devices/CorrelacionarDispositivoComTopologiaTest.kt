@@ -20,13 +20,14 @@ import org.junit.Test
  * e leitura direta do gateway ([ClientSnapshot]).
  */
 class CorrelacionarDispositivoComTopologiaTest {
-    private fun dispositivo(mac: String?) = DispositivoRede(
-        id = "test",
-        ip = "192.168.1.50",
-        mac = mac,
-        nomeExibicao = "Dispositivo de teste",
-        fonteNome = "arp",
-    )
+    private fun dispositivo(mac: String?) =
+        DispositivoRede(
+            id = "test",
+            ip = "192.168.1.50",
+            mac = mac,
+            nomeExibicao = "Dispositivo de teste",
+            fonteNome = "arp",
+        )
 
     private fun redeClassificada(
         bssid: String,
@@ -52,13 +53,17 @@ class CorrelacionarDispositivoComTopologiaTest {
         return rede to classificacao
     }
 
-    private fun clientSnapshot(mac: String?, tipoConexaoFisica: TipoConexaoFisica? = null) = ClientSnapshot(
-        mac = mac,
-        ip = "192.168.1.50",
-        hostname = "host-teste",
-        tipoConexao = null,
-        tipoConexaoFisica = tipoConexaoFisica,
-    )
+    private fun clientSnapshot(
+        mac: String?,
+        tipoConexaoFisica: TipoConexaoFisica? = null,
+    ) =
+        ClientSnapshot(
+            mac = mac,
+            ip = "192.168.1.50",
+            hostname = "host-teste",
+            tipoConexao = null,
+            tipoConexaoFisica = tipoConexaoFisica,
+        )
 
     // ─── Nível 1: ClientSnapshot exato ───────────────────────────────
 

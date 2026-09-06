@@ -46,11 +46,9 @@ class GerenciadorPermissoesRedeAndroid(
         return pendentes
     }
 
-    private fun possuiPermissao(permissao: String): Boolean {
-        return ContextCompat.checkSelfPermission(
+    private fun possuiPermissao(permissao: String): Boolean =
+        ContextCompat.checkSelfPermission(
             applicationContext,
             permissao,
         ) == PackageManager.PERMISSION_GRANTED
-    }
 }
-

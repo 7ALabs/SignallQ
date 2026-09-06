@@ -66,7 +66,51 @@ data class NdsWifiScanInfo(
     /** Método/versão do algoritmo de avaliação de canal usado (`ChannelEvaluator`,
      *  `:coreNetwork`). Null quando nenhum canal foi avaliado. */
     val algorithmVersion: String? = null,
+    /** `ChannelScore.score` (mW, quanto menor melhor) do canal atualmente conectado
+     *  -- precisao completa exigida pela regra `WIFI-CANAL-*` do NDS, que faz a
+     *  propria comparacao/normalizacao a partir do valor bruto em vez de depender
+     *  so do percentual ja arredondado em [channelCongestion]. `null` nas mesmas
+     *  condicoes que [channelCongestion] fica nulo (sem canal conectado ou canal
+     *  fora do [bandScores] avaliado). */
+    val currentScoreMw: Double? = null,
+    /** `ChannelScore.score` (mW) do candidato marcado `recommended` em
+     *  [bandScores] -- mesmo criterio usado para [bestChannel]. `null` quando nao
+     *  ha candidato recomendado. */
+    val bestScoreMw: Double? = null,
+    /** Quantidade de vizinhas que o `ChannelEvaluator` conseguiu efetivamente usar
+     *  no calculo (freq/RSSI/banda validos) -- distinto de [neighborCount], que e a
+     *  contagem bruta do scan incluindo vizinhas sem dado suficiente. Necessario
+     *  para a regra `WIFI-CANAL-*` do NDS diferenciar "poucas vizinhas" de "muitas
+     *  vizinhas mas maioria sem dado utilizavel". */
+    val validNetworkCount: Int? = null,
 )
+
+/**
+ * Vocabulário fechado de proveniência de um campo do snapshot (ADR-018, seção
+ * "Convenção de proveniência" — NDS-Snapshot-10, issue #1842). Serializado no JSON
+ * como string minúscula via [jsonValue] — string livre no fio, mesmo critério do
+ * resto do contrato (não trava o cliente quando o NDS aceitar um valor novo), mas
+ * o mapper deste módulo só deve emitir um destes cinco valores.
+ *
+ * - [MEASURED] — medição direta, alta confiança (ex.: RTT gateway via socket, RX
+ *   óptico lido do equipamento, perda de pacotes via medição real do modem).
+ * - [ESTIMATED] — indício indireto, não uma medição direta (ex.: perda de pacotes
+ *   inferida de timeout HTTP).
+ * - [DERIVED] — calculado a partir de outros campos do mesmo snapshot (ex.:
+ *   `loadedLatencyMs = latencyMs + bufferbloatMs`).
+ * - [CACHED] — valor de uma execução anterior, reaproveitado nesta.
+ * - [UNKNOWN] — fonte não determinada — usar só quando a própria coleta já
+ *   retorna essa incerteza.
+ */
+enum class NdsProvenance(
+    val jsonValue: String,
+) {
+    MEASURED("measured"),
+    ESTIMATED("estimated"),
+    DERIVED("derived"),
+    CACHED("cached"),
+    UNKNOWN("unknown"),
+}
 
 data class NdsSpeedInfo(
     val pingMs: Double? = null,
@@ -74,6 +118,13 @@ data class NdsSpeedInfo(
     val downloadMbps: Double? = null,
     val uploadMbps: Double? = null,
     val packetLossPercent: Double? = null,
+    /**
+     * Proveniência de [packetLossPercent] (ADR-018, "Convenção de proveniência" —
+     * issue #1842). `null` quando a origem não permite afirmar nada (usuário nunca
+     * mediu perda de pacotes, ou `InternetDiagnosticInput.packetLossSource ==
+     * "naoMedido"`) — omitido do JSON, nunca um valor inventado.
+     */
+    val packetLossSource: NdsProvenance? = null,
 )
 
 data class NdsQualityInfo(
@@ -275,13 +326,16 @@ data class NdsDiagnosticsRequest(
         )
         root.put("locale", locale)
         context?.let { c ->
-            root.put("context", JSONObject().apply {
-                c.reportedProblem?.takeIf(String::isNotBlank)?.let { put("reported_problem", it) }
-                c.objective?.takeIf(String::isNotBlank)?.let { put("objective", it) }
-                c.subcategory?.takeIf(String::isNotBlank)?.let { put("subcategory", it) }
-                if (c.symptoms.isNotEmpty()) put("symptoms", JSONArray(c.symptoms))
-                if (c.answers.isNotEmpty()) put("answers", JSONObject(c.answers))
-            })
+            root.put(
+                "context",
+                JSONObject().apply {
+                    c.reportedProblem?.takeIf(String::isNotBlank)?.let { put("reported_problem", it) }
+                    c.objective?.takeIf(String::isNotBlank)?.let { put("objective", it) }
+                    c.subcategory?.takeIf(String::isNotBlank)?.let { put("subcategory", it) }
+                    if (c.symptoms.isNotEmpty()) put("symptoms", JSONArray(c.symptoms))
+                    if (c.answers.isNotEmpty()) put("answers", JSONObject(c.answers))
+                },
+            )
         }
         profile?.let { root.put("profile", it) }
         if (capabilities.isNotEmpty()) {
@@ -334,6 +388,9 @@ data class NdsDiagnosticsRequest(
                         )
                     }
                     ws.algorithmVersion?.let { put("algorithmVersion", it) }
+                    ws.currentScoreMw?.let { put("currentScoreMw", it) }
+                    ws.bestScoreMw?.let { put("bestScoreMw", it) }
+                    ws.validNetworkCount?.let { put("validNetworkCount", it) }
                 },
             )
         }
@@ -346,6 +403,7 @@ data class NdsDiagnosticsRequest(
                     s.downloadMbps?.let { put("download_mbps", it) }
                     s.uploadMbps?.let { put("upload_mbps", it) }
                     s.packetLossPercent?.let { put("packet_loss_percent", it) }
+                    s.packetLossSource?.let { put("packetLossSource", it.jsonValue) }
                 },
             )
         }

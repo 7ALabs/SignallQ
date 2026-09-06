@@ -6,7 +6,6 @@ import org.junit.Test
 
 /** GH#1213 item 2 — host/IP do NokiaModemClient precisa ser privado/local, nunca público. */
 class ValidadorHostEquipamentoTest {
-
     @Test
     fun `ipv4 RFC-1918 e valido`() {
         assertTrue(ValidadorHostEquipamento.ehIpPrivadoValido("192.168.1.1"))

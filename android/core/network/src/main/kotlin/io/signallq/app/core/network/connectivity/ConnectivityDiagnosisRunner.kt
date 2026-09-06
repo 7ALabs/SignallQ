@@ -61,83 +61,91 @@ class ConnectivityDiagnosisRunner(
         applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
     @SuppressLint("MissingPermission")
-    override suspend fun existeRedeWifiAtiva(): Boolean = withContext(Dispatchers.IO) {
-        capturarRedeWifi() != null
-    }
+    override suspend fun existeRedeWifiAtiva(): Boolean =
+        withContext(Dispatchers.IO) {
+            capturarRedeWifi() != null
+        }
 
     // GH#1512 (3a revisao, achado de revisao) -- so existeRedeWifiAtiva() tinha ganho
     // withContext(Dispatchers.IO); esta funcao faz IPC de binder AINDA MAIOR
     // (allNetworks + getNetworkCapabilities por rede, duas vezes, mais getLinkProperties) e
     // continuava rodando no dispatcher do chamador (main thread, via viewModelScope.launch).
     @SuppressLint("MissingPermission")
-    override suspend fun diagnosticar(): ConnectivityDiagnosis = withContext(Dispatchers.IO) {
-        val redeWifi = capturarRedeWifi()
-        val mobileFallbackAvailable = existeRedeMovelComInternet()
+    override suspend fun diagnosticar(): ConnectivityDiagnosis =
+        withContext(Dispatchers.IO) {
+            val redeWifi = capturarRedeWifi()
+            val mobileFallbackAvailable = existeRedeMovelComInternet()
 
-        if (redeWifi == null) {
-            // Sem Network Wi-Fi capturada: nao ha rede para amarrar sondagem nenhuma --
-            // o motor recebe wifiConnected=false e conclui WIFI_DISCONNECTED sem tentar
-            // nenhuma sondagem pelo caminho padrao do sistema.
-            val engineSemRede = criarEngine(NenhumaRedeDisponivelBinding)
-            return@withContext engineSemRede.diagnosticar(
+            if (redeWifi == null) {
+                // Sem Network Wi-Fi capturada: nao ha rede para amarrar sondagem nenhuma --
+                // o motor recebe wifiConnected=false e conclui WIFI_DISCONNECTED sem tentar
+                // nenhuma sondagem pelo caminho padrao do sistema.
+                val engineSemRede = criarEngine(NenhumaRedeDisponivelBinding)
+                return@withContext engineSemRede.diagnosticar(
+                    ConnectivityDiagnosisContext(
+                        wifiConnected = false,
+                        localAddressAvailable = false,
+                        gatewayIp = null,
+                        dnsServers = emptyList(),
+                        androidInternetCapability = false,
+                        androidValidated = false,
+                        androidCaptivePortalCapability = false,
+                        mobileFallbackAvailable = mobileFallbackAvailable,
+                    ),
+                )
+            }
+
+            val capabilities = connectivityManager.getNetworkCapabilities(redeWifi)
+            val linkProperties = connectivityManager.getLinkProperties(redeWifi)
+            val gatewayIp =
+                linkProperties
+                    ?.routes
+                    ?.firstOrNull { it.isDefaultRoute && it.gateway != null }
+                    ?.gateway
+                    ?.hostAddress
+                    ?.takeIf { it.isNotBlank() }
+            val dnsServers =
+                linkProperties
+                    ?.dnsServers
+                    ?.mapNotNull { it.hostAddress?.trim() }
+                    ?.filter { it.isNotBlank() }
+                    .orEmpty()
+            val localAddressAvailable = linkProperties?.linkAddresses?.isNotEmpty() == true
+
+            val engine = criarEngine(AndroidNetworkProbeBinding(redeWifi))
+            engine.diagnosticar(
                 ConnectivityDiagnosisContext(
-                    wifiConnected = false,
-                    localAddressAvailable = false,
-                    gatewayIp = null,
-                    dnsServers = emptyList(),
-                    androidInternetCapability = false,
-                    androidValidated = false,
-                    androidCaptivePortalCapability = false,
+                    wifiConnected = true,
+                    localAddressAvailable = localAddressAvailable,
+                    gatewayIp = gatewayIp,
+                    dnsServers = dnsServers,
+                    androidInternetCapability = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true,
+                    androidValidated = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true,
+                    androidCaptivePortalCapability = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_CAPTIVE_PORTAL) == true,
                     mobileFallbackAvailable = mobileFallbackAvailable,
                 ),
             )
         }
 
-        val capabilities = connectivityManager.getNetworkCapabilities(redeWifi)
-        val linkProperties = connectivityManager.getLinkProperties(redeWifi)
-        val gatewayIp = linkProperties?.routes
-            ?.firstOrNull { it.isDefaultRoute && it.gateway != null }
-            ?.gateway?.hostAddress?.takeIf { it.isNotBlank() }
-        val dnsServers = linkProperties?.dnsServers
-            ?.mapNotNull { it.hostAddress?.trim() }
-            ?.filter { it.isNotBlank() }
-            .orEmpty()
-        val localAddressAvailable = linkProperties?.linkAddresses?.isNotEmpty() == true
-
-        val engine = criarEngine(AndroidNetworkProbeBinding(redeWifi))
-        engine.diagnosticar(
-            ConnectivityDiagnosisContext(
-                wifiConnected = true,
-                localAddressAvailable = localAddressAvailable,
-                gatewayIp = gatewayIp,
-                dnsServers = dnsServers,
-                androidInternetCapability = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true,
-                androidValidated = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true,
-                androidCaptivePortalCapability = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_CAPTIVE_PORTAL) == true,
-                mobileFallbackAvailable = mobileFallbackAvailable,
-            ),
-        )
-    }
-
     /** Rede Wi-Fi atual entre todas as redes conhecidas pelo sistema -- deliberadamente
      *  não usa `activeNetwork` (rede default, pode já não ser o Wi-Fi). */
     @SuppressLint("MissingPermission")
-    private fun capturarRedeWifi(): Network? {
-        return try {
+    private fun capturarRedeWifi(): Network? =
+        try {
             connectivityManager.allNetworks.firstOrNull { rede ->
-                connectivityManager.getNetworkCapabilities(rede)
+                connectivityManager
+                    .getNetworkCapabilities(rede)
                     ?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
             }
         } catch (_: SecurityException) {
             null
         }
-    }
 
     /** Presença de dados móveis como alternativa -- nunca usada para substituir o
      *  resultado do Wi-Fi sob análise (GH#1512, regra obrigatória). */
     @SuppressLint("MissingPermission")
-    private fun existeRedeMovelComInternet(): Boolean {
-        return try {
+    private fun existeRedeMovelComInternet(): Boolean =
+        try {
             connectivityManager.allNetworks.any { rede ->
                 val caps = connectivityManager.getNetworkCapabilities(rede)
                 caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true &&
@@ -146,7 +154,6 @@ class ConnectivityDiagnosisRunner(
         } catch (_: SecurityException) {
             false
         }
-    }
 }
 
 /** Binding inerte usado apenas quando nenhuma rede Wi-Fi foi capturada -- o contexto

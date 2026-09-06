@@ -1,8 +1,5 @@
 ﻿package io.signallq.app.feature.dns
 
 object FeatureDnsModulo {
-    fun criarBenchmarkDns(): BenchmarkDns {
-        return BenchmarkDnsDoh()
-    }
+    fun criarBenchmarkDns(): BenchmarkDns = BenchmarkDnsDoh()
 }
-

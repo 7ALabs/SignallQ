@@ -3,7 +3,6 @@
 private const val CAT_HIST = "historico"
 
 object HistoricalDegradationEngine {
-
     // Regras simples e deterministicas. Se precisarmos de algo mais sofisticado, deve vir de dados brutos.
     private const val MIN_TESTS_7D = 5
     private const val MIN_TESTS_30D = 10
@@ -55,12 +54,13 @@ object HistoricalDegradationEngine {
                 sentido = SentidoMelhor.menor,
             )
 
-        val piores = listOfNotNull(
-            degradacao?.let { "download=${fmt(it)}%" },
-            degradacaoUp?.let { "upload=${fmt(it)}%" },
-            degradacaoPing?.let { "ping=${fmt(it)}%" },
-            degradacaoDns?.let { "dns=${fmt(it)}%" },
-        )
+        val piores =
+            listOfNotNull(
+                degradacao?.let { "download=${fmt(it)}%" },
+                degradacaoUp?.let { "upload=${fmt(it)}%" },
+                degradacaoPing?.let { "ping=${fmt(it)}%" },
+                degradacaoDns?.let { "dns=${fmt(it)}%" },
+            )
 
         val severidade = severidade(piores.mapNotNull { extrairPercentual(it) }.maxOrNull())
         if (severidade != null) {
@@ -116,4 +116,3 @@ object HistoricalDegradationEngine {
         return token.substring(idx + 1, pctIdx).toDoubleOrNull()
     }
 }
-

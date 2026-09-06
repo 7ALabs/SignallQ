@@ -6,7 +6,5 @@ object FeatureDevicesModulo {
     fun criarScannerDispositivos(
         context: android.content.Context,
         okHttpClient: OkHttpClient,
-    ): ScannerDispositivos {
-        return ScannerDispositivosAndroid(context.applicationContext, okHttpClient)
-    }
+    ): ScannerDispositivos = ScannerDispositivosAndroid(context.applicationContext, okHttpClient)
 }

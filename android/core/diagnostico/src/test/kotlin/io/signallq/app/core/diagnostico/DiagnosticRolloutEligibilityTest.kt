@@ -6,7 +6,6 @@ import org.junit.Test
 
 /** GH#1445 (parte de #952) — segmentacao (versao minima + canal) combinada com o bucket de rollout. */
 class DiagnosticRolloutEligibilityTest {
-
     private val installationDentroDoBucket = "installation-in"
     private val installationForaDoBucket = "installation-out"
 

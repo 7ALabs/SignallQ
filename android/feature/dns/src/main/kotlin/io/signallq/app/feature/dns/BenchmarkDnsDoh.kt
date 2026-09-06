@@ -1,6 +1,5 @@
 package io.signallq.app.feature.dns
 
-import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -10,14 +9,15 @@ import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.net.InetAddress
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.TimeUnit
-import kotlin.math.max
-import kotlin.math.min
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlin.math.max
+import kotlin.math.min
 
 // #378: suite inteira (sistema + 7 provedores x rounds) tinha timeout apenas por
 // tentativa individual — sem rede, a soma das tentativas travava o sheet no skeleton
@@ -48,7 +48,8 @@ private val HOSTNAMES_ROTACAO_SISTEMA =
 class BenchmarkDnsDoh : BenchmarkDns {
     private val executando = AtomicBoolean(false)
     private val httpClient =
-        OkHttpClient.Builder()
+        OkHttpClient
+            .Builder()
             .connectTimeout(4, TimeUnit.SECONDS)
             .readTimeout(8, TimeUnit.SECONDS)
             .callTimeout(9, TimeUnit.SECONDS)
@@ -175,7 +176,8 @@ class BenchmarkDnsDoh : BenchmarkDns {
                 // Round 0 descartado como warmup. Rounds seguintes sempre incluídos —
                 // latência real < 3ms é válida (não é necessariamente cache).
                 if (round > 0) amostras.add(ms)
-            } catch (_: Throwable) { }
+            } catch (_: Throwable) {
+            }
         }
         val tentativasAvaliadas = ROUNDS_POR_MEDICAO - 1
         val tempo = calcularMediana(amostras)
@@ -277,7 +279,8 @@ class BenchmarkDnsDoh : BenchmarkDns {
                 .addQueryParameter("dns", construirDnsQueryBase64Url(hostConsulta))
                 .build()
 
-        return Request.Builder()
+        return Request
+            .Builder()
             .url(url)
             .get()
             .header("accept", "application/dns-message")
@@ -337,12 +340,13 @@ class BenchmarkDnsDoh : BenchmarkDns {
         }
     }
 
-    private fun calcularGrade(ms: Double): String = when {
-        ms <= 15.0 -> "A"
-        ms <= 30.0 -> "B"
-        ms <= 50.0 -> "C"
-        else -> "D"
-    }
+    private fun calcularGrade(ms: Double): String =
+        when {
+            ms <= 15.0 -> "A"
+            ms <= 30.0 -> "B"
+            ms <= 50.0 -> "C"
+            else -> "D"
+        }
 
     private fun inferirNomeSistemaDns(
         resolvedoresAtivos: List<String>,
@@ -350,7 +354,10 @@ class BenchmarkDnsDoh : BenchmarkDns {
     ): String {
         if (!privateDnsHostname.isNullOrBlank()) {
             val h = privateDnsHostname.lowercase()
-            mapaHostParaProvedor.entries.firstOrNull { h.contains(it.key) }?.value?.let { return it }
+            mapaHostParaProvedor.entries
+                .firstOrNull { h.contains(it.key) }
+                ?.value
+                ?.let { return it }
         }
         for (ip in resolvedoresAtivos.map { it.trim() }.filter { it.isNotBlank() }) {
             if (DetectorEnderecoIpPrivado.ehPrivadoOuLocal(ip)) return "Roteador da rede"
@@ -374,51 +381,69 @@ class BenchmarkDnsDoh : BenchmarkDns {
                 DnsPublico("CleanBrowsing", "https://doh.cleanbrowsing.org/doh/security-filter/"),
             )
 
-        val mapaIpParaProvedor = mapOf(
-            "1.1.1.1" to "Cloudflare",
-            "1.0.0.1" to "Cloudflare",
-            "8.8.8.8" to "Google DNS",
-            "8.8.4.4" to "Google DNS",
-            "9.9.9.9" to "Quad9",
-            "149.112.112.112" to "Quad9",
-            "208.67.222.222" to "OpenDNS",
-            "208.67.220.220" to "OpenDNS",
-            "94.140.14.14" to "AdGuard",
-            "94.140.15.15" to "AdGuard",
-            "76.76.2.0" to "Control D",
-            "76.76.10.0" to "Control D",
-            "185.228.168.9" to "CleanBrowsing",
-            "185.228.169.9" to "CleanBrowsing",
-        )
-        val mapaHostParaProvedor = mapOf(
-            "one.one.one.one" to "Cloudflare",
-            "dns.google" to "Google DNS",
-            "dns.quad9.net" to "Quad9",
-            "doh.opendns.com" to "OpenDNS",
-            "adguard" to "AdGuard",
-            "adguard-dns.com" to "AdGuard",
-            "freedns.controld.com" to "Control D",
-            "controld.com" to "Control D",
-            "cleanbrowsing.org" to "CleanBrowsing",
-            "security-filter-dns.cleanbrowsing.org" to "CleanBrowsing",
-        )
+        val mapaIpParaProvedor =
+            mapOf(
+                "1.1.1.1" to "Cloudflare",
+                "1.0.0.1" to "Cloudflare",
+                "8.8.8.8" to "Google DNS",
+                "8.8.4.4" to "Google DNS",
+                "9.9.9.9" to "Quad9",
+                "149.112.112.112" to "Quad9",
+                "208.67.222.222" to "OpenDNS",
+                "208.67.220.220" to "OpenDNS",
+                "94.140.14.14" to "AdGuard",
+                "94.140.15.15" to "AdGuard",
+                "76.76.2.0" to "Control D",
+                "76.76.10.0" to "Control D",
+                "185.228.168.9" to "CleanBrowsing",
+                "185.228.169.9" to "CleanBrowsing",
+            )
+        val mapaHostParaProvedor =
+            mapOf(
+                "one.one.one.one" to "Cloudflare",
+                "dns.google" to "Google DNS",
+                "dns.quad9.net" to "Quad9",
+                "doh.opendns.com" to "OpenDNS",
+                "adguard" to "AdGuard",
+                "adguard-dns.com" to "AdGuard",
+                "freedns.controld.com" to "Control D",
+                "controld.com" to "Control D",
+                "cleanbrowsing.org" to "CleanBrowsing",
+                "security-filter-dns.cleanbrowsing.org" to "CleanBrowsing",
+            )
     }
 }
 
 /** GH#1212 item 6 — resultado de decodificar o cabeçalho RFC 1035 de uma resposta DoH binária. */
-internal sealed class ValidacaoDns(val motivo: String) {
+internal sealed class ValidacaoDns(
+    val motivo: String,
+) {
     data object Valida : ValidacaoDns("valida")
+
     data object Nxdomain : ValidacaoDns("nxdomain")
+
     data object Servfail : ValidacaoDns("servfail")
+
     data object Refused : ValidacaoDns("refused")
+
     data object SemResposta : ValidacaoDns("semRespostaTipo")
+
     data object Malformada : ValidacaoDns("respostaMalformada")
-    data class OutroErro(val rcode: Int) : ValidacaoDns("rcode$rcode")
+
+    data class OutroErro(
+        val rcode: Int,
+    ) : ValidacaoDns("rcode$rcode")
 }
 
 private sealed interface TentativaDns {
-    data class Sucesso(val ms: Double) : TentativaDns
-    data class RespostaInvalida(val motivo: String) : TentativaDns
+    data class Sucesso(
+        val ms: Double,
+    ) : TentativaDns
+
+    data class RespostaInvalida(
+        val motivo: String,
+    ) : TentativaDns
+
     data object Falha : TentativaDns
 }
 

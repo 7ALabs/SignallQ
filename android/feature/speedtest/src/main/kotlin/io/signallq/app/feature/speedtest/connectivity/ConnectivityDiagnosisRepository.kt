@@ -38,7 +38,6 @@ class ConnectivityDiagnosisRepositoryImpl(
     private val runner: ConnectivityDiagnosisSource,
     private val historyDao: ConnectivityDiagnosisHistoryDao,
 ) : ConnectivityDiagnosisRepository {
-
     private val mutableUltimoDiagnostico = MutableStateFlow<ConnectivityDiagnosis?>(null)
     override val ultimoDiagnostico: StateFlow<ConnectivityDiagnosis?> = mutableUltimoDiagnostico.asStateFlow()
 
@@ -64,16 +63,18 @@ class ConnectivityDiagnosisRepositoryImpl(
 }
 
 internal fun ConnectivityDiagnosis.toHistoryEntity(): ConnectivityDiagnosisHistoryEntity {
-    val etapasNaoExecutadas = evidence
-        .filter { it.result is ProbeResult.NotExecuted || it.result is ProbeResult.Unavailable }
-        .joinToString(separator = "; ") { evidencia ->
-            val motivo = when (val resultado = evidencia.result) {
-                is ProbeResult.NotExecuted -> resultado.reason
-                is ProbeResult.Unavailable -> resultado.reason
-                else -> null
+    val etapasNaoExecutadas =
+        evidence
+            .filter { it.result is ProbeResult.NotExecuted || it.result is ProbeResult.Unavailable }
+            .joinToString(separator = "; ") { evidencia ->
+                val motivo =
+                    when (val resultado = evidencia.result) {
+                        is ProbeResult.NotExecuted -> resultado.reason
+                        is ProbeResult.Unavailable -> resultado.reason
+                        else -> null
+                    }
+                "${evidencia.step.name}${motivo?.let { ": $it" } ?: ""}"
             }
-            "${evidencia.step.name}${motivo?.let { ": $it" } ?: ""}"
-        }
 
     return ConnectivityDiagnosisHistoryEntity(
         id = UUID.randomUUID().toString(),
@@ -100,10 +101,11 @@ internal fun ConnectivityDiagnosis.toHistoryEntity(): ConnectivityDiagnosisHisto
 
 /** Nome estável do tipo selado -- não usa `::class.simpleName` para não depender de
  *  regras de ofuscação/minify preservarem o nome da classe em builds de release. */
-internal fun ProbeResult.outcomeName(): String = when (this) {
-    is ProbeResult.Success -> "Success"
-    is ProbeResult.Failure -> "Failure"
-    is ProbeResult.Timeout -> "Timeout"
-    is ProbeResult.NotExecuted -> "NotExecuted"
-    is ProbeResult.Unavailable -> "Unavailable"
-}
+internal fun ProbeResult.outcomeName(): String =
+    when (this) {
+        is ProbeResult.Success -> "Success"
+        is ProbeResult.Failure -> "Failure"
+        is ProbeResult.Timeout -> "Timeout"
+        is ProbeResult.NotExecuted -> "NotExecuted"
+        is ProbeResult.Unavailable -> "Unavailable"
+    }

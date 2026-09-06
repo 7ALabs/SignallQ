@@ -8,7 +8,6 @@ import org.junit.Test
  * ("RX -18 dBm... dentro da faixa com margem", "RX -26 dBm: próximo ao limite inferior", etc.).
  */
 class ClassificadorOpticoNokiaG1425GBTest {
-
     @Test
     fun `RX -18 dBm esta dentro da faixa com margem`() {
         assertEquals(NivelSinalOpticoRx.DENTRO_DA_FAIXA_COM_MARGEM, ClassificadorOpticoNokiaG1425GB.classificarRx(-18.0))

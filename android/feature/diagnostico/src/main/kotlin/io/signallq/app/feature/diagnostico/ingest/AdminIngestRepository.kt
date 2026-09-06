@@ -1,6 +1,5 @@
 ﻿package io.signallq.app.feature.diagnostico.ingest
 
-import timber.log.Timber
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -11,6 +10,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import timber.log.Timber
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -40,7 +40,10 @@ class AdminIngestRepository(
     /** A fila local não deve reter nem reenviar telemetria após revogação de consentimento. */
     suspend fun canSendTelemetry(): Boolean = consentimentoProvider()
 
-    private fun acknowledgedId(responseBody: String?, expectedId: String): Boolean =
+    private fun acknowledgedId(
+        responseBody: String?,
+        expectedId: String,
+    ): Boolean =
         runCatching {
             val body = JSONObject(responseBody.orEmpty())
             body.optBoolean("ok") && body.optString("id") == expectedId
@@ -90,27 +93,33 @@ class AdminIngestRepository(
             return false
         }
         limparPendenciasAntigas()
-        val sucesso = runCatching {
-            withContext(Dispatchers.IO) {
-                val body = payload.toJson().toString()
-                    .toRequestBody(mediaTypeJson)
-                val req = Request.Builder()
-                    .url(baseUrl.trimEnd('/') + "/ingest/diagnostic")
-                    .addHeader("Authorization", "Bearer $ingestKey")
-                    .post(body)
-                    .build()
-                client.newCall(req).execute().use { resp ->
-                    if (!resp.isSuccessful) {
-                        Timber.w("sendDiagnostic HTTP ${resp.code} — id=${payload.id}")
-                        false
-                    } else {
-                        acknowledgedId(resp.body?.string(), payload.id)
+        val sucesso =
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    val body =
+                        payload
+                            .toJson()
+                            .toString()
+                            .toRequestBody(mediaTypeJson)
+                    val req =
+                        Request
+                            .Builder()
+                            .url(baseUrl.trimEnd('/') + "/ingest/diagnostic")
+                            .addHeader("Authorization", "Bearer $ingestKey")
+                            .post(body)
+                            .build()
+                    client.newCall(req).execute().use { resp ->
+                        if (!resp.isSuccessful) {
+                            Timber.w("sendDiagnostic HTTP ${resp.code} — id=${payload.id}")
+                            false
+                        } else {
+                            acknowledgedId(resp.body?.string(), payload.id)
+                        }
                     }
                 }
-            }
-        }.onFailure { t ->
-            Timber.w("sendDiagnostic falhou (ignorando): ${t.message}")
-        }.getOrDefault(false)
+            }.onFailure { t ->
+                Timber.w("sendDiagnostic falhou (ignorando): ${t.message}")
+            }.getOrDefault(false)
         // Libera sendAiUsage() da mesma sessao (payload.id == ai_usage.session_id) —
         // ver comentario GH#1332 acima. Se falhou, sendAiUsage nem tenta (a linha
         // pai nao existe no D1, o insert de ai-usage sempre falharia por FK mesmo).
@@ -135,9 +144,10 @@ class AdminIngestRepository(
         // Timeout curto: se o diagnostico nunca chegou (ou falhou), nao adianta tentar.
         val sessionId = payload.sessionId
         if (sessionId != null) {
-            val diagnosticoOk = withTimeoutOrNull(10_000) {
-                pendingIngestFor(sessionId).deferred.await()
-            } ?: false
+            val diagnosticoOk =
+                withTimeoutOrNull(10_000) {
+                    pendingIngestFor(sessionId).deferred.await()
+                } ?: false
             diagnosticIngestResults.remove(sessionId)
             if (!diagnosticoOk) {
                 Timber.w(
@@ -150,13 +160,18 @@ class AdminIngestRepository(
 
         return runCatching {
             withContext(Dispatchers.IO) {
-                val body = payload.toJson().toString()
-                    .toRequestBody(mediaTypeJson)
-                val req = Request.Builder()
-                    .url(baseUrl.trimEnd('/') + "/ingest/ai-usage")
-                    .addHeader("Authorization", "Bearer $ingestKey")
-                    .post(body)
-                    .build()
+                val body =
+                    payload
+                        .toJson()
+                        .toString()
+                        .toRequestBody(mediaTypeJson)
+                val req =
+                    Request
+                        .Builder()
+                        .url(baseUrl.trimEnd('/') + "/ingest/ai-usage")
+                        .addHeader("Authorization", "Bearer $ingestKey")
+                        .post(body)
+                        .build()
                 client.newCall(req).execute().use { resp ->
                     if (!resp.isSuccessful) {
                         Timber.w("sendAiUsage HTTP ${resp.code} — id=${payload.id}")
@@ -187,23 +202,28 @@ class AdminIngestRepository(
         }
         return runCatching {
             withContext(Dispatchers.IO) {
-                val body = JSONObject()
-                    .put("events", JSONArray().put(payload.toJson()))
-                    .toString()
-                    .toRequestBody(mediaTypeJson)
-                val req = Request.Builder()
-                    .url(baseUrl.trimEnd('/') + "/ingest/analytics")
-                    .addHeader("Authorization", "Bearer $ingestKey")
-                    .post(body)
-                    .build()
+                val body =
+                    JSONObject()
+                        .put("events", JSONArray().put(payload.toJson()))
+                        .toString()
+                        .toRequestBody(mediaTypeJson)
+                val req =
+                    Request
+                        .Builder()
+                        .url(baseUrl.trimEnd('/') + "/ingest/analytics")
+                        .addHeader("Authorization", "Bearer $ingestKey")
+                        .post(body)
+                        .build()
                 client.newCall(req).execute().use { resp ->
                     if (!resp.isSuccessful) {
                         Timber.w("sendAnalyticsEvent HTTP ${resp.code} — name=${payload.name}")
                     }
-                    resp.isSuccessful && runCatching {
-                        JSONObject(resp.body?.string().orEmpty()).getJSONArray("acceptedIds")
-                            .let { ids -> (0 until ids.length()).any { ids.getString(it) == payload.id } }
-                    }.getOrDefault(false)
+                    resp.isSuccessful &&
+                        runCatching {
+                            JSONObject(resp.body?.string().orEmpty())
+                                .getJSONArray("acceptedIds")
+                                .let { ids -> (0 until ids.length()).any { ids.getString(it) == payload.id } }
+                        }.getOrDefault(false)
                 }
             }
         }.onFailure { t ->

@@ -10,35 +10,37 @@ import org.junit.Test
  * Cobre resolução de nome/fabricante e o fallback de rótulo genérico via OUI (issue #394).
  */
 class NamingPrioridadeTest {
-
     @Test
     fun `resolverNome prefere ssdp sobre mdns e hostname`() {
-        val nome = NamingPrioridade.resolverNome(
-            nomeSsdpXml = "Smart TV Samsung",
-            nomeMdns = "nome-mdns",
-            nomeHostname = "host.lan",
-        )
+        val nome =
+            NamingPrioridade.resolverNome(
+                nomeSsdpXml = "Smart TV Samsung",
+                nomeMdns = "nome-mdns",
+                nomeHostname = "host.lan",
+            )
         assertEquals("Smart TV Samsung", nome)
     }
 
     @Test
     fun `resolverNome ignora nomes genericos e cai para hostname`() {
-        val nome = NamingPrioridade.resolverNome(
-            nomeSsdpXml = "Dispositivo não identificado",
-            nomeMdns = null,
-            nomeHostname = "notebook.lan",
-        )
+        val nome =
+            NamingPrioridade.resolverNome(
+                nomeSsdpXml = "Dispositivo não identificado",
+                nomeMdns = null,
+                nomeHostname = "notebook.lan",
+            )
         assertEquals("notebook.lan", nome)
     }
 
     @Test
     fun `resolverNome usa fallback quando tudo ausente ou generico`() {
-        val nome = NamingPrioridade.resolverNome(
-            nomeSsdpXml = null,
-            nomeMdns = "Host ativo",
-            nomeHostname = null,
-            fallback = "Dispositivo",
-        )
+        val nome =
+            NamingPrioridade.resolverNome(
+                nomeSsdpXml = null,
+                nomeMdns = "Host ativo",
+                nomeHostname = null,
+                fallback = "Dispositivo",
+            )
         assertEquals("Dispositivo", nome)
     }
 
@@ -116,15 +118,17 @@ class NamingPrioridadeTest {
 
     @Test
     fun `resolverNomeRouterActive prefere match por MAC mesmo com IP tambem disponivel`() {
-        val clientes = listOf(
-            ClientSnapshot(mac = "aa:bb:cc:dd:ee:ff", ip = "192.168.1.66", hostname = "por-mac", tipoConexao = "wifi"),
-            ClientSnapshot(mac = "11:22:33:44:55:66", ip = "192.168.1.67", hostname = "por-ip", tipoConexao = "wifi"),
-        )
-        val resultado = NamingPrioridade.resolverNomeRouterActive(
-            macDispositivo = "aa:bb:cc:dd:ee:ff",
-            clientesGateway = clientes,
-            ipDispositivo = "192.168.1.67",
-        )
+        val clientes =
+            listOf(
+                ClientSnapshot(mac = "aa:bb:cc:dd:ee:ff", ip = "192.168.1.66", hostname = "por-mac", tipoConexao = "wifi"),
+                ClientSnapshot(mac = "11:22:33:44:55:66", ip = "192.168.1.67", hostname = "por-ip", tipoConexao = "wifi"),
+            )
+        val resultado =
+            NamingPrioridade.resolverNomeRouterActive(
+                macDispositivo = "aa:bb:cc:dd:ee:ff",
+                clientesGateway = clientes,
+                ipDispositivo = "192.168.1.67",
+            )
         assertEquals("por-mac", resultado?.nome)
         // Match por MAC vence e é confirmado, mesmo com um IP também disponível na lista.
         assertEquals(NamingPrioridade.FONTE_NOME_ROUTER_ACTIVE, resultado?.fonte)

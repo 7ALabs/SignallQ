@@ -25,8 +25,11 @@ import org.junit.Test
  * pesam menos, e TP-Link nunca recomenda algo baseado em fibra.
  */
 class FindingEngineLocalDeviceTest {
-
-    private fun resultado(id: String, status: DiagnosticStatus, categoria: String) =
+    private fun resultado(
+        id: String,
+        status: DiagnosticStatus,
+        categoria: String,
+    ) =
         DiagnosticResult(
             id = id,
             titulo = id,
@@ -84,11 +87,12 @@ class FindingEngineLocalDeviceTest {
 
     @Test
     fun `sem localDevice, comportamento identico ao motor sem equipamento (DECISAO-01)`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = false),
-            localDevice = null,
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = false),
+                localDevice = null,
+            )
 
         assertEquals("DECISAO-01", r.principal.id)
         assertTrue(r.limitacoesEquipamentoLocal.isEmpty())
@@ -100,11 +104,12 @@ class FindingEngineLocalDeviceTest {
 
     @Test
     fun `fibra ONT confirmada OK mais wifi ruim - LOCAL-EQUIP-WIFI-01 vence e DECISAO-01 vira secundario`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = false),
-            localDevice = ontOk(),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = false),
+                localDevice = ontOk(),
+            )
 
         assertEquals("LOCAL-EQUIP-WIFI-01", r.principal.id)
         assertTrue(r.principal.mensagemUsuario.contains("Wi-Fi") || r.principal.mensagemUsuario.contains("local"))
@@ -116,11 +121,12 @@ class FindingEngineLocalDeviceTest {
 
     @Test
     fun `suporte experimental reduz confianca - DECISAO-01 volta a vencer sobre LOCAL-EQUIP-WIFI-01`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = false),
-            localDevice = ontOk(supportLevel = SupportLevel.PARSER_IMPORTED),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = false),
+                localDevice = ontOk(supportLevel = SupportLevel.PARSER_IMPORTED),
+            )
 
         // 0.85 * 0.7 = 0.595 -> score 2*0.595=1.19 < DECISAO-01 score 2*0.65=1.3
         assertEquals("DECISAO-01", r.principal.id)
@@ -133,23 +139,25 @@ class FindingEngineLocalDeviceTest {
 
     @Test
     fun `fibra ONT com atencao mais internet ruim - LOCAL-EQUIP-FIBRA-01 vence quando nao ha leitura direta`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            localDevice = ontOk(statusFibra = LocalDeviceSectionStatus.ATENCAO),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                localDevice = ontOk(statusFibra = LocalDeviceSectionStatus.ATENCAO),
+            )
 
         assertEquals("LOCAL-EQUIP-FIBRA-01", r.principal.id)
     }
 
     @Test
     fun `fibra ONT com atencao suprimida quando leitura direta da fibra ja e critica`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            fibraResultados = listOf(resultado("FIB-CRITICO", DiagnosticStatus.critical, "fibra")),
-            localDevice = ontOk(statusFibra = LocalDeviceSectionStatus.ATENCAO),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                fibraResultados = listOf(resultado("FIB-CRITICO", DiagnosticStatus.critical, "fibra")),
+                localDevice = ontOk(statusFibra = LocalDeviceSectionStatus.ATENCAO),
+            )
 
         assertEquals("DECISAO-00", r.principal.id)
         assertTrue(
@@ -164,11 +172,12 @@ class FindingEngineLocalDeviceTest {
 
     @Test
     fun `TP-Link com WAN ok e muitos clientes mais internet ruim - LOCAL-EQUIP-SATURACAO-01 vence`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            localDevice = tpLinkRoteador(statusWan = LocalDeviceSectionStatus.OK, quantidadeClientes = 15),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                localDevice = tpLinkRoteador(statusWan = LocalDeviceSectionStatus.OK, quantidadeClientes = 15),
+            )
 
         assertEquals("LOCAL-EQUIP-SATURACAO-01", r.principal.id)
         assertFalse(
@@ -183,11 +192,12 @@ class FindingEngineLocalDeviceTest {
 
     @Test
     fun `TP-Link com poucos clientes nao aciona saturacao`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            localDevice = tpLinkRoteador(statusWan = LocalDeviceSectionStatus.OK, quantidadeClientes = 3),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                localDevice = tpLinkRoteador(statusWan = LocalDeviceSectionStatus.OK, quantidadeClientes = 3),
+            )
 
         assertTrue(r.principal.id != "LOCAL-EQUIP-SATURACAO-01")
     }
@@ -198,11 +208,12 @@ class FindingEngineLocalDeviceTest {
 
     @Test
     fun `TP-Link com WAN indisponivel mais internet ruim - LOCAL-EQUIP-WAN-01 vence e nao afirma fibra`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            localDevice = tpLinkRoteador(statusWan = LocalDeviceSectionStatus.INDISPONIVEL),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                localDevice = tpLinkRoteador(statusWan = LocalDeviceSectionStatus.INDISPONIVEL),
+            )
 
         assertEquals("LOCAL-EQUIP-WAN-01", r.principal.id)
         assertEquals(DiagnosticStatus.critical, r.principal.status)
@@ -218,11 +229,12 @@ class FindingEngineLocalDeviceTest {
 
     @Test
     fun `TP-Link sem suporte a fibra declara limitacao sem virar achado principal quando tudo ok`() {
-        val r = FindingEngine.analisar(
-            internetResultados = emptyList(),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            localDevice = tpLinkRoteador(),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = emptyList(),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                localDevice = tpLinkRoteador(),
+            )
 
         // Limitacao nao pode mascarar "Conexao Sem Problemas" quando tudo esta ok.
         assertEquals("DECISAO-04", r.principal.id)
@@ -234,11 +246,12 @@ class FindingEngineLocalDeviceTest {
 
     @Test
     fun `suporte experimental declara limitacao explicita`() {
-        val r = FindingEngine.analisar(
-            internetResultados = emptyList(),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            localDevice = tpLinkRoteador(supportLevel = SupportLevel.INFERRED_FAMILY),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = emptyList(),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                localDevice = tpLinkRoteador(supportLevel = SupportLevel.INFERRED_FAMILY),
+            )
 
         assertTrue(
             r.limitacoesEquipamentoLocal.any { it.contains("experimental", ignoreCase = true) },
@@ -247,11 +260,12 @@ class FindingEngineLocalDeviceTest {
 
     @Test
     fun `equipamento LAB_VALIDATED sem outras limitacoes nao gera aviso de experimental`() {
-        val r = FindingEngine.analisar(
-            internetResultados = emptyList(),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            localDevice = ontOk(),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = emptyList(),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                localDevice = ontOk(),
+            )
 
         assertFalse(r.limitacoesEquipamentoLocal.any { it.contains("experimental", ignoreCase = true) })
     }

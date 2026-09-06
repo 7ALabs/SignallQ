@@ -3,8 +3,8 @@
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.database.chat.ChatSessionEntity
 import io.signallq.app.core.database.recommendation.RecommendationHistoryEntity
-import java.util.UUID
 import org.json.JSONObject
+import java.util.UUID
 
 // ---------------------------------------------------------------------------
 // Utilitarios de serialização — usados por AdminSyncWorker/SpeedtestPersistenceCoordinator
@@ -17,34 +17,36 @@ import org.json.JSONObject
  * Retorna null se [frequenciaMhz] for null, <= 0 (Samsung One UI apos reconexao)
  * ou fora dos ranges conhecidos — nunca aborta o envio.
  */
-fun frequenciaMhzParaBanda(frequenciaMhz: Int?): String? = when {
-    frequenciaMhz == null || frequenciaMhz <= 0 -> null
-    frequenciaMhz in 2412..2484 -> "wifi_2.4GHz"
-    frequenciaMhz in 5170..5825 -> "wifi_5GHz"
-    frequenciaMhz in 5925..7125 -> "wifi_6GHz"
-    else -> "wifi"
-}
+fun frequenciaMhzParaBanda(frequenciaMhz: Int?): String? =
+    when {
+        frequenciaMhz == null || frequenciaMhz <= 0 -> null
+        frequenciaMhz in 2412..2484 -> "wifi_2.4GHz"
+        frequenciaMhz in 5170..5825 -> "wifi_5GHz"
+        frequenciaMhz in 5925..7125 -> "wifi_6GHz"
+        else -> "wifi"
+    }
 
 /**
  * Converte ID interno de issue do engine de diagnostico para label legivel em snake_case.
  *
  * Se nao houver mapeamento, normaliza o proprio ID para snake_case — nenhum issue e descartado.
  */
-fun idParaIssueLabel(id: String): String = when {
-    id.contains("RSSI", ignoreCase = true) || id.contains("SINAL", ignoreCase = true) -> "sinal_fraco"
-    id.contains("LATENCIA", ignoreCase = true) || id.contains("LATENCY", ignoreCase = true) -> "alta_latencia"
-    id.contains("DNS", ignoreCase = true) -> "falha_dns"
-    id.contains("JITTER", ignoreCase = true) -> "jitter_alto"
-    id.contains("PACKET", ignoreCase = true) || id.contains("PERDA", ignoreCase = true) -> "perda_de_pacotes"
-    id.contains("UPLOAD", ignoreCase = true) -> "upload_lento"
-    id.contains("DOWNLOAD", ignoreCase = true) -> "download_lento"
-    id.contains("FIBRA", ignoreCase = true) || id.contains("GPON", ignoreCase = true) -> "problema_fibra"
-    id.contains("GATEWAY", ignoreCase = true) -> "gateway_inacessivel"
-    id.contains("BUFFERBLOAT", ignoreCase = true) -> "bufferbloat"
-    id.contains("CANAL", ignoreCase = true) || id.contains("CHANNEL", ignoreCase = true) -> "interferencia_canal_wifi"
-    id.contains("BAND", ignoreCase = true) -> "problema_banda"
-    else -> id.lowercase().replace("-", "_").replace(" ", "_")
-}
+fun idParaIssueLabel(id: String): String =
+    when {
+        id.contains("RSSI", ignoreCase = true) || id.contains("SINAL", ignoreCase = true) -> "sinal_fraco"
+        id.contains("LATENCIA", ignoreCase = true) || id.contains("LATENCY", ignoreCase = true) -> "alta_latencia"
+        id.contains("DNS", ignoreCase = true) -> "falha_dns"
+        id.contains("JITTER", ignoreCase = true) -> "jitter_alto"
+        id.contains("PACKET", ignoreCase = true) || id.contains("PERDA", ignoreCase = true) -> "perda_de_pacotes"
+        id.contains("UPLOAD", ignoreCase = true) -> "upload_lento"
+        id.contains("DOWNLOAD", ignoreCase = true) -> "download_lento"
+        id.contains("FIBRA", ignoreCase = true) || id.contains("GPON", ignoreCase = true) -> "problema_fibra"
+        id.contains("GATEWAY", ignoreCase = true) -> "gateway_inacessivel"
+        id.contains("BUFFERBLOAT", ignoreCase = true) -> "bufferbloat"
+        id.contains("CANAL", ignoreCase = true) || id.contains("CHANNEL", ignoreCase = true) -> "interferencia_canal_wifi"
+        id.contains("BAND", ignoreCase = true) -> "problema_banda"
+        else -> id.lowercase().replace("-", "_").replace(" ", "_")
+    }
 
 // ---------------------------------------------------------------------------
 
@@ -172,34 +174,50 @@ data class AnalyticsEventIngestPayload(
     val durationMs: Long? = null,
 )
 
-fun AnalyticsEventIngestPayload.toOutboxJson(): String = JSONObject().apply {
-    put("id", id); put("name", name); put("session_id", sessionId); put("timestamp", createdAt)
-    put("app_version", appVersion); put("feature_id", featureId); put("screen_name", screenName)
-    put("error_type", errorType); put("battery_level", batteryLevel); put("battery_charging", batteryCharging)
-    put("environment", environment); put("dist_channel", distChannel); put("build_type", buildType)
-    put("version_code", versionCode); put("device_id", deviceId); put("duration_ms", durationMs); put("platform", "android")
-}.toString()
+fun AnalyticsEventIngestPayload.toOutboxJson(): String =
+    JSONObject()
+        .apply {
+            put("id", id)
+            put("name", name)
+            put("session_id", sessionId)
+            put("timestamp", createdAt)
+            put("app_version", appVersion)
+            put("feature_id", featureId)
+            put("screen_name", screenName)
+            put("error_type", errorType)
+            put("battery_level", batteryLevel)
+            put("battery_charging", batteryCharging)
+            put("environment", environment)
+            put("dist_channel", distChannel)
+            put("build_type", buildType)
+            put("version_code", versionCode)
+            put("device_id", deviceId)
+            put("duration_ms", durationMs)
+            put("platform", "android")
+        }.toString()
 
-fun analyticsPayloadFromOutboxJson(json: String): AnalyticsEventIngestPayload? = runCatching {
-    val value = JSONObject(json)
-    AnalyticsEventIngestPayload(
-        id = value.getString("id"), name = value.getString("name"),
-        sessionId = value.optionalString("session_id"),
-        createdAt = value.getLong("timestamp"),
-        appVersion = value.optionalString("app_version"),
-        featureId = value.optionalString("feature_id"),
-        screenName = value.optionalString("screen_name"),
-        errorType = value.optionalString("error_type"),
-        batteryLevel = value.optionalInt("battery_level"),
-        batteryCharging = value.optionalBoolean("battery_charging"),
-        environment = value.optionalString("environment"),
-        distChannel = value.optionalString("dist_channel"),
-        buildType = value.optionalString("build_type"),
-        versionCode = value.optionalInt("version_code"),
-        deviceId = value.optionalString("device_id"),
-        durationMs = value.optionalLong("duration_ms"),
-    )
-}.getOrNull()
+fun analyticsPayloadFromOutboxJson(json: String): AnalyticsEventIngestPayload? =
+    runCatching {
+        val value = JSONObject(json)
+        AnalyticsEventIngestPayload(
+            id = value.getString("id"),
+            name = value.getString("name"),
+            sessionId = value.optionalString("session_id"),
+            createdAt = value.getLong("timestamp"),
+            appVersion = value.optionalString("app_version"),
+            featureId = value.optionalString("feature_id"),
+            screenName = value.optionalString("screen_name"),
+            errorType = value.optionalString("error_type"),
+            batteryLevel = value.optionalInt("battery_level"),
+            batteryCharging = value.optionalBoolean("battery_charging"),
+            environment = value.optionalString("environment"),
+            distChannel = value.optionalString("dist_channel"),
+            buildType = value.optionalString("build_type"),
+            versionCode = value.optionalInt("version_code"),
+            deviceId = value.optionalString("device_id"),
+            durationMs = value.optionalLong("duration_ms"),
+        )
+    }.getOrNull()
 
 private fun JSONObject.optionalString(name: String): String? =
     if (has(name) && !isNull(name)) getString(name).ifBlank { null } else null
@@ -243,8 +261,10 @@ fun MedicaoEntity.toIngestPayload(
     latencyMs = latencyMs?.toInt(),
     jitterMs = jitterMs?.toInt(),
     packetLoss = perdaPercentual?.toFloat(),
-    issues = gargaloPrimario?.takeIf { it.isNotBlank() }
-        ?.let { listOf(idParaIssueLabel(it)) } ?: emptyList(),
+    issues =
+        gargaloPrimario
+            ?.takeIf { it.isNotBlank() }
+            ?.let { listOf(idParaIssueLabel(it)) } ?: emptyList(),
     operator = operadoraMovel?.takeIf { it.isNotBlank() },
     deviceModel = deviceModel,
     osVersion = osVersion,

@@ -6,7 +6,6 @@ import org.junit.Test
 /** GH#1227 item 14/RF-I — valor não reconhecido sempre resolve pra uma opção válida (SYSTEM),
  *  nunca "nenhuma selecionada". */
 class ThemePreferenceTest {
-
     @Test
     fun `parse reconhece as tres chaves persistidas`() {
         assertEquals(ThemePreference.SYSTEM, ThemePreference.parse("sistema"))

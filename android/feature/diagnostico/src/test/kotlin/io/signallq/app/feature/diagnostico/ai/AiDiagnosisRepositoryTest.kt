@@ -24,7 +24,6 @@ import org.junit.Test
  * Os testes nao fazem rede — apenas validam parser, normalizeStatus e ModeloIa.
  */
 class AiDiagnosisRepositoryTest {
-
     private lateinit var repo: AiDiagnosisRepository
 
     @Before
@@ -39,7 +38,8 @@ class AiDiagnosisRepositoryTest {
     // -------------------------------------------------------------------------
     @Test
     fun cenario1_velocidadeBoa_estabilidadeRuim_naoColapsaParaInternetLenta() {
-        val json = """
+        val json =
+            """
             {
               "schemaVersion": "2",
               "source": "cloudflare_ai",
@@ -95,7 +95,7 @@ class AiDiagnosisRepositoryTest {
               ],
               "limitesDaAnalise": ["Sem teste comparativo cabo vs Wi-Fi."]
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val parsed = repo.parseResult(json)
         assertNotNull(parsed)
@@ -132,14 +132,19 @@ class AiDiagnosisRepositoryTest {
         // idInterno fica disponivel para debug, mas nunca aparece nos campos comerciais
         assertFalse(parsed.modeloIa.nomeExibicao.contains("@cf"))
         assertFalse(parsed.modeloIa.textoRodape.contains("@cf"))
-        assertFalse(parsed.modeloIa.textoRodape.lowercase().contains("llama"))
+        assertFalse(
+            parsed.modeloIa.textoRodape
+                .lowercase()
+                .contains("llama"),
+        )
 
         // normalizeStatus nao colapsa: status ja valido permanece "regular"
-        val normalized = repo.normalizeStatus(
-            aiStatus = parsed.status,
-            decisaoStatus = "attention",
-            problemaPrincipalTipo = parsed.problemaPrincipal.tipo,
-        )
+        val normalized =
+            repo.normalizeStatus(
+                aiStatus = parsed.status,
+                decisaoStatus = "attention",
+                problemaPrincipalTipo = parsed.problemaPrincipal.tipo,
+            )
         assertEquals("regular", normalized)
     }
 
@@ -148,7 +153,8 @@ class AiDiagnosisRepositoryTest {
     // -------------------------------------------------------------------------
     @Test
     fun cenario2_velocidadeBaixa_latenciaNormal() {
-        val json = """
+        val json =
+            """
             {
               "schemaVersion": "2",
               "source": "cloudflare_ai",
@@ -170,7 +176,7 @@ class AiDiagnosisRepositoryTest {
               "evidencias": [],
               "limitesDaAnalise": []
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val parsed = repo.parseResult(json)
         assertNotNull(parsed)
@@ -193,7 +199,8 @@ class AiDiagnosisRepositoryTest {
     // -------------------------------------------------------------------------
     @Test
     fun cenario3_tudoBom() {
-        val json = """
+        val json =
+            """
             {
               "schemaVersion": "2",
               "source": "cloudflare_ai",
@@ -213,7 +220,7 @@ class AiDiagnosisRepositoryTest {
               "evidencias": [],
               "limitesDaAnalise": []
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val parsed = repo.parseResult(json)
         assertNotNull(parsed)
@@ -229,7 +236,8 @@ class AiDiagnosisRepositoryTest {
     // -------------------------------------------------------------------------
     @Test
     fun cenario4_dadosInsuficientes_inconclusivo() {
-        val json = """
+        val json =
+            """
             {
               "schemaVersion": "2",
               "source": "cloudflare_ai",
@@ -249,7 +257,7 @@ class AiDiagnosisRepositoryTest {
               "evidencias": [],
               "limitesDaAnalise": ["Sem speedtest disponivel."]
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val parsed = repo.parseResult(json)
         assertNotNull(parsed)
@@ -265,7 +273,8 @@ class AiDiagnosisRepositoryTest {
     // -------------------------------------------------------------------------
     @Test
     fun cenario6_modeloGemma_rodapeComercial() {
-        val json = """
+        val json =
+            """
             {
               "schemaVersion": "2",
               "source": "cloudflare_ai",
@@ -292,7 +301,7 @@ class AiDiagnosisRepositoryTest {
               "evidencias": [],
               "limitesDaAnalise": []
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val parsed = repo.parseResult(json)
         requireNotNull(parsed)
@@ -312,7 +321,8 @@ class AiDiagnosisRepositoryTest {
     @Test
     fun cenario7_modeloDesconhecido_rodapeGenericoSignallQIA() {
         // Resposta v1 sem modeloIa
-        val json = """
+        val json =
+            """
             {
               "schemaVersion": "1",
               "source": "cloudflare_ai",
@@ -327,7 +337,7 @@ class AiDiagnosisRepositoryTest {
               "evidencias": [],
               "limitesDaAnalise": []
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val parsed = repo.parseResult(json)
         requireNotNull(parsed)
@@ -346,21 +356,23 @@ class AiDiagnosisRepositoryTest {
     fun normalizeStatus_aiInvalido_problemaEstabilidade_naoColapsa() {
         // IA respondeu com status invalido. Decisao local diz "attention".
         // Como problema e "estabilidade", nao podemos rebaixar para "ruim" generico.
-        val out = repo.normalizeStatus(
-            aiStatus = "alguma_coisa_estranha",
-            decisaoStatus = "attention",
-            problemaPrincipalTipo = "estabilidade",
-        )
+        val out =
+            repo.normalizeStatus(
+                aiStatus = "alguma_coisa_estranha",
+                decisaoStatus = "attention",
+                problemaPrincipalTipo = "estabilidade",
+            )
         assertEquals("regular", out)
     }
 
     @Test
     fun normalizeStatus_aiValido_mantemAi() {
-        val out = repo.normalizeStatus(
-            aiStatus = "regular",
-            decisaoStatus = "critical", // mesmo que a decisao local seja mais severa
-            problemaPrincipalTipo = "estabilidade",
-        )
+        val out =
+            repo.normalizeStatus(
+                aiStatus = "regular",
+                decisaoStatus = "critical", // mesmo que a decisao local seja mais severa
+                problemaPrincipalTipo = "estabilidade",
+            )
         assertEquals("regular", out)
     }
 
@@ -389,7 +401,8 @@ class AiDiagnosisRepositoryTest {
     // -------------------------------------------------------------------------
     @Test
     fun parser_classificacaoTecnica_lê_5_dimensoes_e_ignora_chaves_extras() {
-        val json = """
+        val json =
+            """
             {
               "schemaVersion": "2",
               "source": "cloudflare_ai",
@@ -412,7 +425,7 @@ class AiDiagnosisRepositoryTest {
               "evidencias": [],
               "limitesDaAnalise": []
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val parsed = repo.parseResult(json)
         requireNotNull(parsed)
@@ -460,7 +473,8 @@ class AiDiagnosisRepositoryTest {
     // -------------------------------------------------------------------------
     @Test
     fun cenario8_respostaSchemaV1SemModeloIa_parserPreencheFallbackSeguro() {
-        val jsonV1 = """
+        val jsonV1 =
+            """
             {
               "schemaVersion": "1",
               "source": "cloudflare_ai",
@@ -475,7 +489,7 @@ class AiDiagnosisRepositoryTest {
               "evidencias": [{"label":"download","valor":"50 Mbps","interpretacao":"ok"}],
               "limitesDaAnalise": []
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val parsed = repo.parseResult(jsonV1)
         requireNotNull(parsed)
@@ -507,15 +521,17 @@ class AiDiagnosisRepositoryTest {
     // TTL do cache — 5 minutos
     // -------------------------------------------------------------------------
 
-    private fun fakeDiagnosisAiContext(): DiagnosisAiContext = DiagnosisAiContext(
-        schemaVersion = "5",
-        generatedAtEpochMs = 1700000000000L,
-        connectionType = io.signallq.app.core.diagnostico.ConnectionType.wifi,
-        evidencias = emptyList(),
-    )
+    private fun fakeDiagnosisAiContext(): DiagnosisAiContext =
+        DiagnosisAiContext(
+            schemaVersion = "5",
+            generatedAtEpochMs = 1700000000000L,
+            connectionType = io.signallq.app.core.diagnostico.ConnectionType.wifi,
+            evidencias = emptyList(),
+        )
 
     private fun fakeAiDiagnosisResult(): AiDiagnosisResult {
-        val json = """
+        val json =
+            """
             {
               "schemaVersion": "3",
               "source": "cloudflare_ai",
@@ -530,7 +546,7 @@ class AiDiagnosisRepositoryTest {
               "evidencias": [],
               "limitesDaAnalise": []
             }
-        """.trimIndent()
+            """.trimIndent()
         return repo.parseResult(json)!!
     }
 
@@ -540,11 +556,12 @@ class AiDiagnosisRepositoryTest {
         val quatroMinutosAtras = now - (4 * 60 * 1000L)
 
         var tempoAtual = now
-        val repoComClock = AiDiagnosisRepository(
-            baseUrl = "http://invalid.local",
-            isAuthorized = { true },
-            clock = { tempoAtual },
-        )
+        val repoComClock =
+            AiDiagnosisRepository(
+                baseUrl = "http://invalid.local",
+                isAuthorized = { true },
+                clock = { tempoAtual },
+            )
 
         val ctx = fakeDiagnosisAiContext()
         val resultado = fakeAiDiagnosisResult()
@@ -571,11 +588,12 @@ class AiDiagnosisRepositoryTest {
         val seisMinutosAtras = now - (6 * 60 * 1000L)
 
         var tempoAtual = now
-        val repoComClock = AiDiagnosisRepository(
-            baseUrl = "http://invalid.local",
-            isAuthorized = { true },
-            clock = { tempoAtual },
-        )
+        val repoComClock =
+            AiDiagnosisRepository(
+                baseUrl = "http://invalid.local",
+                isAuthorized = { true },
+                clock = { tempoAtual },
+            )
 
         val ctx = fakeDiagnosisAiContext()
         val resultado = fakeAiDiagnosisResult()
@@ -608,7 +626,8 @@ class AiDiagnosisRepositoryTest {
     // -------------------------------------------------------------------------
     @Test
     fun parser_perguntaContextual_temaPresente_eExposto() {
-        val json = """
+        val json =
+            """
             {
               "schemaVersion": "3",
               "source": "cloudflare_ai",
@@ -629,7 +648,7 @@ class AiDiagnosisRepositoryTest {
                 {"id":"p4","pergunta":"Sem tema declarado","opcoes":[{"id":"ok","rotulo":"OK"}]}
               ]
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val parsed = repo.parseResult(json)
         requireNotNull(parsed)
@@ -655,20 +674,23 @@ class AiDiagnosisRepositoryTest {
     // -------------------------------------------------------------------------
     @Test
     fun contextToJson_v5_naoContemAnalisePrevia() {
-        val ctx = DiagnosisAiContext(
-            schemaVersion = "5",
-            generatedAtEpochMs = 1700000000000L,
-            connectionType = io.signallq.app.core.diagnostico.ConnectionType.wifi,
-            metricasAtuais = AiMetricasAtuais(
-                downloadMbps = 294.0,
-                uploadMbps = 411.0,
-                latenciaMs = 101.0,
-                jitterMs = 25.1,
-            ),
-            evidencias = listOf(
-                AiEvidence(label = "download", valor = "294 Mbps"),
-            ),
-        )
+        val ctx =
+            DiagnosisAiContext(
+                schemaVersion = "5",
+                generatedAtEpochMs = 1700000000000L,
+                connectionType = io.signallq.app.core.diagnostico.ConnectionType.wifi,
+                metricasAtuais =
+                    AiMetricasAtuais(
+                        downloadMbps = 294.0,
+                        uploadMbps = 411.0,
+                        latenciaMs = 101.0,
+                        jitterMs = 25.1,
+                    ),
+                evidencias =
+                    listOf(
+                        AiEvidence(label = "download", valor = "294 Mbps"),
+                    ),
+            )
         val json = repo.contextToJson(ctx).toString()
         // schemaVersion correto
         assertTrue(json.contains("\"schemaVersion\":\"5\""))
@@ -696,22 +718,25 @@ class AiDiagnosisRepositoryTest {
     // -------------------------------------------------------------------------
     @Test
     fun contextToJson_serializaAchadosLocaisERttGateway() {
-        val ctx = DiagnosisAiContext(
-            schemaVersion = "5",
-            generatedAtEpochMs = 1700000000000L,
-            connectionType = io.signallq.app.core.diagnostico.ConnectionType.wifi,
-            metricasAtuais = AiMetricasAtuais(
-                downloadMbps = 294.0,
-                rttGatewayMs = 12,
-            ),
-            achadosLocais = AchadosDiagnosticoLocal(
-                decisaoId = "DECISAO-GW-01",
-                statusGeral = "attention",
-                score = 62,
-                confianca = 0.82,
-                resultadosRelevantes = listOf("WIFI-01", "INTERNET-03"),
-            ),
-        )
+        val ctx =
+            DiagnosisAiContext(
+                schemaVersion = "5",
+                generatedAtEpochMs = 1700000000000L,
+                connectionType = io.signallq.app.core.diagnostico.ConnectionType.wifi,
+                metricasAtuais =
+                    AiMetricasAtuais(
+                        downloadMbps = 294.0,
+                        rttGatewayMs = 12,
+                    ),
+                achadosLocais =
+                    AchadosDiagnosticoLocal(
+                        decisaoId = "DECISAO-GW-01",
+                        statusGeral = "attention",
+                        score = 62,
+                        confianca = 0.82,
+                        resultadosRelevantes = listOf("WIFI-01", "INTERNET-03"),
+                    ),
+            )
         val json = repo.contextToJson(ctx).toString()
 
         assertTrue("rttGatewayMs presente em metricasAtuais", json.contains("\"rttGatewayMs\":12"))
@@ -727,19 +752,21 @@ class AiDiagnosisRepositoryTest {
 
     @Test
     fun contextToJson_achadosLocaisNull_naoSerializaCampo() {
-        val ctx = DiagnosisAiContext(
-            schemaVersion = "5",
-            generatedAtEpochMs = 1700000000000L,
-            connectionType = io.signallq.app.core.diagnostico.ConnectionType.wifi,
-            achadosLocais = null,
-        )
+        val ctx =
+            DiagnosisAiContext(
+                schemaVersion = "5",
+                generatedAtEpochMs = 1700000000000L,
+                connectionType = io.signallq.app.core.diagnostico.ConnectionType.wifi,
+                achadosLocais = null,
+            )
         val json = repo.contextToJson(ctx).toString()
         assertFalse("achadosLocais omitido quando null", json.contains("achadosLocais"))
     }
 
     @Test
     fun parser_classificacaoTecnica_dimensoes_ausentes_ficam_null() {
-        val json = """
+        val json =
+            """
             {
               "schemaVersion": "2",
               "source": "cloudflare_ai",
@@ -757,7 +784,7 @@ class AiDiagnosisRepositoryTest {
               "evidencias": [],
               "limitesDaAnalise": []
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val parsed = repo.parseResult(json)
         requireNotNull(parsed)

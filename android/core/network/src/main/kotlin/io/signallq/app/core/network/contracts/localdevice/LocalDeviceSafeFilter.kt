@@ -53,7 +53,6 @@ enum class LocalDeviceSectionStatus {
  * resultado de [filtrar].
  */
 object LocalDeviceSafeFilter {
-
     fun filtrar(snapshot: LocalNetworkDeviceSnapshot): SafeLocalDeviceContext =
         SafeLocalDeviceContext(
             vendor = snapshot.vendor,
@@ -74,9 +73,10 @@ object LocalDeviceSafeFilter {
 
     /** Status geral de comunicação com o equipamento — falha de login/comunicação prevalece. */
     private fun connectionStatus(snapshot: LocalNetworkDeviceSnapshot): LocalDeviceSectionStatus {
-        val temErroComunicacao = snapshot.warnings.any {
-            it.type == DeviceWarningType.LOGIN_FALHOU || it.type == DeviceWarningType.ERRO_COMUNICACAO
-        }
+        val temErroComunicacao =
+            snapshot.warnings.any {
+                it.type == DeviceWarningType.LOGIN_FALHOU || it.type == DeviceWarningType.ERRO_COMUNICACAO
+            }
         if (temErroComunicacao) return LocalDeviceSectionStatus.INDISPONIVEL
         val temDadosParciais = snapshot.warnings.any { it.type == DeviceWarningType.DADOS_PARCIAIS }
         return if (temDadosParciais) LocalDeviceSectionStatus.ATENCAO else LocalDeviceSectionStatus.OK

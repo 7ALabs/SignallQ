@@ -62,7 +62,12 @@ class DiagnosticRolloutStatusRepository(
             withTimeoutOrNull(TIMEOUT_MS) {
                 try {
                     val url = baseUrl.trimEnd('/') + "/diagnostic/rollout-status"
-                    val request = Request.Builder().url(url).get().build()
+                    val request =
+                        Request
+                            .Builder()
+                            .url(url)
+                            .get()
+                            .build()
                     client.newCall(request).execute().use { response ->
                         if (!response.isSuccessful) {
                             Timber.w("DiagnosticRolloutStatusRepository: worker HTTP ${response.code}")
@@ -89,9 +94,10 @@ class DiagnosticRolloutStatusRepository(
                 rulesetVersion = if (json.has("rulesetVersion") && !json.isNull("rulesetVersion")) json.optInt("rulesetVersion") else null,
                 rolloutPercent = json.optInt("rolloutPercent", 0),
                 rolloutMinVersionCode = if (json.has("rolloutMinVersionCode") && !json.isNull("rolloutMinVersionCode")) json.optInt("rolloutMinVersionCode") else null,
-                rolloutChannels = json.optJSONArray("rolloutChannels")?.let { array ->
-                    (0 until array.length()).map { index -> array.getString(index) }
-                },
+                rolloutChannels =
+                    json.optJSONArray("rolloutChannels")?.let { array ->
+                        (0 until array.length()).map { index -> array.getString(index) }
+                    },
             )
         } catch (t: Throwable) {
             Timber.w(t, "DiagnosticRolloutStatusRepository: JSON invalido do worker")

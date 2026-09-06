@@ -30,10 +30,15 @@ interface FeatureFlagProvider {
 
     // --- Flags SIG-13 ---
     fun isFeatureSpeedtestEnabled(): Boolean = isEnabled("feature_speedtest")
+
     fun isFeatureWifiEnabled(): Boolean = isEnabled("feature_wifi")
+
     fun isFeatureDiagnosticoIaEnabled(): Boolean = isEnabled("feature_diagnostico_ia")
+
     fun isFeatureDnsEnabled(): Boolean = isEnabled("feature_dns")
+
     fun isFeatureFibraEnabled(): Boolean = isEnabled("feature_fibra")
+
     fun isFeatureDevicesEnabled(): Boolean = isEnabled("feature_devices")
 
     // --- Flag GH#1444 (shadow mode, #952) ---
@@ -44,6 +49,8 @@ interface FeatureFlagProvider {
 
     // --- Flags legadas (mantidas por compatibilidade) ---
     fun isAiDiagnosisEnabled(): Boolean = isEnabled("ai_diagnosis_enabled")
+
     fun isSpeedtestEnabled(): Boolean = isEnabled("speedtest_enabled")
+
     fun isFibraModuleEnabled(): Boolean = isEnabled("fibra_module_enabled")
 }

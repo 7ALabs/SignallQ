@@ -44,7 +44,7 @@ Linka em preparação (`foundation-linka/`, ver seção própria abaixo). Perím
 | [FUNCIONAL.md](FUNCIONAL.md) | ✅ reescrito do código · 4 raízes, 16 overlays, 77 citações de código |
 | [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | ✅ tokens conferidos 1 a 1 em `SignallQTheme.kt` |
 | [RELEASES.md](RELEASES.md) | não regenerado — histórico de releases, sai do git |
-| [plano-execucao-consumer-consolidado-2026-08-05.md](plano-execucao-consumer-consolidado-2026-08-05.md) | plano ativo, 42 issues |
+| [plano-execucao-consumer-consolidado-2026-08-05.md](plano-execucao-consumer-consolidado-2026-08-05.md) | plano ativo, fila do Consumer em 7 ondas |
 
 ## Arquitetura por módulo — `ARQUITETURA/MODULOS/`
 

@@ -6,7 +6,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SnapshotRedeTest {
-
     @Test
     fun `desconectado retorna snapshot com estado desconectado`() {
         val ts = 1_700_000_000_000L
@@ -32,23 +31,25 @@ class SnapshotRedeTest {
 
     @Test
     fun `snapshot wifi conectado preserva todos os campos`() {
-        val wifiSnap = WifiLinkSnapshot(
-            ssid = "MinhaRede",
-            bssid = "AA:BB:CC:DD:EE:FF",
-            rssiDbm = -65,
-            linkSpeedMbps = 144,
-            frequenciaMhz = 5180,
-            padraoWifi = "802.11ac",
-        )
-        val snap = SnapshotRede(
-            estadoConexao = EstadoConexao.wifi,
-            conectado = true,
-            timestampEpochMs = 1_700_000_000_000L,
-            wifiLinkSnapshot = wifiSnap,
-            privateDnsAtivo = true,
-            privateDnsHostname = "dns.example.com",
-            dnsServidores = listOf("8.8.8.8", "1.1.1.1"),
-        )
+        val wifiSnap =
+            WifiLinkSnapshot(
+                ssid = "MinhaRede",
+                bssid = "AA:BB:CC:DD:EE:FF",
+                rssiDbm = -65,
+                linkSpeedMbps = 144,
+                frequenciaMhz = 5180,
+                padraoWifi = "802.11ac",
+            )
+        val snap =
+            SnapshotRede(
+                estadoConexao = EstadoConexao.wifi,
+                conectado = true,
+                timestampEpochMs = 1_700_000_000_000L,
+                wifiLinkSnapshot = wifiSnap,
+                privateDnsAtivo = true,
+                privateDnsHostname = "dns.example.com",
+                dnsServidores = listOf("8.8.8.8", "1.1.1.1"),
+            )
 
         assertTrue(snap.conectado)
         assertEquals(EstadoConexao.wifi, snap.estadoConexao)
@@ -72,16 +73,17 @@ class SnapshotRedeTest {
 
     @Test
     fun `metered true e preservado quando informado explicitamente`() {
-        val snap = SnapshotRede(
-            estadoConexao = EstadoConexao.movel,
-            conectado = true,
-            timestampEpochMs = 1_700_000_000_000L,
-            wifiLinkSnapshot = null,
-            privateDnsAtivo = false,
-            privateDnsHostname = null,
-            dnsServidores = emptyList(),
-            metered = true,
-        )
+        val snap =
+            SnapshotRede(
+                estadoConexao = EstadoConexao.movel,
+                conectado = true,
+                timestampEpochMs = 1_700_000_000_000L,
+                wifiLinkSnapshot = null,
+                privateDnsAtivo = false,
+                privateDnsHostname = null,
+                dnsServidores = emptyList(),
+                metered = true,
+            )
 
         assertTrue(snap.metered)
     }

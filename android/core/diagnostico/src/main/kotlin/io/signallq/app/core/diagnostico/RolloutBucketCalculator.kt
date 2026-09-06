@@ -19,15 +19,20 @@ import java.security.MessageDigest
  * `:core:datastore`).
  */
 object RolloutBucketCalculator {
-
     /** Bucket estavel 0..99 para [installationId] sob o namespace [salt]. */
-    fun bucketOf(installationId: String, salt: String = DEFAULT_SALT): Int {
-        val digest = MessageDigest.getInstance("SHA-256")
-            .digest("$salt:$installationId".toByteArray(Charsets.UTF_8))
-        val value = ((digest[0].toInt() and 0xFF) shl 24) or
-            ((digest[1].toInt() and 0xFF) shl 16) or
-            ((digest[2].toInt() and 0xFF) shl 8) or
-            (digest[3].toInt() and 0xFF)
+    fun bucketOf(
+        installationId: String,
+        salt: String = DEFAULT_SALT,
+    ): Int {
+        val digest =
+            MessageDigest
+                .getInstance("SHA-256")
+                .digest("$salt:$installationId".toByteArray(Charsets.UTF_8))
+        val value =
+            ((digest[0].toInt() and 0xFF) shl 24) or
+                ((digest[1].toInt() and 0xFF) shl 16) or
+                ((digest[2].toInt() and 0xFF) shl 8) or
+                (digest[3].toInt() and 0xFF)
         return (value and 0x7FFFFFFF) % 100
     }
 
@@ -36,7 +41,11 @@ object RolloutBucketCalculator {
      * `installationId` em branco nunca participa (fail closed — sem identificador
      * estavel, nao ha como garantir nao-piscar entre execucoes).
      */
-    fun isInRollout(installationId: String, rolloutPercent: Int, salt: String = DEFAULT_SALT): Boolean {
+    fun isInRollout(
+        installationId: String,
+        rolloutPercent: Int,
+        salt: String = DEFAULT_SALT,
+    ): Boolean {
         if (installationId.isBlank()) return false
         val clamped = rolloutPercent.coerceIn(0, 100)
         if (clamped <= 0) return false

@@ -14,7 +14,9 @@ import java.net.URLConnection
  * `Network.bindSocket`/`Network.getAllByName`/`Network.openConnection` são as APIs Android
  * dedicadas a isso (todas disponíveis desde API 23 — minSdk deste app é 24).
  */
-class AndroidNetworkProbeBinding(private val network: Network) : ConnectivityProbeBinding {
+class AndroidNetworkProbeBinding(
+    private val network: Network,
+) : ConnectivityProbeBinding {
     override fun bindSocket(socket: Socket) {
         network.bindSocket(socket)
     }

@@ -5,7 +5,6 @@ import org.junit.Test
 
 /** GH#1217 item 1 — níveis de confiança de identidade entre scans. */
 class AvaliadorConfiancaIdentidadeTest {
-
     private fun dispositivo(
         mac: String? = null,
         ip: String? = "192.168.1.10",
