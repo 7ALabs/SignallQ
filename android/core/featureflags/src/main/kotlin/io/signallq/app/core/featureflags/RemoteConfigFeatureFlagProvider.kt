@@ -28,7 +28,7 @@ import kotlin.coroutines.resumeWithException
  * modulo `:core:*` -- quem monta a lambda (`AppModule`, em `:app`) e quem ja tem
  * Hilt/Dagger no classpath.
  *
- * [catalog] fornece os defaults locais -- semeiam [_values] antes de qualquer
+ * [catalog] fornece os defaults locais -- semeiam [valoresAtuais] antes de qualquer
  * fetch, entao [isEnabled]/[observe] sempre tem um valor utilizavel mesmo offline
  * (criterio de aceite da issue #1477).
  */
@@ -38,15 +38,15 @@ class RemoteConfigFeatureFlagProvider(
     private val fetchTimeoutMillis: Long = DEFAULT_FETCH_TIMEOUT_MS,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : FeatureFlagProvider {
-    private val _values = MutableStateFlow(catalog.defaultsAsValues())
+    private val valoresAtuais = MutableStateFlow(catalog.defaultsAsValues())
 
     override fun observe(key: FeatureFlagKey): Flow<FeatureFlagValue> =
-        _values
+        valoresAtuais
             .map { valores -> valores[key] ?: catalog.defaultValueFor(key) ?: valorDesconhecido(key) }
             .distinctUntilChanged()
 
     override fun isEnabled(key: FeatureFlagKey): Boolean =
-        (_values.value[key] ?: catalog.defaultValueFor(key))
+        (valoresAtuais.value[key] ?: catalog.defaultValueFor(key))
             ?.raw
             ?.asBooleanOrNull()
             ?: false
@@ -66,7 +66,7 @@ class RemoteConfigFeatureFlagProvider(
             // ultima configuracao valida automaticamente (o SDK sempre retorna o ultimo
             // template ativado com sucesso, mesmo se o fetch mais recente falhou/expirou).
             runCatching { lerValoresAtivos(rc) }
-                .onSuccess { _values.value = it }
+                .onSuccess { valoresAtuais.value = it }
                 .onFailure { erro ->
                     Timber.w(erro, "Falha ao ler valores ativos de feature flags -- mantendo estado anterior em memoria")
                 }

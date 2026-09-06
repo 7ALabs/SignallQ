@@ -16,7 +16,8 @@ import java.util.concurrent.Executors
  * desistir. Compartilhado entre sondagens para não criar um pool novo a cada instância.
  */
 internal object ProbeBlockingExecutor {
-    val instance: ExecutorService = Executors.newCachedThreadPool { runnable ->
-        Thread(runnable, "connectivity-probe-blocking-io").apply { isDaemon = true }
-    }
+    val instance: ExecutorService =
+        Executors.newCachedThreadPool { runnable ->
+            Thread(runnable, "connectivity-probe-blocking-io").apply { isDaemon = true }
+        }
 }

@@ -11,7 +11,6 @@ import org.junit.Test
  * (nao pode "piscar" entre execucoes).
  */
 class RolloutBucketCalculatorTest {
-
     @Test
     fun `bucketOf e deterministico para a mesma instalacao`() {
         val id = "11111111-1111-1111-1111-111111111111"

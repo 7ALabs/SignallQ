@@ -11,13 +11,17 @@ import org.junit.Test
  * por banda (2.4GHz vs 5/6GHz), que antes era ignorada.
  */
 class WifiSignalQualityEngineTest {
-
     private val idsRssi = setOf("WIFI-01", "WIFI-02", "WIFI-03", "WIFI-04")
 
-    private fun rssiResultado(rssiDbm: Int, frequenciaMhz: Int?) =
-        WifiSignalQualityEngine.avaliar(
-            WifiDiagnosticInput(rssiDbm = rssiDbm, linkSpeedMbps = null, frequenciaMhz = frequenciaMhz),
-        ).resultados.first { it.id in idsRssi }
+    private fun rssiResultado(
+        rssiDbm: Int,
+        frequenciaMhz: Int?,
+    ) =
+        WifiSignalQualityEngine
+            .avaliar(
+                WifiDiagnosticInput(rssiDbm = rssiDbm, linkSpeedMbps = null, frequenciaMhz = frequenciaMhz),
+            ).resultados
+            .first { it.id in idsRssi }
 
     @Test
     fun `2_4GHz -45dBm e excelente (WIFI-01)`() {
@@ -76,9 +80,10 @@ class WifiSignalQualityEngineTest {
 
     @Test
     fun `sem rssi nao gera resultado de sinal`() {
-        val resultado = WifiSignalQualityEngine.avaliar(
-            WifiDiagnosticInput(rssiDbm = null, linkSpeedMbps = null, frequenciaMhz = 2412),
-        )
+        val resultado =
+            WifiSignalQualityEngine.avaliar(
+                WifiDiagnosticInput(rssiDbm = null, linkSpeedMbps = null, frequenciaMhz = 2412),
+            )
         assertTrue(resultado.resultados.none { it.id in idsRssi })
     }
 
@@ -91,17 +96,19 @@ class WifiSignalQualityEngineTest {
 
     @Test
     fun `sinal regular ainda e confiavel para teste`() {
-        val resultado = WifiSignalQualityEngine.avaliar(
-            WifiDiagnosticInput(rssiDbm = -65, linkSpeedMbps = null, frequenciaMhz = 2412),
-        )
+        val resultado =
+            WifiSignalQualityEngine.avaliar(
+                WifiDiagnosticInput(rssiDbm = -65, linkSpeedMbps = null, frequenciaMhz = 2412),
+            )
         assertTrue(resultado.confiavelParaTeste)
     }
 
     @Test
     fun `sinal muito fraco nao e confiavel para teste`() {
-        val resultado = WifiSignalQualityEngine.avaliar(
-            WifiDiagnosticInput(rssiDbm = -85, linkSpeedMbps = null, frequenciaMhz = 2412),
-        )
+        val resultado =
+            WifiSignalQualityEngine.avaliar(
+                WifiDiagnosticInput(rssiDbm = -85, linkSpeedMbps = null, frequenciaMhz = 2412),
+            )
         assertFalse(resultado.confiavelParaTeste)
     }
 }

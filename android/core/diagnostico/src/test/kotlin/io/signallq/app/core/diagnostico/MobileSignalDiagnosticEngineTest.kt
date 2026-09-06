@@ -11,16 +11,16 @@ import org.junit.Test
  * mesma fonte de verdade usada pelo Wi-Fi, em vez de um enum proprio de 4 niveis.
  */
 class MobileSignalDiagnosticEngineTest {
-
     private fun avaliar(input: MobileDiagnosticInput) =
         MobileSignalDiagnosticEngine.avaliar(ConnectionType.mobile, input)
 
     @Test
     fun `conexao nao movel nao gera resultado`() {
-        val r = MobileSignalDiagnosticEngine.avaliar(
-            ConnectionType.wifi,
-            MobileDiagnosticInput(rsrpDbm = -120),
-        )
+        val r =
+            MobileSignalDiagnosticEngine.avaliar(
+                ConnectionType.wifi,
+                MobileDiagnosticInput(rsrpDbm = -120),
+            )
         assertTrue(r.isEmpty())
     }
 

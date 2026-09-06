@@ -41,7 +41,6 @@ private const val CAT = "recomendacao"
  * condicao de "quando mostrar" e "quando NAO mostrar" comentada no bloco.
  */
 object RecomendacaoPraticaEngine {
-
     fun recomendar(
         input: DiagnosticInput,
         achados: FindingResult,
@@ -49,11 +48,15 @@ object RecomendacaoPraticaEngine {
         val recomendacoes = mutableListOf<DiagnosticResult>()
 
         val principalId = achados.principal.id
-        val problemaExternoProvavel = principalId in setOf(
-            "DECISAO-GW-01", // operadora
-            "DECISAO-DNS-01", "DECISAO-DNS-01b", // DNS
-            "DECISAO-00", "DECISAO-00b", // fibra
-        )
+        val problemaExternoProvavel =
+            principalId in
+                setOf(
+                    "DECISAO-GW-01", // operadora
+                    "DECISAO-DNS-01",
+                    "DECISAO-DNS-01b", // DNS
+                    "DECISAO-00",
+                    "DECISAO-00b", // fibra
+                )
 
         recomendarWifi5Ghz(input, problemaExternoProvavel)?.let { recomendacoes += it }
         recomendarDistanciaRoteador(input, achados)?.let { recomendacoes += it }
@@ -109,14 +112,15 @@ object RecomendacaoPraticaEngine {
         if (rssiAtual != null && rssiAtual < -70) return null
 
         val ssid = wifi.ssid
-        val redes5Ghz = if (ssid != null) {
-            input.wifiScan?.redes.orEmpty().filter {
-                val freq = it.frequenciaMhz
-                it.ssid == ssid && freq != null && freq >= 5000
+        val redes5Ghz =
+            if (ssid != null) {
+                input.wifiScan?.redes.orEmpty().filter {
+                    val freq = it.frequenciaMhz
+                    it.ssid == ssid && freq != null && freq >= 5000
+                }
+            } else {
+                emptyList()
             }
-        } else {
-            emptyList()
-        }
 
         // Se o scan confirma o mesmo SSID em 5GHz mas com sinal fraco demais,
         // nao recomenda — evidencia direta de que a troca nao ajudaria.
@@ -127,25 +131,28 @@ object RecomendacaoPraticaEngine {
         // ja calculado em MainViewModel.montarWifiScanInput) em vez de MeshOuiDatabase direto por
         // OUI cru. So conta como "conhecido" com confianca != BAIXA — um sinal de baixa confianca
         // nao deveria virar afirmacao na evidencia mostrada ao usuario.
-        val temOuiConhecido = redes5Ghz.any { rede ->
-            val papel = rede.papelTopologia
-            rede.confiancaTopologia != NivelConfianca.BAIXA &&
-                (papel == PapelTopologia.ROTEADOR || papel == PapelTopologia.NO_MESH || papel == PapelTopologia.SISTEMA_MESH_PROVAVEL)
-        }
+        val temOuiConhecido =
+            redes5Ghz.any { rede ->
+                val papel = rede.papelTopologia
+                rede.confiancaTopologia != NivelConfianca.BAIXA &&
+                    (papel == PapelTopologia.ROTEADOR || papel == PapelTopologia.NO_MESH || papel == PapelTopologia.SISTEMA_MESH_PROVAVEL)
+            }
         val confirmadoPorScan = redes5Ghz.isNotEmpty()
 
-        val evidencia = "banda=2.4GHz linkSpeed=${wifi.linkSpeedMbps ?: "—"}Mbps rssiAtual=${rssiAtual ?: "—"}dBm " +
-            if (confirmadoPorScan) {
-                "rede5GhzRssi=${melhorSinal5Ghz}dBm ouiConhecido=$temOuiConhecido"
-            } else {
-                "confirmadoPorScan=false"
-            }
+        val evidencia =
+            "banda=2.4GHz linkSpeed=${wifi.linkSpeedMbps ?: "—"}Mbps rssiAtual=${rssiAtual ?: "—"}dBm " +
+                if (confirmadoPorScan) {
+                    "rede5GhzRssi=${melhorSinal5Ghz}dBm ouiConhecido=$temOuiConhecido"
+                } else {
+                    "confirmadoPorScan=false"
+                }
 
-        val mensagem = if (confirmadoPorScan) {
-            "Seu roteador tem uma rede 5GHz disponível com sinal bom, mas você está conectado na faixa 2.4GHz."
-        } else {
-            "Você está na faixa 2,4GHz e a velocidade está baixa. Se o seu roteador tiver rede 5GHz (às vezes com nome parecido, tipo \"_5G\"), perto dele ela costuma ser mais rápida."
-        }
+        val mensagem =
+            if (confirmadoPorScan) {
+                "Seu roteador tem uma rede 5GHz disponível com sinal bom, mas você está conectado na faixa 2.4GHz."
+            } else {
+                "Você está na faixa 2,4GHz e a velocidade está baixa. Se o seu roteador tiver rede 5GHz (às vezes com nome parecido, tipo \"_5G\"), perto dele ela costuma ser mais rápida."
+            }
 
         return DiagnosticResult(
             id = "REC-01",
@@ -170,11 +177,12 @@ object RecomendacaoPraticaEngine {
         val wifi = input.wifi ?: return null
         val rssi = wifi.rssiDbm ?: return null
         val banda = wifi.banda()
-        val rssiFraco = when (banda) {
-            BandaWifi.ghz24 -> rssi < -70
-            BandaWifi.ghz5 -> rssi < -75
-            BandaWifi.desconhecida -> rssi < -70
-        }
+        val rssiFraco =
+            when (banda) {
+                BandaWifi.ghz24 -> rssi < -70
+                BandaWifi.ghz5 -> rssi < -75
+                BandaWifi.desconhecida -> rssi < -70
+            }
         if (!rssiFraco) return null
 
         val linkBaixo = (wifi.linkSpeedMbps ?: Int.MAX_VALUE) < 54
@@ -210,11 +218,12 @@ object RecomendacaoPraticaEngine {
         val congestionado = canalResultados.firstOrNull { it.id == "WIFI-CANAL-01" } ?: return null
 
         val recorrente = input.historico?.degradationDetected == true
-        val recomendacaoTexto = if (recorrente) {
-            "Troque o canal Wi-Fi para um menos ocupado. Como o problema é recorrente, considere um roteador Wi-Fi 6E/7 ou um sistema mesh — eles lidam melhor com ambientes congestionados."
-        } else {
-            "Troque o canal Wi-Fi para um menos ocupado nas configurações do roteador e refaça o teste."
-        }
+        val recomendacaoTexto =
+            if (recorrente) {
+                "Troque o canal Wi-Fi para um menos ocupado. Como o problema é recorrente, considere um roteador Wi-Fi 6E/7 ou um sistema mesh — eles lidam melhor com ambientes congestionados."
+            } else {
+                "Troque o canal Wi-Fi para um menos ocupado nas configurações do roteador e refaça o teste."
+            }
 
         return DiagnosticResult(
             id = "REC-03",
@@ -236,11 +245,12 @@ object RecomendacaoPraticaEngine {
         val wifi = input.wifi ?: return null
         val rssi = wifi.rssiDbm ?: return null
         val banda = wifi.banda()
-        val rssiBom = when (banda) {
-            BandaWifi.ghz24 -> rssi >= -60
-            BandaWifi.ghz5 -> rssi >= -65
-            BandaWifi.desconhecida -> rssi >= -60
-        }
+        val rssiBom =
+            when (banda) {
+                BandaWifi.ghz24 -> rssi >= -60
+                BandaWifi.ghz5 -> rssi >= -65
+                BandaWifi.desconhecida -> rssi >= -60
+            }
         if (!rssiBom) return null
 
         val linkSpeed = wifi.linkSpeedMbps ?: return null
@@ -252,11 +262,12 @@ object RecomendacaoPraticaEngine {
 
         if (!padraoAntigo && !planoMaiorQueEnlace && !muitosDispositivos) return null
 
-        val motivos = listOfNotNull(
-            "padrão Wi-Fi antigo (${wifi.wifiStandard})".takeIf { padraoAntigo },
-            "plano contratado (${input.velocidadeContratadaMbps} Mbps) acima do enlace atual (${linkSpeed} Mbps)".takeIf { planoMaiorQueEnlace },
-            "muitos dispositivos na rede (${wifi.dispositivosNaRede})".takeIf { muitosDispositivos },
-        )
+        val motivos =
+            listOfNotNull(
+                "padrão Wi-Fi antigo (${wifi.wifiStandard})".takeIf { padraoAntigo },
+                "plano contratado (${input.velocidadeContratadaMbps} Mbps) acima do enlace atual ($linkSpeed Mbps)".takeIf { planoMaiorQueEnlace },
+                "muitos dispositivos na rede (${wifi.dispositivosNaRede})".takeIf { muitosDispositivos },
+            )
 
         return DiagnosticResult(
             id = "REC-04",
@@ -284,11 +295,12 @@ object RecomendacaoPraticaEngine {
             titulo = if (critico) "Bufferbloat crítico — ative QoS/SQM" else "Bufferbloat elevado — considere QoS/SQM",
             status = if (critico) DiagnosticStatus.critical else DiagnosticStatus.attention,
             evidencia = "bufferbloat=${"%.0f".format(bb)}ms",
-            mensagemUsuario = if (critico) {
-                "O bufferbloat está muito alto (${"%.0f".format(bb)} ms) — mesmo com boa velocidade, jogos, chamadas e streaming podem travar sob carga."
-            } else {
-                "O bufferbloat está elevado (${"%.0f".format(bb)} ms) — sob carga (downloads, uploads simultâneos), jogos e chamadas podem engasgar."
-            },
+            mensagemUsuario =
+                if (critico) {
+                    "O bufferbloat está muito alto (${"%.0f".format(bb)} ms) — mesmo com boa velocidade, jogos, chamadas e streaming podem travar sob carga."
+                } else {
+                    "O bufferbloat está elevado (${"%.0f".format(bb)} ms) — sob carga (downloads, uploads simultâneos), jogos e chamadas podem engasgar."
+                },
             recomendacao = "Se o roteador suportar QoS (Quality of Service) ou SQM (Smart Queue Management), ative essa opção nas configurações avançadas — isso prioriza tráfego sensível a latência mesmo com o link ocupado.",
             categoria = CAT,
         )
@@ -318,7 +330,7 @@ object RecomendacaoPraticaEngine {
             titulo = "Troque o DNS para reduzir a demora ao abrir sites",
             status = DiagnosticStatus.info,
             evidencia = "dnsAtual=${dns.currentDnsName ?: "—"}=${atual}ms melhor=$bestName=${bestMs}ms",
-            mensagemUsuario = "O DNS atual (${dns.currentDnsName ?: "desconhecido"}) está mais lento (${atual} ms) que $bestName (${bestMs} ms) no comparativo.",
+            mensagemUsuario = "O DNS atual (${dns.currentDnsName ?: "desconhecido"}) está mais lento ($atual ms) que $bestName ($bestMs ms) no comparativo.",
             recomendacao = "Trocar o DNS não aumenta a velocidade contratada, mas reduz a demora para abrir sites e apps. Configure $bestName como DNS no roteador ou no Android (DNS privado).",
             categoria = CAT,
         )
@@ -348,20 +360,22 @@ object RecomendacaoPraticaEngine {
         val perdaRuim = (internet.perdaPercentual ?: 0.0) >= 1.0
         if (!latenciaRuim && !jitterRuim && !perdaRuim) return null
 
-        val sintomas = listOfNotNull(
-            "latência ${"%.0f".format(internet.latencyMs)} ms".takeIf { latenciaRuim },
-            "jitter ${"%.0f".format(internet.jitterMs)} ms".takeIf { jitterRuim },
-            "perda ${"%.1f".format(internet.perdaPercentual)}%".takeIf { perdaRuim },
-        )
+        val sintomas =
+            listOfNotNull(
+                "latência ${"%.0f".format(internet.latencyMs)} ms".takeIf { latenciaRuim },
+                "jitter ${"%.0f".format(internet.jitterMs)} ms".takeIf { jitterRuim },
+                "perda ${"%.1f".format(internet.perdaPercentual)}%".takeIf { perdaRuim },
+            )
 
         // Mensagem varia por connectionType: RTT de gateway baixo tambem ocorre em
         // rede movel (GH#521, mesmo padrao de FindingEngine DECISAO-02/02b).
         val emRedeMovel = input.connectionType == ConnectionType.mobile
-        val mensagem = if (emRedeMovel) {
-            "Sua rede móvel está respondendo rápido, mas ${sintomas.joinToString(", ")} sugerem instabilidade fora do seu aparelho."
-        } else {
-            "Seu roteador está respondendo rápido e o Wi-Fi está saudável, mas ${sintomas.joinToString(", ")} sugerem instabilidade fora da sua rede local."
-        }
+        val mensagem =
+            if (emRedeMovel) {
+                "Sua rede móvel está respondendo rápido, mas ${sintomas.joinToString(", ")} sugerem instabilidade fora do seu aparelho."
+            } else {
+                "Seu roteador está respondendo rápido e o Wi-Fi está saudável, mas ${sintomas.joinToString(", ")} sugerem instabilidade fora da sua rede local."
+            }
 
         return DiagnosticResult(
             id = "REC-07",
@@ -391,16 +405,18 @@ object RecomendacaoPraticaEngine {
         // nesse caso (GH#521, mesmo padrao de FindingEngine DECISAO-02/02b).
         val emRedeMovel = input.connectionType == ConnectionType.mobile
         val titulo = if (emRedeMovel) "Rede respondendo lentamente" else "Roteador respondendo lentamente"
-        val mensagem = if (emRedeMovel) {
-            "A rede está demorando ${rttGateway} ms para responder."
-        } else {
-            "O roteador está demorando ${rttGateway} ms para responder na rede local.$reforco"
-        }
-        val recomendacao = if (emRedeMovel) {
-            "Tente desativar e reativar o modo avião, ou testar em outro local. Se o problema persistir, contate sua operadora."
-        } else {
-            "Reinicie o roteador: desligue da tomada, aguarde 30 segundos e ligue novamente. Se o problema persistir, o roteador pode estar sobrecarregado ou precisando de troca."
-        }
+        val mensagem =
+            if (emRedeMovel) {
+                "A rede está demorando $rttGateway ms para responder."
+            } else {
+                "O roteador está demorando $rttGateway ms para responder na rede local.$reforco"
+            }
+        val recomendacao =
+            if (emRedeMovel) {
+                "Tente desativar e reativar o modo avião, ou testar em outro local. Se o problema persistir, contate sua operadora."
+            } else {
+                "Reinicie o roteador: desligue da tomada, aguarde 30 segundos e ligue novamente. Se o problema persistir, o roteador pode estar sobrecarregado ou precisando de troca."
+            }
 
         return DiagnosticResult(
             id = "REC-08",
@@ -450,11 +466,12 @@ object RecomendacaoPraticaEngine {
         val is5g = mobile.mobileTechnology?.startsWith("5G", ignoreCase = true) == true
         val tech = if (is5g) MetricClassifier.RadioTech.NR_5G else MetricClassifier.RadioTech.LTE_4G
 
-        val statusRuins = listOfNotNull(
-            mobile.rsrpDbm?.let { MetricClassifier.classificarRsrp(it, tech) },
-            mobile.rsrqDb?.let { MetricClassifier.classificarRsrq(it, tech) },
-            mobile.sinrDb?.let { MetricClassifier.classificarSinr(it, tech) },
-        )
+        val statusRuins =
+            listOfNotNull(
+                mobile.rsrpDbm?.let { MetricClassifier.classificarRsrp(it, tech) },
+                mobile.rsrqDb?.let { MetricClassifier.classificarRsrq(it, tech) },
+                mobile.sinrDb?.let { MetricClassifier.classificarSinr(it, tech) },
+            )
         val algumRuim = statusRuins.any { it == MetricStatus.ruim || it == MetricStatus.critico }
         if (!algumRuim) return null
 
@@ -486,11 +503,12 @@ object RecomendacaoPraticaEngine {
         val estimada = fonte == "estimated"
         val critico = perda >= 3.0
 
-        val avisoConfiabilidade = if (estimada) {
-            " Esse valor foi estimado por timeout de rede, não por medição direta — é um indício, não uma certeza."
-        } else {
-            ""
-        }
+        val avisoConfiabilidade =
+            if (estimada) {
+                " Esse valor foi estimado por timeout de rede, não por medição direta — é um indício, não uma certeza."
+            } else {
+                ""
+            }
 
         // GH#521: nao falar de "roteador/modem" quando a conexao e rede movel.
         val emRedeMovel = input.connectionType == ConnectionType.mobile
@@ -501,15 +519,16 @@ object RecomendacaoPraticaEngine {
             status = if (critico) DiagnosticStatus.critical else DiagnosticStatus.attention,
             evidencia = "perda=${"%.1f".format(perda)}% fonte=${fonte ?: "—"}",
             mensagemUsuario = "Foi detectada perda de pacotes de ${"%.1f".format(perda)}%.$avisoConfiabilidade",
-            recomendacao = if (critico) {
-                if (emRedeMovel) {
-                    "Teste em outro local ou horário. Se a perda persistir mesmo assim, contate a operadora — chamadas e jogos serão afetados."
+            recomendacao =
+                if (critico) {
+                    if (emRedeMovel) {
+                        "Teste em outro local ou horário. Se a perda persistir mesmo assim, contate a operadora — chamadas e jogos serão afetados."
+                    } else {
+                        "Reinicie o roteador e o modem. Se a perda persistir mesmo assim, contate o provedor — chamadas e jogos serão afetados."
+                    }
                 } else {
-                    "Reinicie o roteador e o modem. Se a perda persistir mesmo assim, contate o provedor — chamadas e jogos serão afetados."
-                }
-            } else {
-                "Fique de olho: perda de pacotes moderada pode afetar chamadas e jogos em momentos de pico."
-            },
+                    "Fique de olho: perda de pacotes moderada pode afetar chamadas e jogos em momentos de pico."
+                },
             categoria = CAT,
             podeConcluir = critico && !estimada,
         )
@@ -528,10 +547,11 @@ object RecomendacaoPraticaEngine {
     // NAO mostrar: todas as 3 categorias "Bom" (nada a recomendar).
     private fun recomendarDevicePresetGaming(input: DiagnosticInput): DiagnosticResult? {
         val readiness = GameReadinessClassifier.classificarTodos(input)
-        val comProblema = readiness.filter {
-            it.status == GameReadinessClassifier.ReadinessStatus.Atencao ||
-                it.status == GameReadinessClassifier.ReadinessStatus.Ruim
-        }
+        val comProblema =
+            readiness.filter {
+                it.status == GameReadinessClassifier.ReadinessStatus.Atencao ||
+                    it.status == GameReadinessClassifier.ReadinessStatus.Ruim
+            }
         if (comProblema.isEmpty()) return null
 
         val critico = comProblema.any { it.status == GameReadinessClassifier.ReadinessStatus.Ruim }
@@ -549,25 +569,27 @@ object RecomendacaoPraticaEngine {
         )
     }
 
-    private fun GameReadinessClassifier.Categoria.labelCurto(): String = when (this) {
-        GameReadinessClassifier.Categoria.FPS_COMPETITIVO -> "FPS competitivo"
-        GameReadinessClassifier.Categoria.CLOUD_GAMING -> "cloud gaming"
-        GameReadinessClassifier.Categoria.MOBILE_COMPETITIVO -> "mobile competitivo"
-    }
+    private fun GameReadinessClassifier.Categoria.labelCurto(): String =
+        when (this) {
+            GameReadinessClassifier.Categoria.FPS_COMPETITIVO -> "FPS competitivo"
+            GameReadinessClassifier.Categoria.CLOUD_GAMING -> "cloud gaming"
+            GameReadinessClassifier.Categoria.MOBILE_COMPETITIVO -> "mobile competitivo"
+        }
 
     // Device presets (aba 10): dado/checklist plugado aqui, sem engine nova. Cada
     // preset cita o sinal proprio que o documento associa aquele device. "mobile"
     // e o unico automatico de verdade (dados ja vem do proprio Android rodando o
     // app); os demais sao texto condicional so quando o usuario seleciona o device
     // manualmente na arvore "qual_jogo_device".
-    private fun dicaPresetDevice(device: String?): String = when (device) {
-        "playstation" -> "No PS5/PS4: prefira cabo Ethernet quando possível; se usar Wi-Fi, fique perto do roteador em 5GHz. Verifique o tipo de NAT em Configurações > Rede — NAT tipo 3 prejudica partidas com outros jogadores."
-        "xbox" -> "No Xbox: verifique o tipo de NAT em Configurações > Rede — NAT Restrito ou Estrito prejudica matchmaking e chat. Ative UPnP no roteador se disponível, ou configure port forwarding manual."
-        "pc" -> "No PC: atualize o driver da placa de Wi-Fi, desative o modo de economia de energia do adaptador de rede e feche downloads/updates em segundo plano (Steam, Windows Update) antes de jogar."
-        "switch" -> "No Nintendo Switch: o Wi-Fi do console é mais limitado — fique o mais próximo possível do roteador, de preferência com linha de visada direta."
-        "mobile", null -> "No celular: jogue perto do roteador em 5GHz, evite a alternância automática entre Wi-Fi e rede móvel e ative o modo de economia de bateria só depois de jogar."
-        else -> "Priorize a rede 5GHz perto do roteador, reduza downloads em segundo plano e evite Wi-Fi fraco."
-    }
+    private fun dicaPresetDevice(device: String?): String =
+        when (device) {
+            "playstation" -> "No PS5/PS4: prefira cabo Ethernet quando possível; se usar Wi-Fi, fique perto do roteador em 5GHz. Verifique o tipo de NAT em Configurações > Rede — NAT tipo 3 prejudica partidas com outros jogadores."
+            "xbox" -> "No Xbox: verifique o tipo de NAT em Configurações > Rede — NAT Restrito ou Estrito prejudica matchmaking e chat. Ative UPnP no roteador se disponível, ou configure port forwarding manual."
+            "pc" -> "No PC: atualize o driver da placa de Wi-Fi, desative o modo de economia de energia do adaptador de rede e feche downloads/updates em segundo plano (Steam, Windows Update) antes de jogar."
+            "switch" -> "No Nintendo Switch: o Wi-Fi do console é mais limitado — fique o mais próximo possível do roteador, de preferência com linha de visada direta."
+            "mobile", null -> "No celular: jogue perto do roteador em 5GHz, evite a alternância automática entre Wi-Fi e rede móvel e ative o modo de economia de bateria só depois de jogar."
+            else -> "Priorize a rede 5GHz perto do roteador, reduza downloads em segundo plano e evite Wi-Fi fraco."
+        }
 
     // -------------------------------------------------------------------------
     // 14. Upgrade de roteador/mesh/Wi-Fi 6E — SOMENTE com recorrencia
@@ -582,11 +604,12 @@ object RecomendacaoPraticaEngine {
 
         val wifi = input.wifi ?: return null
         val banda = wifi.banda()
-        val rssiFraco = when (banda) {
-            BandaWifi.ghz24 -> (wifi.rssiDbm ?: 0) < -60
-            BandaWifi.ghz5 -> (wifi.rssiDbm ?: 0) < -65
-            BandaWifi.desconhecida -> (wifi.rssiDbm ?: 0) < -60
-        }
+        val rssiFraco =
+            when (banda) {
+                BandaWifi.ghz24 -> (wifi.rssiDbm ?: 0) < -60
+                BandaWifi.ghz5 -> (wifi.rssiDbm ?: 0) < -65
+                BandaWifi.desconhecida -> (wifi.rssiDbm ?: 0) < -60
+            }
         val linkBaixo = (wifi.linkSpeedMbps ?: Int.MAX_VALUE) < 144
         val problemaWifiRecorrente = rssiFraco || linkBaixo || banda == BandaWifi.ghz24
         if (!problemaWifiRecorrente) return null
@@ -614,16 +637,19 @@ object RecomendacaoPraticaEngine {
         achados: FindingResult,
         recomendacoesGeradas: List<DiagnosticResult>,
     ): DiagnosticResult? {
-        val fatoresRelevantes = recomendacoesGeradas.count {
-            it.id !in setOf("REC-13", "REC-14") &&
-                (it.status == DiagnosticStatus.attention || it.status == DiagnosticStatus.critical)
-        } + achados.secundarios.count {
-            it.status == DiagnosticStatus.attention || it.status == DiagnosticStatus.critical
-        }
+        val fatoresRelevantes =
+            recomendacoesGeradas.count {
+                it.id !in setOf("REC-13", "REC-14") &&
+                    (it.status == DiagnosticStatus.attention || it.status == DiagnosticStatus.critical)
+            } +
+                achados.secundarios.count {
+                    it.status == DiagnosticStatus.attention || it.status == DiagnosticStatus.critical
+                }
         if (fatoresRelevantes < 2) return null
 
-        val critico = achados.principal.status == DiagnosticStatus.critical ||
-            recomendacoesGeradas.any { it.status == DiagnosticStatus.critical }
+        val critico =
+            achados.principal.status == DiagnosticStatus.critical ||
+                recomendacoesGeradas.any { it.status == DiagnosticStatus.critical }
 
         return DiagnosticResult(
             id = "REC-12",

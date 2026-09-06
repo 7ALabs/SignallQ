@@ -14,7 +14,6 @@ import org.junit.Test
  * compartilhar fabricante com o gateway Intelbras da casa").
  */
 class ClassificadorDispositivoCaracterizacaoTest {
-
     private fun dispositivo(
         nome: String = "Dispositivo não identificado",
         fonteNome: String = "arp",

@@ -18,37 +18,39 @@ import javax.inject.Inject
  * Uma unica leitura de historico e uma unica escrita de exibicao por chamada de
  * [escolherRecomendacao]: sem leitura duplicada, sem corrida entre exibir e persistir.
  */
-class RecommendationDecisionCoordinator @Inject constructor(
-    private val engine: RecommendationEngine,
-    private val historyRepository: RecommendationHistoryRepository,
-) {
+class RecommendationDecisionCoordinator
+    @Inject
+    constructor(
+        private val engine: RecommendationEngine,
+        private val historyRepository: RecommendationHistoryRepository,
+    ) {
+        suspend fun escolherRecomendacao(
+            report: DiagnosticReport,
+            input: DiagnosticInput,
+            isp: String? = null,
+            flags: RecommendationFlags = RecommendationFlags(),
+            diagnosticId: String? = null,
+            nowMs: Long = System.currentTimeMillis(),
+        ): RecommendationDecision? {
+            val historico = historyRepository.historicoRecente(nowMs)
+            val request =
+                RecommendationRequestMapper.map(
+                    report = report,
+                    input = input,
+                    isp = isp,
+                    history = historico,
+                    flags = flags,
+                    diagnosticId = diagnosticId,
+                )
 
-    suspend fun escolherRecomendacao(
-        report: DiagnosticReport,
-        input: DiagnosticInput,
-        isp: String? = null,
-        flags: RecommendationFlags = RecommendationFlags(),
-        diagnosticId: String? = null,
-        nowMs: Long = System.currentTimeMillis(),
-    ): RecommendationDecision? {
-        val historico = historyRepository.historicoRecente(nowMs)
-        val request = RecommendationRequestMapper.map(
-            report = report,
-            input = input,
-            isp = isp,
-            history = historico,
-            flags = flags,
-            diagnosticId = diagnosticId,
-        )
+            val decisao = engine.choose(request) ?: return null
+            historyRepository.registrarExibicao(decisao, nowMs)
+            return decisao
+        }
 
-        val decisao = engine.choose(request) ?: return null
-        historyRepository.registrarExibicao(decisao, nowMs)
-        return decisao
+        suspend fun registrarFeedback(
+            trackingId: String,
+            feedback: RecommendationFeedbackType,
+            nowMs: Long = System.currentTimeMillis(),
+        ) = historyRepository.registrarFeedback(trackingId, feedback, nowMs)
     }
-
-    suspend fun registrarFeedback(
-        trackingId: String,
-        feedback: RecommendationFeedbackType,
-        nowMs: Long = System.currentTimeMillis(),
-    ) = historyRepository.registrarFeedback(trackingId, feedback, nowMs)
-}

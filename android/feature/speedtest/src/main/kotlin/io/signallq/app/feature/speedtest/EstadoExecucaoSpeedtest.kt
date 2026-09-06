@@ -6,4 +6,3 @@ enum class EstadoExecucaoSpeedtest {
     concluido,
     erro,
 }
-

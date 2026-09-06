@@ -52,69 +52,69 @@ data class DeviceDriverProfile(
  * externos como experimentais).
  */
 object DeviceDriverCatalog {
-
-    val entries: List<DeviceDriverProfile> = listOf(
-        // Nokia G-1425G-B — ONT/GPON, validado fisicamente (Fase 2 ja em producao via device_status.cgi).
-        DeviceDriverProfile(
-            driverId = "nokia-g1425g-b",
-            vendor = "Nokia",
-            modelPatterns = listOf("g-1425g-b", "g1425g-b", "g-1425g"),
-            bannerPatterns = listOf("alcl", "gpon", "alcatel-lucent"),
-            routeSignatures = listOf("device_status.cgi", "overview.cgi", "menu.cgi"),
-            canonicalGatewayIps = listOf("192.168.1.1"),
-            deviceType = DeviceType.ONT_GPON,
-            supportLevel = SupportLevel.LAB_VALIDATED,
-            fibraCapable = true,
-            displayModel = "G-1425G-B",
-        ),
-        // TP-Link Archer C20 — roteador, validado fisicamente em LAB.
-        // routeSignatures fica de fora de proposito: o endpoint "cgi-bin/luci" e
-        // compartilhado por toda a familia stok-luci (C20, C6, genericos) e por
-        // si so nao distingue modelo — so o modelPatterns (dado de Fase 2, pos-
-        // -login) promove uma entrada especifica; rota sozinha cai no generico.
-        DeviceDriverProfile(
-            driverId = "tplink-archer-c20",
-            vendor = "TP-Link",
-            modelPatterns = listOf("archer c20", "archerc20"),
-            canonicalGatewayIps = listOf("192.168.0.1"),
-            deviceType = DeviceType.ROUTER,
-            supportLevel = SupportLevel.LAB_VALIDATED,
-            fibraCapable = false,
-            displayModel = "Archer C20",
-        ),
-        // TP-Link Archer C6 (tambem se anuncia como "Archer A6 v2" via OneMesh) — roteador, validado fisicamente em LAB.
-        DeviceDriverProfile(
-            driverId = "tplink-archer-c6",
-            vendor = "TP-Link",
-            modelPatterns = listOf("archer c6", "archerc6", "archer a6"),
-            canonicalGatewayIps = listOf("192.168.0.1"),
-            deviceType = DeviceType.ROUTER,
-            supportLevel = SupportLevel.LAB_VALIDATED,
-            fibraCapable = false,
-            displayModel = "Archer C6",
-        ),
-        // Familia stok-luci generica (outros TP-Link/Mercusys) — parser importado do NetHAL,
-        // ainda sem validacao fisica do SignallQ. Unica entrada que casa so pela rota
-        // generica "cgi-bin/luci" quando o modelo exato ainda nao foi identificado.
-        DeviceDriverProfile(
-            driverId = "tplink-stok-luci-generic",
-            vendor = "TP-Link",
-            modelPatterns = listOf("tp-link", "tplink", "mercusys", "archer"),
-            routeSignatures = listOf("cgi-bin/luci"),
-            deviceType = DeviceType.ROUTER,
-            supportLevel = SupportLevel.PARSER_IMPORTED,
-            fibraCapable = false,
-            displayModel = "Familia stok-luci (roteador TP-Link/Mercusys nao identificado)",
-        ),
-        // Mesh/extensores conhecidos por nome — sem parser dedicado, so familia inferida.
-        DeviceDriverProfile(
-            driverId = "mesh-generic",
-            vendor = "Generico",
-            modelPatterns = listOf("deco", "eero", "orbi", "velop", "aimesh", "nest wifi", "unifi mesh"),
-            deviceType = DeviceType.MESH_OR_EXTENDER,
-            supportLevel = SupportLevel.INFERRED_FAMILY,
-            fibraCapable = false,
-            displayModel = "Mesh/extensor (familia inferida)",
-        ),
-    )
+    val entries: List<DeviceDriverProfile> =
+        listOf(
+            // Nokia G-1425G-B — ONT/GPON, validado fisicamente (Fase 2 ja em producao via device_status.cgi).
+            DeviceDriverProfile(
+                driverId = "nokia-g1425g-b",
+                vendor = "Nokia",
+                modelPatterns = listOf("g-1425g-b", "g1425g-b", "g-1425g"),
+                bannerPatterns = listOf("alcl", "gpon", "alcatel-lucent"),
+                routeSignatures = listOf("device_status.cgi", "overview.cgi", "menu.cgi"),
+                canonicalGatewayIps = listOf("192.168.1.1"),
+                deviceType = DeviceType.ONT_GPON,
+                supportLevel = SupportLevel.LAB_VALIDATED,
+                fibraCapable = true,
+                displayModel = "G-1425G-B",
+            ),
+            // TP-Link Archer C20 — roteador, validado fisicamente em LAB.
+            // routeSignatures fica de fora de proposito: o endpoint "cgi-bin/luci" e
+            // compartilhado por toda a familia stok-luci (C20, C6, genericos) e por
+            // si so nao distingue modelo — so o modelPatterns (dado de Fase 2, pos-
+            // -login) promove uma entrada especifica; rota sozinha cai no generico.
+            DeviceDriverProfile(
+                driverId = "tplink-archer-c20",
+                vendor = "TP-Link",
+                modelPatterns = listOf("archer c20", "archerc20"),
+                canonicalGatewayIps = listOf("192.168.0.1"),
+                deviceType = DeviceType.ROUTER,
+                supportLevel = SupportLevel.LAB_VALIDATED,
+                fibraCapable = false,
+                displayModel = "Archer C20",
+            ),
+            // TP-Link Archer C6 (tambem se anuncia como "Archer A6 v2" via OneMesh) — roteador, validado fisicamente em LAB.
+            DeviceDriverProfile(
+                driverId = "tplink-archer-c6",
+                vendor = "TP-Link",
+                modelPatterns = listOf("archer c6", "archerc6", "archer a6"),
+                canonicalGatewayIps = listOf("192.168.0.1"),
+                deviceType = DeviceType.ROUTER,
+                supportLevel = SupportLevel.LAB_VALIDATED,
+                fibraCapable = false,
+                displayModel = "Archer C6",
+            ),
+            // Familia stok-luci generica (outros TP-Link/Mercusys) — parser importado do NetHAL,
+            // ainda sem validacao fisica do SignallQ. Unica entrada que casa so pela rota
+            // generica "cgi-bin/luci" quando o modelo exato ainda nao foi identificado.
+            DeviceDriverProfile(
+                driverId = "tplink-stok-luci-generic",
+                vendor = "TP-Link",
+                modelPatterns = listOf("tp-link", "tplink", "mercusys", "archer"),
+                routeSignatures = listOf("cgi-bin/luci"),
+                deviceType = DeviceType.ROUTER,
+                supportLevel = SupportLevel.PARSER_IMPORTED,
+                fibraCapable = false,
+                displayModel = "Familia stok-luci (roteador TP-Link/Mercusys nao identificado)",
+            ),
+            // Mesh/extensores conhecidos por nome — sem parser dedicado, so familia inferida.
+            DeviceDriverProfile(
+                driverId = "mesh-generic",
+                vendor = "Generico",
+                modelPatterns = listOf("deco", "eero", "orbi", "velop", "aimesh", "nest wifi", "unifi mesh"),
+                deviceType = DeviceType.MESH_OR_EXTENDER,
+                supportLevel = SupportLevel.INFERRED_FAMILY,
+                fibraCapable = false,
+                displayModel = "Mesh/extensor (familia inferida)",
+            ),
+        )
 }

@@ -8,4 +8,3 @@ object FeatureWifiModulo {
 
     fun criarScannerRedesWifi(context: Context): ScannerRedesWifi = ScannerRedesWifi(context)
 }
-

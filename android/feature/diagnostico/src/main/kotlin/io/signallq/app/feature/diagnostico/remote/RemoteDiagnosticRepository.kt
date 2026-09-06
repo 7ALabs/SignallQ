@@ -79,7 +79,8 @@ import java.util.concurrent.TimeUnit
 class RemoteDiagnosticRepository(
     private val baseUrl: String,
     private val client: OkHttpClient =
-        OkHttpClient.Builder()
+        OkHttpClient
+            .Builder()
             .connectTimeout(3, TimeUnit.SECONDS)
             .readTimeout(4, TimeUnit.SECONDS)
             .writeTimeout(3, TimeUnit.SECONDS)
@@ -88,7 +89,6 @@ class RemoteDiagnosticRepository(
     private val divergenceReporter: DiagnosticDivergenceReporter? = null,
     private val shadowScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) {
-
     /**
      * Avalia o diagnostico com fallback local de 3 niveis: tenta remoto, depois o
      * ultimo ruleset remoto cacheado, depois o motor embarcado. Nunca lanca excecao —
@@ -102,10 +102,11 @@ class RemoteDiagnosticRepository(
         val remotePayload = evaluateRemote(input)
         if (remotePayload != null) {
             try {
-                val remoteReport = RemoteDiagnosticReportMapper.toDiagnosticReport(
-                    payload = remotePayload,
-                    geradoEmMs = System.currentTimeMillis(),
-                )
+                val remoteReport =
+                    RemoteDiagnosticReportMapper.toDiagnosticReport(
+                        payload = remotePayload,
+                        geradoEmMs = System.currentTimeMillis(),
+                    )
                 persistarCache(remotePayload)
                 // perfisUso/gameReadiness: sempre local, ver kdoc de RemoteDiagnosticReportMapper.
                 return remoteReport.copy(
@@ -129,19 +130,21 @@ class RemoteDiagnosticRepository(
         input: DiagnosticInput,
         enabledAreas: Set<DiagnosticArea>,
     ): DiagnosticReport {
-        val cached = try {
-            cacheStore.load()
-        } catch (t: Throwable) {
-            Timber.w(t, "RemoteDiagnosticRepository: falha ao ler cache local")
-            null
-        }
+        val cached =
+            try {
+                cacheStore.load()
+            } catch (t: Throwable) {
+                Timber.w(t, "RemoteDiagnosticRepository: falha ao ler cache local")
+                null
+            }
 
         if (cached != null) {
             try {
-                val cachedReport = RemoteDiagnosticReportMapper.toDiagnosticReport(
-                    payload = JSONObject(cached.content),
-                    geradoEmMs = System.currentTimeMillis(),
-                )
+                val cachedReport =
+                    RemoteDiagnosticReportMapper.toDiagnosticReport(
+                        payload = JSONObject(cached.content),
+                        geradoEmMs = System.currentTimeMillis(),
+                    )
                 Timber.i("RemoteDiagnosticRepository: usando CACHED_LOCAL (sincronizado em ${cached.syncedAtMs})")
                 return cachedReport.copy(
                     evaluationSource = DiagnosticEvaluationSource.CACHED_LOCAL,
@@ -154,7 +157,8 @@ class RemoteDiagnosticRepository(
         }
 
         Timber.i("RemoteDiagnosticRepository: usando motor embarcado (BUNDLED_LOCAL)")
-        return DiagnosticRunner.run(input, enabledAreas, gerarRecomendacoes = RecomendacaoPraticaEngine::recomendar)
+        return DiagnosticRunner
+            .run(input, enabledAreas, gerarRecomendacoes = RecomendacaoPraticaEngine::recomendar)
             .copy(evaluationSource = DiagnosticEvaluationSource.BUNDLED_LOCAL)
     }
 
@@ -165,11 +169,12 @@ class RemoteDiagnosticRepository(
         try {
             cacheStore.save(
                 content = payload.toString(),
-                rulesetVersion = if (payload.has("rulesetVersion") && !payload.isNull("rulesetVersion")) {
-                    payload.optInt("rulesetVersion")
-                } else {
-                    null
-                },
+                rulesetVersion =
+                    if (payload.has("rulesetVersion") && !payload.isNull("rulesetVersion")) {
+                        payload.optInt("rulesetVersion")
+                    } else {
+                        null
+                    },
                 syncedAtMs = System.currentTimeMillis(),
             )
         } catch (t: Throwable) {
@@ -219,18 +224,20 @@ class RemoteDiagnosticRepository(
         val remotePayload = evaluateRemote(input)
         val remoteDurationMs = System.currentTimeMillis() - startedAtMs
 
-        val remoteReport = remotePayload?.let {
-            try {
-                // RemoteDiagnosticReportMapper nao preenche evaluationSource (fica no
-                // default BUNDLED_LOCAL da data class) -- mesmo ajuste que evaluate()
-                // ja faz apos mapear, necessario aqui tambem.
-                RemoteDiagnosticReportMapper.toDiagnosticReport(payload = it, geradoEmMs = System.currentTimeMillis())
-                    .copy(evaluationSource = DiagnosticEvaluationSource.REMOTE)
-            } catch (t: Throwable) {
-                Timber.w(t, "RemoteDiagnosticRepository: falha ao mapear resposta remota no shadow mode")
-                null
+        val remoteReport =
+            remotePayload?.let {
+                try {
+                    // RemoteDiagnosticReportMapper nao preenche evaluationSource (fica no
+                    // default BUNDLED_LOCAL da data class) -- mesmo ajuste que evaluate()
+                    // ja faz apos mapear, necessario aqui tambem.
+                    RemoteDiagnosticReportMapper
+                        .toDiagnosticReport(payload = it, geradoEmMs = System.currentTimeMillis())
+                        .copy(evaluationSource = DiagnosticEvaluationSource.REMOTE)
+                } catch (t: Throwable) {
+                    Timber.w(t, "RemoteDiagnosticRepository: falha ao mapear resposta remota no shadow mode")
+                    null
+                }
             }
-        }
 
         val comparison = DiagnosticDivergenceClassifier.classify(localReport, remoteReport)
 
@@ -246,7 +253,8 @@ class RemoteDiagnosticRepository(
     }
 
     private fun sha256(content: String): String =
-        MessageDigest.getInstance("SHA-256")
+        MessageDigest
+            .getInstance("SHA-256")
             .digest(content.toByteArray(Charsets.UTF_8))
             .joinToString("") { "%02x".format(it) }
 
@@ -261,7 +269,12 @@ class RemoteDiagnosticRepository(
                     val url = baseUrl.trimEnd('/') + "/api/diagnostic/evaluate"
                     val json = DiagnosticSnapshotMapper.toJson(input).toString()
                     val body = json.toRequestBody("application/json; charset=utf-8".toMediaType())
-                    val request = Request.Builder().url(url).post(body).build()
+                    val request =
+                        Request
+                            .Builder()
+                            .url(url)
+                            .post(body)
+                            .build()
 
                     client.newCall(request).execute().use { response ->
                         if (!response.isSuccessful) {

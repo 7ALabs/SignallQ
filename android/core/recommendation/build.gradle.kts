@@ -1,4 +1,6 @@
 plugins {
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.ktlint)
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
 }
@@ -21,6 +23,27 @@ android {
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
+configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+    filter {
+        exclude("**/*.kts")
+    }
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom("$rootDir/config/detekt.yml")
+    baseline = file("$rootDir/config/detekt-baseline.xml")
+}
+
+ktlint {
+    version = "1.3.1"
+    android = true
+    ignoreFailures = false
+    reporters {
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
     }
 }
 

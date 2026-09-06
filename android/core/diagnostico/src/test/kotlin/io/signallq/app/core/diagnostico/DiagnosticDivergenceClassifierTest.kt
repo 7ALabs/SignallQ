@@ -11,28 +11,29 @@ import org.junit.Test
  * `scoreEngineResultado = null`, que cai na tabela legada por status).
  */
 class DiagnosticDivergenceClassifierTest {
-
     private fun reportDe(
         status: DiagnosticStatus,
         categoriaOrigem: String? = "wifi",
         podeConcluir: Boolean = true,
-    ): DiagnosticReport = DiagnosticReport(
-        wifiResultados = emptyList(),
-        internetResultados = emptyList(),
-        fibraResultados = emptyList(),
-        decisao = DiagnosticResult(
-            id = "DECISAO-TESTE",
-            titulo = "Teste",
-            status = status,
-            evidencia = null,
-            mensagemUsuario = "Mensagem de teste.",
-            recomendacao = null,
-            categoria = "decisao",
-            podeConcluir = podeConcluir,
-            categoriaOrigem = categoriaOrigem,
-        ),
-        geradoEmMs = 0L,
-    )
+    ): DiagnosticReport =
+        DiagnosticReport(
+            wifiResultados = emptyList(),
+            internetResultados = emptyList(),
+            fibraResultados = emptyList(),
+            decisao =
+                DiagnosticResult(
+                    id = "DECISAO-TESTE",
+                    titulo = "Teste",
+                    status = status,
+                    evidencia = null,
+                    mensagemUsuario = "Mensagem de teste.",
+                    recomendacao = null,
+                    categoria = "decisao",
+                    podeConcluir = podeConcluir,
+                    categoriaOrigem = categoriaOrigem,
+                ),
+            geradoEmMs = 0L,
+        )
 
     @Test
     fun `EXACT_MATCH quando status, origem e score coincidem`() {
@@ -103,10 +104,12 @@ class DiagnosticDivergenceClassifierTest {
     fun `score fora da tolerancia de EXACT_MATCH mesmo com status e origem iguais cai para EQUIVALENT_RESULT`() {
         // ok x ok normalmente teria mesmo score (90), entao forcamos via scoreEngineResultado
         // diferente para exercitar a fronteira de tolerancia isoladamente.
-        val local = reportDe(DiagnosticStatus.attention, categoriaOrigem = "wifi", podeConcluir = true)
-            .copy(scoreEngineResultado = ScoreResult(score = 65, dimensoesUsadas = emptyList(), dadosAusentes = emptyList()))
-        val remote = reportDe(DiagnosticStatus.attention, categoriaOrigem = "wifi", podeConcluir = true)
-            .copy(scoreEngineResultado = ScoreResult(score = 50, dimensoesUsadas = emptyList(), dadosAusentes = emptyList()))
+        val local =
+            reportDe(DiagnosticStatus.attention, categoriaOrigem = "wifi", podeConcluir = true)
+                .copy(scoreEngineResultado = ScoreResult(score = 65, dimensoesUsadas = emptyList(), dadosAusentes = emptyList()))
+        val remote =
+            reportDe(DiagnosticStatus.attention, categoriaOrigem = "wifi", podeConcluir = true)
+                .copy(scoreEngineResultado = ScoreResult(score = 50, dimensoesUsadas = emptyList(), dadosAusentes = emptyList()))
 
         val comparison = DiagnosticDivergenceClassifier.classify(local, remote)
 

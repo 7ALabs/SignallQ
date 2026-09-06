@@ -13,18 +13,18 @@ import org.junit.Test
  * de debug (achado crítico da aba "Achados de copy").
  */
 class EditorialCopyContractTest {
-
-    private val jargõesProibidos = listOf(
-        "bufferbloat",
-        "qos",
-        "sqm",
-        "rssi",
-        "rsrp",
-        "olt",
-        "nat udp",
-        "casou com",
-        "% de match",
-    )
+    private val jargõesProibidos =
+        listOf(
+            "bufferbloat",
+            "qos",
+            "sqm",
+            "rssi",
+            "rsrp",
+            "olt",
+            "nat udp",
+            "casou com",
+            "% de match",
+        )
 
     @Test
     fun `titulos e subtitulos dos 7 objetivos nao vazam aspas informais nem jargao`() {
@@ -41,14 +41,15 @@ class EditorialCopyContractTest {
 
     @Test
     fun `titulos do motor de internet usam linguagem simples aprovada`() {
-        val input = InternetDiagnosticInput(
-            downloadMbps = 5.0,
-            uploadMbps = 0.0,
-            latencyMs = 250.0,
-            jitterMs = 40.0,
-            perdaPercentual = 5.0,
-            bufferbloatMs = 250.0,
-        )
+        val input =
+            InternetDiagnosticInput(
+                downloadMbps = 5.0,
+                uploadMbps = 0.0,
+                latencyMs = 250.0,
+                jitterMs = 40.0,
+                perdaPercentual = 5.0,
+                bufferbloatMs = 250.0,
+            )
         val resultados = InternetDiagnosticEngine.avaliar(input, wifiConfiavelParaTeste = true)
         assertTrue(resultados.isNotEmpty())
         resultados.forEach { resultado ->
@@ -84,19 +85,22 @@ class EditorialCopyContractTest {
 
     @Test
     fun `recomendacao de motor gamer usa priorizacao de trafego em vez de QoS`() {
-        val resultado = ModoGamerEngine.avaliar(
-            categoria = CategoriaJogoModoGamer.FPS_COMPETITIVO,
-            device = DeviceJogo.ANDROID,
-            input = DiagnosticInput(
-                internet = InternetDiagnosticInput(
-                    downloadMbps = 100.0,
-                    uploadMbps = 20.0,
-                    latencyMs = 150.0,
-                    jitterMs = 30.0,
-                    perdaPercentual = 0.5,
-                ),
-            ),
-        )
+        val resultado =
+            ModoGamerEngine.avaliar(
+                categoria = CategoriaJogoModoGamer.FPS_COMPETITIVO,
+                device = DeviceJogo.ANDROID,
+                input =
+                    DiagnosticInput(
+                        internet =
+                            InternetDiagnosticInput(
+                                downloadMbps = 100.0,
+                                uploadMbps = 20.0,
+                                latencyMs = 150.0,
+                                jitterMs = 30.0,
+                                perdaPercentual = 0.5,
+                            ),
+                    ),
+            )
         assertTrue(resultado.acoes.any { it.contains("prioridade de tráfego") })
         assertFalse(resultado.acoes.any { it.contains("QoS", ignoreCase = false) })
     }

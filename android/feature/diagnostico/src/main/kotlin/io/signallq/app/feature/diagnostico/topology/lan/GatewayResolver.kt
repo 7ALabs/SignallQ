@@ -7,14 +7,18 @@ import android.net.wifi.WifiManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class GatewayResolver(context: Context) {
+class GatewayResolver(
+    context: Context,
+) {
     private val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
     @Suppress("DEPRECATION")
     private val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
 
-    suspend fun resolve(): String? = withContext(Dispatchers.IO) {
-        resolveViaLinkProperties() ?: resolveViaDhcpFallback()
-    }
+    suspend fun resolve(): String? =
+        withContext(Dispatchers.IO) {
+            resolveViaLinkProperties() ?: resolveViaDhcpFallback()
+        }
 
     @SuppressLint("MissingPermission")
     private fun resolveViaLinkProperties(): String? {
@@ -26,7 +30,9 @@ class GatewayResolver(context: Context) {
                 ?.gateway
                 ?.hostAddress
                 ?.takeIf { it.isNotBlank() }
-        } catch (_: Exception) { null }
+        } catch (_: Exception) {
+            null
+        }
     }
 
     // DhcpInfo.gateway é int little-endian — deprecado desde API 31, usado só como fallback
@@ -37,6 +43,8 @@ class GatewayResolver(context: Context) {
             val gw = wm.dhcpInfo?.gateway ?: return null
             if (gw == 0) return null
             "${gw and 0xFF}.${(gw shr 8) and 0xFF}.${(gw shr 16) and 0xFF}.${(gw shr 24) and 0xFF}"
-        } catch (_: Exception) { null }
+        } catch (_: Exception) {
+            null
+        }
     }
 }

@@ -3,7 +3,6 @@
 import io.signallq.app.feature.diagnostico.topology.lan.UpnpIgdDiscovery
 import okhttp3.OkHttpClient
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Test
 import java.util.concurrent.TimeUnit
 
@@ -23,7 +22,6 @@ import java.util.concurrent.TimeUnit
  * 3. O cliente de scan (2s) é distinto do cliente IGD (5s) — sem compartilhamento.
  */
 class UpnpIgdDiscoveryTimeoutTest {
-
     @Test
     fun `upnpIgdClient deve ter connectTimeout de pelo menos 5 segundos`() {
         val client = buildIgdClient()
@@ -99,7 +97,8 @@ class UpnpIgdDiscoveryTimeoutTest {
 
     /** Replica provideUpnpIgdOkHttpClient() do AppModule. */
     private fun buildIgdClient(): OkHttpClient =
-        OkHttpClient.Builder()
+        OkHttpClient
+            .Builder()
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(5, TimeUnit.SECONDS)
             .writeTimeout(5, TimeUnit.SECONDS)
@@ -107,7 +106,8 @@ class UpnpIgdDiscoveryTimeoutTest {
 
     /** Replica provideUpnpOkHttpClient() do AppModule (scan local). */
     private fun buildScanClient(): OkHttpClient =
-        OkHttpClient.Builder()
+        OkHttpClient
+            .Builder()
             .connectTimeout(2, TimeUnit.SECONDS)
             .readTimeout(2, TimeUnit.SECONDS)
             .writeTimeout(2, TimeUnit.SECONDS)

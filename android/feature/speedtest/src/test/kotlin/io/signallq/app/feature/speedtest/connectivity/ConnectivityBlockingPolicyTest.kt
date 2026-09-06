@@ -14,7 +14,6 @@ import org.junit.Test
  * adversarial -- a política de bloqueio do Speedtest não tinha nenhum teste direto).
  */
 class ConnectivityBlockingPolicyTest {
-
     private fun diagnostico(
         status: ConnectivityStatus,
         confidence: NivelConfianca = NivelConfianca.ALTA,

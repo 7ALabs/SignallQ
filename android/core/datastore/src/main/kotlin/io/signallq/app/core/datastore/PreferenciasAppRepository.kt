@@ -9,13 +9,13 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import java.util.UUID
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import java.util.UUID
 
 class PreferenciasAppRepository(
     private val context: Context,
@@ -50,7 +50,7 @@ class PreferenciasAppRepository(
     private val chaveCidadeNome = stringPreferencesKey("cidadeNome")
     private val chaveUltimaVersaoVista = stringPreferencesKey("ultimaVersaoVista")
 
-    private val ONBOARDING_CONCLUIDO = booleanPreferencesKey("onboarding_concluido")
+    private val chaveOnboardingConcluido = booleanPreferencesKey("onboarding_concluido")
     private val chaveConsentimentoLgpd = booleanPreferencesKey("consentimento_lgpd")
     private val chaveAnatelBannerDismissed = booleanPreferencesKey("anatelBannerDismissed")
 
@@ -226,7 +226,7 @@ class PreferenciasAppRepository(
         context.dataStore.data.map { it[chaveUltimaVersaoVista] ?: "" }
 
     val onboardingConcluidoFlow: Flow<Boolean> =
-        context.dataStore.data.map { it[ONBOARDING_CONCLUIDO] ?: false }
+        context.dataStore.data.map { it[chaveOnboardingConcluido] ?: false }
 
     val anatelBannerDismissedFlow: Flow<Boolean> =
         context.dataStore.data.map { it[chaveAnatelBannerDismissed] ?: false }
@@ -252,7 +252,6 @@ class PreferenciasAppRepository(
 
     val velocidadeContratadaUpMbpsFlow: Flow<Int> =
         context.dataStore.data.map { it[chaveVelocidadeContratadaUpMbps] ?: 0 }
-
 
     // Speedtest em rede medida (móvel)
     val speedtestPermiteHeavyMovel: Flow<Boolean> =
@@ -363,8 +362,11 @@ class PreferenciasAppRepository(
     suspend fun definirModemHost(host: String?) {
         withContext(ioDispatcher) {
             context.dataStore.edit { prefs ->
-                if (host != null) prefs[chaveModemHost] = host
-                else prefs.remove(chaveModemHost)
+                if (host != null) {
+                    prefs[chaveModemHost] = host
+                } else {
+                    prefs.remove(chaveModemHost)
+                }
             }
         }
     }
@@ -401,8 +403,11 @@ class PreferenciasAppRepository(
     suspend fun definirFotoUriUsuario(uri: String?) {
         withContext(ioDispatcher) {
             context.dataStore.edit { prefs ->
-                if (uri != null) prefs[chaveFotoUriUsuario] = uri
-                else prefs.remove(chaveFotoUriUsuario)
+                if (uri != null) {
+                    prefs[chaveFotoUriUsuario] = uri
+                } else {
+                    prefs.remove(chaveFotoUriUsuario)
+                }
             }
         }
     }
@@ -448,7 +453,7 @@ class PreferenciasAppRepository(
     }
 
     suspend fun definirOnboardingConcluido(concluido: Boolean) {
-        withContext(ioDispatcher) { context.dataStore.edit { it[ONBOARDING_CONCLUIDO] = concluido } }
+        withContext(ioDispatcher) { context.dataStore.edit { it[chaveOnboardingConcluido] = concluido } }
     }
 
     suspend fun definirAnatelBannerDismissed(dismissed: Boolean) {
@@ -485,7 +490,6 @@ class PreferenciasAppRepository(
     suspend fun definirVelocidadeContratadaUpMbps(mbps: Int) {
         withContext(ioDispatcher) { context.dataStore.edit { it[chaveVelocidadeContratadaUpMbps] = mbps } }
     }
-
 
     // Setters de speedtest em rede medida (móvel)
     suspend fun setSpeedtestPermiteHeavyMovel(value: Boolean) {
@@ -630,11 +634,12 @@ class PreferenciasAppRepository(
 
     override suspend fun salvarFeatureFlags(flags: Map<String, Boolean>) {
         withContext(ioDispatcher) {
-            val json = buildString {
-                append("{")
-                flags.entries.joinToString(",") { (k, v) -> "\"$k\":$v" }.also { append(it) }
-                append("}")
-            }
+            val json =
+                buildString {
+                    append("{")
+                    flags.entries.joinToString(",") { (k, v) -> "\"$k\":$v" }.also { append(it) }
+                    append("}")
+                }
             context.dataStore.edit { it[chaveFeatureFlagsJson] = json }
         }
     }
@@ -658,7 +663,11 @@ class PreferenciasAppRepository(
     /** Persiste a combinacao escolhida como padrao do Modo gamer. [jogoId] nulo +
      *  [categoriaFallback] preenchida = jogo fora do catalogo (usuario escolheu a
      *  categoria generica). Nunca chamar com os dois nulos — validar antes na UI. */
-    suspend fun salvarModoGamerPadrao(jogoId: String?, categoriaFallback: String?, deviceId: String) {
+    suspend fun salvarModoGamerPadrao(
+        jogoId: String?,
+        categoriaFallback: String?,
+        deviceId: String,
+    ) {
         withContext(ioDispatcher) {
             context.dataStore.edit { prefs ->
                 if (jogoId != null) prefs[chaveModoGamerJogoId] = jogoId else prefs.remove(chaveModoGamerJogoId)

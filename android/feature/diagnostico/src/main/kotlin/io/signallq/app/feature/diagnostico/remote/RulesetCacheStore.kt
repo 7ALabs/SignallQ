@@ -1,12 +1,12 @@
 package io.signallq.app.feature.diagnostico.remote
 
+import org.json.JSONObject
 import timber.log.Timber
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
-import org.json.JSONObject
 
 /**
  * Ultimo ruleset remoto valido persistido -- nivel `CACHED_LOCAL` do fallback de 3
@@ -33,7 +33,12 @@ data class CachedRuleset(
  */
 interface RulesetCacheStore {
     fun load(): CachedRuleset?
-    fun save(content: String, rulesetVersion: Int?, syncedAtMs: Long): Boolean
+
+    fun save(
+        content: String,
+        rulesetVersion: Int?,
+        syncedAtMs: Long,
+    ): Boolean
 }
 
 /** Usado quando nao ha [RulesetCacheStore] real configurado (ex.: construcao de teste
@@ -41,7 +46,12 @@ interface RulesetCacheStore {
  *  BUNDLED_LOCAL -- nunca quebra por falta de cache. */
 object NoOpRulesetCacheStore : RulesetCacheStore {
     override fun load(): CachedRuleset? = null
-    override fun save(content: String, rulesetVersion: Int?, syncedAtMs: Long): Boolean = false
+
+    override fun save(
+        content: String,
+        rulesetVersion: Int?,
+        syncedAtMs: Long,
+    ): Boolean = false
 }
 
 /**
@@ -57,8 +67,9 @@ object NoOpRulesetCacheStore : RulesetCacheStore {
  * Leitura resiliente: se o arquivo atual estiver corrompido/ilegivel, tenta o
  * `.previous` antes de desistir (uso real do rollback, nao so um backup morto).
  */
-class FileRulesetCacheStore(private val cacheDir: File) : RulesetCacheStore {
-
+class FileRulesetCacheStore(
+    private val cacheDir: File,
+) : RulesetCacheStore {
     private val current: File get() = File(cacheDir, CURRENT_FILE_NAME)
     private val previous: File get() = File(cacheDir, PREVIOUS_FILE_NAME)
     private val tmp: File get() = File(cacheDir, TMP_FILE_NAME)
@@ -68,7 +79,11 @@ class FileRulesetCacheStore(private val cacheDir: File) : RulesetCacheStore {
             Timber.w("FileRulesetCacheStore: cache atual invalido, usando .previous (rollback local)")
         }
 
-    override fun save(content: String, rulesetVersion: Int?, syncedAtMs: Long): Boolean {
+    override fun save(
+        content: String,
+        rulesetVersion: Int?,
+        syncedAtMs: Long,
+    ): Boolean {
         return try {
             if (!cacheDir.exists() && !cacheDir.mkdirs()) {
                 Timber.w("FileRulesetCacheStore: nao foi possivel criar diretorio de cache")
@@ -76,12 +91,13 @@ class FileRulesetCacheStore(private val cacheDir: File) : RulesetCacheStore {
             }
 
             val hash = sha256(content)
-            val wrapper = JSONObject()
-                .put("content", content)
-                .put("rulesetVersion", rulesetVersion ?: JSONObject.NULL)
-                .put("hash", hash)
-                .put("syncedAtMs", syncedAtMs)
-                .toString()
+            val wrapper =
+                JSONObject()
+                    .put("content", content)
+                    .put("rulesetVersion", rulesetVersion ?: JSONObject.NULL)
+                    .put("hash", hash)
+                    .put("syncedAtMs", syncedAtMs)
+                    .toString()
 
             tmp.writeText(wrapper, StandardCharsets.UTF_8)
 
@@ -129,7 +145,8 @@ class FileRulesetCacheStore(private val cacheDir: File) : RulesetCacheStore {
     }
 
     private fun sha256(content: String): String =
-        MessageDigest.getInstance("SHA-256")
+        MessageDigest
+            .getInstance("SHA-256")
             .digest(content.toByteArray(StandardCharsets.UTF_8))
             .joinToString("") { "%02x".format(it) }
 

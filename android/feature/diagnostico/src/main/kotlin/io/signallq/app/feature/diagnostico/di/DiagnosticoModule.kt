@@ -6,9 +6,22 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import io.signallq.app.core.database.SignallQDatabase
+import io.signallq.app.core.database.provider.ProviderDirectoryCacheDao
+import io.signallq.app.core.database.recommendation.RecommendationHistoryDao
+import io.signallq.app.core.datastore.PreferenciasAppRepository
+import io.signallq.app.core.featureflags.FeatureFlagProvider
+import io.signallq.app.core.nds.NdsClient
+import io.signallq.app.core.nds.NdsClientFactory
+import io.signallq.app.core.network.AnalyticsHelper
+import io.signallq.app.core.recommendation.RecommendationEngine
+import io.signallq.app.core.recommendation.catalog.LocalRecommendationCatalog
+import io.signallq.app.core.recommendation.catalog.RecommendationCatalog
 import io.signallq.app.feature.diagnostico.BuildConfig
 import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
 import io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository
+import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
+import io.signallq.app.feature.diagnostico.nds.NdsDiagnosticRepository
 import io.signallq.app.feature.diagnostico.remote.DiagnosticDivergenceReporter
 import io.signallq.app.feature.diagnostico.remote.DiagnosticRolloutStatusRepository
 import io.signallq.app.feature.diagnostico.remote.FileRulesetCacheStore
@@ -16,19 +29,6 @@ import io.signallq.app.feature.diagnostico.remote.ProviderDirectoryCache
 import io.signallq.app.feature.diagnostico.remote.ProviderDirectoryRepository
 import io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository
 import io.signallq.app.feature.diagnostico.remote.RoomProviderDirectoryCache
-import io.signallq.app.core.database.SignallQDatabase
-import io.signallq.app.core.database.provider.ProviderDirectoryCacheDao
-import io.signallq.app.core.database.recommendation.RecommendationHistoryDao
-import io.signallq.app.core.datastore.PreferenciasAppRepository
-import io.signallq.app.core.featureflags.FeatureFlagProvider
-import io.signallq.app.core.network.AnalyticsHelper
-import io.signallq.app.core.nds.NdsClient
-import io.signallq.app.core.nds.NdsClientFactory
-import io.signallq.app.core.recommendation.RecommendationEngine
-import io.signallq.app.core.recommendation.catalog.LocalRecommendationCatalog
-import io.signallq.app.core.recommendation.catalog.RecommendationCatalog
-import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
-import io.signallq.app.feature.diagnostico.nds.NdsDiagnosticRepository
 import io.signallq.app.feature.diagnostico.topology.TopologyDiagnostic
 import okhttp3.OkHttpClient
 import java.io.File
@@ -136,11 +136,13 @@ object DiagnosticoModule {
     fun provideDiagnosticRolloutStatusRepository(): DiagnosticRolloutStatusRepository =
         DiagnosticRolloutStatusRepository(
             baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL,
-            client = OkHttpClient.Builder()
-                .connectTimeout(5, TimeUnit.SECONDS)
-                .readTimeout(5, TimeUnit.SECONDS)
-                .writeTimeout(5, TimeUnit.SECONDS)
-                .build(),
+            client =
+                OkHttpClient
+                    .Builder()
+                    .connectTimeout(5, TimeUnit.SECONDS)
+                    .readTimeout(5, TimeUnit.SECONDS)
+                    .writeTimeout(5, TimeUnit.SECONDS)
+                    .build(),
         )
 
     /**
@@ -169,11 +171,13 @@ object DiagnosticoModule {
     ): DiagnosticDivergenceReporter =
         DiagnosticDivergenceReporter(
             baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL,
-            client = OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(10, TimeUnit.SECONDS)
-                .writeTimeout(10, TimeUnit.SECONDS)
-                .build(),
+            client =
+                OkHttpClient
+                    .Builder()
+                    .connectTimeout(10, TimeUnit.SECONDS)
+                    .readTimeout(10, TimeUnit.SECONDS)
+                    .writeTimeout(10, TimeUnit.SECONDS)
+                    .build(),
             featureFlagProvider = featureFlagProvider,
             appVersion = BuildConfig.APP_VERSION,
             versionCode = BuildConfig.VERSION_CODE,
@@ -236,7 +240,8 @@ object DiagnosticoModule {
     @Singleton
     @Named("adminIngestClient")
     fun provideAdminIngestOkHttpClient(): OkHttpClient =
-        OkHttpClient.Builder()
+        OkHttpClient
+            .Builder()
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .writeTimeout(10, TimeUnit.SECONDS)
@@ -258,12 +263,13 @@ object DiagnosticoModule {
         @Named("adminIngestUrl") baseUrl: String,
         @Named("adminIngestKey") ingestKey: String,
         prefs: PreferenciasAppRepository,
-    ): AdminIngestRepository = AdminIngestRepository(
-        baseUrl = baseUrl,
-        ingestKey = ingestKey,
-        client = httpClient,
-        consentimentoProvider = { prefs.buscarConsentimentoLgpd() == true },
-    )
+    ): AdminIngestRepository =
+        AdminIngestRepository(
+            baseUrl = baseUrl,
+            ingestKey = ingestKey,
+            client = httpClient,
+            consentimentoProvider = { prefs.buscarConsentimentoLgpd() == true },
+        )
 
     @Provides
     @Singleton

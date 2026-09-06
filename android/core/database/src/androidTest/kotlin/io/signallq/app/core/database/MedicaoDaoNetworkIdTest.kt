@@ -26,10 +26,12 @@ class MedicaoDaoNetworkIdTest {
     @Before
     fun criarBanco() {
         db =
-            Room.inMemoryDatabaseBuilder(
-                ApplicationProvider.getApplicationContext(),
-                SignallQDatabase::class.java,
-            ).allowMainThreadQueries().build()
+            Room
+                .inMemoryDatabaseBuilder(
+                    ApplicationProvider.getApplicationContext(),
+                    SignallQDatabase::class.java,
+                ).allowMainThreadQueries()
+                .build()
         dao = db.medicaoDao()
     }
 

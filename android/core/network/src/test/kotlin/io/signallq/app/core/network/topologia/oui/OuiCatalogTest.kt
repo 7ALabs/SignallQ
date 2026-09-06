@@ -12,7 +12,6 @@ import org.junit.Test
  * regra ad-hoc" e o caso "mesmo fabricante do gateway mas não é o gateway".
  */
 class OuiCatalogTest {
-
     // ─── Conflito Intelbras: um registro só, papéis múltiplos declarados ───────────
 
     @Test

@@ -18,11 +18,11 @@ import android.telephony.SubscriptionManager
 import android.telephony.TelephonyCallback
 import android.telephony.TelephonyDisplayInfo
 import android.telephony.TelephonyManager
-import timber.log.Timber
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import timber.log.Timber
 import java.util.concurrent.Executors
 
 /**
@@ -44,21 +44,25 @@ import java.util.concurrent.Executors
 class MonitorTelephonyImpl(
     context: Context,
 ) : MonitorTelephony {
-
     private val applicationContext = context.applicationContext
-    private val telephonyManager = applicationContext
-        .getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+    private val telephonyManager =
+        applicationContext
+            .getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
 
-    private val executor = Executors.newSingleThreadExecutor { r ->
-        Thread(r, "MonitorTelephony").apply { isDaemon = true }
-    }
+    private val executor =
+        Executors.newSingleThreadExecutor { r ->
+            Thread(r, "MonitorTelephony").apply { isDaemon = true }
+        }
 
     private val mutableSnapshot = MutableStateFlow<MovelSnapshot?>(null)
     override val snapshotFlow: StateFlow<MovelSnapshot?> = mutableSnapshot.asStateFlow()
 
     @Volatile private var sinalAtual: SignalStrength? = null
+
     @Volatile private var serviceState: ServiceState? = null
+
     @Volatile private var overrideNetworkType: Int = 0
+
     @Volatile private var iniciou = false
 
     // Callbacks API 31+
@@ -79,9 +83,10 @@ class MonitorTelephonyImpl(
                 "READ_PHONE_STATE negada — emitindo snapshot reduzido (GH#1662): " +
                     "decisao de produto e a tela continuar util sem a permissao, nao ficar vazia.",
             )
-            mutableSnapshot.value = runCatching {
-                capturarSnapshotReduzidoSemPermissao(tm)
-            }.getOrNull()
+            mutableSnapshot.value =
+                runCatching {
+                    capturarSnapshotReduzidoSemPermissao(tm)
+                }.getOrNull()
             return
         }
         iniciou = true
@@ -110,20 +115,24 @@ class MonitorTelephonyImpl(
     @SuppressLint("MissingPermission")
     override fun captureSimsAtivos(context: Context): List<MovelSimSnapshot> {
         if (!possuiPermissaoReadPhoneState()) return emptyList()
-        val sm = runCatching {
-            context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? SubscriptionManager
-        }.getOrNull() ?: return emptyList()
+        val sm =
+            runCatching {
+                context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? SubscriptionManager
+            }.getOrNull() ?: return emptyList()
 
-        val sims = runCatching {
-            sm.activeSubscriptionInfoList.orEmpty()
-        }.getOrElse { return emptyList() }
+        val sims =
+            runCatching {
+                sm.activeSubscriptionInfoList.orEmpty()
+            }.getOrElse { return emptyList() }
 
-        val defaultDataSubId = runCatching {
-            SubscriptionManager.getDefaultDataSubscriptionId()
-        }.getOrDefault(SubscriptionManager.INVALID_SUBSCRIPTION_ID)
+        val defaultDataSubId =
+            runCatching {
+                SubscriptionManager.getDefaultDataSubscriptionId()
+            }.getOrDefault(SubscriptionManager.INVALID_SUBSCRIPTION_ID)
 
-        val radioDesligadoGlobal = (serviceState ?: runCatching { telephonyManager?.serviceState }.getOrNull())
-            ?.state == ServiceState.STATE_POWER_OFF
+        val radioDesligadoGlobal =
+            (serviceState ?: runCatching { telephonyManager?.serviceState }.getOrNull())
+                ?.state == ServiceState.STATE_POWER_OFF
 
         return sims.mapNotNull { info ->
             runCatching {
@@ -132,12 +141,14 @@ class MonitorTelephonyImpl(
                 val operadora = info.carrierName?.toString()?.ifBlank { null }
                 val emRoaming = info.dataRoaming == SubscriptionManager.DATA_ROAMING_ENABLE
 
-                val tm = applicationContext
-                    .getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
-                    ?: return@runCatching null
-                val tmSub = runCatching {
-                    tm.createForSubscriptionId(subId)
-                }.getOrNull() ?: return@runCatching null
+                val tm =
+                    applicationContext
+                        .getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+                        ?: return@runCatching null
+                val tmSub =
+                    runCatching {
+                        tm.createForSubscriptionId(subId)
+                    }.getOrNull() ?: return@runCatching null
 
                 val tecnologiaRede = runCatching { derivarTecnologiaSim(tmSub) }.getOrNull()
 
@@ -146,13 +157,14 @@ class MonitorTelephonyImpl(
                 // possivel. GH#1206: antes so RSRP era capturado por SIM -- a qualificacao
                 // visual (SinalScreen) so considerava RSRP, mesmo o motor de diagnostico
                 // (MobileSignalDiagnosticEngine) ja usando RSRP+RSRQ+SINR (pior das 3).
-                val servidoraSub = if (radioDesligadoGlobal) {
-                    null
-                } else {
-                    runCatching {
-                        tmSub.allCellInfo.orEmpty().firstOrNull { it.isRegistered }
-                    }.getOrNull()
-                }
+                val servidoraSub =
+                    if (radioDesligadoGlobal) {
+                        null
+                    } else {
+                        runCatching {
+                            tmSub.allCellInfo.orEmpty().firstOrNull { it.isRegistered }
+                        }.getOrNull()
+                    }
                 val rsrpDbm = extrairRsrpPorSim(servidoraSub)
                 val (rsrqDb, sinrDb) = extrairRsrqSinrPorSim(servidoraSub)
 
@@ -174,72 +186,80 @@ class MonitorTelephonyImpl(
 
     /** GH#1206 — extracao de RSRP isolada por SIM, reaproveitando o mesmo tratamento de
      *  sentinela (`Int.MAX_VALUE` = indisponivel) ja usado no snapshot geral. */
-    private fun extrairRsrpPorSim(servidora: android.telephony.CellInfo?): Int? = when (servidora) {
-        is CellInfoLte -> servidora.cellSignalStrength.rsrp.takeIf { it != Int.MAX_VALUE }
-        is CellInfoNr -> {
-            val s = servidora.cellSignalStrength as? CellSignalStrengthNr
-            s?.csiRsrp?.takeIf { it != Int.MAX_VALUE } ?: s?.ssRsrp?.takeIf { it != Int.MAX_VALUE }
+    private fun extrairRsrpPorSim(servidora: android.telephony.CellInfo?): Int? =
+        when (servidora) {
+            is CellInfoLte -> servidora.cellSignalStrength.rsrp.takeIf { it != Int.MAX_VALUE }
+            is CellInfoNr -> {
+                val s = servidora.cellSignalStrength as? CellSignalStrengthNr
+                s?.csiRsrp?.takeIf { it != Int.MAX_VALUE } ?: s?.ssRsrp?.takeIf { it != Int.MAX_VALUE }
+            }
+            else -> null
         }
-        else -> null
-    }
 
     /** GH#1206 — RSRQ/SINR por SIM, mesma extracao ja usada no snapshot geral (linhas
      *  ~400-421), agora tambem disponivel por assinatura pra alimentar
      *  MetricClassifier.classificarRsrq/classificarSinr no card de cada chip. */
-    private fun extrairRsrqSinrPorSim(servidora: android.telephony.CellInfo?): Pair<Int?, Int?> = when (servidora) {
-        is CellInfoLte -> {
-            val s: CellSignalStrengthLte = servidora.cellSignalStrength
-            val rsrq = s.rsrq.takeIf { it != Int.MAX_VALUE }
-            val sinr = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                s.rssnr.takeIf { it != Int.MAX_VALUE }
-            } else {
-                null
+    private fun extrairRsrqSinrPorSim(servidora: android.telephony.CellInfo?): Pair<Int?, Int?> =
+        when (servidora) {
+            is CellInfoLte -> {
+                val s: CellSignalStrengthLte = servidora.cellSignalStrength
+                val rsrq = s.rsrq.takeIf { it != Int.MAX_VALUE }
+                val sinr =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        s.rssnr.takeIf { it != Int.MAX_VALUE }
+                    } else {
+                        null
+                    }
+                rsrq to sinr
             }
-            rsrq to sinr
+            is CellInfoNr -> {
+                val s = servidora.cellSignalStrength as? CellSignalStrengthNr
+                val rsrq = s?.csiRsrq?.takeIf { it != Int.MAX_VALUE } ?: s?.ssRsrq?.takeIf { it != Int.MAX_VALUE }
+                val sinr = s?.csiSinr?.takeIf { it != Int.MAX_VALUE } ?: s?.ssSinr?.takeIf { it != Int.MAX_VALUE }
+                rsrq to sinr
+            }
+            else -> null to null
         }
-        is CellInfoNr -> {
-            val s = servidora.cellSignalStrength as? CellSignalStrengthNr
-            val rsrq = s?.csiRsrq?.takeIf { it != Int.MAX_VALUE } ?: s?.ssRsrq?.takeIf { it != Int.MAX_VALUE }
-            val sinr = s?.csiSinr?.takeIf { it != Int.MAX_VALUE } ?: s?.ssSinr?.takeIf { it != Int.MAX_VALUE }
-            rsrq to sinr
-        }
-        else -> null to null
-    }
 
     @Suppress("DEPRECATION", "MissingPermission")
     private fun derivarTecnologiaSim(tm: TelephonyManager): String? {
-        val dataNetType = runCatching {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                tm.dataNetworkType
-            } else {
-                tm.networkType
-            }
-        }.getOrNull() ?: return null
+        val dataNetType =
+            runCatching {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    tm.dataNetworkType
+                } else {
+                    tm.networkType
+                }
+            }.getOrNull() ?: return null
 
-        var tecnologia = when (dataNetType) {
-            TelephonyManager.NETWORK_TYPE_NR -> "5G SA"
-            TelephonyManager.NETWORK_TYPE_LTE -> {
-                val nsa = runCatching {
-                    val ss = tm.serviceState
-                    if (ss != null) detectarNrAtivo(ss) else false
-                }.getOrDefault(false)
-                if (nsa) "5G NSA" else "4G"
+        var tecnologia =
+            when (dataNetType) {
+                TelephonyManager.NETWORK_TYPE_NR -> "5G SA"
+                TelephonyManager.NETWORK_TYPE_LTE -> {
+                    val nsa =
+                        runCatching {
+                            val ss = tm.serviceState
+                            if (ss != null) detectarNrAtivo(ss) else false
+                        }.getOrDefault(false)
+                    if (nsa) "5G NSA" else "4G"
+                }
+                TelephonyManager.NETWORK_TYPE_HSPAP,
+                TelephonyManager.NETWORK_TYPE_HSPA,
+                TelephonyManager.NETWORK_TYPE_HSDPA,
+                TelephonyManager.NETWORK_TYPE_HSUPA,
+                TelephonyManager.NETWORK_TYPE_UMTS,
+                TelephonyManager.NETWORK_TYPE_EVDO_0,
+                TelephonyManager.NETWORK_TYPE_EVDO_A,
+                TelephonyManager.NETWORK_TYPE_EVDO_B,
+                -> "3G"
+                TelephonyManager.NETWORK_TYPE_GPRS,
+                TelephonyManager.NETWORK_TYPE_EDGE,
+                TelephonyManager.NETWORK_TYPE_CDMA,
+                TelephonyManager.NETWORK_TYPE_1xRTT,
+                TelephonyManager.NETWORK_TYPE_IDEN,
+                -> "2G"
+                else -> null
             }
-            TelephonyManager.NETWORK_TYPE_HSPAP,
-            TelephonyManager.NETWORK_TYPE_HSPA,
-            TelephonyManager.NETWORK_TYPE_HSDPA,
-            TelephonyManager.NETWORK_TYPE_HSUPA,
-            TelephonyManager.NETWORK_TYPE_UMTS,
-            TelephonyManager.NETWORK_TYPE_EVDO_0,
-            TelephonyManager.NETWORK_TYPE_EVDO_A,
-            TelephonyManager.NETWORK_TYPE_EVDO_B -> "3G"
-            TelephonyManager.NETWORK_TYPE_GPRS,
-            TelephonyManager.NETWORK_TYPE_EDGE,
-            TelephonyManager.NETWORK_TYPE_CDMA,
-            TelephonyManager.NETWORK_TYPE_1xRTT,
-            TelephonyManager.NETWORK_TYPE_IDEN -> "2G"
-            else -> null
-        }
 
         // Fallback 1: TelephonyDisplayInfo — overrideNetworkType é o mesmo indicador da status bar
         if (tecnologia == "4G" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -251,10 +271,12 @@ class MonitorTelephonyImpl(
 
         // Fallback 2: SignalStrength contém CellSignalStrengthNr → NR ativo
         if (tecnologia == "4G" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val temNrSinal = runCatching {
-                sinalAtual?.cellSignalStrengths
-                    ?.any { it is CellSignalStrengthNr } == true
-            }.getOrDefault(false)
+            val temNrSinal =
+                runCatching {
+                    sinalAtual
+                        ?.cellSignalStrengths
+                        ?.any { it is CellSignalStrengthNr } == true
+                }.getOrDefault(false)
             if (temNrSinal) {
                 tecnologia = "5G NSA"
             }
@@ -262,9 +284,10 @@ class MonitorTelephonyImpl(
 
         // Fallback 3: CellInfoNr registrado em allCellInfo → NR ativo
         if (tecnologia == "4G") {
-            val temNrCellInfo = runCatching {
-                tm.allCellInfo.orEmpty().any { it.isRegistered && it is CellInfoNr }
-            }.getOrDefault(false)
+            val temNrCellInfo =
+                runCatching {
+                    tm.allCellInfo.orEmpty().any { it.isRegistered && it is CellInfoNr }
+                }.getOrDefault(false)
             if (temNrCellInfo) {
                 tecnologia = "5G NSA"
             }
@@ -302,52 +325,54 @@ class MonitorTelephonyImpl(
 
     @android.annotation.TargetApi(Build.VERSION_CODES.S)
     private fun registrarCallback31(tm: TelephonyManager) {
-        val cb = object : TelephonyCallback(),
-            TelephonyCallback.SignalStrengthsListener,
-            TelephonyCallback.ServiceStateListener,
-            TelephonyCallback.CellInfoListener,
-            TelephonyCallback.DisplayInfoListener {
+        val cb =
+            object :
+                TelephonyCallback(),
+                TelephonyCallback.SignalStrengthsListener,
+                TelephonyCallback.ServiceStateListener,
+                TelephonyCallback.CellInfoListener,
+                TelephonyCallback.DisplayInfoListener {
+                override fun onSignalStrengthsChanged(signalStrength: SignalStrength) {
+                    sinalAtual = signalStrength
+                    recomputar()
+                }
 
-            override fun onSignalStrengthsChanged(signalStrength: SignalStrength) {
-                sinalAtual = signalStrength
-                recomputar()
-            }
+                override fun onServiceStateChanged(state: ServiceState) {
+                    serviceState = state
+                    recomputar()
+                }
 
-            override fun onServiceStateChanged(state: ServiceState) {
-                serviceState = state
-                recomputar()
-            }
+                override fun onCellInfoChanged(cellInfo: MutableList<android.telephony.CellInfo>) {
+                    recomputar()
+                }
 
-            override fun onCellInfoChanged(cellInfo: MutableList<android.telephony.CellInfo>) {
-                recomputar()
+                override fun onDisplayInfoChanged(telephonyDisplayInfo: TelephonyDisplayInfo) {
+                    overrideNetworkType = telephonyDisplayInfo.overrideNetworkType
+                    recomputar()
+                }
             }
-
-            override fun onDisplayInfoChanged(telephonyDisplayInfo: TelephonyDisplayInfo) {
-                overrideNetworkType = telephonyDisplayInfo.overrideNetworkType
-                recomputar()
-            }
-        }
         tm.registerTelephonyCallback(executor, cb)
         callback31 = cb
     }
 
     @Suppress("DEPRECATION")
     private fun registrarPhoneStateListener(tm: TelephonyManager) {
-        val listener = object : PhoneStateListener() {
-            override fun onSignalStrengthsChanged(signalStrength: SignalStrength) {
-                sinalAtual = signalStrength
-                recomputar()
-            }
+        val listener =
+            object : PhoneStateListener() {
+                override fun onSignalStrengthsChanged(signalStrength: SignalStrength) {
+                    sinalAtual = signalStrength
+                    recomputar()
+                }
 
-            override fun onServiceStateChanged(state: ServiceState) {
-                serviceState = state
-                recomputar()
-            }
+                override fun onServiceStateChanged(state: ServiceState) {
+                    serviceState = state
+                    recomputar()
+                }
 
-            override fun onCellInfoChanged(cellInfo: MutableList<android.telephony.CellInfo>?) {
-                recomputar()
+                override fun onCellInfoChanged(cellInfo: MutableList<android.telephony.CellInfo>?) {
+                    recomputar()
+                }
             }
-        }
         tm.listen(
             listener,
             PhoneStateListener.LISTEN_SIGNAL_STRENGTHS or
@@ -440,9 +465,12 @@ class MonitorTelephonyImpl(
                 val id: CellIdentityLte = celulaServidora.cellIdentity
                 rsrpDbm = s.rsrp.takeIf { it != Int.MAX_VALUE }
                 rsrqDb = s.rsrq.takeIf { it != Int.MAX_VALUE }
-                sinrDb = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    s.rssnr.takeIf { it != Int.MAX_VALUE }
-                } else null
+                sinrDb =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        s.rssnr.takeIf { it != Int.MAX_VALUE }
+                    } else {
+                        null
+                    }
                 cellId = id.ci.takeIf { it != Int.MAX_VALUE }?.toLong()
                 tac = id.tac.takeIf { it != Int.MAX_VALUE }
                 earfcn = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) id.earfcn else null
@@ -471,10 +499,12 @@ class MonitorTelephonyImpl(
         // CellSignalStrengthNr, há componente NR ativo — evidência direta de 5G NSA.
         if (tecnologia == "4G") {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val temNrSinal = runCatching {
-                    sinalAtual?.cellSignalStrengths
-                        ?.any { it is CellSignalStrengthNr } == true
-                }.getOrDefault(false)
+                val temNrSinal =
+                    runCatching {
+                        sinalAtual
+                            ?.cellSignalStrengths
+                            ?.any { it is CellSignalStrengthNr } == true
+                    }.getOrDefault(false)
                 if (temNrSinal) {
                     Timber.d("Fallback 5G NSA via SignalStrength.cellSignalStrengths contém CellSignalStrengthNr.")
                     tecnologia = "5G NSA"
@@ -486,10 +516,11 @@ class MonitorTelephonyImpl(
         // em vários OEMs. Se allCellInfo já encontrou um CellInfoNr registrado, isso é
         // evidência direta de NR ativo — forçar "5G NSA" quando derivarTecnologia ficou
         // em "4G" ou null por não conseguir ler nrState.
-        var tecnologiaFinal = when {
-            celulaServidora is CellInfoNr && (tecnologia == "4G" || tecnologia == null) -> "5G NSA"
-            else -> tecnologia
-        }
+        var tecnologiaFinal =
+            when {
+                celulaServidora is CellInfoNr && (tecnologia == "4G" || tecnologia == null) -> "5G NSA"
+                else -> tecnologia
+            }
 
         // Fallback adicional para 5G SA: em devices onde allCellInfo retorna lista vazia
         // (Samsung Exynos, Xiaomi MIUI 14 sem permissão de localização em API 29+),
@@ -498,11 +529,15 @@ class MonitorTelephonyImpl(
         // forçar "5G SA". Envolto em runCatching pois dataNetworkType pode lançar
         // SecurityException em devices com MIUI restrito.
         if (tecnologiaFinal == "4G") {
-            val dnType = runCatching {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    @Suppress("MissingPermission") tm.dataNetworkType
-                } else -1
-            }.getOrDefault(-1)
+            val dnType =
+                runCatching {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        @Suppress("MissingPermission")
+                        tm.dataNetworkType
+                    } else {
+                        -1
+                    }
+                }.getOrDefault(-1)
             if (dnType == TelephonyManager.NETWORK_TYPE_NR) {
                 Timber.d("Fallback 5G SA via dataNetworkType=NR (allCellInfo vazio ou sem CellInfoNr registrado).")
                 tecnologiaFinal = "5G SA"
@@ -511,8 +546,12 @@ class MonitorTelephonyImpl(
 
         // Se nao conseguiu absolutamente nada significativo, devolve null
         // pra evitar payload com so operadora.
-        val temAlgo = rsrpDbm != null || sinrDb != null || cellId != null ||
-            mcc != null || tecnologiaFinal != null
+        val temAlgo =
+            rsrpDbm != null ||
+                sinrDb != null ||
+                cellId != null ||
+                mcc != null ||
+                tecnologiaFinal != null
         if (!temAlgo) return null
 
         return MovelSnapshot(
@@ -571,13 +610,16 @@ class MonitorTelephonyImpl(
     private fun derivarTecnologia(tm: TelephonyManager): String? {
         val nrAtivo = serviceState?.let { detectarNrAtivo(it) } ?: false
 
-        val dataNetType = runCatching {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                @Suppress("MissingPermission") tm.dataNetworkType
-            } else {
-                @Suppress("DEPRECATION") tm.networkType
-            }
-        }.getOrNull() ?: return null
+        val dataNetType =
+            runCatching {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    @Suppress("MissingPermission")
+                    tm.dataNetworkType
+                } else {
+                    @Suppress("DEPRECATION")
+                    tm.networkType
+                }
+            }.getOrNull() ?: return null
 
         return when (dataNetType) {
             TelephonyManager.NETWORK_TYPE_NR -> "5G SA"
@@ -589,12 +631,14 @@ class MonitorTelephonyImpl(
             TelephonyManager.NETWORK_TYPE_UMTS,
             TelephonyManager.NETWORK_TYPE_EVDO_0,
             TelephonyManager.NETWORK_TYPE_EVDO_A,
-            TelephonyManager.NETWORK_TYPE_EVDO_B -> "3G"
+            TelephonyManager.NETWORK_TYPE_EVDO_B,
+            -> "3G"
             TelephonyManager.NETWORK_TYPE_GPRS,
             TelephonyManager.NETWORK_TYPE_EDGE,
             TelephonyManager.NETWORK_TYPE_CDMA,
             TelephonyManager.NETWORK_TYPE_1xRTT,
-            TelephonyManager.NETWORK_TYPE_IDEN -> "2G"
+            TelephonyManager.NETWORK_TYPE_IDEN,
+            -> "2G"
             else -> null
         }
     }
@@ -615,14 +659,15 @@ class MonitorTelephonyImpl(
             try {
                 @Suppress("NewApi")
                 val regList = ss.networkRegistrationInfoList
-                val nrConnected = regList.any { reg ->
-                    runCatching {
-                        reg.javaClass.getMethod("getNrState").invoke(reg) as? Int == 3
-                    }.getOrElse { t ->
-                        Timber.d("detectarNrAtivo: getNrState() via reflexão falhou em ${reg.javaClass.simpleName} — ativando fallback toString(). Causa: ${t.javaClass.simpleName}: ${t.message}")
-                        false
+                val nrConnected =
+                    regList.any { reg ->
+                        runCatching {
+                            reg.javaClass.getMethod("getNrState").invoke(reg) as? Int == 3
+                        }.getOrElse { t ->
+                            Timber.d("detectarNrAtivo: getNrState() via reflexão falhou em ${reg.javaClass.simpleName} — ativando fallback toString(). Causa: ${t.javaClass.simpleName}: ${t.message}")
+                            false
+                        }
                     }
-                }
                 if (nrConnected) return true
             } catch (t: Throwable) {
                 // networkRegistrationInfoList indisponível ou falha antes de iterar.
@@ -635,7 +680,8 @@ class MonitorTelephonyImpl(
                 val method = ss.javaClass.getDeclaredMethod("isNrAvailable")
                 method.isAccessible = true
                 if (method.invoke(ss) == true) return true
-            } catch (_: Exception) { }
+            } catch (_: Exception) {
+            }
         }
         return runCatching {
             val str = ss.toString()
@@ -689,10 +735,9 @@ class MonitorTelephonyImpl(
         }
     }
 
-    private fun possuiPermissaoReadPhoneState(): Boolean {
-        return ContextCompat.checkSelfPermission(
+    private fun possuiPermissaoReadPhoneState(): Boolean =
+        ContextCompat.checkSelfPermission(
             applicationContext,
             Manifest.permission.READ_PHONE_STATE,
         ) == PackageManager.PERMISSION_GRANTED
-    }
 }

@@ -42,31 +42,34 @@ fun NdsDiagnosticsResponse.toDiagnosticReport(
     val dadosAusentes = results.flatMap { it.missingInputs }.distinct()
     val recomendacao = recommendation?.description ?: recommendationText
     val cards = results.flatMap { modulo -> modulo.cards.map { it.toDiagnosticResult(modulo.module) } }
-    val status = scoring?.let { parseNdsVeredicto(it.veredicto).toDiagnosticStatus() }
-        ?: cards.maxByOrNull { it.status.v2SeverityRank() }?.status
-        ?: DiagnosticStatus.inconclusive
+    val status =
+        scoring?.let { parseNdsVeredicto(it.veredicto).toDiagnosticStatus() }
+            ?: cards.maxByOrNull { it.status.v2SeverityRank() }?.status
+            ?: DiagnosticStatus.inconclusive
 
-    val decisao = DiagnosticResult(
-        id = "nds:${scoring?.veredicto ?: "inconclusivo"}",
-        titulo = ai?.explanation?.tituloAmigavel ?: "Diagnóstico via NDS",
-        status = status,
-        evidencia = null,
-        mensagemUsuario = ai?.explanation?.resumoTecnicoTraduzido
-            ?: recomendacao
-            ?: "Diagnóstico concluído.",
-        recomendacao = recomendacao,
-        recomendacaoPassos = recommendation?.steps.orEmpty(),
-        recomendacaoId = recommendation?.id,
-        sourceFindingIds = recommendation?.sourceFindingIds.orEmpty(),
-        categoria = "nds",
-        podeConcluir = status != DiagnosticStatus.inconclusive,
-        categoriaOrigem = null,
-    )
+    val decisao =
+        DiagnosticResult(
+            id = "nds:${scoring?.veredicto ?: "inconclusivo"}",
+            titulo = ai?.explanation?.tituloAmigavel ?: "Diagnóstico via NDS",
+            status = status,
+            evidencia = null,
+            mensagemUsuario =
+                ai?.explanation?.resumoTecnicoTraduzido
+                    ?: recomendacao
+                    ?: "Diagnóstico concluído.",
+            recomendacao = recomendacao,
+            recomendacaoPassos = recommendation?.steps.orEmpty(),
+            recomendacaoId = recommendation?.id,
+            sourceFindingIds = recommendation?.sourceFindingIds.orEmpty(),
+            categoria = "nds",
+            podeConcluir = status != DiagnosticStatus.inconclusive,
+            categoriaOrigem = null,
+        )
 
     return DiagnosticReport(
         wifiResultados = cards.filter { it.categoria == "wifi" },
         internetResultados = cards.filter { it.categoria == "internet" || it.categoria == "connection" },
-        mobileResultados = emptyList(),
+        mobileResultados = cards.filter { it.categoria == "mobile" },
         fibraResultados = cards.filter { it.categoria == "fibra" },
         dnsResultados = cards.filter { it.categoria == "dns" },
         historicoResultados = emptyList(),
@@ -79,9 +82,10 @@ fun NdsDiagnosticsResponse.toDiagnosticReport(
         limitacoesEquipamentoLocal = emptyList(),
         recomendacoes = if (recommendation == null) emptyList() else listOf(decisao),
         perfisUsoSpeedtest = input.internet?.qualidadeUso,
-        scoreEngineResultado = scoring?.let {
-            ScoreResult(score = it.score, dimensoesUsadas = emptyList(), dadosAusentes = dadosAusentes)
-        },
+        scoreEngineResultado =
+            scoring?.let {
+                ScoreResult(score = it.score, dimensoesUsadas = emptyList(), dadosAusentes = dadosAusentes)
+            },
         perfisUso = emptyList(),
         gameReadiness = emptyList(),
         geradoEmMs = geradoEmMs,
@@ -93,13 +97,14 @@ fun NdsDiagnosticsResponse.toDiagnosticReport(
     )
 }
 
-private fun DiagnosticStatus.v2SeverityRank(): Int = when (this) {
-    DiagnosticStatus.critical -> 4
-    DiagnosticStatus.attention -> 3
-    DiagnosticStatus.info -> 2
-    DiagnosticStatus.ok -> 1
-    DiagnosticStatus.inconclusive -> 0
-}
+private fun DiagnosticStatus.v2SeverityRank(): Int =
+    when (this) {
+        DiagnosticStatus.critical -> 4
+        DiagnosticStatus.attention -> 3
+        DiagnosticStatus.info -> 2
+        DiagnosticStatus.ok -> 1
+        DiagnosticStatus.inconclusive -> 0
+    }
 
 /**
  * Ponte `NdsExplanationV2 -> DiagnosticReport` (feat/nds-client-v2). O contrato v2 não
@@ -116,38 +121,48 @@ private fun DiagnosticStatus.v2SeverityRank(): Int = when (this) {
  * severidade granular (nada equivalente ao `scoring.veredicto` do v1), então "attention"
  * é o piso honesto para "o NDS encontrou algo a explicar", sem fingir um veredito mais
  * fino do que o contrato realmente entrega.
+ *
+ * ## Listas por domínio (`wifiResultados`, `mobileResultados` etc.)
+ * Ficam TODAS vazias aqui de propósito -- diferente do v1, o contrato v2 não devolve
+ * `results[]`/`cards[]` por módulo, só o `explanation` plano acima. Não há card algum
+ * para filtrar por `categoria`, então fingir uma quebra por domínio inventaria estrutura
+ * que o contrato não entrega. O achado vira só a [decisao] única -- ver
+ * [achadosSecundarios] e [evidenciasRemotas], também vazios pelo mesmo motivo.
  */
 private fun NdsDiagnosticsResponse.toDiagnosticReportV2(
     explanation: NdsExplanationV2,
     input: DiagnosticInput,
     geradoEmMs: Long,
 ): DiagnosticReport {
-    val status = if (explanation.semCausaIdentificada) {
-        DiagnosticStatus.inconclusive
-    } else {
-        DiagnosticStatus.attention
-    }
-    val mensagem = explanation.descricao?.takeIf(String::isNotBlank).orEmpty().ifBlank {
+    val status =
         if (explanation.semCausaIdentificada) {
-            "O NDS não conseguiu identificar uma causa provável para o problema com os dados coletados."
+            DiagnosticStatus.inconclusive
         } else {
-            "Diagnóstico concluído."
+            DiagnosticStatus.attention
         }
-    }
-    val decisao = DiagnosticResult(
-        id = "nds:v2:${if (explanation.semCausaIdentificada) "sem_causa" else "explicado"}",
-        titulo = explanation.titulo?.takeIf(String::isNotBlank) ?: "Diagnóstico via NDS",
-        status = status,
-        evidencia = mensagem,
-        mensagemUsuario = mensagem,
-        recomendacao = explanation.acaoUsuario,
-        recomendacaoPassos = listOfNotNull(explanation.acaoUsuario?.takeIf(String::isNotBlank)),
-        recomendacaoId = null,
-        sourceFindingIds = explanation.dados,
-        categoria = "nds",
-        podeConcluir = status != DiagnosticStatus.inconclusive,
-        categoriaOrigem = null,
-    )
+    val mensagem =
+        explanation.descricao?.takeIf(String::isNotBlank).orEmpty().ifBlank {
+            if (explanation.semCausaIdentificada) {
+                "O NDS não conseguiu identificar uma causa provável para o problema com os dados coletados."
+            } else {
+                "Diagnóstico concluído."
+            }
+        }
+    val decisao =
+        DiagnosticResult(
+            id = "nds:v2:${if (explanation.semCausaIdentificada) "sem_causa" else "explicado"}",
+            titulo = explanation.titulo?.takeIf(String::isNotBlank) ?: "Diagnóstico via NDS",
+            status = status,
+            evidencia = mensagem,
+            mensagemUsuario = mensagem,
+            recomendacao = explanation.acaoUsuario,
+            recomendacaoPassos = listOfNotNull(explanation.acaoUsuario?.takeIf(String::isNotBlank)),
+            recomendacaoId = null,
+            sourceFindingIds = explanation.dados,
+            categoria = "nds",
+            podeConcluir = status != DiagnosticStatus.inconclusive,
+            categoriaOrigem = null,
+        )
 
     return DiagnosticReport(
         wifiResultados = emptyList(),
@@ -182,8 +197,9 @@ private fun Map<String, Any?>.string(key: String): String? = this[key] as? Strin
 private fun Map<String, Any?>.boolean(key: String): Boolean = this[key] as? Boolean ?: false
 
 private fun Map<String, Any?>.toDiagnosticResult(module: String): DiagnosticResult {
-    val status = runCatching { DiagnosticStatus.valueOf(string("status") ?: "inconclusive") }
-        .getOrDefault(DiagnosticStatus.inconclusive)
+    val status =
+        runCatching { DiagnosticStatus.valueOf(string("status") ?: "inconclusive") }
+            .getOrDefault(DiagnosticStatus.inconclusive)
     val id = string("id") ?: "$module:card"
     val title = string("titulo") ?: string("title") ?: id
     val evidence = string("evidence") ?: string("evidencia")

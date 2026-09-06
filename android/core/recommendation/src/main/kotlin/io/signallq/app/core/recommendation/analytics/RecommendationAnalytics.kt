@@ -5,7 +5,9 @@ import io.signallq.app.core.recommendation.RecommendationFeedbackType
 import io.signallq.app.core.recommendation.RecommendationType
 
 /** Nome dos eventos de analytics gerados pelo Recommendation Engine, conforme issue #790. */
-enum class RecommendationAnalyticsEventName(val eventName: String) {
+enum class RecommendationAnalyticsEventName(
+    val eventName: String,
+) {
     ELIGIBLE("recommendation_eligible"),
     SHOWN("recommendation_shown"),
     CLICKED("recommendation_clicked"),
@@ -78,13 +80,14 @@ fun RecommendationDecision.toAnalyticsPayload(
     eventName: RecommendationAnalyticsEventName,
     diagnosticId: String?,
     feedback: RecommendationFeedbackType? = null,
-): RecommendationAnalyticsPayload = RecommendationAnalyticsPayload(
-    eventName = eventName,
-    recommendationId = recommendation.id,
-    type = type,
-    score = score,
-    diagnosticId = diagnosticId,
-    monetized = monetized,
-    ruleOrigin = ruleOrigin,
-    feedback = feedback,
-)
+): RecommendationAnalyticsPayload =
+    RecommendationAnalyticsPayload(
+        eventName = eventName,
+        recommendationId = recommendation.id,
+        type = type,
+        score = score,
+        diagnosticId = diagnosticId,
+        monetized = monetized,
+        ruleOrigin = ruleOrigin,
+        feedback = feedback,
+    )

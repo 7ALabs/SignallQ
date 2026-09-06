@@ -17,14 +17,20 @@ sealed interface ResultadoDivergenciaPerfilConexao {
      * ([ConnectionProfile.userConfirmed] `false`) — o chamador deve sobrescrever o perfil com o
      * valor detectado silenciosamente, sem perguntar (ver KDoc de [ConnectionProfile]).
      */
-    data class AtualizavelSilenciosamente(val salvo: String, val detectado: String) : ResultadoDivergenciaPerfilConexao
+    data class AtualizavelSilenciosamente(
+        val salvo: String,
+        val detectado: String,
+    ) : ResultadoDivergenciaPerfilConexao
 
     /**
      * Diverge e o usuário confirmou o valor salvo explicitamente — sobrescrever sem avisar
      * jogaria fora uma escolha deliberada. O chamador deve sinalizar a divergência na UI e deixar
      * o usuário decidir qual valor manter.
      */
-    data class DivergenciaConfirmadaPeloUsuario(val salvo: String, val detectado: String) : ResultadoDivergenciaPerfilConexao
+    data class DivergenciaConfirmadaPeloUsuario(
+        val salvo: String,
+        val detectado: String,
+    ) : ResultadoDivergenciaPerfilConexao
 }
 
 /** Função pura, sem dependência de Android/Hilt/DataStore — testável isoladamente. */

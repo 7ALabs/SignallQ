@@ -12,7 +12,6 @@ import org.junit.Test
  * de forma isolada — sem depender de Context/ConnectivityManager.
  */
 class SubnetPrefixoTest {
-
     // Usamos uma instância fake — o construtor recebe Context mas não é chamado aqui.
     // Como os métodos testados são `internal`, precisamos do próprio objeto. Usamos
     // uma subclasse anônima com Context nulo e tratamos o crash esperado na inicialização.
@@ -85,7 +84,10 @@ class SubnetPrefixoTest {
             (parts[2].toInt() shl 8) or parts[3].toInt()
     }
 
-    private fun intToIpPrefix(networkInt: Int, prefixLen: Int): String? {
+    private fun intToIpPrefix(
+        networkInt: Int,
+        prefixLen: Int,
+    ): String? {
         val a = (networkInt shr 24) and 0xFF
         val b = (networkInt shr 16) and 0xFF
         val c = (networkInt shr 8) and 0xFF
