@@ -101,7 +101,7 @@ internal fun tituloAssistSeguro(
         DiagnosticStatus.ok -> "Sua conexão está funcionando bem"
         DiagnosticStatus.info ->
             when (objetivo) {
-                ObjetivoDiagnostico.JOGOS_COM_LAG -> "Sua conexão funciona, mas pode apresentar atraso durante o jogo"
+                ObjetivoDiagnostico.PROBLEMAS_VIDEO_JOGOS -> "Sua conexão funciona, mas pode apresentar atraso durante o jogo"
                 else -> "Sua conexão funciona, mas pode oscilar em alguns momentos"
             }
         DiagnosticStatus.attention -> "Sua conexão apresenta sinais de instabilidade"
@@ -131,26 +131,22 @@ internal fun mensagemAssistSegura(
             null
         }
     if (
-        objetivo == ObjetivoDiagnostico.JOGOS_COM_LAG &&
+        objetivo == ObjetivoDiagnostico.PROBLEMAS_VIDEO_JOGOS &&
         aumentoSobCarga != null &&
         aumentoSobCarga >= 30.0
     ) {
         return "A resposta aumentou %.0f ms quando a rede ficou ocupada. Isso pode causar atraso perceptível durante as partidas.".format(aumentoSobCarga)
     }
     return when (objetivo) {
-        ObjetivoDiagnostico.JOGOS_COM_LAG ->
+        ObjetivoDiagnostico.PROBLEMAS_VIDEO_JOGOS ->
             when (status) {
                 DiagnosticStatus.ok -> "As medições de resposta e estabilidade estão dentro do esperado para jogos online."
                 DiagnosticStatus.info -> "A conexão funciona, mas pode oscilar ou apresentar atraso em momentos de disputa."
                 DiagnosticStatus.attention, DiagnosticStatus.critical -> "As medições indicam instabilidade que pode causar atrasos ou travadas durante as partidas."
                 DiagnosticStatus.inconclusive -> "Não foi possível medir dados suficientes para avaliar a experiência durante o jogo."
             }
-        ObjetivoDiagnostico.VIDEOS_TRAVAM -> "A conexão pode perder qualidade quando há tráfego simultâneo, especialmente durante o streaming."
-        ObjetivoDiagnostico.INTERNET_CAI_OSCILA -> "As medições indicam que a conexão pode oscilar ou perder estabilidade em alguns momentos."
-        ObjetivoDiagnostico.CHAMADAS_CONGELAM -> "A variação da conexão pode causar cortes no áudio ou congelamentos durante chamadas."
-        ObjetivoDiagnostico.SITES_DEMORAM -> "A resposta da rede pode atrasar a abertura de sites e aplicativos."
-        ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA -> "A velocidade medida pode estar abaixo do esperado para o seu plano ou para o uso atual."
-        ObjetivoDiagnostico.WIFI_VS_OPERADORA -> "As medições ajudam a separar um problema no Wi-Fi de um problema no caminho até a operadora."
+        ObjetivoDiagnostico.INSTABILIDADE_QUEDAS -> "As medições indicam que a conexão pode oscilar ou perder estabilidade em alguns momentos."
+        ObjetivoDiagnostico.LENTIDAO_GERAL -> "A resposta da rede pode atrasar a abertura de sites e aplicativos ou estar abaixo do esperado."
         ObjetivoDiagnostico.OUTRO_PROBLEMA -> "As medições gerais da sua conexão ajudam a entender o que pode estar acontecendo."
     }
 }

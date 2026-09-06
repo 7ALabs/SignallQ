@@ -32,42 +32,13 @@ class ModoGamerConvergenciaCaracterizacaoTest {
         perdaPercentual = perda,
     )
 
-    // ── Jogo selecionado (catalogado) — entrada guiada JOGOS_COM_LAG por cabo ──────────────
-    @Test
-    fun `guiado jogos com lag por cabo fica ok com metricas boas`() {
-        val r =
-            DiagnosticoGuiadoEngine.avaliar(
-                ObjetivoDiagnostico.JOGOS_COM_LAG,
-                respostas = listOf(1), // "Cabo de rede"
-                input = DiagnosticInput(internet = internetCompleto()),
-            )
-        assertEquals(DiagnosticStatus.ok, r.status)
-        assertEquals(3, r.evidencias.size)
-        assertTrue(r.acoes.isEmpty())
-    }
-
-    @Test
-    fun `guiado jogos com lag por wifi soma evidencia de sinal`() {
-        val r =
-            DiagnosticoGuiadoEngine.avaliar(
-                ObjetivoDiagnostico.JOGOS_COM_LAG,
-                respostas = listOf(0), // "Wi-Fi"
-                input =
-                    DiagnosticInput(
-                        internet = internetCompleto(),
-                        wifi = WifiDiagnosticInput(rssiDbm = -50, linkSpeedMbps = 400, frequenciaMhz = 5180),
-                    ),
-            )
-        assertEquals(4, r.evidencias.size)
-        assertTrue(r.evidencias.any { it.label == "Força do sinal Wi-Fi" })
-    }
+    // ── Jogo selecionado (catalogado) — entrada guiada PROBLEMAS_VIDEO_JOGOS por cabo ──────────────
 
     @Test
     fun `guiado jogos com lag fica critica com latencia alta`() {
         val r =
             DiagnosticoGuiadoEngine.avaliar(
-                ObjetivoDiagnostico.JOGOS_COM_LAG,
-                respostas = listOf(1),
+                ObjetivoDiagnostico.PROBLEMAS_VIDEO_JOGOS,
                 input = DiagnosticInput(internet = internetCompleto(latencia = 250.0)),
             )
         assertEquals(DiagnosticStatus.critical, r.status)
@@ -102,7 +73,7 @@ class ModoGamerConvergenciaCaracterizacaoTest {
     // decide não popular DiagnosticInput quando o teste falha) ────────────────────────────
     @Test
     fun `guiado jogos com lag sem input (servidor indisponivel ou timeout) fica inconclusivo`() {
-        val r = DiagnosticoGuiadoEngine.avaliar(ObjetivoDiagnostico.JOGOS_COM_LAG, respostas = listOf(1), input = null)
+        val r = DiagnosticoGuiadoEngine.avaliar(ObjetivoDiagnostico.PROBLEMAS_VIDEO_JOGOS, input = null)
         assertEquals(DiagnosticStatus.inconclusive, r.status)
         assertTrue(r.dadosInsuficientes)
         assertTrue(r.evidencias.isEmpty())
@@ -121,8 +92,7 @@ class ModoGamerConvergenciaCaracterizacaoTest {
     fun `guiado jogos com lag com dados parciais usa so a metrica disponivel`() {
         val r =
             DiagnosticoGuiadoEngine.avaliar(
-                ObjetivoDiagnostico.JOGOS_COM_LAG,
-                respostas = listOf(1),
+                ObjetivoDiagnostico.PROBLEMAS_VIDEO_JOGOS,
                 input =
                     DiagnosticInput(
                         internet =

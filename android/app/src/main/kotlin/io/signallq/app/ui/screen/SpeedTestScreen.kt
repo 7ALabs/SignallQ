@@ -1,4 +1,4 @@
-﻿package io.signallq.app.ui.screen
+package io.signallq.app.ui.screen
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -62,7 +62,6 @@ import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
 import io.signallq.app.feature.speedtest.ModoSpeedtest
 import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
 import io.signallq.app.ui.IspInfo
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
@@ -552,7 +551,7 @@ private fun IdleCircle(
         ) {
             Text(
                 text = "Iniciar teste",
-                color = LkColors.signallQTextOnDark,
+                color = c.onPrimary,
                 style = MaterialTheme.typography.titleLarge,
             )
         }

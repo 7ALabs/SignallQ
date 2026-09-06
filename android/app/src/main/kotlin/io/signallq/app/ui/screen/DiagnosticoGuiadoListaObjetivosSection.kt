@@ -13,13 +13,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CompareArrows
 import androidx.compose.material.icons.outlined.HelpOutline
-import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.SportsEsports
-import androidx.compose.material.icons.outlined.Tv
-import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material3.Icon
@@ -36,13 +32,9 @@ import io.signallq.app.ui.LkTokens
 
 private fun ObjetivoDiagnostico.iconeAssist(): ImageVector =
     when (this) {
-        ObjetivoDiagnostico.INTERNET_CAI_OSCILA -> Icons.Outlined.WifiOff
-        ObjetivoDiagnostico.VIDEOS_TRAVAM -> Icons.Outlined.Tv
-        ObjetivoDiagnostico.JOGOS_COM_LAG -> Icons.Outlined.SportsEsports
-        ObjetivoDiagnostico.CHAMADAS_CONGELAM -> Icons.Outlined.Videocam
-        ObjetivoDiagnostico.SITES_DEMORAM -> Icons.Outlined.Language
-        ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA -> Icons.Outlined.Speed
-        ObjetivoDiagnostico.WIFI_VS_OPERADORA -> Icons.Outlined.CompareArrows
+        ObjetivoDiagnostico.INSTABILIDADE_QUEDAS -> Icons.Outlined.WifiOff
+        ObjetivoDiagnostico.LENTIDAO_GERAL -> Icons.Outlined.Speed
+        ObjetivoDiagnostico.PROBLEMAS_VIDEO_JOGOS -> Icons.Outlined.SportsEsports
         ObjetivoDiagnostico.OUTRO_PROBLEMA -> Icons.Outlined.HelpOutline
     }
 

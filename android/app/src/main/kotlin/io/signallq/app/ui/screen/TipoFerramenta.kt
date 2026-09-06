@@ -65,18 +65,15 @@ object CatalogoFerramentas {
 
 /**
  * Camada A (issue #1503) — mapeia o objetivo escolhido no diagnóstico guiado para a
- * única ferramenta sugerida como próximo passo (nunca as 8). `null` quando não há
+ * única ferramenta sugerida como próximo passo. `null` quando não há
  * mapeamento forte o bastante — regra de produto explícita: nunca empurrar sugestão
- * fraca só pra preencher todos os 7 objetivos (ver corpo da issue #1503).
+ * fraca só pra preencher a lista (ver corpo da issue #1503).
  */
 fun ObjetivoDiagnostico.ferramentaSugerida(): TipoFerramenta? =
     when (this) {
-        ObjetivoDiagnostico.SITES_DEMORAM, ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA -> TipoFerramenta.DNS
-        ObjetivoDiagnostico.INTERNET_CAI_OSCILA -> TipoFerramenta.MONITORAMENTO
-        ObjetivoDiagnostico.WIFI_VS_OPERADORA -> TipoFerramenta.SINAL_WIFI
-        ObjetivoDiagnostico.VIDEOS_TRAVAM,
-        ObjetivoDiagnostico.JOGOS_COM_LAG,
-        ObjetivoDiagnostico.CHAMADAS_CONGELAM,
+        ObjetivoDiagnostico.LENTIDAO_GERAL -> TipoFerramenta.DNS
+        ObjetivoDiagnostico.INSTABILIDADE_QUEDAS -> TipoFerramenta.MONITORAMENTO
+        ObjetivoDiagnostico.PROBLEMAS_VIDEO_JOGOS -> TipoFerramenta.MODO_JOGOS
         // Sem categoria conhecida — nenhuma ferramenta específica é forte o bastante.
         ObjetivoDiagnostico.OUTRO_PROBLEMA,
         -> null
