@@ -14,31 +14,27 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-/**
- * Jogo escolhido na Etapa 1/3 — catalogado ([CatalogoJogosModoGamer], 9 jogos) ou fora do
- * catálogo (usuário escolheu a categoria genérica mais parecida na tela "Outro jogo", nunca
- * um erro — regra de produto da issue #1476).
- */
 sealed interface SelecaoJogoModoGamer {
     val categoria: CategoriaJogoModoGamer
     val nomeExibido: String
+    val officialServerHost: String?
 
     data class Catalogado(
         val jogo: JogoCatalogoModoGamer,
     ) : SelecaoJogoModoGamer {
         override val categoria get() = jogo.categoria
         override val nomeExibido get() = jogo.nome
+        override val officialServerHost get() = jogo.officialServerHost
     }
 
     data class ForaDoCatalogo(
         override val categoria: CategoriaJogoModoGamer,
     ) : SelecaoJogoModoGamer {
         override val nomeExibido get() = categoria.label
+        override val officialServerHost get() = null
     }
 }
 
-/** As 4 telas do fluxo (Etapa 1/3 → 2/3 → 3/3 → resultado), mesma estrutura do protótipo
- *  #1474 (`ModoGamerJogo` → `ModoGamerDevice` → `ModoGamerConfig` → `ModoGamerResultado`). */
 sealed interface ModoGamerEtapa {
     data class SelecaoJogo(
         val busca: String = "",
@@ -48,7 +44,7 @@ sealed interface ModoGamerEtapa {
         val selecaoJogo: SelecaoJogoModoGamer,
     ) : ModoGamerEtapa
 
-    data class Config(
+    data class Medindo(
         val selecaoJogo: SelecaoJogoModoGamer,
         val device: DeviceJogo,
     ) : ModoGamerEtapa
@@ -58,30 +54,10 @@ sealed interface ModoGamerEtapa {
         val device: DeviceJogo,
         val resultado: ResultadoModoGamer,
         val salvoComoPadrao: Boolean,
-        // Issue #1487 (fusão com GH#935) — resultado opcional do StunNatProbe reaproveitado
-        // do legado, ver ModoGamerConfigConteudo/medirPingEspecifico. Puramente informativo
-        // (não é dimensão de [ResultadoModoGamer] — `core/diagnostico` não pode depender de
-        // `feature/diagnostico`), null quando o usuário não pediu a medição dedicada.
         val natUdp: NatUdpResultado? = null,
     ) : ModoGamerEtapa
 }
 
-/**
- * ViewModel do fluxo de 3 etapas do Modo gamer (Feature #550, issue #1476, fundido com o
- * fluxo legado "Jogos" pela issue #1487): jogo → device → salvar como padrão/usar uma vez →
- * resultado. Não é `@HiltViewModel` — criado via `remember{}` no Composable, mesmo padrão do
- * [io.signallq.app.ui.screen.PingScreenViewModel] (escopo do overlay, sem necessidade de
- * sobreviver à recomposição do grafo de navegação).
- *
- * [padraoInicial] (combinação jogo+device já salva, resolvida a partir do
- * `PreferenciasAppRepository.modoGamerPadraoFlow`) pula direto pra etapa
- * [ModoGamerEtapa.Resultado] — cumpre a promessa do protótipo #1474 ("Próxima vez, o Modo
- * gamer já abre direto com {jogo}+{device}"). `null` (nunca salvou) começa em
- * [ModoGamerEtapa.SelecaoJogo].
- *
- * Reaproveita [ModoGamerEngine] (issue #1476) — nenhuma lógica de status/evidência aqui,
- * só orquestração de navegação entre etapas.
- */
 class ModoGamerViewModel(
     padraoInicial: Pair<SelecaoJogoModoGamer, DeviceJogo>?,
     private val inputAtual: () -> DiagnosticInput?,
@@ -91,12 +67,7 @@ class ModoGamerViewModel(
         MutableStateFlow<ModoGamerEtapa>(
             if (padraoInicial != null) {
                 val (selecaoJogo, device) = padraoInicial
-                ModoGamerEtapa.Resultado(
-                    selecaoJogo = selecaoJogo,
-                    device = device,
-                    resultado = ModoGamerEngine.avaliar(selecaoJogo.categoria, device, inputAtual()),
-                    salvoComoPadrao = true,
-                )
+                ModoGamerEtapa.Medindo(selecaoJogo, device)
             } else {
                 ModoGamerEtapa.SelecaoJogo()
             },
@@ -118,7 +89,7 @@ class ModoGamerViewModel(
     fun selecionarDevice(device: DeviceJogo) {
         mutableEtapa.update { atual ->
             val selecaoJogo = (atual as? ModoGamerEtapa.SelecaoDevice)?.selecaoJogo ?: return
-            ModoGamerEtapa.Config(selecaoJogo, device)
+            ModoGamerEtapa.Medindo(selecaoJogo, device)
         }
     }
 
@@ -130,7 +101,7 @@ class ModoGamerViewModel(
         mutableEtapa.update { atual ->
             val selecaoJogo =
                 when (atual) {
-                    is ModoGamerEtapa.Config -> atual.selecaoJogo
+                    is ModoGamerEtapa.Medindo -> atual.selecaoJogo
                     is ModoGamerEtapa.Resultado -> atual.selecaoJogo
                     else -> return
                 }
@@ -138,53 +109,53 @@ class ModoGamerViewModel(
         }
     }
 
-    /**
-     * Etapa 3/3 → resultado. Persiste a combinação como padrão só quando [salvarComoPadrao]
-     * for `true` (opção "Salvar como padrão" da Etapa 3/3) — "Usar só desta vez" nunca
-     * escreve no DataStore.
-     *
-     * [pingEspecificoMs]/[natUdp] (issue #1487) vêm da opção não-bloqueante "Medir ping
-     * específico agora" da etapa `Config` — `null`/`null` (padrão) preserva o comportamento
-     * original, sem medir nada além do [inputAtual] já coletado. Nunca são persistidos
-     * (só o jogo+device são, ver [onSalvarPadrao]) — são um refinamento de uma vez só.
-     */
-    suspend fun confirmar(
-        salvarComoPadrao: Boolean,
-        pingEspecificoMs: Double? = null,
-        natUdp: NatUdpResultado? = null,
+    suspend fun confirmarMedicao(
+        pingEspecificoMs: Double?,
+        jitterMs: Double?,
+        perdaPercentual: Double?,
+        natUdp: NatUdpResultado?,
     ) {
-        val config = mutableEtapa.value as? ModoGamerEtapa.Config ?: return
-        val resultado = ModoGamerEngine.avaliar(config.selecaoJogo.categoria, config.device, inputAtual(), pingEspecificoMs)
+        val medindo = mutableEtapa.value as? ModoGamerEtapa.Medindo ?: return
+        
+        val salvarComoPadrao = true
+        
         if (salvarComoPadrao) {
-            val jogoId = (config.selecaoJogo as? SelecaoJogoModoGamer.Catalogado)?.jogo?.gameId
-            val categoriaFallback = (config.selecaoJogo as? SelecaoJogoModoGamer.ForaDoCatalogo)?.categoria?.name
-            onSalvarPadrao(jogoId, categoriaFallback, config.device.name)
+            val jogoId = (medindo.selecaoJogo as? SelecaoJogoModoGamer.Catalogado)?.jogo?.gameId
+            val categoriaFallback = (medindo.selecaoJogo as? SelecaoJogoModoGamer.ForaDoCatalogo)?.categoria?.name
+            onSalvarPadrao(jogoId, categoriaFallback, medindo.device.name)
         }
+        
+        val resultado = ModoGamerEngine.avaliar(medindo.selecaoJogo.categoria, medindo.device, inputAtual(), pingEspecificoMs, jitterMs, perdaPercentual)
+        
         mutableEtapa.value =
             ModoGamerEtapa.Resultado(
-                selecaoJogo = config.selecaoJogo,
-                device = config.device,
+                selecaoJogo = medindo.selecaoJogo,
+                device = medindo.device,
                 resultado = resultado,
                 salvoComoPadrao = salvarComoPadrao,
                 natUdp = natUdp,
             )
     }
 
-    /** Do resultado, volta pra Etapa 1/3 — mesmo botão "Trocar jogo ou aparelho" do
-     *  protótipo, disponível tanto vindo de resultado normal quanto de padrão salvo. */
+    suspend fun alternarSalvarPadrao(salvarComoPadrao: Boolean) {
+        val resultadoAtual = mutableEtapa.value as? ModoGamerEtapa.Resultado ?: return
+        
+        if (salvarComoPadrao) {
+            val jogoId = (resultadoAtual.selecaoJogo as? SelecaoJogoModoGamer.Catalogado)?.jogo?.gameId
+            val categoriaFallback = (resultadoAtual.selecaoJogo as? SelecaoJogoModoGamer.ForaDoCatalogo)?.categoria?.name
+            onSalvarPadrao(jogoId, categoriaFallback, resultadoAtual.device.name)
+        } else {
+            onSalvarPadrao(null, null, resultadoAtual.device.name)
+        }
+        
+        mutableEtapa.value = resultadoAtual.copy(salvoComoPadrao = salvarComoPadrao)
+    }
+
     fun trocarJogoOuDevice() {
         mutableEtapa.value = ModoGamerEtapa.SelecaoJogo()
     }
 }
 
-/**
- * Resolve o [ModoGamerPadraoPersistido] cru (strings salvas no DataStore, ver
- * `PreferenciasAppRepository.modoGamerPadraoFlow`) para o par tipado que
- * [ModoGamerViewModel] espera. Devolve `null` quando não há padrão salvo, ou quando o
- * `deviceId`/`jogoId`/`categoriaFallback` persistidos não correspondem mais a nenhum valor
- * válido (ex.: enum removido numa versão futura) — nunca lança exceção, mesmo princípio de
- * "fallback, nunca erro" da issue #1476.
- */
 fun resolverPadraoModoGamer(persistido: ModoGamerPadraoPersistido?): Pair<SelecaoJogoModoGamer, DeviceJogo>? {
     if (persistido == null) return null
     val device = runCatching { DeviceJogo.valueOf(persistido.deviceId) }.getOrNull() ?: return null
