@@ -109,6 +109,16 @@ internal fun tituloAssistSeguro(
         DiagnosticStatus.inconclusive -> "Ainda não há dados suficientes para concluir"
     }
 
+/**
+ * No resultado remoto, a conclusão pertence ao NDS. O fallback local só protege uma resposta
+ * incompleta; ele não pode reescrever uma causa que o serviço efetivamente encontrou.
+ */
+internal fun tituloAssistVindoDoNds(
+    tituloNds: String?,
+    objetivo: ObjetivoDiagnostico,
+    status: DiagnosticStatus,
+): String = tituloNds?.takeIf(String::isNotBlank) ?: tituloAssistSeguro(objetivo, status)
+
 private fun resumoStatusAssist(status: DiagnosticStatus): String =
     when (status) {
         DiagnosticStatus.ok -> "Nenhum problema importante foi encontrado nas medições."
@@ -151,13 +161,26 @@ internal fun mensagemAssistSegura(
     }
 }
 
+/** Mesmo critério do título: a explicação do NDS é a mensagem principal do Assist remoto. */
+internal fun mensagemAssistVindaDoNds(
+    mensagemNds: String?,
+    objetivo: ObjetivoDiagnostico,
+    status: DiagnosticStatus,
+    atrasoSobCarga: Double?,
+    latenciaLivre: Double?,
+): String =
+    mensagemNds?.takeIf(String::isNotBlank)
+        ?: mensagemAssistSegura(objetivo, status, atrasoSobCarga, latenciaLivre)
+
 internal fun passosAssistSeguro(
     resultado: ResultadoDiagnosticoGuiado,
     recomendacaoNds: List<String>,
     atrasoSobCarga: Double?,
     latenciaLivre: Double?,
+    usarApenasRecomendacaoNds: Boolean = false,
 ): List<String> {
     if (recomendacaoNds.isNotEmpty()) return recomendacaoNds.take(3)
+    if (usarApenasRecomendacaoNds) return emptyList()
     if (resultado.acoes.isNotEmpty()) return resultado.acoes.take(3)
     val aumentoSobCarga =
         if (atrasoSobCarga != null && latenciaLivre != null) atrasoSobCarga - latenciaLivre else 0.0
@@ -170,6 +193,9 @@ internal fun passosAssistSeguro(
         emptyList()
     }
 }
+
+/** Ferramentas locais são continuidade do motor local, não recomendação do resultado remoto. */
+internal fun deveExibirCtaMelhoriaLocal(veioDoNds: Boolean): Boolean = !veioDoNds
 
 internal fun dadosAusentesEmLinguagemHumana(dadosAusentes: List<String>): String {
     val labels =
@@ -246,10 +272,20 @@ internal fun DiagnosticoGuiadoResultadoSection(
     val latenciaLivre = internet?.latencyMs
     val atrasoSobCarga = internet?.latencyMs?.let { it + (internet.bufferbloatMs ?: 0.0) }
     val titulo =
-        if (veioDoNds) tituloAssistSeguro(resultado.objetivo, status) else decisao?.titulo ?: resultado.mensagemMotor
+        if (veioDoNds) {
+            tituloAssistVindoDoNds(decisao?.titulo, resultado.objetivo, status)
+        } else {
+            decisao?.titulo ?: resultado.mensagemMotor
+        }
     val mensagem =
         if (veioDoNds) {
-            mensagemAssistSegura(resultado.objetivo, status, atrasoSobCarga, latenciaLivre)
+            mensagemAssistVindaDoNds(
+                mensagemNds = decisao?.mensagemUsuario,
+                objetivo = resultado.objetivo,
+                status = status,
+                atrasoSobCarga = atrasoSobCarga,
+                latenciaLivre = latenciaLivre,
+            )
         } else {
             decisao?.mensagemUsuario ?: resultado.mensagemMotor
         }
@@ -259,6 +295,7 @@ internal fun DiagnosticoGuiadoResultadoSection(
             recomendacaoNds = diagnosticReport?.decisao?.recomendacaoPassos.orEmpty(),
             atrasoSobCarga = atrasoSobCarga,
             latenciaLivre = latenciaLivre,
+            usarApenasRecomendacaoNds = veioDoNds,
         )
     val ferramentaSugerida = remember(resultado.objetivo) { resultado.objetivo.ferramentaSugerida() }
     var detalhesAbertos by remember { mutableStateOf(false) }
@@ -512,19 +549,21 @@ internal fun DiagnosticoGuiadoResultadoSection(
             )
         }
         Spacer(Modifier.height(LkSpacing.xl))
-        Button(
-            onClick = {
-                if (ferramentaSugerida != null) {
-                    onAbrirFerramentaSugerida(ferramentaSugerida)
-                } else {
-                    onEscolherOutraSituacao()
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(LkRadius.button),
-            colors = ButtonDefaults.buttonColors(containerColor = c.primary, contentColor = c.onPrimary),
-        ) {
-            Text("Ver como melhorar", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        if (deveExibirCtaMelhoriaLocal(veioDoNds)) {
+            Button(
+                onClick = {
+                    if (ferramentaSugerida != null) {
+                        onAbrirFerramentaSugerida(ferramentaSugerida)
+                    } else {
+                        onEscolherOutraSituacao()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(LkRadius.button),
+                colors = ButtonDefaults.buttonColors(containerColor = c.primary, contentColor = c.onPrimary),
+            ) {
+                Text("Ver como melhorar", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            }
         }
         TextButton(onClick = onEscolherOutraSituacao, modifier = Modifier.fillMaxWidth()) {
             Text("Escolher outra situação", style = MaterialTheme.typography.bodyLarge, color = c.primary)
