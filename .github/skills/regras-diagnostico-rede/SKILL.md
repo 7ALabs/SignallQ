@@ -3,10 +3,8 @@ name: regras-diagnostico-rede
 description: Centraliza thresholds de diagnóstico de rede, padrões técnicos brasileiros (ANATEL), topologia doméstica (CGNAT, duplo-NAT), Wi-Fi, Fibra e redes móveis (4G/5G). Consultar antes de implementar qualquer engine de diagnóstico.
 ---
 
-**Dono:** Camilo. **Modelo sugerido:** Sonnet.
-
 ## Quando usar
-Antes de implementar thresholds de sinal, análise de velocidade, detecção de topologia, qualidade celular ou qualquer engine de diagnóstico de rede.
+Antes de implementar ou revisar thresholds de sinal, análise de velocidade, detecção de topologia, qualidade celular ou qualquer engine de diagnóstico de rede. Confirme sempre que a regra ainda corresponde ao código/testes e à referência técnica aplicável antes de alterá-la.
 
 ## Thresholds Wi-Fi (RSSI em dBm)
 
@@ -67,8 +65,9 @@ Antes de implementar thresholds de sinal, análise de velocidade, detecção de 
 - DFS obrigatório em canais UNII-2 do 5GHz.
 
 ## Limites
-- Esta skill não implementa — apenas orienta com thresholds corretos.
-- Implementação → Camilo (Android).
-- Se o comportamento for variável por ISP → declarar: "Comportamento variável por ISP — recomendar teste em campo."
+- Esta skill orienta regras e thresholds; não define quem implementa.
+- Ramon responde pela coerência do domínio; Davi implementa partes Android quando aplicável; Breno exige teste de regressão para mudança de regra.
+- Se a alteração cruza módulos, Worker/API ou contrato compartilhado, aplique o gate do Camillo.
+- Se o comportamento for variável por ISP, declarar a incerteza e recomendar validação em campo.
 
 > Renomeado de `network-diagnostic-rules` em 2026-06-21. Conteúdo equivalente.

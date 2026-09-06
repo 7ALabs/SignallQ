@@ -49,8 +49,9 @@ certificados/*
 # Issues locais migradas (mantidas como histórico opcional — descomente para ignorar)
 # .issues/
 
-# Tasks/queue dos agentes (estado local)
+# Estado/configuração local de agentes
 .claude/tasks/
+.claude/settings.local.json
 
 # Logs e artefatos gerados (build/upload) — nunca versionar
 build_log.txt

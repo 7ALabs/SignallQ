@@ -1,33 +1,48 @@
 ---
 name: SignallQ-design
-description: Use this skill to generate well-branded interfaces and assets for SignallQ, a Brazilian-Portuguese Android internet-diagnostics app, either for production or throwaway prototypes/mocks/etc. Contains essential design guidelines (Material Design 3 estrito), colors, type, fonts, assets, and UI kit components for prototyping.
+description: Gere interfaces e assets aderentes à marca e ao Design System do SignallQ para produção ou protótipos.
 user-invocable: true
 ---
 
-**Dono:** Camilo (implementação) consulta ao construir UI nova; Claudete valida direção de produto.
-**Divisão de escopo com skills correlatas (sem sobreposição real — entrada e momento diferem):**
-esta skill **gera** UI SignallQ nova (create/prototype); `/design-check` faz checagem pontual de
-um arquivo/tela já implementado contra os tokens aqui definidos; `/auditar-ux` faz auditoria
-profunda multi-tela sob demanda; `impeccable` é o hook automático que roda em todo Edit/Write.
+# SignallQ Design
 
-Read the `README.md` file within this skill, and explore the other available files.
+Use esta skill como ponto de partida para **criar** UI/artefato novo do SignallQ. Para conferir uma tela já implementada, use `design-check`; para auditoria multi-tela, use `auditar-ux`.
 
-Key files:
-- `README.md` — product context, content & visual foundations, iconography, full index.
-- `colors_and_type.css` — all design tokens (CSS vars, `--md-sys-color-*` / `--md-sys-shape-*` /
-  `--md-sys-elevation-*` / `--md-sys-state-*` / `--md-sys-motion-*`) + semantic type classes.
-  Import this in every artifact.
-- `preview/` — design-system reference cards (colors, type, forma, elevação/state layers, spacing, componentes).
-- `assets/` — the SignallQ brand mark.
-- `ui_kits/android/` — high-fidelity React recreation of the app + reusable components (`chrome.jsx` carries the `LK` tokens and shared primitives). Ainda referencia os nomes de token antigos (aliases deprecados em `colors_and_type.css`) — não foi migrado nesta passagem.
+Leia os arquivos desta skill antes de desenhar:
 
-If creating visual artifacts (slides, mocks, throwaway prototypes, etc), copy assets out and create static HTML files for the user to view. If working on production code, copy assets and read the rules here to become an expert in designing with this brand.
+- `README.md` — contexto e índice;
+- `colors_and_type.css` — tokens;
+- `preview/` — referências visuais;
+- `assets/` — marca;
+- `ui_kits/android/` — componentes/recriação de referência.
 
-If the user invokes this skill without any other guidance, ask them what they want to build or design, ask some questions, and act as an expert designer who outputs HTML artifacts _or_ production code, depending on the need.
+A fonte implementada de Design System continua sendo `docs_ai/DESIGN_SYSTEM.md`; specs futuras marcadas como draft são direção, não comportamento já entregue.
 
-Non-negotiables to stay on-brand (MD3, Fluxo de Telas To-Be — correção de 2026-07-13):
-- Material Design 3: `primary=#5B21D6` (chave violeta), `secondary=#2851B8` (azul FIXO, não é mais derivado da tríade HCT do primary), tokens `--md-sys-color-{role}` / `on-{role}` / `{role}-container` / `on-{role}-container`; traffic-light status semantics (green/amber/red); no decorative gradients except the profile avatar & AI header.
-- Tipografia: fonte única do app — Google Sans Flex (fallback Google Sans → Roboto → system-ui), pesos 400/500/600/700, em TODOS os estilos (não mais split display/body). Implementado em PR #939 — arquivo TTF embutido no APK, licença SIL OFL — escala de **12 estilos** (displaySmall até labelSmall; sem display-large/medium/headline-medium, que não aparecem em nenhuma tela do Fluxo de Telas).
-- Forma por componente: **Card 16px**, **SheetFrame 28px** (cantos superiores), **Button 40px altura / 20px radius**, **Field 12px**, **Chip/Badge 999px (pill)**, **Dialog 24px**. Elevação tonal (5 níveis) e state layers (hover 8% / focus 10% / pressed 12% / dragged 16%) mantidos da migração anterior — o Fluxo de Telas não redefine esses sistemas.
-- Brazilian Portuguese, "você", sentence-case titles, UPPERCASE overlines, raw metric + human verdict word, **no emoji** — decisão de produto, não muda com o MD3.
-- Material Symbols (Outlined, variable font FILL/wght/GRAD/opsz) icons only, 24px padrão (FILL 1 só no ícone ativo da Bottom Nav). 8dp spacing grid (8 degraus: xs 4 · sm 8 · md 12 · base 16 · lg 20 · xl 24 · xxl 32 · xxxl 40). SignallQ (AI) surface é DESCONTINUADA — não implementar em tela nova.
+## Princípios
+
+- Material Design 3 e componentes/tokens do projeto;
+- não invente segunda paleta, tipografia ou linguagem de componente;
+- preserve hierarquia clara e densidade adequada a um app de diagnóstico;
+- informação técnica avançada não deve sufocar a ação principal do usuário;
+- estados de loading, empty, error, offline e permission denied são parte do design;
+- acessibilidade Android/TalkBack e contraste são requisitos, não acabamento posterior;
+- não use aparência genérica de “dashboard de IA” nem excesso de cards como solução padrão.
+
+## Produto
+
+Antes de desenhar uma superfície nova, confirme com a direção de produto:
+
+- problema do usuário;
+- entrada no fluxo;
+- comportamento esperado;
+- ação seguinte;
+- nível de detalhe técnico necessário;
+- o que acontece quando a evidência é incompleta.
+
+Cora decide direção de produto; Davi implementa Compose; Ramon valida semântica de diagnóstico quando a UI representa evidência/classificação; Breno revisa qualidade. Mudança sistêmica segue o gate do Camillo.
+
+## Artefatos
+
+Para protótipo descartável, mantenha o artefato claramente separado do código de produção. Para produção, reutilize tokens/assets/componentes existentes e siga os padrões Compose do repo.
+
+Esta skill é procedimento de design, não persona e não define modelo de IA.

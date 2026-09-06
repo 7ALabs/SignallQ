@@ -1,93 +1,56 @@
 ---
 name: analytics-spec
-description: Especifica um evento de telemetria antes da implementação — nome, propriedades tipadas, gatilho, anti-gatilho, dados sensíveis a evitar e consumidor esperado. Absorve a função de dados/telemetria que antes seria pedida ao Gustavo (agora skill, não agente permanente — ADR-016). Invocada por Claudete ou Camilo antes de codificar comportamento novo que precisa ser medido.
-argument-hint: "<nome-da-feature-ou-fluxo>"
+description: Especifica telemetria antes da implementação, incluindo evento, propriedades, gatilho, anti-gatilho, privacidade e consumidor.
+argument-hint: "<feature-ou-fluxo>"
 allowed-tools: Bash(grep *), Read
 ---
 
-## Quando usar
+# Analytics Spec
 
-- Claudete, ao decompor uma issue que menciona "medir", "acompanhar", "saber se o usuário...".
-- Camilo, antes de implementar um fluxo novo que deveria gerar evento e ainda não tem spec.
-- Antes de `/check-done` — se a PR muda comportamento observável e não referencia evento nenhum,
-  isso é sinal de telemetria esquecida (ver critério 4 do check-done, documentação necessária).
+Use quando um comportamento novo ou alterado precisa ser medido. Produto decide **o que vale medir**; esta skill transforma a decisão em contrato de telemetria verificável.
 
-**Não usar para:** analisar dado já coletado (não há dashboard nem ferramenta de análise neste
-repo — SignallQ não tem squad de dados dedicado pós-ADR-016), decidir o que medir do zero sem
-contexto de produto (isso é decisão de Claudete, a skill só formata a especificação).
+## Antes de criar evento
 
-## Convenção real de nomenclatura
-
-**Fonte de verdade:** código existente, não convenção teórica. `android/app/.../analytics/` usa
-snake_case em português, **por domínio da ação, sem prefixo de app redundante** — o Firebase
-Analytics já escopa por app, prefixar `signallq_` em todo evento é ruído. Exemplos confirmados em
-`FirebaseAnalyticsHelper.kt`: `app_aberto`, `speedtest_iniciado`, `speedtest_concluido`.
+Procure eventos existentes para evitar duplicação semântica:
 
 ```bash
-# Ver eventos já existentes antes de propor um novo nome (evitar duplicata/inconsistência)
-grep -rhoE '"[a-z][a-z0-9_]+"' android/app/src/main/kotlin/*/analytics/*.kt 2>/dev/null \
-  | sort -u
+grep -rhoE '"[a-z][a-z0-9_]+"' android/app/src/main/kotlin/*/analytics/*.kt 2>/dev/null | sort -u
 ```
 
-Padrão do nome: `<dominio>_<acao_no_particípio_ou_gerundio>` — ex. `dispositivo_selecionado`,
-`fibra_diagnostico_concluido`. Sem CamelCase, sem espaço, sem verbo no infinitivo.
+Use a convenção real do código como fonte de verdade.
 
-## Estrutura da especificação
+## Especificação
 
-Para cada evento novo, a skill produz:
+Para cada evento, registre:
 
-1. **Nome do evento** — seguindo a convenção acima; checa contra a lista de eventos existentes
-   (grep acima) para evitar duplicata com nome diferente para o mesmo fato.
-2. **Propriedades esperadas** — nome + tipo (String/Long/Double/Boolean), cada uma com 1 linha de
-   propósito. Máximo de propriedades que o Firebase Analytics aceita por evento: 25 — sinalizar se
-   a proposta ultrapassar.
-3. **Quando dispara** — gatilho exato (ação do usuário ou transição de estado), sem ambiguidade
-   ("ao concluir o teste", não "durante o teste").
-4. **Quando NÃO dispara** — casos que parecem o gatilho mas não deveriam contar (ex.: retry
-   automático, teste cancelado pelo usuário, execução em background sem interação).
-5. **Propriedades sensíveis a evitar** — checklist: identificador de dispositivo bruto, endereço
-   IP, SSID de Wi-Fi do usuário, localização, qualquer PII/PLI. Ver
-   `docs_ai/legal/PRIVACY_POLICY.md` para o que já está declarado como coletado — evento novo com
-   dado não declarado ali é bloqueador (mudança de política de dado sensível exige aprovação de
-   Claudete + escalação a Luiz).
-6. **Consumidor esperado** — Firebase Analytics (default), ou também Crashlytics (se for evento de
-   erro), ou Worker Cloudflare via `docs_ai/CONTRATOS/openapi/signallq-analytics-events.yaml`
-   (se o evento precisa ir além do SDK do app).
+- **nome**;
+- **propriedades** com tipo e finalidade;
+- **gatilho exato**;
+- **anti-gatilho** — situações parecidas que não devem contar;
+- **dado sensível proibido/evitado**;
+- **consumidor** (Firebase, Crashlytics, Worker etc.);
+- **retenção/política**, se diferente do comportamento atual;
+- **teste/validação** esperada.
 
-## Saída padrão
+Nunca envie por conveniência IP, SSID, localização, identificador bruto ou outro dado pessoal sem necessidade de produto, base de privacidade e aprovação aplicável.
 
-```
-=== /analytics-spec — fluxo "diagnóstico de fibra" ===
+Mudança de política de dado sensível ou integração sistêmica aciona os gates de `AGENTS.md`; se a telemetria atravessar app↔Worker/API/contrato, Camillo deve revisar a arquitetura.
 
-Evento: fibra_diagnostico_concluido
+## Saída
+
+```text
+ANALYTICS-SPEC — <fluxo>
+Evento: ...
 Propriedades:
-  - resultado: String        (Excelente|Bom|Regular|Fraco)
-  - duracao_ms: Long         (tempo total do diagnóstico)
-  - topologia: String        (roteador_direto|duplo_nat|cgnat)
-Dispara quando: diagnóstico de fibra chega ao veredito final e é exibido ao usuário.
-Não dispara quando: usuário sai da tela antes do veredito, diagnóstico falha por erro técnico
-  (usar fibra_diagnostico_erro para esse caso, evento separado).
-Sensível a evitar: nenhuma propriedade proposta é PII/PLI. Confirmado contra PRIVACY_POLICY.md.
-Consumidor: Firebase Analytics (FirebaseAnalyticsHelper.kt).
-
-Nome já existe na base? Não (grep confirmou).
+- nome: Tipo — finalidade
+Dispara quando: ...
+Não dispara quando: ...
+Dados sensíveis: ...
+Consumidor: ...
+Privacidade/retenção: ...
+Gate Camillo: SIM/NÃO — motivo
+Validação: ...
+Evento equivalente existente: SIM/NÃO — evidência
 ```
 
-## O que a skill NÃO faz
-
-- Não implementa o `logEvent(...)` — só especifica.
-- Não analisa dado já coletado — não há acesso a dashboard de analytics neste repo.
-- Não aprova mudança de política de dado sensível — sinaliza e escala.
-
-## Interação com o fluxo
-
-- Claudete/Camilo invocam antes de implementar comportamento que precisa ser medido.
-- A especificação resultante vira comentário na issue ou trecho do corpo da PR — `/check-done`
-  espera essa evidência quando a mudança adiciona comportamento observável novo.
-
-## Referências
-
-- [`docs_ai/CONTRATOS/openapi/signallq-analytics-events.yaml`](../../../docs_ai/CONTRATOS/openapi/signallq-analytics-events.yaml)
-- [`docs_ai/legal/PRIVACY_POLICY.md`](../../../docs_ai/legal/PRIVACY_POLICY.md)
-- Código real: `android/app/src/main/kotlin/*/analytics/FirebaseAnalyticsHelper.kt`
-- Persona: [Claudete](../../agents/claudete.md), [Camilo](../../agents/camilo.md)
+A skill não implementa `logEvent`, não analisa dados históricos e não aprova nova coleta sensível.
