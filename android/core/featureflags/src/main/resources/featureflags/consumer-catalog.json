@@ -167,6 +167,21 @@
       "analyticsEvent": null
     },
     {
+      "key": "consumer_diagnostico_nds_v2_enabled",
+      "module": ":featureDiagnostico",
+      "type": "BOOLEAN",
+      "defaultValue": false,
+      "criticality": "MEDIUM",
+      "owner": "product-signallq",
+      "description": "Liga o uso do contrato POST /v2/diagnostics/evaluate do NDS (mesmo envelope {raw, explanation} ja suportado pelo parser do Assist) no fluxo principal de diagnostico (DiagnosticOrchestrator.executarProtegido -> NdsDiagnosticRepository.evaluate), no lugar do /v1/diagnostics/evaluate atual. So tem efeito quando consumer_diagnostico_nds_live_enabled tambem esta ligada (o NDS precisa ser a fonte ativa para a rota importar). O v2 e estritamente aditivo sobre o v1 (sem risco de schema); default false preserva o v1 atual e a reversao continua disponivel pelo Firebase Remote Config sem publicar nova versao do app.",
+      "disabledBehavior": "SILENT_NO_OP",
+      "disabledMessage": null,
+      "dependencies": ["consumer_diagnostico_nds_live_enabled"],
+      "androidImplemented": true,
+      "adminManaged": true,
+      "analyticsEvent": null
+    },
+    {
       "key": "consumer_history_enabled",
       "module": ":featureHistory",
       "type": "BOOLEAN",

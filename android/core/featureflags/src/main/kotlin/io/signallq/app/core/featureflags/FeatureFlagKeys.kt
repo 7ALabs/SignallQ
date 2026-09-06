@@ -37,6 +37,16 @@ package io.signallq.app.core.featureflags
  * (`NdsDiagnosticRepository.evaluateForAssist`), no lugar do `/v1/diagnostics/evaluate`
  * atual. O catálogo local inicia ligada; a rota v2 aceita contexto parcial. O endpoint v2 foi
  * publicado pelo NDS na PR #24. A reversão continua disponível via Remote Config.
+ *
+ * [USAR_NDS_V2_NO_FLUXO_PRINCIPAL] (feat/nds-v2-fluxo-principal) segue o mesmo padrão de
+ * [USAR_NDS_V2_NO_ASSIST], mas para o fluxo principal de diagnóstico
+ * (`DiagnosticOrchestrator.executarProtegido` → `NdsDiagnosticRepository.evaluate`, caminho
+ * ligado por [CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED] acima). O v2 é estritamente aditivo sobre
+ * o v1 (request só ganha campos opcionais a mais; response só troca o envelope de
+ * `{...}` direto para `{raw: {...}, explanation: {...}}`, já suportado pelo parser usado no
+ * Assist), então não há risco de schema na migração — só uma troca de rota. Default `false`
+ * preserva o `/v1/diagnostics/evaluate` atual; a flag ligada seleciona v2. A reversão continua
+ * disponível via Remote Config, sem publicar nova versão do app.
  */
 object FeatureFlagKeys {
     val CONSUMER_SPEEDTEST_ENABLED = FeatureFlagKey("consumer_speedtest_enabled")
@@ -50,6 +60,7 @@ object FeatureFlagKeys {
     val CONSUMER_DIAGNOSTICO_SHADOW_MODE_ENABLED = FeatureFlagKey("consumer_diagnostico_shadow_mode_enabled")
     val CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED = FeatureFlagKey("consumer_diagnostico_nds_live_enabled")
     val USAR_NDS_V2_NO_ASSIST = FeatureFlagKey("consumer_diagnostico_assist_nds_v2_enabled")
+    val USAR_NDS_V2_NO_FLUXO_PRINCIPAL = FeatureFlagKey("consumer_diagnostico_nds_v2_enabled")
     val CONSUMER_HISTORY_ENABLED = FeatureFlagKey("consumer_history_enabled")
     val CONSUMER_SETTINGS_ENABLED = FeatureFlagKey("consumer_settings_enabled")
 
@@ -67,6 +78,7 @@ object FeatureFlagKeys {
             CONSUMER_DIAGNOSTICO_SHADOW_MODE_ENABLED,
             CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED,
             USAR_NDS_V2_NO_ASSIST,
+            USAR_NDS_V2_NO_FLUXO_PRINCIPAL,
             CONSUMER_HISTORY_ENABLED,
             CONSUMER_SETTINGS_ENABLED,
         )

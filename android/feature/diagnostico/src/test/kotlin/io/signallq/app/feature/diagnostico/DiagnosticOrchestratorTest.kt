@@ -6,6 +6,7 @@ import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 import io.signallq.app.core.featureflags.FeatureFlagKey
+import io.signallq.app.core.featureflags.FeatureFlagKeys
 import io.signallq.app.core.featureflags.FeatureFlagProvider
 import io.signallq.app.core.featureflags.FeatureFlagRawValue
 import io.signallq.app.core.featureflags.FeatureFlagRefreshResult
@@ -37,14 +38,22 @@ import org.junit.Before
 import org.junit.Test
 import java.util.concurrent.TimeUnit
 
-/** Fake mínimo para os testes de NDS-02k — sempre devolve [enabled], nunca toca rede. */
+/**
+ * Fake mínimo para os testes de NDS-02k — devolve [enabled] pra qualquer chave por default,
+ * nunca toca rede. [overrides] (feat/nds-v2-fluxo-principal) permite testes que precisam de
+ * decisões independentes por flag (ex.: `nds_live` ligada mas `nds_v2` desligada) sem precisar
+ * de um fake novo por combinação.
+ */
 private class FakeFeatureFlagProvider(
     private val enabled: Boolean,
+    private val overrides: Map<FeatureFlagKey, Boolean> = emptyMap(),
 ) : FeatureFlagProvider {
-    override fun observe(key: FeatureFlagKey): Flow<FeatureFlagValue> =
-        flowOf(FeatureFlagValue(key = key, raw = FeatureFlagRawValue.BooleanValue(enabled), source = FeatureFlagSource.DEFAULT))
+    override fun observe(key: FeatureFlagKey): Flow<FeatureFlagValue> {
+        val valor = overrides[key] ?: enabled
+        return flowOf(FeatureFlagValue(key = key, raw = FeatureFlagRawValue.BooleanValue(valor), source = FeatureFlagSource.DEFAULT))
+    }
 
-    override fun isEnabled(key: FeatureFlagKey): Boolean = enabled
+    override fun isEnabled(key: FeatureFlagKey): Boolean = overrides[key] ?: enabled
 
     override suspend fun refresh(force: Boolean): FeatureFlagRefreshResult =
         FeatureFlagRefreshResult.Success(activated = false, fetchTimeMillis = null)
@@ -360,7 +369,14 @@ class DiagnosticOrchestratorTest {
             val orchestrator =
                 DiagnosticOrchestrator(
                     ndsDiagnosticRepository = ndsRepo,
-                    featureFlagProvider = FakeFeatureFlagProvider(enabled = true),
+                    // USAR_NDS_V2_NO_FLUXO_PRINCIPAL desligada explicitamente: este teste cobre
+                    // o v1 (comportamento default), o v2 do fluxo principal tem cobertura
+                    // dedicada na secao feat/nds-v2-fluxo-principal abaixo.
+                    featureFlagProvider =
+                        FakeFeatureFlagProvider(
+                            enabled = true,
+                            overrides = mapOf(FeatureFlagKeys.USAR_NDS_V2_NO_FLUXO_PRINCIPAL to false),
+                        ),
                 )
 
             orchestrator.executar(snapshotSaudavelInput())
@@ -451,5 +467,87 @@ class DiagnosticOrchestratorTest {
             val recorded = server.takeRequest()
             assertEquals("/v2/diagnostics/evaluate", recorded.path)
             assertEquals(DiagnosticEvaluationSource.REMOTE, report.evaluationSource)
+        }
+
+    // -------------------------------------------------------------------
+    // feat/nds-v2-fluxo-principal — executarProtegido le
+    // USAR_NDS_V2_NO_FLUXO_PRINCIPAL e repassa pro NdsDiagnosticRepository, mesmo padrao
+    // ja coberto acima pra USAR_NDS_V2_NO_ASSIST. So importa quando
+    // CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED tambem esta ligada (senao o fluxo nem chama
+    // o NDS).
+    // -------------------------------------------------------------------
+
+    @Test
+    fun `fluxo principal com nds_live ligada e USAR_NDS_V2_NO_FLUXO_PRINCIPAL desligada (default) - chama v1`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(200).setBody(ndsSuccessBody()))
+            val ndsClient = NdsClient(baseUrl = server.url("/").toString(), apiToken = "t", client = OkHttpClient())
+            val ndsRepo = NdsDiagnosticRepository(ndsClient = ndsClient)
+            val orchestrator =
+                DiagnosticOrchestrator(
+                    ndsDiagnosticRepository = ndsRepo,
+                    featureFlagProvider =
+                        FakeFeatureFlagProvider(
+                            enabled = true,
+                            overrides = mapOf(FeatureFlagKeys.USAR_NDS_V2_NO_FLUXO_PRINCIPAL to false),
+                        ),
+                )
+
+            orchestrator.executar(snapshotSaudavelInput())
+
+            val snapshot = orchestrator.snapshotFlow.value
+            assertEquals("/v1/diagnostics/evaluate", server.takeRequest().path)
+            assertEquals(DiagnosticEvaluationSource.REMOTE, snapshot.relatorio?.evaluationSource)
+        }
+
+    @Test
+    fun `fluxo principal com nds_live ligada e USAR_NDS_V2_NO_FLUXO_PRINCIPAL ligada - chama v2`() =
+        runTest {
+            server.enqueue(
+                MockResponse().setResponseCode(200).setBody(
+                    """{"raw":{},"explanation":{"titulo":"t","descricao":"d","dados":[]}}""",
+                ),
+            )
+            val ndsClient = NdsClient(baseUrl = server.url("/").toString(), apiToken = "t", client = OkHttpClient())
+            val ndsRepo = NdsDiagnosticRepository(ndsClient = ndsClient)
+            val orchestrator =
+                DiagnosticOrchestrator(
+                    ndsDiagnosticRepository = ndsRepo,
+                    featureFlagProvider =
+                        FakeFeatureFlagProvider(
+                            enabled = true,
+                            overrides = mapOf(FeatureFlagKeys.USAR_NDS_V2_NO_FLUXO_PRINCIPAL to true),
+                        ),
+                )
+
+            orchestrator.executar(snapshotSaudavelInput())
+
+            val snapshot = orchestrator.snapshotFlow.value
+            assertEquals("/v2/diagnostics/evaluate", server.takeRequest().path)
+            assertEquals(DiagnosticEvaluationSource.REMOTE, snapshot.relatorio?.evaluationSource)
+        }
+
+    @Test
+    fun `fluxo principal com nds_live desligada - USAR_NDS_V2_NO_FLUXO_PRINCIPAL ligada nao tem efeito`() =
+        runTest {
+            // nds_live desligada: o orquestrador nem chama o NdsDiagnosticRepository, entao a
+            // flag v2 (mesmo ligada) nao pode gerar trafego. server.requestCount prova isso.
+            val ndsClient = NdsClient(baseUrl = server.url("/").toString(), apiToken = "t", client = OkHttpClient())
+            val ndsRepo = NdsDiagnosticRepository(ndsClient = ndsClient)
+            val orchestrator =
+                DiagnosticOrchestrator(
+                    ndsDiagnosticRepository = ndsRepo,
+                    featureFlagProvider =
+                        FakeFeatureFlagProvider(
+                            enabled = false,
+                            overrides = mapOf(FeatureFlagKeys.USAR_NDS_V2_NO_FLUXO_PRINCIPAL to true),
+                        ),
+                )
+
+            orchestrator.executar(snapshotSaudavelInput())
+
+            assertEquals(0, server.requestCount)
+            val snapshot = orchestrator.snapshotFlow.value
+            assertEquals(DiagnosticEvaluationSource.BUNDLED_LOCAL, snapshot.relatorio?.evaluationSource)
         }
 }
