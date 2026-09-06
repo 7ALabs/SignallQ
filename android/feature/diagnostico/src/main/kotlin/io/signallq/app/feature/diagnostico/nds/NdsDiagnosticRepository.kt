@@ -37,6 +37,14 @@ import timber.log.Timber
  * `consumer_diagnostico_nds_live_enabled` está ligada. `evaluateForAssist()` ignora essa flag
  * global de propósito e é usado sempre que o usuário entra no Assist.
  *
+ * ## v1/v2 (feat/nds-v2-fluxo-principal)
+ * Ambos os caminhos aceitam `usarNdsV2`/`useV2` e reaproveitam o mesmo parsing de resposta
+ * ([io.signallq.app.core.nds.toDiagnosticReport], via `NdsDiagnosticsResponse.explanationV2`) —
+ * o v2 só troca o envelope de transporte (`{raw, explanation}` em vez do formato direto do v1),
+ * nunca a lógica de mapeamento. `evaluateForAssist()` já lê `USAR_NDS_V2_NO_ASSIST`; `evaluate()`
+ * agora também aceita a decisão equivalente do fluxo principal, `USAR_NDS_V2_NO_FLUXO_PRINCIPAL`,
+ * lida por [io.signallq.app.feature.diagnostico.DiagnosticOrchestrator.executarProtegido].
+ *
  * ## Tratamento de falhas
  * [NdsClient.evaluate] não lança exceção de rede (todo erro vira [NdsDiagnosticsOutcome]). O
  * caminho legado converte esses estados para fallback local; o caminho Assist os converte para
@@ -83,6 +91,13 @@ class NdsDiagnosticRepository(
             useV2 = usarNdsV2,
         )
 
+    /**
+     * [usarNdsV2] (feat/nds-v2-fluxo-principal) — decisão de
+     * `FeatureFlagKeys.USAR_NDS_V2_NO_FLUXO_PRINCIPAL`, lida pelo chamador
+     * ([io.signallq.app.feature.diagnostico.DiagnosticOrchestrator.executarProtegido]), mesmo
+     * padrão já usado por [evaluateForAssist] para `USAR_NDS_V2_NO_ASSIST`. Este repository não
+     * lê flags diretamente. Default `false` preserva o contrato v1 inalterado.
+     */
     suspend fun evaluate(
         input: DiagnosticInput,
         enabledAreas: Set<DiagnosticArea> = DiagnosticArea.entries.toSet(),
@@ -92,7 +107,8 @@ class NdsDiagnosticRepository(
         // diagnostico atual roda dentro do Modo Gamer. Default `false` preserva o
         // comportamento atual; quem chamar de dentro do Modo Gamer deve passar `true`.
         perfilGamer: Boolean = false,
-    ): DiagnosticReport = evaluate(input, enabledAreas, perfilGamer, fallbackLocalOnError = true, useV2 = false)
+        usarNdsV2: Boolean = false,
+    ): DiagnosticReport = evaluate(input, enabledAreas, perfilGamer, fallbackLocalOnError = true, useV2 = usarNdsV2)
 
     private suspend fun evaluate(
         input: DiagnosticInput,
