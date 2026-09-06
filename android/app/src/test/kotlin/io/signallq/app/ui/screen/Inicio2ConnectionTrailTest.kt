@@ -32,7 +32,7 @@ class Inicio2ConnectionTrailTest {
     fun `mesh provavel ou mesmo SSID sem confirmacao nao vira no da trilha`() {
         val state = Inicio2ConnectionTrailMapper.map(redeConectada(), scanMesh(), true)
 
-        assertFalse(state.nodes.any { it.title == "Mesh" })
+        assertFalse(state.nodes.any { it.id == "Mesh" })
     }
 
     @Test
@@ -45,7 +45,7 @@ class Inicio2ConnectionTrailTest {
                 temConfirmacaoRoteadorCentral = false,
             )
 
-        assertFalse(state.nodes.any { it.title == "Mesh" })
+        assertFalse(state.nodes.any { it.id == "Mesh" })
     }
 
     @Test
@@ -58,14 +58,14 @@ class Inicio2ConnectionTrailTest {
                 temConfirmacaoRoteadorCentral = true,
             )
 
-        assertTrue(state.nodes.any { it.title == "Mesh" })
+        assertTrue(state.nodes.any { it.id == "Mesh" })
     }
 
     @Test
     fun `permissao ausente mantem trilha parcial sem afirmar mesh`() {
         val state = Inicio2ConnectionTrailMapper.map(redeConectada(), scanMesh(), false)
 
-        assertFalse(state.nodes.any { it.title == "Mesh" })
+        assertFalse(state.nodes.any { it.id == "Mesh" })
         assertEquals("Permita redes próximas para completar a trilha.", state.supportingMessage)
     }
 
@@ -77,13 +77,13 @@ class Inicio2ConnectionTrailTest {
         val offline = map(EstadoConexao.desconectado)
         val desconhecido = map(EstadoConexao.desconhecido)
 
-        assertEquals(listOf("Internet", "Equipamento", "Mesh", "Wi-Fi", "Este aparelho"), wifi.nodes.map { it.title })
-        assertEquals(listOf("Internet", "Rede móvel", "Este aparelho"), movel.nodes.map { it.title })
-        assertEquals(listOf("Internet", "Equipamento", "Ethernet", "Este aparelho"), ethernet.nodes.map { it.title })
-        assertEquals(listOf("Internet", "Este aparelho"), offline.nodes.map { it.title })
-        assertEquals(listOf("Conexão", "Este aparelho"), desconhecido.nodes.map { it.title })
+        assertEquals(listOf("Internet", "Equipamento", "Mesh", "Wi-Fi", "Este aparelho"), wifi.nodes.map { it.id })
+        assertEquals(listOf("Internet", "Rede móvel", "Este aparelho"), movel.nodes.map { it.id })
+        assertEquals(listOf("Internet", "Equipamento", "Ethernet", "Este aparelho"), ethernet.nodes.map { it.id })
+        assertEquals(listOf("Internet", "Este aparelho"), offline.nodes.map { it.id })
+        assertEquals(listOf("Conexão", "Este aparelho"), desconhecido.nodes.map { it.id })
         assertEquals("Verificando tipo de rede", desconhecido.nodes.first().detail)
-        assertTrue(listOf(movel, ethernet, offline, desconhecido).none { state -> state.nodes.any { it.title == "Mesh" } })
+        assertTrue(listOf(movel, ethernet, offline, desconhecido).none { state -> state.nodes.any { it.id == "Mesh" } })
     }
 
     @Test
@@ -94,7 +94,7 @@ class Inicio2ConnectionTrailTest {
                     Inicio2ConnectionTrail(
                         state =
                             Inicio2ConnectionTrailState(
-                                nodes = listOf(Inicio2TrailNode("Equipamento", "Roteador")),
+                                nodes = listOf(Inicio2TrailNode("Equipamento", "Equipamento principal", "Roteador")),
                                 supportingMessage = null,
                             ),
                     )

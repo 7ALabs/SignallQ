@@ -33,7 +33,8 @@ import io.signallq.app.core.network.wifi.SnapshotScanWifi
 import io.signallq.app.ui.LkSpacing
 
 internal data class Inicio2TrailNode(
-    val title: String,
+    val id: String,
+    val label: String,
     val detail: String,
 )
 
@@ -48,9 +49,12 @@ internal object Inicio2ConnectionTrailMapper {
         snapshotWifi: SnapshotScanWifi,
         temPermissaoLocalizacao: Boolean,
         temConfirmacaoRoteadorCentral: Boolean = false,
+        ispName: String? = null,
+        equipmentName: String? = null,
+        deviceName: String? = null,
     ): Inicio2ConnectionTrailState {
         if (snapshotRede.estadoConexao != EstadoConexao.wifi) {
-            return mapSemWifi(snapshotRede.estadoConexao)
+            return mapSemWifi(snapshotRede.estadoConexao, ispName, equipmentName, deviceName)
         }
         val classificacoes =
             if (temPermissaoLocalizacao && snapshotWifi.estado == EstadoScanWifi.concluido) {
@@ -71,16 +75,17 @@ internal object Inicio2ConnectionTrailMapper {
                 }
         val nodes =
             buildList {
-                add(Inicio2TrailNode("Internet", "Conectada"))
-                add(Inicio2TrailNode("Equipamento", "Roteador ou modem"))
-                if (meshConfirmado) add(Inicio2TrailNode("Mesh", "Nó confirmado pela topologia"))
+                add(Inicio2TrailNode("Internet", ispName?.takeIf { it.isNotBlank() } ?: "Internet", "Conectada"))
+                add(Inicio2TrailNode("Equipamento", equipmentName?.takeIf { it.isNotBlank() } ?: "Equipamento principal", "Roteador ou modem"))
+                if (meshConfirmado) add(Inicio2TrailNode("Mesh", "Nó mesh da sala", "Nó confirmado pela topologia"))
                 add(
                     Inicio2TrailNode(
                         "Wi-Fi",
-                        snapshotRede.wifiLinkSnapshot?.ssid?.takeIf { it.isNotBlank() } ?: "Rede local",
+                        snapshotRede.wifiLinkSnapshot?.ssid?.takeIf { it.isNotBlank() } ?: "Wi-Fi",
+                        "Rede local",
                     ),
                 )
-                add(Inicio2TrailNode("Este aparelho", "Conectado por Wi-Fi"))
+                add(Inicio2TrailNode("Este aparelho", deviceName?.takeIf { it.isNotBlank() } ?: "Este aparelho", "Conectado por Wi-Fi"))
             }
         val supportingMessage =
             when {
@@ -92,15 +97,20 @@ internal object Inicio2ConnectionTrailMapper {
         return Inicio2ConnectionTrailState(nodes, supportingMessage)
     }
 
-    private fun mapSemWifi(estado: EstadoConexao): Inicio2ConnectionTrailState =
+    private fun mapSemWifi(
+        estado: EstadoConexao,
+        ispName: String?,
+        equipmentName: String?,
+        deviceName: String?,
+    ): Inicio2ConnectionTrailState =
         when (estado) {
             EstadoConexao.movel ->
                 Inicio2ConnectionTrailState(
                     nodes =
                         listOf(
-                            Inicio2TrailNode("Internet", "Conectada"),
-                            Inicio2TrailNode("Rede móvel", "Dados móveis ativos"),
-                            Inicio2TrailNode("Este aparelho", "Conectado pela rede móvel"),
+                            Inicio2TrailNode("Internet", ispName?.takeIf { it.isNotBlank() } ?: "Internet", "Conectada"),
+                            Inicio2TrailNode("Rede móvel", "Dados móveis ativos", "Dados móveis ativos"),
+                            Inicio2TrailNode("Este aparelho", deviceName?.takeIf { it.isNotBlank() } ?: "Este aparelho", "Conectado pela rede móvel"),
                         ),
                     supportingMessage = null,
                 )
@@ -108,10 +118,10 @@ internal object Inicio2ConnectionTrailMapper {
                 Inicio2ConnectionTrailState(
                     nodes =
                         listOf(
-                            Inicio2TrailNode("Internet", "Conectada"),
-                            Inicio2TrailNode("Equipamento", "Roteador ou modem"),
-                            Inicio2TrailNode("Ethernet", "Rede cabeada"),
-                            Inicio2TrailNode("Este aparelho", "Conectado por cabo"),
+                            Inicio2TrailNode("Internet", ispName?.takeIf { it.isNotBlank() } ?: "Internet", "Conectada"),
+                            Inicio2TrailNode("Equipamento", equipmentName?.takeIf { it.isNotBlank() } ?: "Equipamento principal", "Roteador ou modem"),
+                            Inicio2TrailNode("Ethernet", "Ethernet", "Rede cabeada"),
+                            Inicio2TrailNode("Este aparelho", deviceName?.takeIf { it.isNotBlank() } ?: "Este aparelho", "Conectado por cabo"),
                         ),
                     supportingMessage = null,
                 )
@@ -119,8 +129,8 @@ internal object Inicio2ConnectionTrailMapper {
                 Inicio2ConnectionTrailState(
                     nodes =
                         listOf(
-                            Inicio2TrailNode("Internet", "Sem acesso"),
-                            Inicio2TrailNode("Este aparelho", "Sem conexão ativa"),
+                            Inicio2TrailNode("Internet", "Internet", "Sem acesso"),
+                            Inicio2TrailNode("Este aparelho", deviceName?.takeIf { it.isNotBlank() } ?: "Este aparelho", "Sem conexão ativa"),
                         ),
                     supportingMessage = "Conecte-se a uma rede para completar a trilha.",
                 )
@@ -128,8 +138,8 @@ internal object Inicio2ConnectionTrailMapper {
                 Inicio2ConnectionTrailState(
                     nodes =
                         listOf(
-                            Inicio2TrailNode("Conexão", "Verificando tipo de rede"),
-                            Inicio2TrailNode("Este aparelho", "Aguardando identificação"),
+                            Inicio2TrailNode("Conexão", "Conexão", "Verificando tipo de rede"),
+                            Inicio2TrailNode("Este aparelho", deviceName?.takeIf { it.isNotBlank() } ?: "Este aparelho", "Aguardando identificação"),
                         ),
                     supportingMessage = "Aguarde enquanto identificamos a conexão.",
                 )
@@ -198,20 +208,13 @@ private fun Inicio2TrailItem(
     color: io.signallq.app.ui.LkTokens,
     modifier: Modifier = Modifier,
 ) {
-    val displayTitle =
-        when (node.title) {
-            "Equipamento" -> "Equipamento principal"
-            "Mesh" -> "Nó mesh da sala"
-            "Wi-Fi" -> "Wi-Fi 5 GHz"
-            else -> node.title
-        }
     val icon =
         when {
-            node.title == "Internet" -> Icons.Outlined.Public
-            node.title == "Equipamento" -> Icons.Outlined.Router
-            node.title == "Mesh" || node.title == "Nó mesh" -> Icons.Outlined.Hub
-            node.title == "Wi-Fi" -> Icons.Outlined.Wifi
-            node.title == "Este aparelho" -> Icons.Outlined.Smartphone
+            node.id == "Internet" -> Icons.Outlined.Public
+            node.id == "Equipamento" -> Icons.Outlined.Router
+            node.id == "Mesh" || node.id == "Nó mesh" -> Icons.Outlined.Hub
+            node.id == "Wi-Fi" -> Icons.Outlined.Wifi
+            node.id == "Este aparelho" -> Icons.Outlined.Smartphone
             else -> Icons.Outlined.Wifi
         }
     Column(
@@ -226,11 +229,12 @@ private fun Inicio2TrailItem(
             Icon(icon, contentDescription = null, tint = color.textSecondary, modifier = Modifier.size(LkSpacing.lg))
         }
         Text(
-            text = displayTitle,
+            text = node.label,
             style = MaterialTheme.typography.labelSmall,
             color = color.textPrimary,
             maxLines = 2,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
         )
     }
 }

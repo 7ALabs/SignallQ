@@ -1,4 +1,4 @@
-﻿package io.signallq.app.ui.screen
+package io.signallq.app.ui.screen
 
 import android.content.ActivityNotFoundException
 import android.content.ClipData
@@ -748,6 +748,9 @@ fun AppShell(
                                         snapshotRede = snapshotRede,
                                         snapshotWifi = snapshotWifi,
                                         temPermissaoLocalizacao = temPermissaoLocalizacao,
+                                        ispName = if (snapshotRede.estadoConexao == EstadoConexao.movel) operadoraMovel else ispInfoData?.isp,
+                                        equipmentName = localDevice?.modelo,
+                                        deviceName = deviceName,
                                     ),
                                 onAbrirVideos = {
                                     onAbrirDiagnosticoGuiado(EntradaAssist.VideoOuChamada, null, null)
