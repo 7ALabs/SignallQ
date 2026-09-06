@@ -1,73 +1,48 @@
 ---
-name: SignallQ
-description: Diagnóstico de conectividade Android que traduz jargão de rede em veredito humano.
+name: SignallQ 2.0
+description: Sistema visual leve e nativo Android para diagnóstico de conectividade orientado.
 colors:
   primary: "#5B21D6"
+  on-primary: "#FFFFFF"
   primary-container: "#EAE0FF"
-  secondary: "#2851B8"
-  accent-blue: "#2563EB"
+  on-primary-container: "#210A5C"
+  secondary-legacy: "#2851B8"
   success: "#146C2E"
   warning: "#8A5000"
   error: "#BA1A1A"
-  phase-latencia: "#2563EB"
-  phase-download: "#146C2E"
-  phase-upload: "#8A5000"
-  bg-primary: "#FFFFFF"
-  bg-secondary: "#F8F5FB"
-  bg-card: "#F3EEFA"
-  text-primary: "#1C1B1F"
-  text-secondary: "#49454F"
-  text-tertiary: "#49454F"
-  border: "#CAC4D0"
-  warning-container: "#FFDDB3"
-  on-warning-container: "#2B1700"
-  amber-surface: "#FFF3CD"
-  success-container: "#B6F2BE"
-  on-success-container: "#04210D"
-  signallq-black: "#0D0D1A"
-  signallq-dark-surface: "#1A0B2E"
-  signallq-dark-card: "#1E1130"
-  signallq-text-on-dark: "#F3F4F6"
-  signallq-text-secondary-on-dark: "#B9B2C4"
+  background-light: "#FFFFFF"
+  surface-light: "#F8F5FB"
+  surface-container-light: "#F3EEFA"
+  text-primary-light: "#1C1B1F"
+  text-secondary-light: "#49454F"
+  outline-light: "#79747E"
+  background-dark: "#000000"
+  surface-dark: "#121212"
+  surface-container-dark: "#1E1E1E"
+  surface-container-high-dark: "#2A2A2A"
+  card-surface-light: "#F7F7F8"
+  card-surface-dark: "#161616"
+  card-surface-elevated-light: "#EEEEF0"
+  card-surface-elevated-dark: "#222222"
+  text-primary-dark: "#F5F2F7"
+  text-secondary-dark: "#CAC4D0"
+  outline-dark: "#938F99"
 typography:
-  display:
-    fontFamily: "'Google Sans Flex', 'Google Sans', 'Roboto', system-ui, sans-serif"
-    fontSize: "34px"
-    fontWeight: 700
-    lineHeight: 1.18
-  headline:
-    fontFamily: "'Google Sans Flex', 'Google Sans', 'Roboto', system-ui, sans-serif"
-    fontSize: "26px"
-    fontWeight: 700
-    lineHeight: 1.23
-  title:
-    fontFamily: "'Google Sans Flex', 'Google Sans', 'Roboto', system-ui, sans-serif"
-    fontSize: "16px"
-    fontWeight: 600
-    lineHeight: 1.375
-  body:
-    fontFamily: "'Google Sans Flex', 'Google Sans', 'Roboto', system-ui, sans-serif"
-    fontSize: "16px"
-    fontWeight: 400
-    lineHeight: 1.5
-  label:
-    fontFamily: "'Google Sans Flex', 'Google Sans', 'Roboto', system-ui, sans-serif"
-    fontSize: "14px"
-    fontWeight: 500
-    lineHeight: 1.43
-  overline:
-    fontFamily: "'Google Sans Flex', 'Google Sans', 'Roboto', system-ui, sans-serif"
-    fontSize: "11px"
-    fontWeight: 500
-    lineHeight: 1.45
-    letterSpacing: "0.3px"
+  family: "'Google Sans Flex', 'Google Sans', 'Roboto', system-ui, sans-serif"
+  display: "700 34px/40px"
+  headline-large: "700 26px/32px"
+  headline-small: "600 22px/28px"
+  title-large: "600 20px/26px"
+  title-medium: "500 16px/22px"
+  body-large: "400 16px/24px"
+  body-medium: "400 14px/20px"
+  label-large: "500 14px/20px"
 rounded:
-  card: "16px"
-  button: "20px"
-  input: "12px"
+  small: "8px"
+  medium: "12px"
+  large: "16px"
   sheet: "28px"
-  dialog: "24px"
-  pill: "999px"
+  full: "999px"
 spacing:
   xs: "4px"
   sm: "8px"
@@ -77,161 +52,221 @@ spacing:
   xl: "24px"
   xxl: "32px"
   xxxl: "40px"
-components:
-  button-primary:
-    backgroundColor: "{colors.primary}"
-    textColor: "#FFFFFF"
-    rounded: "{rounded.button}"
-    padding: "16px 24px"
-  chip-idle:
-    backgroundColor: "{colors.bg-secondary}"
-    textColor: "{colors.text-secondary}"
-    rounded: "{rounded.pill}"
-    padding: "8px 16px"
-  chip-selected:
-    backgroundColor: "{colors.primary-container}"
-    textColor: "{colors.primary}"
-    rounded: "{rounded.pill}"
-    padding: "8px 16px"
-  card-default:
-    backgroundColor: "{colors.bg-card}"
-    rounded: "{rounded.card}"
-    padding: "16px"
+  section: "48px"
+  section-large: "64px"
 ---
 
-# Design System: SignallQ
+# Design System — SignallQ 2.0
 
-## 1. Overview
+## Escopo desta versão
 
-**Creative North Star: "The Calm Translator"**
+O sistema cobre **UI de produto**, evolui a marca SignallQ existente e, nesta primeira versão,
+formaliza somente **foundations e componentes centrais**. Templates de tela, componentes de
+domínio e implementação ficam para as próximas etapas.
 
-SignallQ pega o vocabulário técnico de uma conexão de internet — RSSI, jitter, dBm, bufferbloat — e traduz em um veredito que qualquer pessoa entende: Excelente, Bom, Regular, Fraco, Forte. A superfície é Material 3 clara, branca e neutra; nada visual disputa atenção com o dado. Um único violeta marca ação e identidade; o resto do significado é carregado pela semântica de trânsito (verde/âmbar/vermelho). O sistema rejeita o visual cru de apps de speedtest genéricos (números soltos, sem contexto humano) e o visual denso de dashboards técnicos de rede — o objetivo é sempre "jargão, depois tradução", nunca jargão sozinho.
+## Direção criativa
 
-**Key Characteristics:**
-- Superfícies claras, planas, sem imagem/textura/gradiente decorativo (exceto avatar de perfil)
-- Uma cor de marca (violeta), usada com parcimônia
-- Verde/âmbar/vermelho carregam significado de qualidade — nunca decoração
-- Métrica crua sempre ao lado do veredito humano
+**Um guia calmo para uma rede confusa.**
 
-## 2. Colors
+O SignallQ deve parecer um app nativo de um aparelho Android feito pelo Google: familiar, leve,
+preciso e silenciosamente competente. O visual ajuda a pessoa a tomar uma decisão; não tenta
+impressioná-la com complexidade técnica.
 
-Paleta majoritariamente branco e tons neutros de superfície; violeta satura só onde há ação ou identidade; cores de status fazem o trabalho pesado de significado. Secondary é um azul fixo, não mais derivado do primary (migração MD3 estrito de 2026-07-11/13 — ver `docs_ai/design-system/DECISAO_ALINHAMENTO_TOBE_2026-07-13.md`).
+## Princípios
 
-### Primary
-- **Primary** (`#5B21D6` claro / `#D0BCFF` escuro): CTA primário, tab de navegação ativa, seleção, botão de speedtest (disco sólido com glow suave da mesma cor).
+1. **Diagnóstico antes da ferramenta.** Comece pelo que a pessoa sente; escolha a medição depois.
+2. **Humano antes do técnico.** Veredito e ação vêm antes de valores, siglas e gráficos.
+3. **Uma decisão por tela.** O CTA principal deve ser evidente sem competir com ações secundárias.
+4. **Espaço é estrutura.** Use respiro, tipografia e alinhamento antes de criar containers.
+5. **Confiança sem falsa certeza.** Diferencie fato, indício e hipótese.
+6. **Android de verdade.** Material 3, padrões de navegação e movimento coerentes com a plataforma.
 
-### Secondary
-- **Secondary** (`#2851B8` claro / `#AAC7FF` escuro): chip de dado "Móvel", DNS privado, links — azul fixo, não deriva do primary.
+## Cor
 
-### Tertiary
-- **Phase Latência** (`#2563EB` claro / `#AAC7FF` escuro), **Phase Download** (`#146C2E` claro / `#83DA99` escuro), **Phase Upload** (`#8A5000` claro / `#FFB870` escuro): cores dedicadas às três fases do speedtest, usadas só no gráfico/gauge de progresso.
+O violeta `#5B21D6` é assinatura, não papel de parede. Use-o em:
 
-### Neutral
-- **Bg Primary** (`#FFFFFF` claro / `#131217` escuro): fundo principal de tela.
-- **Bg Secondary** (`#F8F5FB` claro / `#1D1B20` escuro): superfícies secundárias, chips idle.
-- **Bg Card** (`#F3EEFA` claro / `#211F26` escuro): cards e superfícies de conteúdo.
-- **Text Primary** (`#1C1B1F` claro / `#E6E0E9` escuro): título e corpo.
-- **Text Secondary** (`#49454F` claro / `#CAC4D0` escuro): descrições.
-- **Text Tertiary** (`#49454F` claro / `#CAC4D0` escuro): labels, captions, overlines — mesmo valor de Text Secondary (não há um segundo degrau de neutro no Fluxo de Telas To-Be).
-- **Border** (`#CAC4D0` claro / `#49454F` escuro): divisores, bordas leves.
+- CTA primário;
+- seleção atual;
+- foco;
+- navegação ativa;
+- momentos breves de identidade.
 
-### Status
-- **Success** (`#146C2E` claro / `#83DA99` escuro): conexão boa, teste OK. Container: `#B6F2BE` / on-container `#04210D`.
-- **Warning** (`#8A5000` claro / `#FFB870` escuro): alertas moderados. Container: `#FFDDB3` / on-container `#2B1700`. Surface âmbar dedicada (alias legado): `#FFF3CD`.
-- **Error** (`#BA1A1A` claro / `#FFB4AB` escuro): falhas críticas de conexão.
+Não use violeta em grandes fundos, em todos os cards, em gráficos inteiros ou como substituto de
+hierarquia. Verde, âmbar e vermelho são exclusivamente semânticos. O azul legado não participa da
+paleta ativa da UI 2.0; permanece apenas no logo e como compatibilidade durante a migração.
 
-### SignallQ (IA) — descontinuada no To-Be
-- **SignallQ Black** (`#0D0D1A`), **SignallQ Dark Surface** (`#1A0B2E`), **SignallQ Dark Card** (`#1E1130`): paleta escura fixa da antiga superfície de IA, que não seguia o tema claro/escuro do sistema. Essa superfície está **descontinuada** no Fluxo de Telas To-Be — não implementar rota ou componente novo para ela. Tokens mantidos no código só por legado/compatibilidade.
+### Tema claro
 
-### Named Rules
-**The One Accent Rule.** Violeta aparece só em CTA, seleção e nav ativa — nunca como cor de fundo geral ou decoração. Se a tela precisa de mais destaque, o destaque é semântico (status), não de marca.
+- Fundo: `#FFFFFF`
+- Superfície discreta: `#F8F5FB`
+- Container: `#F3EEFA`
+- Texto principal: `#1C1B1F`
+- Texto secundário: `#49454F`
 
-## 3. Typography
+### Tema escuro
 
-**Display Font:** 'Google Sans Flex', 'Google Sans', 'Roboto', system-ui, sans-serif (Google Sans Flex embutido no APK, licença SIL OFL — PR #939; Roboto como fallback do sistema)
-**Body Font:** mesma família — fonte única em todos os estilos, sem split display/body
-**Label Font:** mesma família, com tracking positivo (+0.3px) e uppercase nos overlines
+O fundo principal é preto total `#000000`. A hierarquia nasce de superfícies próximas:
+`#121212`, `#1E1E1E` e, apenas quando necessário, `#2A2A2A`. Evite transformar o tema escuro
+em uma tela roxa ou cinza uniforme.
 
-**Character:** Uma única família tipográfica carrega toda a hierarquia — a distinção vem de peso e tamanho, não de mistura de fontes. Números grandes e em negrito com unidade pequena e secundária ao lado (`87 Mbps`) é o tratamento assinatura de métrica.
+## Tipografia
 
-### Hierarchy
-- **Display** (700, 34px/40px, small — único display usado no Fluxo de Telas; display-large/display-medium não existem em nenhuma tela): resultado de teste, número hero de velocidade.
-- **Headline** (700, 26px/32px large · 600, 22px/28px small): títulos de tela e seção.
-- **Title** (600, 16px/22px large · 500, 16px/22px medium · 500, 14px/20px small): subtítulos, títulos de card.
-- **Body** (400, 16px/24px large · 14px/20px medium · 12px/16px small; medium/small usam text-secondary): texto corrido.
-- **Label** (500, 14px/20px large · 12px/16px medium · 11px/16px small): labels de UI, captions, valores de chip.
-- **Overline** (500, 11px/16px, letter-spacing 0.3px, UPPERCASE, cor text-secondary): rótulos de seção (`SUA CONEXÃO`, `ÚLTIMO RESULTADO`).
+Use Google Sans Flex, já incluída no Android, com Roboto como fallback. A hierarquia vem de tamanho,
+peso e espaço — não de muitas famílias ou estilos.
 
-### Named Rules
-**The Verdict-Beside-Metric Rule.** Nenhum número técnico aparece sozinho; o veredito humano (Excelente/Bom/Regular/Fraco/Forte) sempre está a um olhar de distância, geralmente na mesma linha ou logo abaixo.
+- Headlines curtas, preferencialmente em sentence case.
+- Corpo entre 14 e 16sp, com largura confortável.
+- Números podem ser grandes quando são evidência principal, nunca o propósito isolado da tela.
+- Unidades e explicações têm menor ênfase que o valor.
+- Evite caixa alta, salvo rótulos muito curtos.
 
-## 4. Elevation
+## Espaçamento e composição
 
-Sistema flat por padrão: profundidade vem de superfície tonal (bg-card sobre bg-secondary) e borda `1px solid var(--border)`, não de sombra. Sombra é reservada para dois elementos que precisam se destacar fisicamente: o botão de iniciar speedtest (disco violeta com glow suave da mesma cor) e o segmento ativo do seletor Rápido/Completo/Triplo (pill branco com elevação sutil sobre trilho neutro).
+Use grade-base de 4dp e intervalos recorrentes de 8, 12, 16, 24, 32, 48 e 64dp. Margem horizontal
+móvel padrão de 20–24dp. Separe grandes blocos com espaço antes de recorrer a um card ou divisor.
 
-### Shadow Vocabulary
-- **cta-glow**: glow suave na cor do próprio elemento (ex.: violeta ao redor do botão de speedtest) — nunca cinza/preto genérico.
-- **active-segment**: sombra leve sob o pill branco ativo do seletor segmentado, para separá-lo do trilho.
+As telas devem ter baixa densidade, leitura vertical clara e conteúdo técnico progressivamente
+revelado.
 
-### Named Rules
-**The Flat-By-Default Rule.** Cards e superfícies não têm sombra. Se algo parece precisar de sombra para se destacar, primeiro tente tonal fill + borda; sombra é exceção, não hábito.
+## Componentes
 
-## 5. Components
+### Botões
 
-### Buttons
-- **Shape:** radius 20px (`--md-sys-shape-corner-button`) — não cabe nos 7 degraus herdados da escala de forma (none/xs/sm/md/lg/xl/full), token de componente dedicado.
-- **Primary:** fill `--md-sys-color-primary` (`#5B21D6` claro / `#D0BCFF` escuro), texto branco (claro) / `#38137E` (escuro), padding 16px 24px.
-- **Hover / Focus:** ripple M3 + state-layer tint (primary/onSurface em baixa opacidade); sem hover de web, é app touch.
-- **Segmented selector:** trilho em `--bg-secondary`; segmento ativo é pill branco com leve elevação — deliberadamente neutro, não colorido de primary.
+- CTA primário preenchido em violeta, com altura mínima de 48dp.
+- Ação secundária tonal, outlined ou textual conforme a hierarquia.
+- Um CTA primário por estado de tela.
+- Labels diretos: “Analisar minha rede”, “Ver como resolver”, “Testar novamente”.
 
-### Chips
-- **Filter chips idle:** fully-rounded (`--radius-pill`, 999px), fill `--bg-secondary`, texto `--text-secondary`.
-- **Filter chips selected:** fill primary-container em tint claro, texto primary.
-- **Status chips:** fill da cor semântica a ~12% de alpha, borda a ~25–30% de alpha.
+### Cards
 
-### Cards / Containers
-- **Corner Style:** 16px (`--radius-card`).
-- **Background:** `--bg-card`, sentado sobre `--bg-secondary` quando precisa de separação de página.
-- **Shadow Strategy:** nenhuma — ver Elevation.
-- **Border:** `1px solid var(--border)` quando precisa de separação sem tint.
-- **Internal Padding:** 16px padrão.
+Cards são usados apenas quando existe agrupamento, comparação, ação independente ou elevação
+semântica. São tonais, sem gradiente e normalmente sem contorno perimetral. A profundidade vem da
+diferença entre superfícies; sombra discreta fica reservada ao que realmente estiver elevado. Não
+envolva cada linha, métrica ou seção em um card.
 
-### Sheets / Dialogs
-- **Bottom sheet:** radius 28px nos cantos superiores (`--md-comp-sheet-shape`), drag handle 32×4dp centralizado.
-- **Dialog:** radius 24px (`--md-comp-dialog-shape`) — token próprio, fora da escala de 7 degraus (ex.: RestartDialog).
+Quando houver card, usar cinza quase branco `#F7F7F8` no tema claro e cinza quase preto `#161616`
+no escuro. Regiões internas elevadas usam `#EEEEF0` e `#222222`. O fundo-base permanece branco ou
+preto, para que a profundidade seja percebida sem moldura.
 
-### Inputs / Fields
-- **Style:** radius 12px, borda `1px solid var(--border)`.
-- **Focus:** borda muda para primary.
+### Pills e chips
 
-### Navigation
-- **Bottom nav:** 5 abas (Início · Velocidade · Sinal · Histórico · Ajustes), ícone Material Symbols Outlined + label, tab ativa em violeta. Some ao rolar para baixo, reaparece ao rolar para cima, oculta totalmente durante teste em execução.
-- **Top bar:** `CenterAlignedTopAppBar`, título centralizado, avatar de perfil à esquerda, ação contextual à direita.
+Use somente para seleção compacta, filtros ou status breves. Não transforme títulos, categorias ou
+parágrafos em pills decorativas.
 
-### Signal Bars (componente assinatura)
-Glifo customizado de 4 barras verticais (alturas 6/9/12/16dp, largura 3dp, radius 1dp); barras preenchidas assumem a cor de qualidade (verde=Forte, âmbar=Regular, vermelho=Fraco), barras vazias usam `--border`.
+### Listas
 
-### Native Ad Components (anúncio nativo, `…/ui/component/ads/`)
-Três variantes por contexto de tela — nunca escolhidas por preferência: **`NativeAdCard`** (card cheio, dispensável — Resultado do teste, Histórico), **`NativeAdRow`** (linha compacta, não dispensável — Velocidade em estado idle), **`NativeAdListRow`** (linha dentro de uma lista orgânica já existente — dentro da lista de dispositivos conectados, nunca na seção Infraestrutura). Toda variante é omitida por completo (não vira placeholder/caixa vazia) quando não há criativo carregado.
-- **Border:** tracejada (`Modifier.dashedBorder`), nunca sólida — único uso de borda tracejada no app, reservado para diferenciar anúncio de conteúdo orgânico.
-- **CTA:** outline violeta (`accent @35%` de borda, texto accent), nunca sólido — violeta sólido é exclusivo de CTA primário orgânico.
-- **Ícone do anunciante:** chip **quadrado** (raio ~27% do tamanho), nunca círculo — distingue do padrão circular de avatares/ícones orgânicos.
-- **Disclosure (`AdBadge`):** sempre visível, nunca atrás de tap/expand. "Patrocinado" (tom neutro `textTertiary`) para `NativeAdSource.ADMOB`; "Parceiro" (tom `accentBlue`) para `NativeAdSource.PARTNER`, reservado a afiliados/parceiros curados (catálogo ainda não existe).
-- **Nunca** foto/hero, headline/body/CTA hardcoded — sempre vêm do `NativeAd` real carregado pelo AdMob.
+Prefira linhas abertas, ícone + título + descrição curta, separadas por espaço ou divisor discreto.
+Listas são a escolha padrão para sintomas, ações e histórico.
 
-## 6. Do's and Don'ts
+### Resultados
 
-### Do:
-- **Do** parear todo dado técnico com veredito humano (Excelente/Bom/Regular/Fraco/Forte).
-- **Do** usar violeta primary (`#5B21D6` claro / `#D0BCFF` escuro) só em CTA, seleção e nav ativa.
-- **Do** usar Material Symbols Outlined como único sistema de ícone; nunca emoji.
-- **Do** manter cards flat — tonal fill + borda 1px, sem sombra.
-- **Do** deixar todo anúncio nativo com borda tracejada + disclosure (`AdBadge`) sempre visível — nunca disfarçado de card orgânico.
+A ordem visual obrigatória é:
 
-### Don't:
-- **Don't** parecer um app genérico de speedtest (tipo Ookla/Speedtest.net): números soltos sem contexto humano, sem veredito.
-- **Don't** parecer um dashboard técnico/enterprise de rede (tipo Wireshark): jargão não traduzido, denso, feito para quem já entende de rede.
-- **Don't** usar emoji como substituto de ícone ou cor semântica.
-- **Don't** aplicar gradiente decorativo em superfícies — o único lugar permitido é o avatar de perfil.
-- **Don't** adicionar sombra pesada em cards; se precisa de destaque, use tint de cor semântica antes de sombra.
-- **Don't** implementar rota ou componente novo para a superfície SignallQ (IA) — descontinuada no Fluxo de Telas To-Be.
+1. veredito humano;
+2. causa provável e confiança;
+3. evidências essenciais;
+4. próxima ação;
+5. confirmação.
+
+Detalhes técnicos ficam recolhidos. Nenhum valor de latência, jitter, perda, sinal ou velocidade
+aparece sem uma tradução próxima.
+
+### Linguagem de confiança
+
+- Alta: “Encontramos um problema no Wi-Fi.”
+- Média: “O Wi-Fi provavelmente está causando as interrupções.”
+- Baixa: “Há sinais de que o problema pode estar no Wi-Fi.”
+
+Não exibir porcentagem de confiança ao usuário comum.
+
+## Navegação Android
+
+Hipótese para o protótipo: três destinos principais — **Início, Histórico e Mais**. Ferramentas
+especializadas aparecem dentro da jornada ou em “Mais”. Durante uma análise, reduza a navegação e
+mantenha foco no processo.
+
+A tela inicial deve apresentar:
+
+- estado atual resumido;
+- CTA “Analisar minha rede”;
+- sintomas comuns como atalhos;
+- último resultado ou continuidade, quando houver.
+
+## Ícones e imagens
+
+Use Material Symbols Outlined como sistema principal. Ícones têm função e não substituem texto
+essencial. Não use emoji.
+
+Assets oficiais:
+
+- `brand/signallq-symbol-1024.png`
+- `brand/signallq-symbol-512.png`
+- `brand/signallq-lockup-light-bg.png`
+- `brand/signallq-lockup-dark-bg.png`
+
+Não redesenhe o símbolo e não aplique glow, 3D ou gradiente decorativo.
+
+## Movimento
+
+Movimento deve lembrar Android nativo e explicar mudança de estado:
+
+- transições de conteúdo com fade-through;
+- mudança de container com shared-axis quando houver continuidade;
+- bottom sheets surgem da base;
+- progresso é contínuo e calmo;
+- feedback tátil/visual imediato ao toque.
+
+Duração indicativa: 150–250ms para microinterações e 250–400ms para mudanças de tela. Respeite a
+preferência de movimento reduzido. Evite parallax, bounce excessivo e animações ornamentais.
+
+## Voz
+
+Curta, direta, humana e tranquila. Não use voz de chatbot, frases como “nossa IA analisou”, excesso
+de exclamações ou textos genéricos de assistência.
+
+Exemplos:
+
+- “O Wi-Fi está instável neste cômodo.”
+- “A velocidade está boa, mas a resposta da rede oscila.”
+- “Aproxime-se do roteador e teste novamente.”
+- “Melhorou. As interrupções devem diminuir.”
+
+## Estados obrigatórios
+
+Todo fluxo deve prever: inicial, carregando/analisando, sucesso, problema encontrado, evidência
+insuficiente, permissão necessária, offline, erro recuperável e conteúdo vazio.
+
+## Acessibilidade
+
+- Alvo de toque mínimo: 48×48dp.
+- Contraste WCAG AA para texto e controles.
+- Foco visível e ordem de navegação lógica.
+- Suporte a fonte ampliada sem truncar ações essenciais.
+- Status comunicado com texto + ícone + cor.
+- Gráficos sempre acompanhados por resumo textual.
+
+## Anti-padrões
+
+- velocímetro hero como identidade central;
+- mosaico de ferramentas na home;
+- cards aninhados ou grade de cards sem necessidade;
+- pills decorativas;
+- excesso de roxo;
+- gradientes, glassmorphism, neon ou estética de hacker;
+- chat como interface principal;
+- explicações longas antes do resultado;
+- jargão sem tradução;
+- menu de cinco abas expondo toda a arquitetura interna.
+
+## Alvo do primeiro protótipo
+
+Validar o fluxo completo com um único cenário: streaming ou chamada travando por instabilidade sob
+carga. O protótipo deve cobrir Home, seleção de sintoma, contexto, análise, resultado, ação
+recomendada, confirmação e acessos básicos a Histórico e Mais, em temas claro e escuro.
+
+## Referências canônicas
+
+- `PRODUCT.md`
+- `docs_ai/POSICIONAMENTO_PRODUTO.md`
+- `docs_ai/design-system/SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md`
+- `docs_ai/functional/JORNADA_ANDROID_GUIADA_2_SPEC.md`

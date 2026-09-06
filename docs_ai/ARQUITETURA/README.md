@@ -4,7 +4,7 @@ description: "Visão de sistema, módulos Gradle e dependências, do código rea
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-19"
 ---
 
 # Arquitetura — SignallQ consumer
@@ -12,8 +12,8 @@ last_updated: "2026-08-06"
 - **Fonte de verdade:** o código. Este documento é derivado dele, não o contrário. Os números do
   bloco de inventário abaixo são **gerados** por `scripts/gerar-inventario-docs.sh`.
 - **Escopo:** app consumer Android (`io.signallq.app`) e sua relação com o backend Cloudflare.
-  Não cobre SignallQ Pro (on hold — `../pro-onhold/`), Admin (`buildea-admin`) nem web
-  (`signallq-web`).
+  Não cobre SignallQ Pro (descontinuado permanentemente, ver ADR-016), Admin (`buildea-admin`)
+  nem web (`signallq-web`).
 - **Detalhe por módulo:** `MODULOS/` — um documento por módulo Gradle consumer.
 
 <!-- INVENTARIO:INICIO — gerado por scripts/gerar-inventario-docs.sh, nao editar a mao -->
@@ -23,19 +23,16 @@ last_updated: "2026-08-06"
 
 | Fato | Valor | Fonte |
 |---|---|---|
-| versionName / versionCode (consumer) | **0.31.0** / **72** | `android/gradle/libs.versions.toml` |
-| proVersionName / proVersionCode | 0.3.0 / 8 | `android/gradle/libs.versions.toml` |
+| versionName / versionCode | **1.0.3** / **83** | `android/gradle/libs.versions.toml` |
 | compileSdk / minSdk / targetSdk | 37 / 24 / 36 | `android/gradle/libs.versions.toml` |
 | Compose BOM · Room · Hilt | 2026.06.01 · 2.8.4 · 2.60.1 | `android/gradle/libs.versions.toml` |
-| Módulos Gradle | **28** — 19 consumer + 9 Pro | `android/settings.gradle.kts` |
+| Módulos Gradle | **20** | `android/settings.gradle.kts` |
 | Workers Cloudflare | 5 | `integrations/cloudflare/*/wrangler.toml` |
 | Tabelas D1 | 38 — 20 admin + 18 diagnostic | `*/migrations/*.sql`, `*/schema.sql` |
 | Contratos OpenAPI | 7 contratos · **122** endpoints | `docs_ai/CONTRATOS/openapi/` |
-| Arquivos `.kt` em caminho legado `io/veloo` | 527 (sendo 362 em `src/main`) | dívida conhecida — higiene §4.1 |
+| Arquivos `.kt` em caminho legado `io/veloo` | 0 (sendo 0 em `src/main`) | dívida conhecida — higiene §4.1 |
 
-**Módulos consumer (19):** :app :core:diagnostico :core:featureflags :core:relatorio :coreDatabase :coreDatastore :coreNetwork :corePermissions :coreRecommendation :coreTelephony :featureDevices :featureDiagnostico :featureDns :featureFibra :featureHistory :featureHome :featureSettings :featureSpeedtest :featureWifi
-
-**Módulos Pro (9, on hold):** :pro:app :pro:core:database :pro:core:designsystem :pro:feature:ambiente :pro:feature:auth :pro:feature:cliente :pro:feature:laudo :pro:feature:medicao-diagnostico :pro:feature:visita
+**Módulos (20):** :app :core:diagnostico :core:featureflags :core:nds :core:relatorio :coreDatabase :coreDatastore :coreNetwork :corePermissions :coreRecommendation :coreTelephony :featureDevices :featureDiagnostico :featureDns :featureFibra :featureHistory :featureHome :featureSettings :featureSpeedtest :featureWifi
 
 **Workers:**
 
@@ -96,17 +93,13 @@ Quatro camadas:
    contrato normalizado em um `core`.
 2. `:core*` não depende de `:feature*`.
 3. `:app` pode depender de tudo.
-4. `:core:featureflags` é exclusivo do consumer — proibido para `:pro:*`.
 
-**Duas violações da regra 1 existem hoje:**
-
-| Violação | Onde | Uso real |
-|---|---|---|
-| `:featureDiagnostico` → `:featureSpeedtest` | `android/feature/diagnostico/build.gradle.kts:62` | `SignallQOrchestrator.kt` importa `ExecutorSpeedtest`, `ResultadoSpeedtest`, `ModoSpeedtest`, `SpeedtestQualityClassifier` |
-| `:pro:feature:medicao-diagnostico` → `:featureSpeedtest` | `android/pro/feature/medicao-diagnostico/build.gradle.kts:69` | mesma dependência, do lado Pro (on hold) |
-
-Não são acidentes de import: o acoplamento é profundo. O destino correto é extrair o contrato de
-speedtest para um `core` — tarefa dedicada, não correção oportunista.
+**Nenhuma violação da regra 1 conhecida hoje.** A única existente —
+`:featureDiagnostico` → `:featureSpeedtest` (`SignallQOrchestrator.kt` importava
+`ExecutorSpeedtest`/`ResultadoSpeedtest`/`ModoSpeedtest`/`SpeedtestQualityClassifier`) — foi
+resolvida em GH#1682: o `SignallQOrchestrator` (motor SignallQ Pulse, órfão sem consumidor de UI)
+foi removido, e com ele o único uso real da dependência `implementation(project(":featureSpeedtest"))`
+em `android/feature/diagnostico/build.gradle.kts`, que também foi removida.
 
 O contraexemplo de como fazer certo está em `:featureHome`, que precisa de dados de medição e
 **não** depende de `:featureSpeedtest`: define uma struct genérica (`ResolvedorMedicaoHome`) e
@@ -118,15 +111,15 @@ empurra a adaptação para `HomeMedicaoAdapter.kt`, em `:app`.
 
 | Módulo | Papel | Observação |
 |---|---|---|
-| `:coreNetwork` | Sondagens de rede, contratos de analytics | **Sem lib HTTP** — `HttpURLConnection`/`Socket`/`InetAddress` amarrados à `Network` sob análise. Maior e mais consumido: 9 consumidores |
+| `:coreNetwork` | Sondagens de rede, contratos de analytics | **Sem lib HTTP** — `HttpURLConnection`/`Socket`/`InetAddress` amarrados à `Network` sob análise. Maior e mais consumido: 7 consumidores |
 | `:coreDatabase` | Room — histórico, outbox de analytics | Schema **v18**, 8 entidades, 7 DAOs, 17 migrations encadeadas |
 | `:coreDatastore` | Preferências do usuário, credenciais de modem | DataStore `linkaPreferencias` |
 | `:corePermissions` | Fluxo de permissões de rede | Sem testes |
 | `:coreTelephony` | Rede móvel (RSRP/RSRQ/SINR) | Exige só `READ_PHONE_STATE`; não usa IMEI/IMSI |
-| `:coreRecommendation` | Motor de recomendação por tags | **Único módulo fisicamente em `io/signallq/`** |
-| `:core:diagnostico` | Motor canônico de diagnóstico | Compartilhado com o Pro |
-| `:core:relatorio` | Paginação HTML→PDF | Compartilhado com o Pro; 194 linhas, **zero testes** |
-| `:core:featureflags` | Flags remotas do consumer | 11 flags no catálogo; proibido para `:pro:*` |
+| `:coreRecommendation` | Motor de recomendação por tags | Nasceu em `io/signallq/` (módulo criado pós-rebrand) |
+| `:core:diagnostico` | Motor canônico de diagnóstico | Consumido por `:app`, `:featureSpeedtest`, `:featureDiagnostico` |
+| `:core:relatorio` | Paginação HTML→PDF | Consumido por `:app`, `:featureHistory`; 194 linhas, **zero testes** |
+| `:core:featureflags` | Flags remotas do consumer | 11 flags no catálogo |
 
 Os seis primeiros são **aliases flat legados** (`:coreNetwork`) com `projectDir` remapeado para
 pasta hierárquica (`core/network`). Os três últimos nasceram já hierárquicos (`:core:diagnostico`).
@@ -142,28 +135,32 @@ Renomear os legados para `:core:network` é migração dedicada — afeta CI, sc
 | `:featureFibra` | leitura de ONT GPON | Um único driver real: Nokia G-1425G-B |
 | `:featureDns` | comparação de resolvedores | Sem ViewModel próprio — estado vai direto ao `MainViewModel` |
 | `:featureHistory` | histórico e exportação | **Dois motores de PDF ativos em paralelo** |
-| `:featureWifi` | vocabulário de Wi-Fi | 93 linhas; a classificação real está em `SinalScreen.kt` |
+| `:featureWifi` | vocabulário de Wi-Fi | 93 linhas; a classificação real está em `SinalWifiSection.kt` |
 | `:featureHome` | resolução de medição da Home | 67 linhas; exemplo canônico da regra de dependência |
 | `:featureSettings` | regras de ajustes | 203 linhas, zero dependências, zero UI — **não é feature**, é biblioteca de regras puras; destino natural é um `core` |
 
 ## 4. A inconsistência principal: UI fora das features
 
 **Nenhum dos 9 módulos `:feature*` contém um único `@Composable`.** Toda a interface vive em
-`android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/`.
+`android/app/src/main/kotlin/io/signallq/app/ui/screen/`.
 
 Consequência direta: as features viraram bibliotecas de motor e vocabulário, e `:app` concentra
 40.017 linhas em 150 arquivos, com dez acima de 800 linhas:
 
 | Arquivo | Linhas |
 |---|---:|
-| `SinalScreen.kt` | 3383 |
-| `HomeScreen.kt` | 2967 |
+| `Inicio2Screen.kt` | 302 |
 | `MainViewModel.kt` | 2438 |
+| `SinalCanalSection.kt` | 1215 |
 | `DispositivosScreen.kt` | 1380 |
+| `SinalWifiSection.kt` | 1110 |
 | `DnsScreen.kt` | 815 |
 
-Isso puxa efeitos concretos: `:featureWifi` tem 93 linhas porque a classificação de redes é montada
-dentro de `SinalScreen.kt` (que chega a construir `RedeClassificada(...)` inline na linha 1078); e
+A issue #1660 (épico #1647) extraiu o antigo `SinalScreen.kt` (era 3383 linhas) num scaffold de
+476 linhas + `SinalWifiSection.kt`/`SinalCanalSection.kt`/`SinalMovelSection.kt`
+(539)/`SinalSharedComponents.kt` (79) — puramente estrutural, sem mover regra pra `:featureWifi`.
+Isso puxa efeitos concretos: `:featureWifi` tem 93 linhas porque a classificação de redes ainda é
+montada dentro de `SinalWifiSection.kt` (que chega a construir `RedeClassificada(...)` inline); e
 `:featureDns` não tem ViewModel porque o `MainViewModel` monolítico assume o estado.
 
 O destino arquitetural é mover cada tela para o módulo da sua feature. É migração dedicada, por
@@ -196,9 +193,8 @@ Contratos em `../CONTRATOS/openapi/`.
 
 | Risco | Evidência | Efeito |
 |---|---|---|
-| UI monolítica em `:app` | 5 arquivos acima de 800 linhas, `SinalScreen.kt` com 3383 | Features anêmicas; mudança visual exige tocar arquivo gigante |
-| Feature→feature | 2 violações confirmadas (§2) | Grafo de dependências deixa de ser acíclico por camada |
-| Caminho físico legado `io/veloo` | Todos os módulos exceto `:coreRecommendation` | Duas árvores concorrentes; `:featureDiagnostico` já tem as duas no mesmo source set |
+| UI monolítica em `:app` | arquivos grandes concentrados em `MainViewModel`, `AppShell` e seções de rede | Features anêmicas; mudança visual exige tocar arquivos centrais |
+| Feature→feature | 0 violações conhecidas (§2) — única confirmada (`:featureDiagnostico`→`:featureSpeedtest`) resolvida em GH#1682 | Sem efeito hoje; reavaliar se `grep -rn 'project(":feature'` em `feature/*/build.gradle.kts` encontrar dependência entre `:feature*` |
 | Três mecanismos de feature flag | `:core:featureflags` + `FeatureFlagProvider` legado em `:coreNetwork` + Firebase Remote Config | Colisão de nome e ambiguidade sobre qual vence |
 | Dois motores de PDF | `:featureHistory` usa `PdfDocument` e HTML→WebView via `:core:relatorio` | Manutenção dupla |
 | Versão de dependência fora do catálogo | `:featureDevices` fixa `okhttp:5.4.0` no build | Pode divergir do `libs.okhttp` dos demais |

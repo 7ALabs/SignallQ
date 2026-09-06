@@ -1,42 +1,35 @@
-# UX Flow for Agents
+# UX Flow
 
-> **Fonte da verdade:** `.claude/CLAUDE.md` + `.claude/agents/*.md`. Este arquivo é um resumo apontador.
-> Decisão de fluxo: `docs_ai/decisions/ADR-006-workflow-squad-5-agentes.md`.
-> Design system: `docs_ai/design-system/` e skill `/SignallQ-design`.
-> Versão: v0.23.0 · 2026-07-05.
+> **Fonte da verdade:** design system em [`docs_ai/DESIGN_SYSTEM.md`](../../docs_ai/DESIGN_SYSTEM.md) + skill [`SignallQ-design`](../skills/SignallQ-design/) e skill `/design-check` (piloto Fase 6 do épico #1623).
+> **Decisão canônica:** [ADR-016](../../docs_ai/decisions/ADR-016-portfolio-buildea.md).
+> **Última atualização:** 2026-08-15.
+
+## Sem agente Design dedicado
+
+Design deixou de ser agente permanente ([ADR-016](../../docs_ai/decisions/ADR-016-portfolio-buildea.md)). Direção visual é responsabilidade da **Claudete**; implementação é responsabilidade do **Camilo**; validação de qualidade fica com **Caio** no gate.
+
+Skills que substituem o papel:
+
+- **`/design-check`** — Camilo invoca durante a implementação para validar contra tokens, hierarquia, acessibilidade.
+- **`SignallQ-design`** — biblioteca de tokens, componentes, wireframes, para gerar UI on-brand.
+- **`auditar-ux`** — auditoria profunda de design system e usabilidade (invocada por Claudete ou Caio antes de release).
 
 ## Objetivos de UX
 
-- **Consistência**: aderência estrita a Material Design 3 (`DESIGN_SYSTEM.md`).
-- **Acessibilidade**: contraste (`DESIGN_SYSTEM.md`) e targets de toque adequados.
-- **Clareza de diagnóstico**: métrica crua sempre com veredito humano (Excelente/Bom/Regular/Fraco/Forte).
+- **Consistência**: aderência estrita a Material Design 3 ([`docs_ai/DESIGN_SYSTEM.md`](../../docs_ai/DESIGN_SYSTEM.md)).
+- **Acessibilidade**: contraste WCAG AA, targets de toque adequados.
+- **Clareza de diagnóstico**: métrica crua sempre com veredito humano (Excelente / Bom / Regular / Fraco / Forte).
 
-## Gate de UX condicional
+## Momento das skills
 
-**Lia** entra **antes** da implementação **apenas** quando a mudança é visual/de fluxo:
-- Tela nova ou modificação de tela existente.
-- Estado visual novo: loading, vazio, erro, sucesso, thinking.
-- Texto/microcopy visível ao usuário (incluindo resposta de IA/diagnóstico).
-- Mudança de fluxo de navegação.
+1. **Antes da implementação** — Claudete decide direção (microcopy, hierarquia, estado visual novo).
+2. **Durante a implementação** — Camilo invoca `/design-check` para validar cada tela ou componente.
+3. **Pós-implementação** — Caio confirma no gate que a UI não introduz regressão nem inconsistência.
 
-Bug ou lógica pura, e mudanças em `:core*` sem reflexo visual, **pulam a Lia** — reduz latência sem perder qualidade onde importa.
-
-## Dois momentos da Lia
-
-1. **Antes da implementação** — valida que estados visuais e microcopy estão mapeados no plano.
-2. **Pós-implementação** — confirma o entregável real (junto ao gate da Gema).
-
-## Papéis
-
-| Agente | Responsabilidade |
-|---|---|
-| Lia | UI, MD3, microcopy, acessibilidade, estados visuais — edita só UI/layout |
-| Camilo | Implementa a UI Android conforme spec da Lia |
-| Felipe | Implementa a UI do Admin Panel conforme spec da Lia |
-| Gema | Valida que a UI não introduz bug/regressão |
+Bug ou lógica pura sem impacto visual **pula** todas as skills de design.
 
 ## Referências
 
-- `DESIGN_SYSTEM.md` (consolida COMPONENTS_ANDROID/MD3_GUIDELINES/COLORS/TYPOGRAPHY antigos)
-- `FUNCIONAL.md` — apresentação de respostas de IA
-- `FUNCIONAL.md` — fluxo de diagnóstico
+- [`docs_ai/DESIGN_SYSTEM.md`](../../docs_ai/DESIGN_SYSTEM.md) — tokens, tipografia, cores, componentes.
+- [`docs_ai/FUNCIONAL.md`](../../docs_ai/FUNCIONAL.md) — apresentação de respostas de IA e fluxo de diagnóstico.
+- Skills: [`SignallQ-design`](../skills/SignallQ-design/), [`auditar-ux`](../skills/auditar-ux/), [`impeccable`](../skills/impeccable/).

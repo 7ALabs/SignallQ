@@ -31,8 +31,10 @@
     <string name="global_btn_tentar_novamente">Tentar novamente</string>
 
     <!-- Ping screen -->
-    <string name="ping_titulo">Teste de Latência</string>
-    <string name="ping_descricao">Mede o tempo de resposta (latência) dos servidores de teste.</string>
+    <!-- issue #1665: título/descrição lideram com significado ("tempo de resposta"), não com
+         o nome do protocolo — ver docs_ai/design-system/SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md §4.3. -->
+    <string name="ping_titulo">Tempo de resposta</string>
+    <string name="ping_descricao">Mede quanto tempo o destino demora para responder a cada solicitação — essa medida também é chamada de latência.</string>
     <string name="ping_btn_iniciar">Iniciar teste de latência</string>
     <string name="ping_coletando_amostras">Coletando amostras… %1$d/20</string>
     <string name="ping_resultados_titulo">Resultados do teste</string>
@@ -83,9 +85,6 @@
     <string name="onboarding_tela1_titulo">Bem-vindo ao SignallQ</string>
     <string name="onboarding_tela1_subtitulo">Entenda como está sua internet, descubra problemas e veja o que fazer para melhorar.</string>
     <string name="onboarding_tela1_btn_comecar">Começar</string>
-    <string name="onboarding_tela2_titulo">Permitir acesso</string>
-    <string name="onboarding_tela2_subtitulo">Essas permissões deixam o diagnóstico mais completo — nenhuma é obrigatória.</string>
-    <string name="onboarding_btn_continuar">Continuar</string>
 
     <!-- Home screen -->
     <string name="home_titulo">Início</string>
@@ -153,10 +152,6 @@
     <string name="home_gamer_gargalo_perda">Principal limitação: Perda de pacotes. Pode causar desconexões e lag repentino.</string>
     <string name="home_gamer_gargalo_bufferbloat">Principal limitação: Bufferbloat. A latência sobe durante transferências paralelas.</string>
     <string name="home_gamer_gargalo_upload">Principal limitação: Upload baixo. Pode afetar jogos que exigem mais envio de dados.</string>
-    <string name="home_wifi_fatores_titulo">Fatores de velocidade do Wi-Fi</string>
-    <string name="home_wifi_fator_espectro">Espectro</string>
-    <string name="home_wifi_fator_radio">Potencial de rádio</string>
-    <string name="home_wifi_fator_canal">Integridade do canal</string>
     <string name="home_sheet_roaming_label">Roaming</string>
     <string name="home_sheet_roaming_ativo">Ativo</string>
     <string name="home_sheet_movel_indisponivel">Informações da rede móvel indisponíveis no momento.</string>
@@ -222,8 +217,6 @@
     <string name="cd_rede_aberta">Rede aberta</string>
     <string name="cd_rede_protegida">Rede protegida</string>
     <string name="cd_fibra_erro_icone">Ícone de erro</string>
-    <string name="cd_expandir_detalhes_medicoes">Expandir detalhes das medições</string>
-    <string name="cd_recolher_detalhes_medicoes">Recolher detalhes das medições</string>
 
     <!-- Global: ações comuns (SIG-238) -->
     <string name="global_btn_cancelar">Cancelar</string>
@@ -235,8 +228,7 @@
     <string name="appshell_concluido">Concluído</string>
     <string name="appshell_cd_concluido">Concluído</string>
 
-    <!-- AppShell: menu lateral (GH#1358) -->
-    <string name="appshell_cd_abrir_menu">Abrir menu</string>
+    <!-- AppShell: Perfil (GH#1358) -->
     <string name="appshell_menu_ajustes">Ajustes</string>
     <string name="appshell_menu_ajuda_suporte">Ajuda e suporte</string>
     <string name="appshell_menu_privacidade">Política de privacidade</string>
@@ -350,7 +342,7 @@
     <string name="ajustes_menu_sobre">Sobre o SignallQ</string>
     <string name="ajustes_menu_sobre_sub">v%1$s · Android · Kotlin</string>
     <string name="ajustes_menu_testes_moveis">Sempre permitir testes pesados em dados móveis</string>
-    <string name="ajustes_menu_testes_moveis_sub">Não mostrar aviso para modo Completo e Triplo na próxima vez</string>
+    <string name="ajustes_menu_testes_moveis_sub">Não mostrar aviso para modo Completo na próxima vez</string>
     <string name="ajustes_menu_fibra">Roteador e rede</string>
     <string name="ajustes_menu_monitoramento">Monitoramento passivo</string>
     <string name="ajustes_menu_analise_avancada">Análise avançada</string>
@@ -388,4 +380,5 @@
     <string name="ajustes_notif_dns_sub">Avisa quando sites e apps demorarem para carregar</string>
     <string name="ajustes_notif_wifi">Sinal Wi-Fi fraco</string>
     <string name="ajustes_notif_wifi_sub">Avisa quando o sinal cair abaixo do ideal</string>
+    <string name="appshell_cd_abrir_perfil">Abrir perfil</string>
 </resources>

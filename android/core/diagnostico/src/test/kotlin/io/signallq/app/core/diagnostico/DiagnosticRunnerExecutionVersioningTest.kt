@@ -13,7 +13,6 @@ import org.junit.Test
  * dois campos novos de identidade/versão).
  */
 class DiagnosticRunnerExecutionVersioningTest {
-
     private fun inputMinimo(executionId: String = "") =
         DiagnosticInput(
             connectionType = ConnectionType.wifi,

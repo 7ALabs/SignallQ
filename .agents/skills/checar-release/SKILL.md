@@ -3,8 +3,14 @@ name: checar-release
 description: Checklist pré-release por stack (Android e Cloudflare Pages) mais atualização de changelog.
 ---
 
+**Dono:** Camilo executa; Caio faz o gate final de release. **Modelo sugerido:** Sonnet.
+
 ## Quando usar
 Antes de gerar APK/AAB de release, fazer deploy no Cloudflare Pages ou submeter à loja. Cobre as stacks mais o changelog. Use só as seções relevantes à entrega.
+
+A seção "Play Store" abaixo é checklist técnico/mecânico (build, AAB, keystore). Verificação de
+**produto** da ficha da loja (copy, posicionamento, keywords) é `/growth-check`, invocada por
+Claudete mais cedo no fluxo — os dois são complementares, não duplicados.
 
 ---
 
@@ -30,7 +36,7 @@ Antes de gerar APK/AAB de release, fazer deploy no Cloudflare Pages ou submeter 
 
 ### Assinatura
 - [ ] APK/AAB assinado com keystore correto (não debug keystore)?
-- [ ] `io.veloo.app` preservado (package/applicationId/namespace nunca renomeados)?
+- [ ] `io.signallq.app` preservado (package/applicationId/namespace nunca renomeados)?
 
 ### Qualidade
 - [ ] Testes unitários passando (`.\android\gradlew.bat test`)?
@@ -51,6 +57,16 @@ Antes de gerar APK/AAB de release, fazer deploy no Cloudflare Pages ou submeter 
 - [ ] Firebase Analytics events chegando (verificar DebugView)?
 - [ ] SHA-1/SHA-256 da release keystore registrados no Firebase?
 - [ ] ReleaseTree filtrando logs WARN/ERROR para Crashlytics?
+
+### AdMob (só relevante para disparo manual com `playTrack=production`/`adsEnabled=true`)
+- [ ] Chaves de Firebase Remote Config (`ads_native_enabled` + 5 por tela) já criadas no
+      console? Sem elas o binário certo ainda cai no fallback `AdsFlags.DESLIGADO` (ver
+      `android/app/src/main/kotlin/io/signallq/app/ads/AdsRemoteConfigRepository.kt`).
+- [ ] Disparo é `workflow_dispatch` manual de `release.yml` com os inputs corretos — **não**
+      uma promoção via `promote-release.yml` (promover o mesmo AAB não muda
+      `USE_TEST_ADS`/`ADS_ENABLED`, compilados no binário no momento do build)?
+- [ ] Decisão de ativar anúncio em produção teve aprovação explícita do Luiz (ver
+      `AGENTS.md`, "Publicação")?
 
 ### Play Store
 - [ ] Screenshots e ícone atualizados se UI mudou?
@@ -197,4 +213,4 @@ Atualizar após aprovar a entrega, antes do build final.
 
 ## Limites
 - Esta skill orienta, não implementa.
-- Build/release Android → Camilo. Changelog → Rhodolfo.
+- Build/release Android → Camilo. Changelog e prontidão de release → Caio.

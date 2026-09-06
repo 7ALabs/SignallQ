@@ -336,10 +336,19 @@ function nowSec(): number {
 }
 
 // GH#1342/#1344 (migration 016) — grava uma linha de histórico append-only por sync, além do
-// cache "última sincronização" em admin_settings. Sem isso, nenhuma das integrações de Google
-// Play/Firebase teria série temporal pra plotar tendência (ChartCard) ou correlacionar por
-// período — cada sync sobrescrevia o anterior. payload é sempre o JSON bruto do registro
-// completo, nunca só o valor numérico, para preservar campos novos que a fonte adicionar depois.
+// cache "última sincronização" em admin_settings.
+//
+// ATENÇÃO — trim de 2026-07-24 (revisão de arquitetura da Claudete, doc de decisão removido em
+// docs_ai/decisions/ na Fase 4d do épico #1623, git preserva por SHA): este helper é reservado
+// EXCLUSIVAMENTE a métricas numéricas de série temporal genuína, com necessidade real (não
+// hipotética) de plotar tendência. Hoje isso é só Play Developer Reporting/ANR — único caller
+// autorizado é a linha ~3165. Firebase Management, Remote Config, App Check, App Distribution e
+// FCM Data API foram deliberadamente REMOVIDOS como callers: são estado/config pontual, já
+// servidos por admin_settings (cache de "última sincronização"), sem requisito de produto pra
+// histórico. NÃO adicionar chamada nova aqui pra nenhuma dessas 5 integrações — se um requisito
+// real de tendência aparecer, desenhar a modelagem daquele caso específico, não reverter o trim
+// por comodidade. payload é sempre o JSON bruto do registro completo, nunca só o valor numérico,
+// para preservar campos novos que a fonte adicionar depois.
 async function recordIntegrationSnapshot(env: Env, params: {
   provider: string;
   service: string;
@@ -2110,8 +2119,7 @@ async function handleFirebaseStatus(_req: Request, env: Env): Promise<Response> 
 // --- GH#1344: Firebase Management API + Remote Config ---
 // Mesma credencial já usada por GA4/BigQuery (FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY,
 // getFirebaseAccessToken() com scope "cloud-platform" já incluso). Permissão confirmada via
-// chamada real em 2026-07-24 (200 em ambas) — ver docs_ai/decisions/
-// DECISAO_STATUS_CREDENCIAIS_GOOGLE_PLAY_FIREBASE_2026-07-24.md.
+// chamada real em 2026-07-24 (200 em ambas).
 
 interface FirebaseSourceRecord {
   provider: "firebase";
@@ -2291,8 +2299,7 @@ async function handleRemoteConfigSync(_req: Request, env: Env): Promise<Response
 // --- GH#1344: Firebase App Check + App Distribution ---
 // Mesma credencial (FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY). Firebase App Check API
 // habilitada e papel "Administrador do Firebase" concedido no IAM em 2026-07-24 (ação do Luiz),
-// destravando o 403 anterior — ver docs_ai/decisions/
-// DECISAO_STATUS_CREDENCIAIS_GOOGLE_PLAY_FIREBASE_2026-07-24.md.
+// destravando o 403 anterior.
 
 const FIREBASE_PROJECT_NUMBER = "741421457740";
 const FIREBASE_ANDROID_APP_ID = "1:741421457740:android:a8658a91308fba058fefe9";
@@ -2608,7 +2615,7 @@ async function handleGooglePlayStatus(_req: Request, env: Env): Promise<Response
 // GH#1341 — reviews.list expõe nota/comentário/idioma/dispositivo/resposta do dev, não só
 // starRating. Guardado em tabela própria (migration 017, google_play_reviews, review_id como
 // chave) porque é lista de registros identificáveis, não estado pontual/série temporal — decisão
-// da Claudete em docs_ai/decisions/DECISAO_MODELO_DADOS_AVALIACOES_GOOGLE_PLAY_2026-07-24.md.
+// da Claudete, 2026-07-24 (rationale completo nos comentários da própria migration 017).
 // Upsert com ON CONFLICT preserva handling_status/first_synced_at (campo admin-side, nunca vem da
 // API — sync nunca pode resetá-lo). google_play_sync em admin_settings continua como cache
 // rápido de resumo pro /status.
@@ -2879,7 +2886,7 @@ async function handleGooglePlayTracksSync(_req: Request, env: Env): Promise<Resp
 // edit→read→discard do #761 (tracks): cria edit, lê listings, descarta sem PUT. `admin_settings`
 // é suficiente aqui (estado pontual de config, não série temporal) — mesmo critério já aplicado
 // em Firebase Management/Remote Config/App Check/App Distribution/FCM, revisado pela Claudete em
-// docs_ai/decisions/DECISAO_MODELO_DADOS_INTEGRACOES_PLAY_FIREBASE_2026-07-24.md.
+// 2026-07-24 (rationale completo nos comentários da migration 016).
 
 interface StoreListingEntry {
   language: string;
@@ -3040,8 +3047,7 @@ async function handleGooglePlayTracksBackfill(_req: Request, env: Env): Promise<
 // --- GH#1342: Play Developer Reporting API v1beta1 (Android Vitals — ANR rate) ---
 // Mesma service account/chave do #761 (GOOGLE_PLAY_CLIENT_EMAIL/GOOGLE_PLAY_PRIVATE_KEY),
 // scope adicional `playdeveloperreporting`. Permissão confirmada via chamada real em
-// 2026-07-24 (200 com freshnessInfo real) — ver docs_ai/decisions/
-// DECISAO_STATUS_CREDENCIAIS_GOOGLE_PLAY_FIREBASE_2026-07-24.md.
+// 2026-07-24 (200 com freshnessInfo real).
 //
 // `source` estruturado por registro (provider/service/apiVersion/resource/endpoint) —
 // nunca uma string solta — pra permitir isolar cada fonte na UI sem fundir com outras
@@ -3165,6 +3171,8 @@ async function syncSimpleVitalsMetric(env: Env, config: SimpleVitalsMetricConfig
     rangeStart: startDate.toISOString().slice(0, 10),
     rangeEnd: endDate.toISOString().slice(0, 10),
   };
+  // Único caller autorizado de recordIntegrationSnapshot — ver comentário do helper (trim de
+  // 2026-07-24). Não replicar esta chamada para outras integrações Play/Firebase.
   await recordIntegrationSnapshot(env, {
     provider: "google_play", service: "play_developer_reporting", resource: state.source.resource,
     metric: config.metricName, periodStart: state.rangeStart, periodEnd: state.rangeEnd,

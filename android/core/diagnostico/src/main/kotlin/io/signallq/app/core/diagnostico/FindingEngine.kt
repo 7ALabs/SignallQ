@@ -89,7 +89,6 @@ private data class Achado(
  * secundário (quando é uma causa independente).
  */
 object FindingEngine {
-
     fun analisar(
         internetResultados: List<DiagnosticResult>,
         wifiQuality: WifiQualityResult,
@@ -123,8 +122,9 @@ object FindingEngine {
         val internetRuim = internetCritico || internetAtencao
         val wifiRuim = !wifiQuality.confiavelParaTeste
         val wifiCritico = wifiQuality.resultados.any { it.status == DiagnosticStatus.critical }
-        val fibraDisponivel = fibraResultados.isNotEmpty() &&
-            fibraResultados.any { it.status != DiagnosticStatus.inconclusive }
+        val fibraDisponivel =
+            fibraResultados.isNotEmpty() &&
+                fibraResultados.any { it.status != DiagnosticStatus.inconclusive }
         val fibraCritica = fibraDisponivel && fibraResultados.any { it.status == DiagnosticStatus.critical }
         val fibraAtencao = fibraDisponivel && fibraResultados.any { it.status == DiagnosticStatus.attention }
 
@@ -142,46 +142,50 @@ object FindingEngine {
         // Confiança alta (0.9): correlaciona duas fontes independentes (RTT local
         // TCP vs. latência de ping externo), não é sintoma isolado. Sempre ativa
         // (causa independente das demais).
-        if (rttGatewayMs != null && rttGatewayMs < 10 &&
-            latenciaInternetMs != null && latenciaInternetMs > 200.0 &&
+        if (rttGatewayMs != null &&
+            rttGatewayMs < 10 &&
+            latenciaInternetMs != null &&
+            latenciaInternetMs > 200.0 &&
             !wifiRuim
         ) {
-            candidatos += Achado(
-                DiagnosticResult(
-                    id = "DECISAO-GW-01",
-                    titulo = "Problema na Operadora",
-                    status = DiagnosticStatus.critical,
-                    evidencia = "rttGatewayMs=$rttGatewayMs latenciaInternetMs=$latenciaInternetMs",
-                    mensagemUsuario = "Seu roteador está funcionando bem — a lentidão vem da sua operadora.",
-                    recomendacao = "Entre em contato com sua operadora e informe que a conexão está lenta fora de casa. Se possível, peça abertura de chamado com o resultado deste diagnóstico.",
-                    categoria = CAT,
-                    podeConcluir = true,
-                    categoriaOrigem = "isp",
-                ),
-                confianca = 0.9,
-                ativo = true,
-            )
+            candidatos +=
+                Achado(
+                    DiagnosticResult(
+                        id = "DECISAO-GW-01",
+                        titulo = "Problema na Operadora",
+                        status = DiagnosticStatus.critical,
+                        evidencia = "rttGatewayMs=$rttGatewayMs latenciaInternetMs=$latenciaInternetMs",
+                        mensagemUsuario = "Seu roteador está funcionando bem — a lentidão vem da sua operadora.",
+                        recomendacao = "Entre em contato com sua operadora e informe que a conexão está lenta fora de casa. Se possível, peça abertura de chamado com o resultado deste diagnóstico.",
+                        categoria = CAT,
+                        podeConcluir = true,
+                        categoriaOrigem = "isp",
+                    ),
+                    confianca = 0.9,
+                    ativo = true,
+                )
         }
 
         // DECISAO-GW-02: gateway lento → roteador ou Wi-Fi é o problema.
         // Confiança média-alta (0.75): fonte única (RTT gateway), mas é medição
         // direta do equipamento suspeito. Sempre ativa.
         if (rttGatewayMs != null && rttGatewayMs > 50) {
-            candidatos += Achado(
-                DiagnosticResult(
-                    id = "DECISAO-GW-02",
-                    titulo = "Roteador Respondendo Lentamente",
-                    status = DiagnosticStatus.attention,
-                    evidencia = "rttGatewayMs=$rttGatewayMs",
-                    mensagemUsuario = "Seu roteador está respondendo lentamente — isso pode estar causando a lentidão.",
-                    recomendacao = "Reinicie o roteador: desligue da tomada, aguarde 30 segundos e ligue novamente. Se a lentidão persistir, tente se aproximar do roteador.",
-                    categoria = CAT,
-                    podeConcluir = false,
-                    categoriaOrigem = "roteador",
-                ),
-                confianca = 0.75,
-                ativo = true,
-            )
+            candidatos +=
+                Achado(
+                    DiagnosticResult(
+                        id = "DECISAO-GW-02",
+                        titulo = "Roteador Respondendo Lentamente",
+                        status = DiagnosticStatus.attention,
+                        evidencia = "rttGatewayMs=$rttGatewayMs",
+                        mensagemUsuario = "Seu roteador está respondendo lentamente — isso pode estar causando a lentidão.",
+                        recomendacao = "Reinicie o roteador: desligue da tomada, aguarde 30 segundos e ligue novamente. Se a lentidão persistir, tente se aproximar do roteador.",
+                        categoria = CAT,
+                        podeConcluir = false,
+                        categoriaOrigem = "roteador",
+                    ),
+                    confianca = 0.75,
+                    ativo = true,
+                )
         }
 
         // DECISAO-00 / DECISAO-00b: fibra crítica/atenção — mesma causa raiz
@@ -189,37 +193,39 @@ object FindingEngine {
         // ao mesmo tempo (fibraCritica e fibraAtencao são mutuamente exclusivos
         // pela definição acima), então não há disputa entre elas.
         if (fibraCritica && internetRuim) {
-            candidatos += Achado(
-                DiagnosticResult(
-                    id = "DECISAO-00",
-                    titulo = "Problema na Fibra",
-                    status = DiagnosticStatus.critical,
-                    evidencia = "fibraProblemas=${fibraResultados.filter { it.status == DiagnosticStatus.critical }.map { it.id }}",
-                    mensagemUsuario = "Foram detectados problemas na fibra óptica que podem estar causando instabilidade na internet.",
-                    recomendacao = "Verifique o estado da ONT. Se o cabo de fibra ou o laser estiver com problema, contate o provedor.",
-                    categoria = CAT,
-                    podeConcluir = true,
-                    categoriaOrigem = "fibra",
-                ),
-                confianca = 0.9,
-                ativo = true,
-            )
+            candidatos +=
+                Achado(
+                    DiagnosticResult(
+                        id = "DECISAO-00",
+                        titulo = "Problema na Fibra",
+                        status = DiagnosticStatus.critical,
+                        evidencia = "fibraProblemas=${fibraResultados.filter { it.status == DiagnosticStatus.critical }.map { it.id }}",
+                        mensagemUsuario = "Foram detectados problemas na fibra óptica que podem estar causando instabilidade na internet.",
+                        recomendacao = "Verifique o estado da ONT. Se o cabo de fibra ou o laser estiver com problema, contate o provedor.",
+                        categoria = CAT,
+                        podeConcluir = true,
+                        categoriaOrigem = "fibra",
+                    ),
+                    confianca = 0.9,
+                    ativo = true,
+                )
         }
         if (fibraAtencao && !internetCritico) {
-            candidatos += Achado(
-                DiagnosticResult(
-                    id = "DECISAO-00b",
-                    titulo = "Atenção na Qualidade da Fibra",
-                    status = DiagnosticStatus.attention,
-                    evidencia = "fibraAlertas=${fibraResultados.filter { it.status == DiagnosticStatus.attention }.map { it.id }}",
-                    mensagemUsuario = "Alguns indicadores da fibra merecem atenção. Monitore a estabilidade da conexão.",
-                    recomendacao = "Verifique a ventilação da ONT e o estado do cabo de fibra. Informe o provedor se houver quedas recorrentes.",
-                    categoria = CAT,
-                    categoriaOrigem = "fibra",
-                ),
-                confianca = 0.6,
-                ativo = true,
-            )
+            candidatos +=
+                Achado(
+                    DiagnosticResult(
+                        id = "DECISAO-00b",
+                        titulo = "Atenção na Qualidade da Fibra",
+                        status = DiagnosticStatus.attention,
+                        evidencia = "fibraAlertas=${fibraResultados.filter { it.status == DiagnosticStatus.attention }.map { it.id }}",
+                        mensagemUsuario = "Alguns indicadores da fibra merecem atenção. Monitore a estabilidade da conexão.",
+                        recomendacao = "Verifique a ventilação da ONT e o estado do cabo de fibra. Informe o provedor se houver quedas recorrentes.",
+                        categoria = CAT,
+                        categoriaOrigem = "fibra",
+                    ),
+                    confianca = 0.6,
+                    ativo = true,
+                )
         }
 
         // DECISAO-01: internet com problema OU inconclusiva + WiFi ruim.
@@ -231,21 +237,22 @@ object FindingEngine {
         // hipóteses suprimidas em favor desta regra — ver os blocos DECISAO-02/02b
         // abaixo, que verificam `ativo = !wifiRuim`.
         if ((internetRuim || internetInconclusivo) && wifiRuim) {
-            candidatos += Achado(
-                DiagnosticResult(
-                    id = "DECISAO-01",
-                    titulo = "Possível Interferência de Wi-Fi",
-                    status = DiagnosticStatus.attention,
-                    evidencia = "wifiConfiavel=false internetProblemas=${internetResultados.filter { it.status != DiagnosticStatus.ok }.map { it.id }}",
-                    mensagemUsuario = "Foram detectados problemas na conexão, mas o sinal Wi-Fi fraco pode ser a causa. O diagnóstico de internet pode não ser preciso.",
-                    recomendacao = "Aproxime-se do roteador, reconecte ao Wi-Fi e refaça o teste.",
-                    categoria = CAT,
-                    podeConcluir = false,
-                    categoriaOrigem = "wifi",
-                ),
-                confianca = 0.65,
-                ativo = true,
-            )
+            candidatos +=
+                Achado(
+                    DiagnosticResult(
+                        id = "DECISAO-01",
+                        titulo = "Possível Interferência de Wi-Fi",
+                        status = DiagnosticStatus.attention,
+                        evidencia = "wifiConfiavel=false internetProblemas=${internetResultados.filter { it.status != DiagnosticStatus.ok }.map { it.id }}",
+                        mensagemUsuario = "Foram detectados problemas na conexão, mas o sinal Wi-Fi fraco pode ser a causa. O diagnóstico de internet pode não ser preciso.",
+                        recomendacao = "Aproxime-se do roteador, reconecte ao Wi-Fi e refaça o teste.",
+                        categoria = CAT,
+                        podeConcluir = false,
+                        categoriaOrigem = "wifi",
+                    ),
+                    confianca = 0.65,
+                    ativo = true,
+                )
         }
 
         // ---------------------------------------------------------------------
@@ -271,105 +278,114 @@ object FindingEngine {
         // genérico (0.65) porque soma evidência direta do equipamento — quando
         // ambas batem, esta regra vence o desempate e DECISAO-01 aparece como
         // achado secundário (mesmo diagnóstico, evidência mais forte).
-        val fibraOntConfirmadaOk = localDevice != null &&
-            localDevice.deviceType == DeviceType.ONT_GPON &&
-            localDevice.statusFibra == LocalDeviceSectionStatus.OK
+        val fibraOntConfirmadaOk =
+            localDevice != null &&
+                localDevice.deviceType == DeviceType.ONT_GPON &&
+                localDevice.statusFibra == LocalDeviceSectionStatus.OK
         if (fibraOntConfirmadaOk && (internetRuim || internetInconclusivo) && wifiRuim) {
-            candidatos += Achado(
-                DiagnosticResult(
-                    id = "LOCAL-EQUIP-WIFI-01",
-                    titulo = "Equipamento Confirma: Problema é Local/Wi-Fi",
-                    status = DiagnosticStatus.attention,
-                    evidencia = "equipamento=${localDevice.vendor}/${localDevice.modelo} statusFibra=OK wifiConfiavel=false",
-                    mensagemUsuario = "A ONT confirma que o sinal da fibra está bom — a lentidão detectada provavelmente vem do Wi-Fi ou de um dispositivo na rede local, não da fibra.",
-                    recomendacao = "Aproxime-se do roteador, reconecte ao Wi-Fi e refaça o teste.",
-                    categoria = CAT,
-                    podeConcluir = false,
-                    categoriaOrigem = "wifi",
-                ),
-                confianca = confiancaEquipamentoLocal(0.85, localDevice.supportLevel),
-                ativo = true,
-            )
+            candidatos +=
+                Achado(
+                    DiagnosticResult(
+                        id = "LOCAL-EQUIP-WIFI-01",
+                        titulo = "Equipamento Confirma: Problema é Local/Wi-Fi",
+                        status = DiagnosticStatus.attention,
+                        evidencia = "equipamento=${localDevice.vendor}/${localDevice.modelo} statusFibra=OK wifiConfiavel=false",
+                        mensagemUsuario = "A ONT confirma que o sinal da fibra está bom — a lentidão detectada provavelmente vem do Wi-Fi ou de um dispositivo na rede local, não da fibra.",
+                        recomendacao = "Aproxime-se do roteador, reconecte ao Wi-Fi e refaça o teste.",
+                        categoria = CAT,
+                        podeConcluir = false,
+                        categoriaOrigem = "wifi",
+                    ),
+                    confianca = confiancaEquipamentoLocal(0.85, localDevice.supportLevel),
+                    ativo = true,
+                )
         }
 
         // LOCAL-EQUIP-FIBRA-01: ONT reporta atenção no link óptico + internet ruim
         // → possível problema óptico/provedor. Suprimida quando DECISAO-00/00b
         // (leitura direta do módulo de fibra, mais granular) já cobriu a mesma
         // causa raiz — vira hipótese descartada em vez de duplicar a mensagem.
-        val fibraOntComAtencao = localDevice != null &&
-            localDevice.deviceType == DeviceType.ONT_GPON &&
-            localDevice.statusFibra == LocalDeviceSectionStatus.ATENCAO
+        val fibraOntComAtencao =
+            localDevice != null &&
+                localDevice.deviceType == DeviceType.ONT_GPON &&
+                localDevice.statusFibra == LocalDeviceSectionStatus.ATENCAO
         if (fibraOntComAtencao && internetRuim) {
             val suprimidaPorLeituraDireta = fibraCritica || fibraAtencao
-            candidatos += Achado(
-                DiagnosticResult(
-                    id = "LOCAL-EQUIP-FIBRA-01",
-                    titulo = "Equipamento Local Indica Problema na Fibra",
-                    status = DiagnosticStatus.attention,
-                    evidencia = "equipamento=${localDevice.vendor}/${localDevice.modelo} statusFibra=ATENCAO",
-                    mensagemUsuario = "A ONT reportou instabilidade no link óptico. Isso pode indicar um problema físico na fibra ou uma falha do lado do provedor.",
-                    recomendacao = "Verifique o cabo de fibra e o estado da ONT. Se a instabilidade persistir, contate o provedor.",
-                    categoria = CAT,
-                    categoriaOrigem = "fibra",
-                ),
-                confianca = confiancaEquipamentoLocal(0.7, localDevice.supportLevel),
-                ativo = !suprimidaPorLeituraDireta,
-                motivoDescarte = if (suprimidaPorLeituraDireta) {
-                    "suprimida: já coberta por DECISAO-00/00b (leitura direta da fibra, mais granular)"
-                } else {
-                    null
-                },
-            )
+            candidatos +=
+                Achado(
+                    DiagnosticResult(
+                        id = "LOCAL-EQUIP-FIBRA-01",
+                        titulo = "Equipamento Local Indica Problema na Fibra",
+                        status = DiagnosticStatus.attention,
+                        evidencia = "equipamento=${localDevice.vendor}/${localDevice.modelo} statusFibra=ATENCAO",
+                        mensagemUsuario = "A ONT reportou instabilidade no link óptico. Isso pode indicar um problema físico na fibra ou uma falha do lado do provedor.",
+                        recomendacao = "Verifique o cabo de fibra e o estado da ONT. Se a instabilidade persistir, contate o provedor.",
+                        categoria = CAT,
+                        categoriaOrigem = "fibra",
+                    ),
+                    confianca = confiancaEquipamentoLocal(0.7, localDevice.supportLevel),
+                    ativo = !suprimidaPorLeituraDireta,
+                    motivoDescarte =
+                        if (suprimidaPorLeituraDireta) {
+                            "suprimida: já coberta por DECISAO-00/00b (leitura direta da fibra, mais granular)"
+                        } else {
+                            null
+                        },
+                )
         }
 
         // LOCAL-EQUIP-SATURACAO-01: roteador TP-Link com WAN OK + muitos clientes
         // conectados + internet ruim → possível saturação da rede local, não da
         // operadora. Nunca menciona fibra (TP-Link não tem essa seção).
-        val saturacaoLocalProvavel = localDevice != null &&
-            localDevice.deviceType == DeviceType.ROUTER &&
-            localDevice.statusWan == LocalDeviceSectionStatus.OK &&
-            localDevice.quantidadeClientes > MUITOS_CLIENTES_THRESHOLD
+        val saturacaoLocalProvavel =
+            localDevice != null &&
+                localDevice.deviceType == DeviceType.ROUTER &&
+                localDevice.statusWan == LocalDeviceSectionStatus.OK &&
+                localDevice.quantidadeClientes > MUITOS_CLIENTES_THRESHOLD
         if (saturacaoLocalProvavel && internetRuim) {
-            candidatos += Achado(
-                DiagnosticResult(
-                    id = "LOCAL-EQUIP-SATURACAO-01",
-                    titulo = "Possível Saturação da Rede Local",
-                    status = DiagnosticStatus.attention,
-                    evidencia = "equipamento=${localDevice.vendor}/${localDevice.modelo} statusWan=OK clientes=${localDevice.quantidadeClientes}",
-                    mensagemUsuario = "O roteador confirma que a internet (WAN) está funcionando, mas há ${localDevice.quantidadeClientes} dispositivos conectados — a lentidão pode ser saturação da rede local, não da operadora.",
-                    recomendacao = "Verifique quais dispositivos estão consumindo mais banda e desconecte os que não estão em uso no momento.",
-                    categoria = CAT,
-                    categoriaOrigem = "local",
-                ),
-                confianca = confiancaEquipamentoLocal(0.65, localDevice.supportLevel),
-                ativo = true,
-            )
+            candidatos +=
+                Achado(
+                    DiagnosticResult(
+                        id = "LOCAL-EQUIP-SATURACAO-01",
+                        titulo = "Possível Saturação da Rede Local",
+                        status = DiagnosticStatus.attention,
+                        evidencia = "equipamento=${localDevice.vendor}/${localDevice.modelo} statusWan=OK clientes=${localDevice.quantidadeClientes}",
+                        mensagemUsuario = "O roteador confirma que a internet (WAN) está funcionando, mas há ${localDevice.quantidadeClientes} dispositivos conectados — a lentidão pode ser saturação da rede local, não da operadora.",
+                        recomendacao = "Verifique quais dispositivos estão consumindo mais banda e desconecte os que não estão em uso no momento.",
+                        categoria = CAT,
+                        categoriaOrigem = "local",
+                    ),
+                    confianca = confiancaEquipamentoLocal(0.65, localDevice.supportLevel),
+                    ativo = true,
+                )
         }
 
         // LOCAL-EQUIP-WAN-01: roteador TP-Link sem WAN funcionando + internet ruim
         // → falha upstream ou local, SEM afirmar que é fibra (o roteador não tem
         // como confirmar isso — regra de produto: TP-Link nunca aponta fibra).
-        val wanRoteadorIndisponivel = localDevice != null &&
-            localDevice.deviceType == DeviceType.ROUTER &&
-            (
-                localDevice.statusWan == LocalDeviceSectionStatus.ATENCAO ||
-                    localDevice.statusWan == LocalDeviceSectionStatus.INDISPONIVEL
-            )
+        val wanRoteadorIndisponivel =
+            localDevice != null &&
+                localDevice.deviceType == DeviceType.ROUTER &&
+                (
+                    localDevice.statusWan == LocalDeviceSectionStatus.ATENCAO ||
+                        localDevice.statusWan == LocalDeviceSectionStatus.INDISPONIVEL
+                )
         if (wanRoteadorIndisponivel && internetRuim) {
-            candidatos += Achado(
-                DiagnosticResult(
-                    id = "LOCAL-EQUIP-WAN-01",
-                    titulo = "Falha na Conexão Upstream do Roteador",
-                    status = DiagnosticStatus.critical,
-                    evidencia = "equipamento=${localDevice.vendor}/${localDevice.modelo} statusWan=${localDevice.statusWan}",
-                    mensagemUsuario = "O roteador não está recebendo conexão da rede upstream. Pode ser um problema local (cabo/configuração) ou uma falha antes do roteador — este equipamento não fornece dados de fibra para confirmar a causa.",
-                    recomendacao = "Reinicie o roteador. Se persistir, verifique o cabo até o equipamento anterior (ONT/modem) e contate o provedor caso o problema continue.",
-                    categoria = CAT,
-                    podeConcluir = false,
-                ),
-                confianca = confiancaEquipamentoLocal(0.75, localDevice.supportLevel),
-                ativo = true,
-            )
+            candidatos +=
+                Achado(
+                    DiagnosticResult(
+                        id = "LOCAL-EQUIP-WAN-01",
+                        titulo = "Falha na Conexão Upstream do Roteador",
+                        status = DiagnosticStatus.critical,
+                        evidencia = "equipamento=${localDevice.vendor}/${localDevice.modelo} statusWan=${localDevice.statusWan}",
+                        mensagemUsuario = "O roteador não está recebendo conexão da rede upstream. Pode ser um problema local (cabo/configuração) ou uma falha antes do roteador — este equipamento não fornece dados de fibra para confirmar a causa.",
+                        recomendacao = "Reinicie o roteador. Se persistir, verifique o cabo até o equipamento anterior (ONT/modem) e contate o provedor caso o problema continue.",
+                        categoria = CAT,
+                        podeConcluir = false,
+                    ),
+                    confianca = confiancaEquipamentoLocal(0.75, localDevice.supportLevel),
+                    ativo = true,
+                )
         }
 
         // DECISAO-DNS-01: DNS crítico. Mesma causa raiz de DECISAO-00 (fibra crítica)
@@ -378,26 +394,28 @@ object FindingEngine {
         // do engine antigo: se há outro crítico não-DNS relevante, DNS também cede).
         val dnsSuprimidaPorFibraOuOutroCritico = dnsCritico && (fibraCritica || criticoNaoDns)
         if (dnsCritico) {
-            candidatos += Achado(
-                DiagnosticResult(
-                    id = "DECISAO-DNS-01",
-                    titulo = "Problema no DNS",
-                    status = DiagnosticStatus.critical,
-                    evidencia = "dnsCritico=true",
-                    mensagemUsuario = "Foi detectado um problema critico no DNS em uso. Isso pode causar lentidao para abrir sites e falhas em apps.",
-                    recomendacao = "Troque o DNS para uma opcao mais rapida (ex.: Cloudflare ou Google DNS) e refaca o teste.",
-                    categoria = CAT,
-                    podeConcluir = true,
-                    categoriaOrigem = "dns",
-                ),
-                confianca = 0.85,
-                ativo = !dnsSuprimidaPorFibraOuOutroCritico,
-                motivoDescarte = if (dnsSuprimidaPorFibraOuOutroCritico) {
-                    "suprimida por evidência mais forte: fibra crítica ou outro problema crítico não-DNS presente"
-                } else {
-                    null
-                },
-            )
+            candidatos +=
+                Achado(
+                    DiagnosticResult(
+                        id = "DECISAO-DNS-01",
+                        titulo = "Problema no DNS",
+                        status = DiagnosticStatus.critical,
+                        evidencia = "dnsCritico=true",
+                        mensagemUsuario = "Foi detectado um problema critico no DNS em uso. Isso pode causar lentidao para abrir sites e falhas em apps.",
+                        recomendacao = "Troque o DNS para uma opcao mais rapida (ex.: Cloudflare ou Google DNS) e refaca o teste.",
+                        categoria = CAT,
+                        podeConcluir = true,
+                        categoriaOrigem = "dns",
+                    ),
+                    confianca = 0.85,
+                    ativo = !dnsSuprimidaPorFibraOuOutroCritico,
+                    motivoDescarte =
+                        if (dnsSuprimidaPorFibraOuOutroCritico) {
+                            "suprimida por evidência mais forte: fibra crítica ou outro problema crítico não-DNS presente"
+                        } else {
+                            null
+                        },
+                )
         }
 
         // DECISAO-DNS-01b: DNS com atenção. Causa independente de fibra/internet —
@@ -405,21 +423,22 @@ object FindingEngine {
         // esse achado quando havia internet/fibra crítica), agora aparece como
         // achado secundário nesses casos em vez de desaparecer.
         if (dnsAtencao) {
-            candidatos += Achado(
-                DiagnosticResult(
-                    id = "DECISAO-DNS-01b",
-                    titulo = "Atenção ao DNS",
-                    status = DiagnosticStatus.attention,
-                    evidencia = "dnsAtencao=true",
-                    mensagemUsuario = "O DNS atual esta lento e pode impactar a experiencia, mesmo com boa velocidade.",
-                    recomendacao = "Compare com outros DNS e considere trocar para o melhor no comparativo.",
-                    categoria = CAT,
-                    podeConcluir = false,
-                    categoriaOrigem = "dns",
-                ),
-                confianca = 0.6,
-                ativo = true,
-            )
+            candidatos +=
+                Achado(
+                    DiagnosticResult(
+                        id = "DECISAO-DNS-01b",
+                        titulo = "Atenção ao DNS",
+                        status = DiagnosticStatus.attention,
+                        evidencia = "dnsAtencao=true",
+                        mensagemUsuario = "O DNS atual esta lento e pode impactar a experiencia, mesmo com boa velocidade.",
+                        recomendacao = "Compare com outros DNS e considere trocar para o melhor no comparativo.",
+                        categoria = CAT,
+                        podeConcluir = false,
+                        categoriaOrigem = "dns",
+                    ),
+                    confianca = 0.6,
+                    ativo = true,
+                )
         }
 
         // DECISAO-HIST-01: degradação histórica relevante (não conclui causa raiz).
@@ -427,20 +446,21 @@ object FindingEngine {
         // sempre ativa, compete por score. Antes era escondida quando havia
         // internet/fibra crítica; agora aparece como achado secundário.
         if (histCritico || histAtencao) {
-            candidatos += Achado(
-                DiagnosticResult(
-                    id = "DECISAO-HIST-01",
-                    titulo = "Degradação Recente Detectada",
-                    status = if (histCritico) DiagnosticStatus.critical else DiagnosticStatus.attention,
-                    evidencia = "historico=$historicoIds",
-                    mensagemUsuario = "O histórico sugere degradação recente da conexão. Vale investigar horários e condições em que piora.",
-                    recomendacao = "Refaça testes em horarios diferentes (inclusive via cabo). Se confirmar, leve o historico ao provedor.",
-                    categoria = CAT,
-                    podeConcluir = false,
-                ),
-                confianca = 0.5,
-                ativo = true,
-            )
+            candidatos +=
+                Achado(
+                    DiagnosticResult(
+                        id = "DECISAO-HIST-01",
+                        titulo = "Degradação Recente Detectada",
+                        status = if (histCritico) DiagnosticStatus.critical else DiagnosticStatus.attention,
+                        evidencia = "historico=$historicoIds",
+                        mensagemUsuario = "O histórico sugere degradação recente da conexão. Vale investigar horários e condições em que piora.",
+                        recomendacao = "Refaça testes em horarios diferentes (inclusive via cabo). Se confirmar, leve o historico ao provedor.",
+                        categoria = CAT,
+                        podeConcluir = false,
+                    ),
+                    confianca = 0.5,
+                    ativo = true,
+                )
         }
 
         // DECISAO-WIFI-CANAL: canal congestionado (não conclui internet/ISP). Causa
@@ -448,21 +468,22 @@ object FindingEngine {
         // por score. Antes era escondida quando havia internet/fibra crítica; agora
         // aparece como achado secundário.
         if (wifiCanalAtencao) {
-            candidatos += Achado(
-                DiagnosticResult(
-                    id = "DECISAO-WIFI-CANAL",
-                    titulo = "Possível Congestionamento de Wi-Fi",
-                    status = DiagnosticStatus.attention,
-                    evidencia = "wifiCanal=$wifiCanalIds",
-                    mensagemUsuario = "O canal Wi-Fi parece congestionado e pode explicar instabilidade ou queda de desempenho no Wi-Fi.",
-                    recomendacao = "Troque o canal Wi-Fi para um canal menos ocupado e refaça o teste.",
-                    categoria = CAT,
-                    podeConcluir = false,
-                    categoriaOrigem = "wifi",
-                ),
-                confianca = 0.55,
-                ativo = true,
-            )
+            candidatos +=
+                Achado(
+                    DiagnosticResult(
+                        id = "DECISAO-WIFI-CANAL",
+                        titulo = "Possível Congestionamento de Wi-Fi",
+                        status = DiagnosticStatus.attention,
+                        evidencia = "wifiCanal=$wifiCanalIds",
+                        mensagemUsuario = "O canal Wi-Fi parece congestionado e pode explicar instabilidade ou queda de desempenho no Wi-Fi.",
+                        recomendacao = "Troque o canal Wi-Fi para um canal menos ocupado e refaça o teste.",
+                        categoria = CAT,
+                        podeConcluir = false,
+                        categoriaOrigem = "wifi",
+                    ),
+                    confianca = 0.55,
+                    ativo = true,
+                )
         }
 
         // DECISAO-02 / DECISAO-02b: internet com problema + WiFi ok → culpa é
@@ -485,82 +506,91 @@ object FindingEngine {
         val emRedeMovel = connectionType == ConnectionType.mobile
         val equipamentoLocalExplicaMelhor = fibraOntComAtencao || saturacaoLocalProvavel || wanRoteadorIndisponivel
         if (internetCritico) {
-            candidatos += Achado(
-                DiagnosticResult(
-                    id = "DECISAO-02",
-                    titulo = "Problema na Internet",
-                    status = DiagnosticStatus.critical,
-                    evidencia = "problemas=${internetResultados.filter { it.status == DiagnosticStatus.critical }.map { it.id }}",
-                    mensagemUsuario = if (emRedeMovel) {
-                        "A rede móvel está estável, mas há problemas na conexão com a internet. O problema pode estar na operadora ou no servidor de destino."
-                    } else {
-                        "O Wi-Fi está bom, mas há problemas na conexão com a internet. O problema pode estar no roteador ou no provedor."
-                    },
-                    recomendacao = if (emRedeMovel) {
-                        "Teste em outro local ou horário. Se o problema persistir, verifique com sua operadora."
-                    } else {
-                        "Reinicie o roteador. Se o problema persistir, contate o suporte do seu provedor de internet."
-                    },
-                    categoria = CAT,
-                    podeConcluir = true,
-                ),
-                confianca = 0.8,
-                ativo = !wifiRuim && !equipamentoLocalExplicaMelhor,
-                motivoDescarte = when {
-                    wifiRuim -> "suprimida por Wi-Fi não confiável durante o teste (ver DECISAO-01)"
-                    equipamentoLocalExplicaMelhor -> "suprimida: equipamento local já aponta causa mais específica (ver LOCAL-EQUIP-*)"
-                    else -> null
-                },
-            )
+            candidatos +=
+                Achado(
+                    DiagnosticResult(
+                        id = "DECISAO-02",
+                        titulo = "Problema na Internet",
+                        status = DiagnosticStatus.critical,
+                        evidencia = "problemas=${internetResultados.filter { it.status == DiagnosticStatus.critical }.map { it.id }}",
+                        mensagemUsuario =
+                            if (emRedeMovel) {
+                                "A rede móvel está estável, mas há problemas na conexão com a internet. O problema pode estar na operadora ou no servidor de destino."
+                            } else {
+                                "O Wi-Fi está bom, mas há problemas na conexão com a internet. O problema pode estar no roteador ou no provedor."
+                            },
+                        recomendacao =
+                            if (emRedeMovel) {
+                                "Teste em outro local ou horário. Se o problema persistir, verifique com sua operadora."
+                            } else {
+                                "Reinicie o roteador. Se o problema persistir, contate o suporte do seu provedor de internet."
+                            },
+                        categoria = CAT,
+                        podeConcluir = true,
+                    ),
+                    confianca = 0.8,
+                    ativo = !wifiRuim && !equipamentoLocalExplicaMelhor,
+                    motivoDescarte =
+                        when {
+                            wifiRuim -> "suprimida por Wi-Fi não confiável durante o teste (ver DECISAO-01)"
+                            equipamentoLocalExplicaMelhor -> "suprimida: equipamento local já aponta causa mais específica (ver LOCAL-EQUIP-*)"
+                            else -> null
+                        },
+                )
         }
         if (internetAtencao) {
-            candidatos += Achado(
-                DiagnosticResult(
-                    id = "DECISAO-02b",
-                    titulo = "Atenção na Qualidade da Internet",
-                    status = DiagnosticStatus.attention,
-                    evidencia = "alertas=${internetResultados.filter { it.status == DiagnosticStatus.attention }.map { it.id }}",
-                    mensagemUsuario = if (emRedeMovel) {
-                        "A rede móvel está estável, mas alguns indicadores de internet merecem atenção."
-                    } else {
-                        "O Wi-Fi está bom, mas alguns indicadores de internet merecem atenção."
-                    },
-                    recomendacao = if (emRedeMovel) {
-                        "Monitore a conexão. Se o problema persistir, teste em outro local ou horário, ou entre em contato com a operadora."
-                    } else {
-                        "Monitore a conexão. Se o problema persistir, reinicie o roteador ou entre em contato com o provedor."
-                    },
-                    categoria = CAT,
-                    podeConcluir = false,
-                ),
-                confianca = 0.6,
-                ativo = !wifiRuim && !equipamentoLocalExplicaMelhor,
-                motivoDescarte = when {
-                    wifiRuim -> "suprimida por Wi-Fi não confiável durante o teste (ver DECISAO-01)"
-                    equipamentoLocalExplicaMelhor -> "suprimida: equipamento local já aponta causa mais específica (ver LOCAL-EQUIP-*)"
-                    else -> null
-                },
-            )
+            candidatos +=
+                Achado(
+                    DiagnosticResult(
+                        id = "DECISAO-02b",
+                        titulo = "Atenção na Qualidade da Internet",
+                        status = DiagnosticStatus.attention,
+                        evidencia = "alertas=${internetResultados.filter { it.status == DiagnosticStatus.attention }.map { it.id }}",
+                        mensagemUsuario =
+                            if (emRedeMovel) {
+                                "A rede móvel está estável, mas alguns indicadores de internet merecem atenção."
+                            } else {
+                                "O Wi-Fi está bom, mas alguns indicadores de internet merecem atenção."
+                            },
+                        recomendacao =
+                            if (emRedeMovel) {
+                                "Monitore a conexão. Se o problema persistir, teste em outro local ou horário, ou entre em contato com a operadora."
+                            } else {
+                                "Monitore a conexão. Se o problema persistir, reinicie o roteador ou entre em contato com o provedor."
+                            },
+                        categoria = CAT,
+                        podeConcluir = false,
+                    ),
+                    confianca = 0.6,
+                    ativo = !wifiRuim && !equipamentoLocalExplicaMelhor,
+                    motivoDescarte =
+                        when {
+                            wifiRuim -> "suprimida por Wi-Fi não confiável durante o teste (ver DECISAO-01)"
+                            equipamentoLocalExplicaMelhor -> "suprimida: equipamento local já aponta causa mais específica (ver LOCAL-EQUIP-*)"
+                            else -> null
+                        },
+                )
         }
 
         // DECISAO-04-WIFI: WiFi crítico mas internet ok. Guard do engine antigo
         // (`!internetRuim`) preservado: internet com problema é evidência mais forte.
         if (wifiCritico) {
-            candidatos += Achado(
-                DiagnosticResult(
-                    id = "DECISAO-04-WIFI",
-                    titulo = "Atenção ao Sinal Wi-Fi",
-                    status = DiagnosticStatus.attention,
-                    evidencia = "wifiStatus=" + wifiQuality.resultados.map { it.id + ":" + it.status },
-                    mensagemUsuario = "A internet está funcionando bem, mas o sinal Wi-Fi merece atenção para evitar problemas futuros.",
-                    recomendacao = "Aproxime-se do roteador ou reduza obstáculos entre o dispositivo e o roteador.",
-                    categoria = CAT,
-                    categoriaOrigem = "wifi",
-                ),
-                confianca = 0.7,
-                ativo = !internetRuim,
-                motivoDescarte = if (internetRuim) "suprimida por problema de internet mais relevante já identificado" else null,
-            )
+            candidatos +=
+                Achado(
+                    DiagnosticResult(
+                        id = "DECISAO-04-WIFI",
+                        titulo = "Atenção ao Sinal Wi-Fi",
+                        status = DiagnosticStatus.attention,
+                        evidencia = "wifiStatus=" + wifiQuality.resultados.map { it.id + ":" + it.status },
+                        mensagemUsuario = "A internet está funcionando bem, mas o sinal Wi-Fi merece atenção para evitar problemas futuros.",
+                        recomendacao = "Aproxime-se do roteador ou reduza obstáculos entre o dispositivo e o roteador.",
+                        categoria = CAT,
+                        categoriaOrigem = "wifi",
+                    ),
+                    confianca = 0.7,
+                    ativo = !internetRuim,
+                    motivoDescarte = if (internetRuim) "suprimida por problema de internet mais relevante já identificado" else null,
+                )
         }
 
         // DECISAO-04b-WIFI: Wi-Fi com atenção não-crítica (link speed baixo, muitos
@@ -571,21 +601,22 @@ object FindingEngine {
         if (wifiTemAtencao) {
             val alertas = wifiQuality.resultados.filter { it.status == DiagnosticStatus.attention }.map { it.id }
             val suprimida = wifiCritico || internetRuim || wifiRuim
-            candidatos += Achado(
-                DiagnosticResult(
-                    id = "DECISAO-04b-WIFI",
-                    titulo = "Atenção ao Wi-Fi",
-                    status = DiagnosticStatus.attention,
-                    evidencia = "wifiAlertas=$alertas",
-                    mensagemUsuario = "A internet está funcionando, mas há indicadores do Wi-Fi que merecem atenção e podem afetar a experiência.",
-                    recomendacao = "Verifique os itens sinalizados para melhorar a qualidade da conexão Wi-Fi.",
-                    categoria = CAT,
-                    categoriaOrigem = "wifi",
-                ),
-                confianca = 0.5,
-                ativo = !suprimida,
-                motivoDescarte = if (suprimida) "suprimida por Wi-Fi crítico, internet ruim ou Wi-Fi não confiável" else null,
-            )
+            candidatos +=
+                Achado(
+                    DiagnosticResult(
+                        id = "DECISAO-04b-WIFI",
+                        titulo = "Atenção ao Wi-Fi",
+                        status = DiagnosticStatus.attention,
+                        evidencia = "wifiAlertas=$alertas",
+                        mensagemUsuario = "A internet está funcionando, mas há indicadores do Wi-Fi que merecem atenção e podem afetar a experiência.",
+                        recomendacao = "Verifique os itens sinalizados para melhorar a qualidade da conexão Wi-Fi.",
+                        categoria = CAT,
+                        categoriaOrigem = "wifi",
+                    ),
+                    confianca = 0.5,
+                    ativo = !suprimida,
+                    motivoDescarte = if (suprimida) "suprimida por Wi-Fi crítico, internet ruim ou Wi-Fi não confiável" else null,
+                )
         }
 
         // DECISAO-INC: inconclusivo (sem dados suficientes). Confiança propositalmente
@@ -593,32 +624,34 @@ object FindingEngine {
         // Guard do engine antigo (`!internetRuim`) preservado: se já há problema real
         // detectado, não é "inconclusivo".
         if (internetInconclusivo) {
-            candidatos += Achado(
-                DiagnosticResult(
-                    id = "DECISAO-INC",
-                    titulo = "Diagnóstico Inconclusivo",
-                    status = DiagnosticStatus.inconclusive,
-                    evidencia = null,
-                    mensagemUsuario = "Não há dados suficientes para um diagnóstico preciso.",
-                    recomendacao = "Execute um teste de velocidade completo e refaça o diagnóstico.",
-                    categoria = CAT,
-                ),
-                confianca = 0.3,
-                ativo = !internetRuim,
-                motivoDescarte = if (internetRuim) "suprimida: há problema real detectado, diagnóstico não é inconclusivo" else null,
-            )
+            candidatos +=
+                Achado(
+                    DiagnosticResult(
+                        id = "DECISAO-INC",
+                        titulo = "Diagnóstico Inconclusivo",
+                        status = DiagnosticStatus.inconclusive,
+                        evidencia = null,
+                        mensagemUsuario = "Não há dados suficientes para um diagnóstico preciso.",
+                        recomendacao = "Execute um teste de velocidade completo e refaça o diagnóstico.",
+                        categoria = CAT,
+                    ),
+                    confianca = 0.3,
+                    ativo = !internetRuim,
+                    motivoDescarte = if (internetRuim) "suprimida: há problema real detectado, diagnóstico não é inconclusivo" else null,
+                )
         }
 
-        val achadoTudoOk = DiagnosticResult(
-            id = "DECISAO-04",
-            titulo = "Conexão Sem Problemas",
-            status = DiagnosticStatus.ok,
-            evidencia = null,
-            mensagemUsuario = "Todos os indicadores analisados estão dentro do esperado. Sua internet está funcionando bem.",
-            recomendacao = null,
-            categoria = CAT,
-            podeConcluir = true,
-        )
+        val achadoTudoOk =
+            DiagnosticResult(
+                id = "DECISAO-04",
+                titulo = "Conexão Sem Problemas",
+                status = DiagnosticStatus.ok,
+                evidencia = null,
+                mensagemUsuario = "Todos os indicadores analisados estão dentro do esperado. Sua internet está funcionando bem.",
+                recomendacao = null,
+                categoria = CAT,
+                podeConcluir = true,
+            )
 
         val ativos = candidatos.filter { it.ativo }
         val descartados = candidatos.filter { !it.ativo }
@@ -655,7 +688,10 @@ object FindingEngine {
      * pesa menos no desempate por score, nunca some, nunca é tratado como certeza
      * (regra de produto do GH#542: "dados experimentais devem ter peso menor").
      */
-    private fun confiancaEquipamentoLocal(base: Double, supportLevel: SupportLevel?): Double =
+    private fun confiancaEquipamentoLocal(
+        base: Double,
+        supportLevel: SupportLevel?,
+    ): Double =
         when (supportLevel) {
             SupportLevel.LAB_VALIDATED -> base
             SupportLevel.PARSER_IMPORTED, SupportLevel.INFERRED_FAMILY -> base * 0.7
@@ -706,15 +742,19 @@ object FindingEngine {
     private fun scoreDesempate(achado: Achado): Double =
         severidade(achado.resultado.status) * achado.confianca
 
-    private fun severidade(status: DiagnosticStatus): Int = when (status) {
-        DiagnosticStatus.critical -> 4
-        DiagnosticStatus.attention -> 2
-        DiagnosticStatus.info -> 1
-        DiagnosticStatus.inconclusive -> 1
-        DiagnosticStatus.ok -> 0
-    }
+    private fun severidade(status: DiagnosticStatus): Int =
+        when (status) {
+            DiagnosticStatus.critical -> 4
+            DiagnosticStatus.attention -> 2
+            DiagnosticStatus.info -> 1
+            DiagnosticStatus.inconclusive -> 1
+            DiagnosticStatus.ok -> 0
+        }
 
-    private fun dadosAusentes(rttGatewayMs: Int?, fibraDisponivel: Boolean): List<String> {
+    private fun dadosAusentes(
+        rttGatewayMs: Int?,
+        fibraDisponivel: Boolean,
+    ): List<String> {
         val ausentes = mutableListOf<String>()
         if (rttGatewayMs == null) ausentes += "rttGateway"
         if (!fibraDisponivel) ausentes += "fibra"

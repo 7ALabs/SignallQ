@@ -4,7 +4,7 @@ description: "Preferências do app em DataStore Preferences e credenciais do mod
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-15"
 ---
 
 # `:coreDatastore`
@@ -38,18 +38,17 @@ Nenhuma dependência de outro módulo do monorepo.
 |---|---|
 | `:app` | `implementation` |
 | `:featureDevices`, `:featureDiagnostico`, `:featureSpeedtest` | `implementation` |
-| `:pro:app` | `implementation` |
 
 ## Componentes principais
 
 | Arquivo/classe | Responsabilidade |
 |---|---|
-| `src/main/kotlin/io/veloo/app/kotlin/core/datastore/PreferenciasAppRepository.kt` (694 linhas) | Repository único de preferências sobre DataStore (`name = "linkaPreferencias"`); implementa `FeatureFlagStore` |
-| `src/main/kotlin/io/veloo/app/kotlin/core/datastore/CredenciaisModemStore.kt` (132 linhas) | usuário/senha/BSSID vinculado do modem em `EncryptedSharedPreferences` (AES-256 GCM via AndroidKeyStore), arquivo `signallq_modem_credentials` |
-| `src/main/kotlin/io/veloo/app/kotlin/core/datastore/FeatureFlagStore.kt` | contrato mínimo (`salvarFeatureFlags`/`buscarFeatureFlags`), isolado para permitir fake sem `Context` |
-| `src/main/kotlin/io/veloo/app/kotlin/core/datastore/CoreDatastoreModulo.kt` | fábrica manual `criarPreferenciasAppRepository(context)` |
-| `src/main/kotlin/io/veloo/app/kotlin/core/datastore/ConnectionProfilePersistido.kt` | modelo serializado do perfil de conexão persistido |
-| `src/main/kotlin/io/veloo/app/kotlin/core/datastore/ModoGamerPadraoPersistido.kt` | modelo serializado do modo gamer padrão |
+| `src/main/kotlin/io/signallq/app/core/datastore/PreferenciasAppRepository.kt` (694 linhas) | Repository único de preferências sobre DataStore (`name = "linkaPreferencias"`); implementa `FeatureFlagStore` |
+| `src/main/kotlin/io/signallq/app/core/datastore/CredenciaisModemStore.kt` (132 linhas) | usuário/senha/BSSID vinculado do modem em `EncryptedSharedPreferences` (AES-256 GCM via AndroidKeyStore), arquivo `signallq_modem_credentials` |
+| `src/main/kotlin/io/signallq/app/core/datastore/FeatureFlagStore.kt` | contrato mínimo (`salvarFeatureFlags`/`buscarFeatureFlags`), isolado para permitir fake sem `Context` |
+| `src/main/kotlin/io/signallq/app/core/datastore/CoreDatastoreModulo.kt` | fábrica manual `criarPreferenciasAppRepository(context)` |
+| `src/main/kotlin/io/signallq/app/core/datastore/ConnectionProfilePersistido.kt` | modelo serializado do perfil de conexão persistido |
+| `src/main/kotlin/io/signallq/app/core/datastore/ModoGamerPadraoPersistido.kt` | modelo serializado do modo gamer padrão |
 
 O `CredenciaisModemStore` tem fallback explícito para `SharedPreferences` em claro (arquivo `signallq_modem_credentials_fallback`) quando o AndroidKeyStore não está disponível — cenário previsto para testes com Robolectric; em device real o KeyStore sempre existe.
 
@@ -57,7 +56,7 @@ O `CredenciaisModemStore` tem fallback explícito para `SharedPreferences` em cl
 
 - **`PreferenciasAppRepository.kt` com 694 linhas** (abaixo do limite de 800, mas é um "god repository"): concentra dezenas de chaves heterogêneas — monitoramento, modem, tema, perfil do usuário, operadora/região, onboarding, consentimento LGPD, dismisses de sheets de permissão e feature flags. Candidato natural a fatiamento por domínio.
 - **Nomes legados em produção:** o DataStore chama-se `linkaPreferencias`. Renomear exige migração de dados.
-- **Caminho físico legado `io/veloo/`:** todos os 7 arquivos `.kt` do módulo estão sob `io/veloo/app/kotlin/core/datastore/` embora declarem `package io.signallq.app.core.datastore`.
+- **Path físico alinhado ao package `io.signallq.app.*`** — migração de `io/signallq/app/kotlin/` concluída em 2026-08-15 (#1645).
 - **Cobertura de teste baixa:** 1 único arquivo de teste (`ConnectionProfilePersistidoTest`) para 916 linhas de `src/main`. Nem `PreferenciasAppRepository` nem `CredenciaisModemStore` — o componente que lida com credenciais — têm teste próprio.
 - **Chave plaintext legada** `gatewaySessionBssid` ainda declarada no repository, mantida só para migração única (GH#530); precisa de data de remoção.
 - **Fallback sem criptografia** no `CredenciaisModemStore` é acionado por `catch (_: Exception)` genérico: uma falha inesperada do KeyStore em device real degradaria silenciosamente para armazenamento em claro.

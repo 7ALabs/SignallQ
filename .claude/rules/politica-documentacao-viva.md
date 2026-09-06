@@ -40,9 +40,8 @@ bash scripts/validar-docs.sh --base origin/main   # como na PR
 bash scripts/validar-docs.sh --relatorio          # cobertura, nunca falha
 ```
 
-Isenções: `docs_ai/pro-onhold/` (congelado), `docs_ai/templates/` e
-`docs_ai/decisions/` (vocabulário próprio de status), e tudo fora de `docs_ai/`
-— `SKILL.md` usa o cabeçalho exigido pelo carregador de skills.
+Isenções: `docs_ai/templates/` e `docs_ai/decisions/` (vocabulário próprio de status), e tudo
+fora de `docs_ai/` — `SKILL.md` usa o cabeçalho exigido pelo carregador de skills.
 
 ---
 
@@ -182,17 +181,24 @@ Quando Android + Web + Admin consomem o mesmo endpoint:
 
 ### 4.1 Responsáveis
 
+Squad canônico pós-ADR-016 são 3 agentes: Claudete (PM), Camilo (Dev), Caio (Reviewer). Design, growth e dados/telemetria viraram skills invocáveis, não agentes permanentes.
+
 | Tipo | Cria | Mantém | Revisa |
 |---|---|---|---|
 | Técnico | Camilo | Camilo | Caio |
 | Funcional | Claudete | Claudete | Caio |
 | ADR | Claudete/Camilo | Claudete/Camilo | Caio |
-| Runbook | Gustavo/Camilo | Gustavo | Caio |
+| Runbook | Camilo | Camilo | Caio |
+
+Notas por tipo:
+
+- **Funcional** — checagem de design invocando `/design-check` (arquivo/tela) ou `/auditar-ux` (auditoria profunda multi-tela); Claudete decide direção.
+- **Runbook** — checagem de dados/telemetria invocando `/analytics-spec` quando aplicável (evento novo, mudança de propriedade, propriedade sensível).
 
 ### 4.2 Aprovação
 
-- **Técnico / ADR / Runbook:** Revisor independente (Caio) se afeta arquitetura/segurança
-- **Funcional:** Revisor se afeta jornada/UX (Juliana pode revisar)
+- **Técnico / ADR / Runbook:** Revisor independente (Caio) se afeta arquitetura/segurança.
+- **Funcional:** Revisor (Caio) se afeta jornada/UX; usar `/design-check` para validação pontual e `/auditar-ux` para revisão profunda multi-tela.
 
 ### 4.3 Escalação
 
@@ -242,9 +248,9 @@ quem busca, o que causa erro real.
 ### 6.3 ADRs e imutabilidade
 
 ADRs nunca são "versionados" de forma contínua. Se uma decisão muda:
-- [ ] Criar novo ADR (ADR-014 substitui ADR-013)
-- [ ] Marcar ADR-013 como `deprecated`
-- [ ] Linkar: "Ver ADR-014 para versão atual"
+- [ ] Criar novo ADR (ADR-N+1 substitui ADR-N)
+- [ ] Marcar ADR-N como `deprecated`
+- [ ] Linkar: "Ver ADR-N+1 para versão atual"
 
 ---
 

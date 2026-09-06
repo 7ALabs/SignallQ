@@ -4,7 +4,7 @@ description: "Fundação de feature flags do Consumer — catálogo tipado e pro
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-20"
 ---
 
 # `:core:featureflags`
@@ -23,8 +23,8 @@ antes de qualquer fetch, e uma falha de rede nunca apaga a última configuraçã
 
 Não é dele: decidir o que fazer quando uma flag está desligada (isso é do consumidor — em `:app`,
 `ConsumerFeatureGateCoordinator` + `AppShellFeatureGating`), fazer wiring de DI (o módulo expõe um
-`object` fábrica; os `@Provides` Hilt ficam em `AppModule`, em `:app`), nem servir os módulos
-`:pro:*` — o catálogo é explicitamente `consumer-catalog.json`.
+`object` fábrica; os `@Provides` Hilt ficam em `AppModule`, em `:app`). O catálogo é
+explicitamente `consumer-catalog.json` — específico deste produto, não genérico.
 
 ## Dependências
 
@@ -55,8 +55,9 @@ depender de `:app`", e que a instância de `FirebaseRemoteConfig` chega como lam
 | `:app` | `AppModule` monta catálogo + provider via `FeatureFlagsModulo`; `SignallQApplication` injeta e chama `refresh()`; `ConsumerFeatureGateCoordinator` observa as 9 chaves de módulo; `MonitoramentoWorker` consulta flags no background |
 | `:featureDiagnostico` | `DiagnosticDivergenceReporter` usa `CONSUMER_DIAGNOSTICO_SHADOW_MODE_ENABLED` como kill switch do shadow mode (migrado do sistema legado SIG-13 na issue #1497); `di/DiagnosticoModule` recebe o provider por injeção |
 
-**Nunca é consumido por `:pro:*`** — restrição explícita registrada em `settings.gradle.kts`: "Consumido apenas por `:app` e módulos core/feature do Consumer — nunca por `:pro:*`". Diferente de
-`:core:diagnostico` e `:core:relatorio`, este módulo não é compartilhado com o SignallQ Pro.
+Restrição de consumo registrada em `settings.gradle.kts:45-46`: "Consumido apenas por `:app` e
+módulos core/feature do Consumer" — diferente de `:core:diagnostico` e `:core:relatorio`, que
+são consumidos por mais de uma árvore de features.
 
 ## Componentes principais
 
@@ -88,7 +89,7 @@ Total: 17 arquivos Kotlin em `src/main` (711 linhas) + o catálogo JSON, e 4 arq
   flag no Consumer ao mesmo tempo. O único consumidor real do legado já migrou (#1497), mas o
   código legado permanece.
 - **Uma flag do catálogo não é implementada no Android.**
-  `consumer.speedtest.cloudflare_engine_enabled` tem `androidImplemented = false` — segue como
+  `consumer_speedtest_cloudflare_engine_enabled` tem `androidImplemented = false` — segue como
   smoke-test da fundação, não gateia nada. Das 11 chaves, 9 são as flags de módulo reais.
 - **`FeatureFlagCatalogParser` usa `org.json`**, o que obriga cada consumidor de teste JVM a
   declarar a dependência real de `org.json` para não cair no stub do `android.jar` — pegadinha já
@@ -105,5 +106,5 @@ Total: 17 arquivos Kotlin em `src/main` (711 linhas) + o catálogo JSON, e 4 arq
   Remote Config nem refresh periódico — o "reativo" do `ConsumerFeatureGateCoordinator` só se
   concretiza no próximo `refresh()`.
 - **Nenhum arquivo acima de 800 linhas** — o maior é `RemoteConfigFeatureFlagProvider.kt` com 168.
-- Caminho físico já correto (`src/main/kotlin/io/signallq/app/core/featureflags/`) — sem a dívida
-  do caminho legado `io/veloo`.
+- Caminho físico correto (`src/main/kotlin/io/signallq/app/core/featureflags/`) — módulo nasceu
+  direto no path novo, nunca passou por `io/veloo/`.

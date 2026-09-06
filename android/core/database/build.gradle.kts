@@ -1,4 +1,6 @@
 ﻿plugins {
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.ktlint)
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.kapt")
@@ -17,11 +19,44 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    // GH#1707 (Task 2.0.09e) — sem isso, MigrationTestHelper nunca encontra os schemas
+    // exportados (`$projectDir/schemas`, ver bloco `kapt` abaixo) na APK de teste instrumentado,
+    // e TODO Migration*Test deste módulo falha com FileNotFoundException ao rodar de verdade
+    // (`connectedDebugAndroidTest`) — achado ao validar esta fatia, pré-existente, nenhum dos
+    // Migration*Test anteriores tinha rodado com sucesso contra um dispositivo/emulador real
+    // (não há job de CI que execute `connectedAndroidTest`).
+    sourceSets {
+        getByName("androidTest") {
+            assets.srcDirs("$projectDir/schemas")
+        }
+    }
 }
 
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
+configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+    filter {
+        exclude("**/*.kts")
+    }
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom("$rootDir/config/detekt.yml")
+    baseline = file("$rootDir/config/detekt-baseline.xml")
+}
+
+ktlint {
+    version = "1.3.1"
+    android = true
+    ignoreFailures = false
+    reporters {
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
     }
 }
 

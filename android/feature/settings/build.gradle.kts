@@ -1,4 +1,6 @@
 ﻿plugins {
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.ktlint)
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
 }
@@ -24,8 +26,33 @@ kotlin {
     }
 }
 
+configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+    filter {
+        exclude("**/*.kts")
+    }
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom("$rootDir/config/detekt.yml")
+    baseline = file("$rootDir/config/detekt-baseline.xml")
+}
+
+ktlint {
+    version = "1.3.1"
+    android = true
+    ignoreFailures = false
+    reporters {
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
+    // GH#1707 (Task 2.0.09e) — ResolvedorNetworkId foi promovido pra :coreDatabase, módulo comum
+    // já alcançado por feature/history, pra servir tanto ConnectionProfile (GH#1227) quanto
+    // MedicaoEntity.networkId (comparação de reteste, spec §8.8).
+    implementation(project(":coreDatabase"))
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

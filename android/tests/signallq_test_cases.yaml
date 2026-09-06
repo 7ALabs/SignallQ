@@ -1,8 +1,8 @@
 ##############################################################################
 # SignallQ Android — Casos de Teste manuais / E2E
 # Versão do plano: 3.0 — estado atual do app
-# App: SignallQ — v0.16.0 (versionCode 46) — package io.veloo.app
-# Navegação: 5 abas — Início, Velocidade, Sinal, Histórico, Ajustes
+# App: SignallQ — v0.16.0 (versionCode 46) — package io.signallq.app
+# Navegação: 4 raízes — Início, Velocidade, Histórico, Ferramentas
 # Assistente de IA: SignallQ (Worker Cloudflare, modelo padrão Qwen3 30B,
 #                   com fallback de diagnóstico local quando offline/Worker fora)
 # Execução: roteiro manual de QA (também serve de base para Firebase App Testing)
@@ -31,8 +31,8 @@ tests:
           "Ao usar o app" / "Permitir".
         finalScreenAssertion: >-
           A tela principal do SignallQ está visível com barra de navegação
-          inferior contendo exatamente 5 abas: Início, Velocidade, Sinal,
-          Histórico e Ajustes.
+          inferior contendo exatamente 4 raízes: Início, Velocidade, Histórico
+          e Ferramentas.
 
   - displayName: "[1.2] Onboarding — recusar permissões e continuar"
     id: onboarding-permissao-rejeitada
@@ -52,21 +52,21 @@ tests:
   # BLOCO 2 — NAVEGAÇÃO / APPSHELL
   # ══════════════════════════════════════════════════════════════════════════
 
-  - displayName: "[2.1] Navegação — percorrer todas as 5 abas"
+  - displayName: "[2.1] Navegação — percorrer todas as 4 raízes"
     id: navegacao-abas
     prerequisiteTestCaseId: onboarding-completo
     steps:
       - goal: Tocar na aba "Velocidade" na barra de navegação inferior
         finalScreenAssertion: A tela de Velocidade está visível com seletor de modo de teste.
 
-      - goal: Tocar na aba "Sinal" na barra de navegação inferior
-        finalScreenAssertion: A tela de Sinal está visível com informações da rede Wi-Fi.
+      - goal: Tocar na raiz "Ferramentas" na barra de navegação inferior
+        finalScreenAssertion: A tela de Ferramentas está visível com os destinos de rede.
 
       - goal: Tocar na aba "Histórico" na barra de navegação inferior
         finalScreenAssertion: A tela de Histórico está visível com lista de medições ou estado vazio.
 
-      - goal: Tocar na aba "Ajustes" na barra de navegação inferior
-        finalScreenAssertion: A tela de Ajustes está visível com lista de opções de configuração.
+      - goal: Abrir o Perfil pela ação no topo da tela Ferramentas
+        finalScreenAssertion: O Perfil está visível com acesso a Ajustes e privacidade.
 
       - goal: Tocar na aba "Início" na barra de navegação inferior
         finalScreenAssertion: A tela Início está visível com o card de conexão atual.
@@ -77,8 +77,8 @@ tests:
     steps:
       - goal: Verificar o layout e conteúdo da barra de navegação inferior
         finalScreenAssertion: >-
-          A barra inferior contém exatamente 5 abas com ícone e rótulo:
-          "Início", "Velocidade", "Sinal", "Histórico" e "Ajustes".
+          A barra inferior contém exatamente 4 raízes com ícone e rótulo:
+          "Início", "Velocidade", "Histórico" e "Ferramentas".
           A aba ativa está destacada visualmente.
 
   - displayName: "[2.3] Navegação — botão Voltar fecha overlay/bottom sheet"

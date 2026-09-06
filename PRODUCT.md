@@ -1,34 +1,104 @@
-# Product
+# Product — SignallQ 2.0
 
-## Register
+## Produto
 
-product
+SignallQ é um produto de diagnóstico de conectividade para Android, apoiado por uma presença Web
+voltada à descoberta, educação e aquisição. Não é apenas mais um speedtest: mede quando necessário,
+analisa o contexto da rede, explica o que encontrou e orienta o usuário até confirmar se o problema
+foi resolvido.
 
-## Users
+## Para quem
 
-Usuário brasileiro não-técnico cuja internet "está dando problema" — quer saber o que está errado e o que fazer, não um relatório de rede. Contexto: em casa, ansioso/frustrado com Wi-Fi lento, streaming travando, jogo com lag, ou fibra caindo. Job to be done: diagnosticar rapidamente a causa (Wi-Fi, fibra/modem, operadora móvel, DNS) e receber um próximo passo acionável, sem precisar entender jargão de rede.
+Pessoas brasileiras que percebem que “a internet está ruim”, mas não dominam redes. Elas querem
+respostas para quatro perguntas:
 
-## Product Purpose
+1. O que está acontecendo?
+2. Onde provavelmente está o problema?
+3. O que eu consigo fazer agora?
+4. A ação resolveu?
 
-SignallQ é um app Android de diagnóstico de conectividade (Kotlin/Compose/Material 3) que analisa em tempo real velocidade, latência, sinal Wi-Fi/canais, DNS, modem de fibra (GPON) e sinal móvel (4G/5G), e usa IA (SignallQ, via Cloudflare Worker) para explicar em português claro por que a internet está lenta, instável ou fora do ar. Sucesso = usuário entende o problema e sabe o próximo passo em poucos toques, sem precisar ligar para a operadora ou entender termos técnicos sozinho.
+## Promessa
 
-## Brand Personality
+**Descubra por que sua internet está ruim e o que fazer para melhorar.**
 
-Voz: calorosa, direta, tranquilizadora — nunca um engenheiro de redes dando aula. Fala **com** o usuário na 2ª pessoa ("você", "sua conexão"), nunca sobre ele. Três palavras: **acolhedor, claro, confiável**. Padrão "jargão, depois tradução": métrica crua sempre acompanhada de veredito humano (Excelente/Bom/Regular/Fraco/Forte). Sem emoji — significado vem de ícone Material + cor semântica.
+O sucesso não é exibir a maior quantidade de métricas. É permitir que a pessoa entenda o problema e
+execute um próximo passo seguro em poucos minutos.
 
-## Anti-references
+## Pilares da experiência
 
-- Apps genéricos de speedtest (tipo Ookla/Speedtest.net): números soltos sem contexto humano, sem veredito, sem próximo passo.
-- Dashboards técnicos/enterprise de rede (tipo Wireshark): jargão não traduzido, visual denso, feito para quem já entende de rede.
+1. **Entender** — começar pelo sintoma e pelo contexto percebido pelo usuário.
+2. **Diagnosticar** — selecionar e executar as análises adequadas, sem exigir conhecimento técnico.
+3. **Resolver** — transformar evidências em uma orientação curta, concreta e priorizada.
+4. **Confirmar** — repetir a verificação relevante e mostrar se houve melhora.
 
-## Design Principles
+## Papel de cada plataforma
 
-1. **Jargão, depois tradução** — todo dado técnico (RSSI, jitter, dBm) vem acompanhado de um veredito em linguagem humana.
-2. **Sempre um próximo passo** — diagnóstico nunca termina em "isso está ruim" sem indicar o que fazer.
-3. **Uma cor de destaque, semântica clara** — violeta `#5B21D6` (claro) / `#D0BCFF` (escuro) para ação/marca; verde/âmbar/vermelho carregam significado de qualidade de conexão, nada mais.
-4. **Nada decorativo compete com o dado** — sem imagens, sem gradiente decorativo (só avatar de perfil), sem textura.
-5. **App é o narrador** — a superfície SignallQ (IA), com visual escuro próprio separado do restante do app, foi **descontinuada** no Fluxo de Telas To-Be (2026-07-13); não implementar rota ou componente novo para ela.
+### Android
 
-## Accessibility & Inclusion
+É o produto principal de diagnóstico. Deve parecer um aplicativo Android nativo, no espírito dos
+apps feitos pelo Google: Material 3, hierarquia clara, movimento funcional e pouco texto. A entrada
+principal é o problema percebido pelo usuário, não uma lista de ferramentas.
 
-Sem WCAG level formal declarado. Seguir boas práticas Material 3: contraste de texto, touch target mínimo 48dp (padrão MD3/Android — corrigido em 2026-07-19, ver `docs_ai/DESIGN_SYSTEM.md` seção 11), sem depender só de cor para status (ícone + cor + palavra sempre juntos).
+O app deve revelar suas capacidades no momento certo. Speedtest, Wi-Fi, DNS, rede móvel, fibra,
+dispositivos e monitoramento são instrumentos do diagnóstico, não destinos que o usuário precisa
+explorar como especialista.
+
+### Web
+
+O site e webapp em `signallq.com` têm como objetivo principal apresentar o valor do produto,
+responder dúvidas reais sobre conectividade, conquistar tráfego orgânico e converter para o app.
+Podem oferecer demonstrações ou verificações leves, mas não devem competir com o Android como
+experiência principal de diagnóstico.
+
+## Jornada-base do Android
+
+**Sintoma → contexto → análise → resultado → próxima ação → nova verificação.**
+
+O resultado deve seguir esta ordem:
+
+1. veredito em linguagem humana;
+2. causa provável e nível de confiança;
+3. evidências essenciais;
+4. ação recomendada;
+5. confirmação após a ação.
+
+## Personalidade da marca
+
+Leve, confiável e profissional. A voz é calma, direta e humana. Fala com “você” e evita tanto o tom
+de suporte burocrático quanto a aparência de resposta produzida por IA.
+
+## Princípios de conteúdo
+
+- Use frases curtas e palavras comuns.
+- Diga primeiro o que importa; detalhe técnico é progressivo e opcional.
+- Nunca mostre uma métrica sem explicar o que ela significa.
+- Não prometa certeza quando houver apenas uma hipótese.
+- Toda descoberta relevante deve levar a uma ação.
+- Evite emojis, entusiasmo artificial, jargão e parágrafos longos.
+
+## Identidade visual
+
+- Bastante espaço em branco e baixa densidade.
+- Violeta da marca reservado a CTAs, seleção e poucos momentos de identidade.
+- Cores semânticas comunicam qualidade ou severidade; não decoram.
+- Cards e pills só existem quando agrupam, selecionam ou distinguem conteúdo.
+- Modo escuro usa preto total como fundo principal.
+- Material Symbols e Google Sans Flex sustentam a aparência nativa Android.
+
+## Anti-referências
+
+- Speedtests centrados em velocímetro, números e rankings sem orientação.
+- Dashboards de rede densos, técnicos ou com estética de “hacker”.
+- Interfaces de IA baseadas em chat, brilho, gradientes roxos ou textos excessivos.
+- Landing pages genéricas de SaaS com uma grade de cards para cada funcionalidade.
+
+## Acessibilidade
+
+Seguir Material 3 e WCAG aplicável: alvos de toque de pelo menos 48dp, foco visível, contraste
+adequado, suporte a escala de fonte e status comunicado por palavra e ícone — nunca apenas por cor.
+
+## Fontes canônicas
+
+- `docs_ai/POSICIONAMENTO_PRODUTO.md`
+- `docs_ai/design-system/SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md`
+- `docs_ai/functional/JORNADA_ANDROID_GUIADA_2_SPEC.md`

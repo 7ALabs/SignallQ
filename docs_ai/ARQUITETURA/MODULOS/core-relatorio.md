@@ -1,10 +1,10 @@
 ---
 title: "Módulo :core:relatorio"
-description: "Motor genérico de paginação HTML→PDF via WebView, compartilhado entre Consumer e Pro."
+description: "Motor genérico de paginação HTML→PDF via WebView, compartilhado entre :app e :featureHistory."
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-15"
 ---
 
 # `:core:relatorio`
@@ -23,16 +23,15 @@ manual.
 
 O módulo não conhece nenhum schema de dado do chamador — não sabe o que é medição, laudo ou
 histórico. Montar o HTML (layout, copy, máscara de dado sensível, disclaimer) é responsabilidade
-de quem chama: `RelatorioDiagnosticoHtmlBuilder` em `:app`, `gerarHtml` em `:featureHistory` e
-`LaudoHtmlGenerator` em `:pro:feature:laudo`. Também não é dele decidir onde o arquivo é salvo,
-compartilhado ou limpo.
+de quem chama: `RelatorioDiagnosticoHtmlBuilder` em `:app` e `gerarHtml` em `:featureHistory`.
+Também não é dele decidir onde o arquivo é salvo, compartilhado ou limpo.
 
 ## Dependências
 
 ### Módulos do projeto
 
 Nenhuma dependência de projeto. É um módulo folha — não depende de nenhum outro módulo do
-monorepo, o que é o que permite que Consumer e Pro o compartilhem sem arrastar contexto.
+monorepo, o que é o que permite reuso por qualquer consumidor sem arrastar contexto.
 
 ### Bibliotecas externas
 
@@ -52,11 +51,10 @@ As APIs de fato usadas (`android.webkit.WebView`, `android.print.PrintDocumentAd
 |---|---|
 | `:app` | `ui/relatorio/RelatorioDiagnosticoExporter.kt` — renderer único de PDF do Consumer (GH#1219), usado pelo resultado de velocidade e pelo laudo do consumidor |
 | `:featureHistory` | `ExportadorHistoricoPDF.kt` — exportação do histórico de medições (origem do código extraído) |
-| `:pro:feature:laudo` | **SignallQ Pro — on hold.** `LaudoViewModel` gera o laudo técnico em PDF pelo mesmo motor (MVP0 Fase 3, issue #1164) |
 
-O reuso pelo Pro foi o motivo declarado da extração: o módulo nasceu com "zero acoplamento a
-`MedicaoEntity` ou qualquer schema do consumidor" exatamente para ser consumido pela Fase 3 do
-Pro. Como o Pro está on hold, hoje só os dois consumidores do Consumer exercitam o código.
+O reuso entre os dois consumidores foi o motivo declarado da extração (issue #1157 Fase 1b): o
+módulo nasceu com "zero acoplamento a `MedicaoEntity` ou qualquer schema do consumidor"
+precisamente para não prender o motor de PDF a um schema específico.
 
 ## Componentes principais
 
@@ -71,9 +69,9 @@ Total: 2 arquivos, 194 linhas em `src/main`. Não há `src/test` nem `src/androi
 
 - **Zero testes.** O módulo tem 0 linhas de teste — não existe diretório `src/test` nem
   `src/androidTest`, embora `build.gradle.kts` declare `testImplementation(libs.junit)` e as
-  dependências de androidTest. É o módulo compartilhado com o Pro com a menor cobertura do
-  repositório, e todo o comportamento de erro (timeout, `onWriteFailed`, `onLayoutCancelled`) só é
-  verificado em produção.
+  dependências de androidTest. É o módulo com a menor cobertura do repositório, e todo o
+  comportamento de erro (timeout, `onWriteFailed`, `onLayoutCancelled`) só é verificado em
+  produção.
 - **Falha silenciosa por contrato.** Toda a superfície pública retorna `Boolean` e engole exceções
   (`catch (e: Exception) { false }` em dois pontos, sem log). Quem chama não consegue distinguir
   timeout de HTML inválido, de falta de espaço em disco, ou de `WebView` indisponível — nem existe
@@ -90,5 +88,5 @@ Total: 2 arquivos, 194 linhas em `src/main`. Não há `src/test` nem `src/androi
 - **Limpeza de PDFs temporários não é de ninguém.** O KDoc de `RelatorioDiagnosticoExporter`
   (`:app`) registra explicitamente que política de limpeza de arquivos acumulados ficou fora de
   escopo; este módulo, por design, também não trata disso.
-- Caminho físico já correto (`src/main/kotlin/io/signallq/app/core/relatorio/`) — sem a dívida do
-  caminho legado `io/veloo`.
+- Caminho físico correto (`src/main/kotlin/io/signallq/app/core/relatorio/`) — módulo nasceu
+  direto no path novo, nunca passou por `io/veloo/`.

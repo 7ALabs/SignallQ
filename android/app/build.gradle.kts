@@ -43,7 +43,7 @@ private val adminIngestKey: String =
 // Publicacao na Play Console (gradle-play-publisher).
 // Service account JSON lida de key.properties (playServiceAccountFile) ou env
 // PLAY_SERVICE_ACCOUNT_JSON_FILE. NUNCA commitar o arquivo de credencial.
-// Trilha configuravel via -PplayTrack=... (default: alpha = teste fechado).
+// Trilha configuravel via -PplayTrack=... (o workflow de beta fixa beta).
 play {
     val serviceAccountPath =
         (keyProperties["playServiceAccountFile"] as String?)
@@ -51,29 +51,32 @@ play {
     if (serviceAccountPath != null) {
         serviceAccountCredentials.set(rootProject.file(serviceAccountPath))
     }
-    track.set(providers.gradleProperty("playTrack").orElse("alpha").get())
+    track.set(providers.gradleProperty("playTrack").orElse("internal").get())
     defaultToAppBundles.set(true)
 }
 
 // Issue #1330 (continuacao) — mesma property -PplayTrack acima, agora tambem lida em tempo de
 // build (nao so na task de publish) para decidir Ad Unit ID real vs teste em AdUnitIds.kt.
 //
-// Por que nao amarrar isso so na trilha "alpha": o pipeline real (release.yml + promote-release.yml)
-// publica sempre primeiro em "internal" e promove pra "alpha" via `promoteReleaseArtifact`, que
-// reusa o MESMO AAB assinado sem rebuild ("sem rebuild nem reassinatura", comentario do proprio
-// promote-release.yml) — e exatamente a garantia que valida o binario de internal antes dele
-// chegar em alpha. Alpha nunca e recompilada isoladamente, entao uma condicao que so disparasse
-// em "-PplayTrack=alpha" nunca seria exercida de verdade por esse pipeline. A trilha "production"
-// e a unica bloqueada por guardrail explicito ate decisao do Luiz (ver promote-release.yml) e,
-// quando existir, sera um build/publish dedicado e deliberado — nao uma promocao do binario de
-// internal/alpha.
+// Atualizado na PR #1805 (bloqueio B3 do parecer de Caio) — o pipeline real MUDOU em
+// 1555e92b (2026-08-23): release.yml publica direto em "beta" a cada tag, nao mais
+// "internal" -> promocao pra "alpha". promote-release.yml so aceita internal/alpha como
+// origem, e nenhum caminho ativo publica nessas trilhas hoje — na pratica ele nao promove
+// nada. "Production" nao tem mais guardrail tecnico bloqueando: release.yml ganhou
+// workflow_dispatch com inputs explicitos (playTrack/adsEnabled) especificamente pra isso
+// (ver comentario no `on:` de release.yml) — a barreira e o disparo manual deliberado em si,
+// mais o guardrail que rejeita adsEnabled=true fora de playTrack=production, nao mais uma
+// trilha bloqueada por exit 1.
 //
-// Por isso o corte e "production" vs "tudo que nao e production ainda" (internal/alpha, hoje
-// binario identico): qualquer trilha != production usa Ad Unit ID de teste. Efeito colateral aceito
-// e documentado: "internal" tambem mostra anuncio de teste enquanto isso durar — trilha sem
-// testador externo, so o Luiz valida (ver comentario em release.yml), sem impacto de produto real.
-val playTrackAtual = providers.gradleProperty("playTrack").orElse("alpha").get()
+// Por isso o corte continua sendo "production" vs "tudo que nao e production": qualquer
+// trilha != production usa Ad Unit ID de teste, mesmo com -PadsEnabled=true (o guardrail do
+// disparo manual ja impede essa combinacao antes de chegar aqui).
+val playTrackAtual = providers.gradleProperty("playTrack").orElse("internal").get()
 val usarAdsDeTesteEmRelease = (playTrackAtual != "production").toString()
+// O bloqueio de monetizacao e independente dos IDs de teste/producao. A beta atual deve ser
+// publicada sem solicitar anuncios, mesmo que o Remote Config contenha alguma chave ativa.
+// Para uma futura release monetizada, usar explicitamente -PadsEnabled=true.
+val adsHabilitadosNoBuild = providers.gradleProperty("adsEnabled").orElse("false").get().toBoolean()
 
 android {
     namespace = "io.signallq.app"
@@ -142,6 +145,7 @@ android {
             }
             // Ver AdUnitIds.kt — debug sempre usa Ad Unit ID de teste (independe de -PplayTrack).
             buildConfigField("Boolean", "USE_TEST_ADS", "true")
+            buildConfigField("Boolean", "ADS_ENABLED", "true")
             // ─── MVP — ativos em debug E release ──────────────────────
             buildConfigField("Boolean", "FEATURE_SPEEDTEST", "true")
             buildConfigField("Boolean", "FEATURE_DIAGNOSTICO_LOCAL", "true")
@@ -201,6 +205,7 @@ android {
             // != "production" (internal/alpha, hoje binario identico via promocao) usa Ad Unit ID
             // de teste; production usa o real.
             buildConfigField("Boolean", "USE_TEST_ADS", usarAdsDeTesteEmRelease)
+            buildConfigField("Boolean", "ADS_ENABLED", adsHabilitadosNoBuild.toString())
             // ─── ATIVO NO RELEASE ─────────────────────────────────────────
             // MVP core
             buildConfigField("Boolean", "FEATURE_SPEEDTEST", "true")
@@ -272,6 +277,13 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            // PingScreenViewModelTest (issue #1665) é o primeiro teste de :app a construir um
+            // OkHttpClient real (via PingExecutor) fora do Robolectric -- sem isso,
+            // Platform.findPlatform() do OkHttp chama android.util.Log.isLoggable, que o
+            // stub padrão do android.jar em teste JVM lança como "not mocked". Não muda
+            // asserção de nenhum teste existente: só evita que chamadas Android não
+            // mockadas (fora de Robolectric) lancem exceção, retornando valor default.
+            isReturnDefaultValues = true
         }
     }
 }
@@ -279,6 +291,36 @@ android {
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
+// GH#1684 -- expoe os diretorios de .class de teste como system property, so para
+// permitir que SuiteEmbaralhadaTest descubra e reordene as classes em runtime (Gradle
+// + JUnit4 sem useJUnitPlatform() nao tem flag nativa de embaralhamento de ordem de
+// classe). Custo zero em builds normais: so grava uma string, nao muda comportamento
+// a menos que a suite seja explicitamente selecionada.
+//
+// A propria SuiteEmbaralhadaTest e excluida do run PADRAO: sem isso, o Gradle a descobre
+// como qualquer outra classe de teste e ela roda a suite inteira DE NOVO por dentro
+// (dobraria ~580 testes pra ~1160 em todo `test`/CI). `TestFilter` publico do Gradle nao
+// expoe os padroes de `--tests` da linha de comando (so `includePatterns`/`excludePatterns`
+// configurados no build) -- um `excludeTestsMatching` incondicional bloquearia tambem a
+// selecao explicita via `--tests`, porque include (CLI) e exclude (build) se combinam com
+// AND, sem precedencia automatica do CLI. Por isso o gate usa uma property Gradle dedicada:
+// `-PsuiteEmbaralhada` precisa vir junto do `--tests` pra rodar a suite de verdade.
+tasks.withType<Test>().configureEach {
+    // Lido em tempo de CONFIGURACAO (nao dentro do doFirst): `project.hasProperty(...)` em tempo
+    // de execucao quebra com configuration cache ("Invocation of 'Task.project' by task ... at
+    // execution time is unsupported with the configuration cache").
+    val suiteEmbaralhadaSolicitada = project.hasProperty("suiteEmbaralhada")
+    doFirst {
+        systemProperty(
+            "suite.embaralhada.classesDirs",
+            testClassesDirs.files.joinToString(File.pathSeparator) { it.absolutePath },
+        )
+        if (!suiteEmbaralhadaSolicitada) {
+            filter.excludeTestsMatching("io.signallq.app.SuiteEmbaralhadaTest")
+        }
     }
 }
 
@@ -320,9 +362,9 @@ dependencies {
     // Dominio de causa-raiz extraido de :featureDiagnostico (issue #1157 Fase 1a) — DiagnosticReport/
     // DiagnosticInput/DiagnosticStatus etc sao consumidos direto por telas e ViewModels do :app.
     implementation(project(":core:diagnostico"))
-    // GH#1219 — motor generico HTML->PDF (WebView.createPrintDocumentAdapter), ja usado pelo
-    // Pro (:pro:feature:laudo) e por :featureHistory. Unifica ResultadoPdfGenerator/LaudoScreen
-    // no mesmo renderer, com paginacao real em vez de Canvas manual.
+    // GH#1219 — motor generico HTML->PDF (WebView.createPrintDocumentAdapter), consumido por
+    // :app e por :featureHistory. Unifica ResultadoPdfGenerator/LaudoScreen no mesmo renderer,
+    // com paginacao real em vez de Canvas manual.
     implementation(project(":core:relatorio"))
     // Fundacao de Feature Flags do Consumer via Firebase Remote Config (issue #1477, Epico
     // #1347) — catalogo tipado + FeatureFlagProvider. So :app consome nesta fase (F4/#1480

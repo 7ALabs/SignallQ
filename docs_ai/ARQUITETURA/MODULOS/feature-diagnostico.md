@@ -4,7 +4,7 @@ description: "Orquestração do diagnóstico de conexão, integração com o wor
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-20"
 ---
 
 # `:featureDiagnostico`
@@ -24,13 +24,13 @@ Extraídas de `android/feature/diagnostico/build.gradle.kts`.
 
 | Dependência | Configuração | Observação |
 |---|---|---|
-| `:featureSpeedtest` | `implementation` | **Violação da regra "feature não depende de feature"** — ver Riscos |
 | `:coreDatabase` | `implementation` | Room: `MedicaoDao`, `ProviderDirectoryCacheDao`, `RecommendationHistoryDao` |
 | `:coreDatastore` | `implementation` | `PreferenciasAppRepository` (consentimento LGPD, `anon_device_id`) |
 | `:coreNetwork` | `implementation` | `AnalyticsHelper`, `MonitorRede`, `GatewayLatencyMeasurer`, contratos de topologia |
 | `:coreRecommendation` | `implementation` | `RecommendationEngine` (monetização, issue #790) |
-| `:core:featureflags` | `implementation` | Kill switch do shadow mode (issue #1497) |
+| `:core:featureflags` | `implementation` | Kill switch do shadow mode (issue #1497) + flag `consumer_diagnostico_nds_live_enabled` (NDS-02k/#1759) |
 | `:core:diagnostico` | `implementation` | `DiagnosticRunner`, `FindingEngine`, `DiagnosticInput/Report/Result` |
+| `:core:nds` (NDS-02k/#1759) | `implementation` | `NdsClient`/`NdsClientFactory` + os mappers `DiagnosticInput<->NDS`. Primeiro consumidor real deste módulo (antes só continha código sem call site de produção) |
 | `libs.hilt.android` + `kapt(libs.hilt.compiler)` | `implementation`/`kapt` | Único dos quatro feature modules aqui documentados com Hilt |
 | `libs.androidx.core.ktx` | `implementation` | |
 | `libs.androidx.lifecycle.runtime.ktx` | `implementation` | |
@@ -57,7 +57,7 @@ Nenhum outro módulo depende deste.
 
 ### Integração de rede — worker de IA (`AiDiagnosisRepository`)
 
-`android/feature/diagnostico/src/main/kotlin/io/veloo/app/kotlin/feature/diagnostico/ai/AiDiagnosisRepository.kt` (686 linhas).
+`android/feature/diagnostico/src/main/kotlin/io/signallq/app/kotlin/feature/diagnostico/ai/AiDiagnosisRepository.kt` (686 linhas).
 
 Cliente do worker `ai-diagnosis-worker`, instanciado como `@Singleton` em `DiagnosticoModule.provideAiDiagnosisRepository()` com `baseUrl = BuildConfig.AI_WORKER_URL` e `isAuthorized = { true }`.
 
@@ -75,7 +75,7 @@ Cliente do worker `ai-diagnosis-worker`, instanciado como `@Singleton` em `Diagn
 
 ### Integração de rede — worker admin (`AdminIngestRepository`)
 
-`android/feature/diagnostico/src/main/kotlin/io/veloo/app/kotlin/feature/diagnostico/ingest/AdminIngestRepository.kt` (283 linhas).
+`android/feature/diagnostico/src/main/kotlin/io/signallq/app/kotlin/feature/diagnostico/ingest/AdminIngestRepository.kt` (283 linhas).
 
 Envia telemetria ao `signallq-admin-worker`. `baseUrl` e `ingestKey` vêm de fora via `@Named("adminIngestUrl")`/`@Named("adminIngestKey")` (BuildConfig de `:app`), e o `OkHttpClient` dedicado (`@Named("adminIngestClient")`) usa connect/read/write de **10 s** — telemetria é best-effort, não bloqueia o usuário.
 
@@ -95,30 +95,30 @@ Confirmação e ordenação (GH#1332): o retorno `Boolean` só é `true` quando 
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `.../pulse/SignallQOrchestrator.kt` (1239 linhas) | Orquestrador da sessão de diagnóstico inteligente: speedtest silencioso, coleta de contexto adicional, chamada à IA, ingest de diagnóstico/uso de IA, analytics, filtro de mensagem off-topic |
 | `.../ai/AiModels.kt` (840 linhas) | Modelos do contrato de IA (`DiagnosisAiContext`, `AiDiagnosisResult`, `ModeloIa`, `PerguntaContextual`…), `DiagnosisAiContextFactory` e `AiFallbackFactory` |
 | `.../RecomendacaoPraticaEngine.kt` (638 linhas) | Motor de recomendações práticas locais (REC-01..REC-14). Renomeado de `RecommendationEngine` na auditoria #1228 para não colidir com o motor de monetização de `:coreRecommendation` |
-| `.../DiagnosticOrchestrator.kt` (125 linhas) | Fachada `StateFlow` do diagnóstico; delega para `RemoteDiagnosticRepository.evaluateShadow` |
-| `.../remote/RemoteDiagnosticRepository.kt` (295 linhas) | Cliente do worker `signallq-diagnostic` (`POST /api/diagnostic/evaluate`). Timeouts OkHttp 3 s/4 s/3 s com teto de 42 s. Fallback de 3 níveis: `REMOTE` → `CACHED_LOCAL` → `BUNDLED_LOCAL`. Produção usa `evaluateShadow` (local autoritativo), não `evaluate` |
+| `.../DiagnosticOrchestrator.kt` | Fachada `StateFlow` do diagnóstico; delega para `NdsDiagnosticRepository.evaluate` quando `consumer_diagnostico_nds_live_enabled` está ligada (NDS-02k/#1759), senão para `RemoteDiagnosticRepository.evaluateShadow` |
+| `.../remote/RemoteDiagnosticRepository.kt` (295 linhas) | Cliente do worker `signallq-diagnostic` (`POST /api/diagnostic/evaluate`). Timeouts OkHttp 3 s/4 s/3 s com teto de 42 s. Fallback de 3 níveis: `REMOTE` → `CACHED_LOCAL` → `BUNDLED_LOCAL`. Só roda quando a flag do NDS live está desligada (ver linha acima) |
+| `.../nds/NdsDiagnosticRepository.kt` (NDS-02k/#1759) | Chama `NdsClient.evaluate()` (`:core:nds`, timeout 12 s), mapeia sucesso via `NdsDiagnosticsResponse.toDiagnosticReport()`. Qualquer falha (`KnownError`/`UnknownError`/timeout) cai para `DiagnosticRunner` local — mesmo espírito de `RemoteDiagnosticRepository.evaluate()` (remoto-primeiro, fallback total), não de `evaluateShadow()`. Dispara `AnalyticsHelper.registrarDiagNdsOutcome` (sucesso/erro conhecido/erro desconhecido + fallback usado) |
 | `.../remote/DiagnosticDivergenceReporter.kt` (165 linhas) | Shadow mode: envia só o resumo já comparado para `POST /ingest/diagnostic-divergence`. Kill switch via `:core:featureflags` + rollout percentual, fail closed |
 | `.../remote/DiagnosticRolloutStatusRepository.kt` (105 linhas) | `GET /diagnostic/rollout-status` com cache em memória e TTL curto |
 | `.../remote/ProviderDirectoryRepository.kt` (204 linhas) | Diretório remoto de provedores (`GET /providers/...`) com cache Room (`RoomProviderDirectoryCache`) |
 | `.../remote/RulesetCacheStore.kt` (141 linhas) | `FileRulesetCacheStore` persiste o último ruleset remoto válido em `filesDir/diagnostic_ruleset` (nunca `cacheDir`) |
 | `.../remote/DiagnosticSnapshotMapper.kt` (192 linhas) / `RemoteDiagnosticReportMapper.kt` (145 linhas) | Serialização do `DiagnosticInput` e desserialização do relatório remoto |
 | `.../topology/TopologyDiagnostic.kt` (79 linhas) + `topology/lan/*` | Sondagem de topologia: `GatewayResolver`, `UpnpIgdDiscovery`, `UpnpSoapClient`, `UpnpParser`, `MeshDetector`, `OuiVendorLookup`, `StunNatProbe` (145 linhas), `StunMessageCodec` (140 linhas) |
-| `.../pulse/DynamicQuestionEngine.kt` (404 linhas) | Árvore de perguntas contextuais da sessão inteligente |
 | `.../recommendation/RecommendationDecisionCoordinator.kt` (54 linhas) e `RecommendationHistoryRepository.kt` (64 linhas) | Ponte entre diagnóstico, histórico Room e o `RecommendationEngine` de `:coreRecommendation`. Únicos arquivos `main` já em `io/signallq/` |
 | `.../di/DiagnosticoModule.kt` (250 linhas) | Módulo Hilt `@InstallIn(SingletonComponent)` com todos os providers acima |
 
 ## Riscos e dívidas
 
-- **Dependência entre features (proibida).** `android/feature/diagnostico/build.gradle.kts` declara `implementation(project(":featureSpeedtest"))`, e `SignallQOrchestrator.kt` importa `io.signallq.app.feature.speedtest.ExecutorSpeedtest`, `ModoSpeedtest`, `EstadoExecucaoSpeedtest` e `DiagnosticoFasesSpeedtest`. Viola a regra de `.claude/rules/higiene-e-padronizacao-repositorio.md` §4.9 ("features não podem depender diretamente de outras features"). Único caso identificado entre os quatro módulos desta revisão. Destino arquitetural: contrato normalizado em um `core` ou composição em `:app`.
+- **Motor SignallQ Pulse removido (GH#1682).** O pacote `.../pulse/` (`SignallQOrchestrator.kt` e mais 11 arquivos: `DynamicQuestionEngine`, `IntelligentDiagnosticSession`, `ContextAccumulator`, `QuestionAnswer`, `QuestionNode`, `OpcaoResposta`, `RotatingMessageProvider`, `SignallQInsightGenerator`, `SignallQSnapshot`, `SignallQState`, `AiAnalysisEntry`) era um segundo motor de diagnóstico conversacional (chat) sem nenhum consumidor de UI — a decisão de produto que descontinuou o chat (#564, SIG-282) removeu a experiência mas não o motor por trás. Removido junto: as duas telas `ContextualQuestionCard.kt`/`PulseResultCard.kt` (`:app`, também sem call site), a dependência `implementation(project(":featureSpeedtest"))` (único consumidor era o próprio `SignallQOrchestrator`, resolvendo a violação "feature não depende de feature" abaixo) e o `by lazy { SignallQOrchestrator(...) }` em `MainViewModel.kt`. `MainViewModel.verificarDisponibilidadeGemma()` passou a chamar `diagAiRepository.checkAvailability()` diretamente — mesmo comportamento, sem o motor intermediário. Ver `git show <SHA-antes-da-remoção>:android/feature/diagnostico/src/main/kotlin/io/signallq/app/feature/diagnostico/pulse/SignallQOrchestrator.kt` para recuperar o código se necessário.
+- **Dependência entre features (RESOLVIDA em GH#1682).** `android/feature/diagnostico/build.gradle.kts` declarava `implementation(project(":featureSpeedtest"))` só para o `SignallQOrchestrator.kt` importar `io.signallq.app.feature.speedtest.ExecutorSpeedtest`/`ModoSpeedtest`/`EstadoExecucaoSpeedtest`/`DiagnosticoFasesSpeedtest` — violava `.claude/rules/higiene-e-padronizacao-repositorio.md` §4.9. Com a remoção do motor, a dependência foi removida do `build.gradle.kts`; nenhum outro arquivo do módulo referenciava `:featureSpeedtest`.
 - **Arquivos acima de 800 linhas** (contagem real via `wc -l`):
-  - `.../pulse/SignallQOrchestrator.kt` — **1239 linhas**, acima do limiar de dívida crítica (1.200) da §7. Concentra speedtest, coleta de contexto, IA, ingest, analytics e filtro de conteúdo.
   - `.../ai/AiModels.kt` — **840 linhas**, acima do limiar de extração obrigatória (800). Agrega ~25 data classes do contrato de IA mais `DiagnosisAiContextFactory` e `AiFallbackFactory`; os dois `object` são candidatos naturais a arquivos próprios.
   - No source set de teste, `AiDiagnosisRepositoryTest.kt` tem 771 linhas e `RecomendacaoPraticaEngineTest.kt` 757 — abaixo do limiar, mas próximos.
-- **Caminho legado `io/veloo`.** A quase totalidade do módulo vive em `src/main/kotlin/io/veloo/app/kotlin/feature/diagnostico/...` declarando `package io.signallq.app.feature.diagnostico...`. Exceção: `src/main/kotlin/io/signallq/app/feature/diagnostico/recommendation/` (2 arquivos) e os testes correspondentes já nasceram no caminho correto — o módulo tem hoje **duas árvores físicas concorrentes**, exatamente o que §4.1 pede para evitar. A migração é tarefa dedicada e atômica.
+- **Path físico alinhado ao package `io.signallq.app.*`** — migração de `io/signallq/app/kotlin/` concluída em 2026-08-15 (#1645).
 - **Regra de negócio em Composable:** não aplicável — o módulo não contém nenhum `@Composable` (verificado por `grep -rn "@Composable"`, 0 ocorrências).
 - **Divergência entre `readTimeout` (90 s) e o teto de `withTimeoutOrNull` (40 s)** em `AiDiagnosisRepository.explainDiagnosis`: o comentário no construtor justifica os 90 s para dar margem à inferência, mas o teto de 40 s cancela antes. Só o caminho de streaming (`explainDiagnosisStream`, sem `withTimeoutOrNull`) usa de fato os 90 s. Comportamento não documentado no código; se for intencional, o comentário está desatualizado.
-- **Falta de teste:** os componentes de rede e mapeamento têm cobertura (há 28 arquivos de teste no módulo, incluindo `AiDiagnosisRepositoryTest`, `AdminIngestRepositoryTest`, `RemoteDiagnosticRepositoryTest`). Sem teste próprio: `SignallQOrchestrator` (o maior arquivo do módulo), `TopologyDiagnostic`, `SignallQInsightGenerator`, `ContextAccumulator`, `RotatingMessageProvider`, `GatewayResolver`, `MeshDetector`, `UpnpSoapClient` e o módulo Hilt.
+- **Falta de teste:** os componentes de rede e mapeamento têm cobertura (há 28 arquivos de teste no módulo, incluindo `AiDiagnosisRepositoryTest`, `AdminIngestRepositoryTest`, `RemoteDiagnosticRepositoryTest`). Sem teste próprio: `TopologyDiagnostic`, `GatewayResolver`, `MeshDetector`, `UpnpSoapClient` e o módulo Hilt.
+- **Analytics e input órfãos desde `740f558b` (2026-07-13, GH#937), não desde GH#1682 (ver issue de acompanhamento):** `AnalyticsHelper.registrarIaLaudoSolicitado`/`registrarIaLaudoRecebido` e `AnalyticsTracker.registrarFeatureUsada("diagnostico", sessionIdOverride=...)` só eram chamados de dentro do `SignallQOrchestrator`, cujos call sites no `MainViewModel` caíram de oito para um em `740f558b` — desde então nenhum caminho de produção os dispara. GH#1682 apagou código já inalcançável; reverter não restauraria o funil. `DiagnosticInput.deviceGamingSelecionado` (consumido por `RecomendacaoPraticaEngine`) também ficou sem escritor em produção — só a árvore de perguntas do Pulse ("qual_jogo_device") preenchia esse campo. Além disso, `core/database/.../chat/` (`ChatSessionEntity`/`ChatMessageEntity`/`ChatSessionDao`, tabelas `chat_sessions`/`chat_messages`) já estava órfão antes desta remoção — nenhum caminho de produção grava linhas ali (`AdminSyncWorker` só lê, nunca encontra nada) — mudança de schema/migration fica fora do escopo desta remoção (não é decisão a tomar silenciosamente, ver `.claude/rules/higiene-e-padronizacao-repositorio.md` §9).
 - **Shadow mode ainda não validado:** o kdoc de `RemoteDiagnosticRepository` registra que a paridade entre motor local e remoto (GH#1442) tem várias regras `PARCIAL`/`PENDENTE`. `evaluate()` (remoto-primeiro) permanece no código, testado, mas fora do caminho de produção — código vivo não exercitado em produção é risco de regressão silenciosa.

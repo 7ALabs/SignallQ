@@ -1,9 +1,11 @@
 ---
 name: gerar-docs
-description: Gera documentação completa e atualizada para o projeto SignallQ (Android Kotlin) — funcional, técnica, testes, fluxos, design, PPT e HTML. Audita documentação existente antes de criar qualquer coisa nova, move obsoleta para .old, e adequa estilo ao público-alvo (humano ou IA).
+description: Gera documentação completa e atualizada para o projeto SignallQ (Android Kotlin) — funcional, técnica, testes, fluxos, design, PPT e HTML. Audita documentação existente antes de criar qualquer coisa nova, remove obsoleta (git preserva; substituição registrada no doc novo), e adequa estilo ao público-alvo (humano ou IA).
 ---
 
-Skill de geração e atualização de documentação. Executada pelo **Rhodolfo**.
+Skill de geração e atualização de documentação. **Dono:** Camilo (técnica) e Claudete (funcional/
+produto) conduzem conforme o tipo de documento; Caio revisa quando o documento cobre arquitetura,
+segurança ou release — ver ADR-016. **Modelo sugerido:** Sonnet.
 
 $ARGUMENTS
 
@@ -43,19 +45,24 @@ Para cada documento encontrado relacionado ao escopo solicitado:
    - `PARCIAL` — parte do conteúdo válida, parte desatualizada → atualizar.
    - `OBSOLETO` — conteúdo desatualizado, estrutura incompatível, ou feature removida → arquivar.
 
-### Regra de arquivamento
+### Regra de remoção (sem pasta de arquivo)
 
 Quando classificado como `OBSOLETO`:
-1. Criar diretório `.old/` no mesmo local do arquivo (ex: `docs/.old/`).
-2. Renomear o arquivo com sufixo de data: `nome-original.YYYY-MM-DD.old.md`.
-3. Mover para `.old/`.
-4. Gerar documento novo no path original.
+
+1. **Remover** o arquivo com `git rm` — não mover para `.old/`, `_archive/` ou similar. Política canônica: `.claude/rules/higiene-e-padronizacao-repositorio.md` §10 e `.claude/rules/politica-documentacao-viva.md` §5 — decisão de 2026-08-06, `docs_ai/_archive/` foi esvaziada porque as versões arquivadas eram lidas como verdade atual em toda busca. **O git é o arquivo.**
+2. **Registrar a substituição** no documento novo (campo `documentos substituídos` no frontmatter, ou parágrafo curto na seção inicial): "consolidou/substituiu `<nome-antigo.md>` — recuperável em `git show <sha-anterior>:<caminho-antigo>`".
+3. **Atualizar links e índices** que apontavam para o arquivo removido (`docs_ai/INDICE.md`, `docs_ai/README.md`, links cruzados em outros docs).
+4. **Citar o SHA anterior no commit** para facilitar recuperação: `git log --all --follow <caminho>` mostra o histórico; `git show <sha>:<caminho>` recupera o conteúdo.
 
 ```bash
-# Exemplo de arquivamento
-mkdir -p docs/.old
-mv docs/feature-speedtest.md docs/.old/feature-speedtest.2024-01-15.old.md
+# Exemplo de remoção
+SHA_ANTES=$(git log -n 1 --format=%h -- docs/feature-speedtest.md)
+git rm docs/feature-speedtest.md
+# depois: atualizar o doc novo com "substituiu feature-speedtest.md (git show ${SHA_ANTES}:...)"
+# e commitar com mensagem citando o SHA
 ```
+
+**Exceção — produto pausado.** Documento de produto explicitamente pausado (não descontinuado) fica no lugar com README de selagem declarando o congelamento. Ver `.claude/rules/higiene-e-padronizacao-repositorio.md` §10. Casos ativos: nenhum no SignallQ pós-ADR-016 — Pro está descontinuado, não pausado.
 
 ---
 
@@ -353,7 +360,7 @@ Documento só é considerado entregue quando:
 
 - [ ] Público-alvo confirmado (humano / IA / qual IA)
 - [ ] Auditoria de docs existentes realizada
-- [ ] Documentação obsoleta movida para `.old/` (quando aplicável)
+- [ ] Documentação obsoleta removida (git preserva; substituição registrada no doc novo; SHA anterior citado no commit)
 - [ ] Escopo confirmado (SignallQ Android ou SignallQ Admin)
 - [ ] Documento gerado no formato correto para o público
 - [ ] Path de saída informado
@@ -372,8 +379,8 @@ Usar ferramentas nativas (Glob, Grep, Read) para buscas em código e documentaç
 | Comportamento técnico SignallQ Admin/Console | Camilo |
 | Validação de device real, OEM, API level | `/regras-android` |
 | Decisão de arquitetura, fluxo de dados | Claudete |
-| Estados visuais, microcopy, MD3 | Lia |
-| QA, bugs conhecidos, risco documentado | Rhodolfo |
+| Estados visuais, microcopy, MD3 | `/design-check` + Claudete |
+| QA, bugs conhecidos, risco documentado | Caio |
 | Direção de produto | Claudete |
 
 [PRÓXIMO: entregar o documento no path solicitado com checklist de entrega preenchido]

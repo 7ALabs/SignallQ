@@ -1,0 +1,111 @@
+<!-- TEMPLATE — instanciar quando o repo buildea-labs/linka for criado.
+     Ao instanciar: remover este comentário, preencher os campos entre [colchetes],
+     confirmar cada seção contra a realidade do repo novo (não copiar às cegas).
+     Fonte: docs_ai/foundation-linka/ no repo signallq (ADR-016, Fase 8 do épico #1623). -->
+
+# Linka
+
+## Identidade e estado atual
+
+- **Organização:** `buildea-labs`
+- **Finalidade:** aplicativo de diagnóstico de rede doméstica para o ecossistema Apple —
+  diagnóstico profissional, pago, para usuário que já conhece e confia na plataforma Apple.
+- **Classificação:** produto.
+- **Estado atual:** [preencher quando o repo nascer — greenfield, primeira versão em
+  desenvolvimento, etc.]
+- **Origem:** produto irmão do SignallQ sob o guarda-chuva comercial Buildea. Decisão de
+  portfólio em
+  [ADR-016 do repo `signallq`](https://github.com/buildea-labs/signallq/blob/main/docs_ai/decisions/ADR-016-portfolio-buildea.md).
+
+## Escopo e exclusões
+
+- **Pertence a este repositório:** aplicativo Apple nativo (iOS obrigatório; iPadOS e macOS
+  conforme escopo de produto a definir), integrações StoreKit (pagamento, assinatura), e — se o
+  produto usar sensores/dados de saúde de rede local via HealthKit ou frameworks equivalentes —
+  essa integração também. Documentação técnica e funcional do produto Linka.
+- **Não pertence a este repositório:**
+  - Android — pertence a `signallq`, não existe versão Android do Linka (ADR-016: Linka é
+    exclusivamente Apple).
+  - Web genérica — não há PWA nem site próprio do Linka neste escopo declarado por ADR-016; se
+    isso mudar, precisa de ADR novo.
+  - Backend Cloudflare compartilhado com o SignallQ — [preencher quando decidido: o Linka reusa
+    algum Worker do `signallq` (ex.: motor de diagnóstico, ai-diagnosis-worker) ou nasce com
+    backend próprio? ADR-016 não decide isso — é decisão técnica do squad Linka quando o repo
+    nascer.]
+  - Painel Admin (`buildea-admin`) — fora deste repo, como já é para o SignallQ.
+- **Plataformas:** exclusivamente Apple (iOS; iPadOS e macOS conforme escopo). Android, Windows,
+  Linux, desktop genérico, wearable, TV e embedded ficam permanentemente fora (ADR-016).
+
+## Modelo comercial
+
+- **Pago desde o lançamento.** Não é freemium com ads como o SignallQ.
+- **Speedtest é o único recurso free** — funciona como isca de aquisição, todo o resto (diagnóstico
+  avançado, IA, monitoramento, histórico, recomendações) é pago.
+- Estrutura de preço, tier único vs. assinatura, trial: [preencher quando decidido — não é decisão
+  deste template, é decisão de produto do squad Linka com aprovação de Luiz para o modelo
+  comercial final].
+
+## Arquitetura (a definir pelo squad Linka)
+
+- **Stack esperado:** Swift, SwiftUI, StoreKit 2 para IAP/assinatura. [Confirmar arquitetura real
+  — MVVM, TCA, ou outra — quando o squad decidir; não herdar arquitetura do SignallQ (MVVM +
+  StateFlow) sem avaliação própria, já que é stack diferente.]
+- **Módulos:** [a definir — Swift Package Manager local packages, ou app monolítico inicial que
+  modulariza depois; decisão do squad Linka, não deste template.]
+- **Motor de diagnóstico:** o domínio de diagnóstico de rede é compartilhado em entendimento com o
+  SignallQ (thresholds, vocabulário — ver `docs_ai/regras-diagnostico-rede` do repo `signallq`
+  como referência inicial), mas a implementação é nativa Apple, não código compartilhado. Se decidir
+  compartilhar backend (Worker Cloudflare) com o SignallQ, documentar aqui e no repo `signallq`.
+
+## Comandos essenciais
+
+[Preencher quando o repo nascer: build (`xcodebuild` ou `swift build`), testes
+(`xcodebuild test` ou `swift test`), lint (SwiftLint/SwiftFormat), CI.]
+
+## Restrições
+
+- **Segurança e privacidade:** não versionar segredos, credenciais, certificados de assinatura,
+  chaves StoreKit, ou dados pessoais. Regra idêntica ao `signallq` (contrato operacional Buildea).
+- **Custos:** qualquer provedor novo, custo de IA, custo de infraestrutura recorrente exige
+  aprovação de Luiz — mesma regra do `signallq`.
+- **Publicação:** builds, TestFlight, App Store release, mudanças irreversíveis exigem aprovação
+  explícita de Luiz.
+
+## Squad canônico Linka
+
+Squad próprio, não replicação do squad SignallQ — ver ADR-016, seção "Squads separadas": "cada
+produto tem sua própria squad, que vive no seu próprio repositório [...] não é replicação do squad
+SignallQ". Estrutura sugerida (perfil, não nomes definitivos — ver
+[`squad-template.md`](squad-template.md) para o rascunho de personas):
+
+- **PM/Head de Produto Linka** — prioriza, decompõe, decide critérios de aceite para o produto
+  Apple-native.
+- **Dev Swift/Apple** — implementação iOS/iPadOS/macOS, StoreKit, integrações Apple-específicas.
+- **Revisor independente** — gate de qualidade, segurança e prontidão de release antes de merge.
+
+**Autonomia:** mesma filosofia do `signallq` — agentes decidem sozinhos questões técnicas dentro do
+domínio; Luiz decide produto, estratégia, marca, monetização, custo recorrente, aprovação material.
+Padronização entre squads Buildea via **contratos operacionais compartilhados** (handoff, DoD), não
+por pessoas compartilhadas (ADR-016).
+
+## Skills locais
+
+[Instanciar quando o repo nascer — ver `skills-apple-checklist.md` para a lista do que precisa
+existir e o que pode ser compartilhado como skill de processo cross-produto.]
+
+## Critérios locais de conclusão
+
+[Adaptar do `signallq`: escopo autorizado atendido, comandos e validações da stack Apple
+executados com evidência, documentação afetada atualizada, revisor aprovou quando houver código,
+segurança, produção ou risco relevante.]
+
+## Fontes complementares
+
+- [ADR-016 — Portfólio Buildea](https://github.com/buildea-labs/signallq/blob/main/docs_ai/decisions/ADR-016-portfolio-buildea.md)
+  (repo `signallq`) — decisão de origem deste produto; o primeiro ADR local do repo `linka` deve
+  referenciar este.
+- Políticas comuns a todos os repositórios Buildea: `../ai-governance/policies/` (se este repo for
+  posicionado como sibling de `signallq` e `ai-governance` no disco de quem desenvolve — confirmar
+  caminho relativo real quando o repo nascer).
+- `docs_ai/foundation-linka/` no repo `signallq` — origem deste template e do restante do material
+  fundacional (squad, skills).

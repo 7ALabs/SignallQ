@@ -13,8 +13,8 @@
 
     <!-- READ_PHONE_STATE: usada pelo coreTelephony quando connectionType=mobile,
          para coletar RSRP/SINR/banda/cellId. Solicitada em runtime de forma
-         lazy (so quando o usuario faz diagnostico em rede movel pela primeira
-         vez) — ver MainActivity.solicitarPermissaoTelefoniaSeNecessario. -->
+         contextual (so quando o usuario entra na aba de sinal movel) — ver
+         MainActivity.solicitarPermissaoTelefoniaContextual (issue #1671). -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
@@ -30,11 +30,24 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/Theme.SignallQAndroidKotlin">
 
+        <!-- GH#1690: uiMode/locale/fontScale/density/layoutDirection entraram na lista porque,
+             sem eles, o SO destroi e recria esta Activity (handleRelaunchActivityInner) a cada
+             troca de tema claro/escuro, idioma, tamanho de fonte ou densidade. Essa recriacao
+             expoe uma race de plataforma em androidx.activity.compose.setContent
+             (NullPointerException em ComponentActivity.kt:55, window.decorView.findViewById
+             de android.R.id.content retornando null durante o relaunch) que ora crasha o app,
+             ora deixa a tela preta e travada sem crashar. Reproduzido tanto no shell legado
+             quanto no shell 2.0/Assist: nao e especifico de nenhuma tela, e pre-existente ao
+             epico #1647. screenOrientation="portrait" ja impede orientation/screenSize de
+             dispararem por rotacao fisica; os eixos abaixo evitam o mesmo relaunch para os
+             outros gatilhos comuns. Sem onConfigurationChanged customizado: o tema reage via
+             isSystemInDarkTheme()/LocalConfiguration, que ja recompoe sozinho quando o SO so
+             notifica mudanca de configuracao (sem destruir a Activity). -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:screenOrientation="portrait"
-            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden">
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode|locale|fontScale|density|layoutDirection">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

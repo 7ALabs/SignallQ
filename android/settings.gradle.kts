@@ -34,30 +34,25 @@ include(
     ":featureFibra",
     ":featureHistory",
     ":featureSettings",
-    // SignallQ Pro (MVP0, issue #1157) — modulos novos nascem hierarquicos
-    // (":pro:app", nao ":proApp"), conforme .claude/rules/higiene-e-padronizacao-repositorio.md §5.
-    // Pasta fisica ja bate com o alias por convencao padrao do Gradle (pro/app e core/relatorio)
-    // — sem override de projectDir, ao contrario dos aliases flat legados abaixo.
-    ":pro:app",
+    // Modulos novos nascem hierarquicos (":core:foo", nao ":coreFoo"), conforme
+    // .claude/rules/higiene-e-padronizacao-repositorio.md §5. Pasta fisica ja bate com o alias
+    // por convencao padrao do Gradle — sem override de projectDir, ao contrario dos aliases
+    // flat legados abaixo.
     ":core:relatorio",
     ":core:diagnostico",
-    // Fase 2 do MVP0 (issue #1161) — design system e persistencia compartilhados do Pro +
-    // feature modules do Grupo 1 (trimmed) e Grupo 2 do prototipo.
-    ":pro:core:designsystem",
-    ":pro:core:database",
-    ":pro:feature:auth",
-    ":pro:feature:cliente",
-    ":pro:feature:visita",
-    ":pro:feature:ambiente",
-    ":pro:feature:medicao-diagnostico",
-    // Fase 3 do MVP0 (issue #1164) -- laudo tecnico em PDF (Grupo 3, trimmed) reaproveitando
-    // o motor de paginacao HTML->PDF ja extraido na Fase 1 (":core:relatorio").
-    ":pro:feature:laudo",
     // Fundacao de Feature Flags do Consumer (issue #1477, Epico #1347) -- modulo novo,
     // nasce hierarquico (":core:featureflags", nao ":coreFeatureFlags"), conforme
     // .claude/rules/higiene-e-padronizacao-repositorio.md §5. Consumido apenas por :app
-    // e modulos core/feature do Consumer -- nunca por :pro:*.
+    // e modulos core/feature do Consumer.
     ":core:featureflags",
+    // Camada de rede e contrato do NDS (Network Diagnostics Service), fatia NDS-01
+    // (issue #1744, ADR-017). Modulo dedicado -- nao core:network (que e infra de
+    // conectividade on-device: probes, gateway, wifi scan, topologia) nem
+    // core-utils generico -- porque o NDS vira a espinha dorsal de diagnostico e
+    // IA do app (substitui core:diagnostico, ai-diagnosis-worker e
+    // signallq-diagnostic-worker), com contrato proprio versionado e multiplos
+    // consumidores futuros (NDS-02+). Decisao registrada na PR da fatia NDS-01.
+    ":core:nds",
 )
 
 project(":coreNetwork").projectDir    = File("core/network")

@@ -119,20 +119,18 @@ O caderno mais completo e atual é
 (178 casos, adicionado em 2026-07-17) — cobre tela por tela (Início, Velocidade,
 Sinal, Histórico, Perfil/Ferramentas, overlays/detalhes), fluxos E2E, checklist
 de tokens de design, template de bug para o GitHub e comandos ADB de apoio.
-Reflete o estado atual do app (5ª aba Ferramentas, Ajustes/Perfil pelo avatar,
+Reflete o estado atual do app (Ferramentas como quarta raiz, Ajustes/Perfil pelo avatar,
 package `io.signallq.app`) e traz colunas de status (Não iniciado / Em execução
 / Passou / Falhou / Bloqueado) com resumo agregado por grupo.
 
-> **`signallq_test_cases.yaml` está desatualizado** — ainda referencia
-> `io.veloo.app` e a navegação antiga de 5 abas com Ajustes (a 5ª aba hoje é
-> Ferramentas). Mantido por ora como roteiro histórico/YAML; reconciliar ou
-> arquivar é decisão do Rhodolfo (dono de QA/docs), não decidida nesta edição.
+> **`signallq_test_cases.yaml`** referencia `io.signallq.app` e cobre a jornada única com
+> quatro raízes: Início, Velocidade, Histórico e Ferramentas.
 
-Cobre, em PT-BR, os fluxos das 5 abas (Início, Velocidade, Sinal, Histórico,
-Ajustes) e as ferramentas associadas:
+Cobre, em PT-BR, os fluxos das 4 raízes (Início, Velocidade, Histórico e Ferramentas)
+e as ferramentas associadas:
 
 - **Onboarding** (permissões — aceitar e recusar)
-- **Navegação / AppShell** (5 abas, barra inferior, back em overlay/sheet)
+- **Navegação / AppShell** (4 raízes, barra inferior, back em overlay/sheet)
 - **Home** (dashboard, métricas, atalhos, estado offline)
 - **Speedtest** (modos, execução, dados móveis, cancelamento, offline)
 - **Resultado / Compartilhamento**

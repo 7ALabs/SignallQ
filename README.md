@@ -42,7 +42,9 @@ Requer JDK 17+ e o `app/google-services.json` (já versionado).
 
 ## Release (resumo)
 
-> Processo completo e obrigatório em [`.claude/CLAUDE.md`](.claude/CLAUDE.md). Nunca rodar `assembleRelease` sem `clean` + `--no-build-cache` (cache já causou build desatualizado no Firebase).
+> Checklist completo e obrigatório na skill `checar-release` (`.claude/skills/checar-release/`).
+> Nunca rodar `assembleRelease` sem `clean` + `--no-build-cache` (cache já causou build
+> desatualizado no Firebase). Publicação exige aprovação explícita do Luiz (ver `AGENTS.md`).
 
 ```bash
 git push origin main
@@ -58,10 +60,14 @@ Worker Cloudflare: havendo mudança em `integrations/cloudflare/*/src/`, `npx wr
 
 ## Subprojetos no repositório
 
-- `SignallQ Admin/` — painel administrativo (React + Vite + TypeScript)
 - `integrations/cloudflare/ai-diagnosis-worker/` — worker de diagnóstico IA
-- `integrations/cloudflare/signallq-admin-worker/` — worker do painel admin
+- `integrations/cloudflare/game-latency-probe-worker/` — worker de sonda de latência para jogos
+- `integrations/cloudflare/signallq-admin-worker/` — worker do painel admin (o painel em si vive em `buildea-admin`)
+- `integrations/cloudflare/signallq-diagnostic-worker/` — worker de diagnóstico de rede
 - `integrations/cloudflare/signallq-privacy-worker/` — worker da política de privacidade
+
+O painel Admin (React/Vite/TS) e o site/PWA pertencem aos repositórios `buildea-admin` e
+`signallq-web`, respectivamente (ver ADR-016) — não vivem neste repositório.
 
 ## Roadmap de lançamento (Play Store — alvo 07/08/2026)
 
@@ -69,4 +75,5 @@ Planejamento de Escopo → Desenvolvimento & Documentação → Firebase Beta Te
 
 ## Documentação
 
-Documentação viva para agentes em [`docs_ai/`](docs_ai/README.md). Material histórico em `docs/_archive/` e `docs_ai/_archive/` — não usar como verdade atual.
+Documentação viva para agentes em [`docs_ai/`](docs_ai/README.md). Personas de agentes legadas
+arquivadas em `docs/archive/ai-governance/legacy-agents/` — não participam do roteamento ativo.

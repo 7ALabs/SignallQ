@@ -3,6 +3,10 @@ name: regras-android
 description: Regras de plataforma Android (API levels, APIs deprecated, OEM quirks, restrições Play Store) e checklist de permissões do SignallQ. Consultar antes de implementar permissões, Wi-Fi, DNS, background service ou conectividade.
 ---
 
+**Dono:** Camilo. **Modelo sugerido:** Sonnet; escalar para Opus quando o comportamento OEM
+conflita com a documentação oficial e o risco de regressão é amplo (background/Doze, permissão
+sensível).
+
 Consulte as regras Android relevantes para a tarefa abaixo:
 
 $ARGUMENTS

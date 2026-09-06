@@ -1,6 +1,15 @@
 {
   "permissions": {
-    "defaultMode": "bypassPermissions"
+    "defaultMode": "bypassPermissions",
+    "allow": [
+      "Bash(gh pr merge *)"
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Bash(gh pr merge *)"
+    ]
   },
   "hooks": {
     "PostToolUse": [

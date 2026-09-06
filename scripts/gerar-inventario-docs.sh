@@ -31,8 +31,6 @@ val() { grep -E "^$1 *= *\"" "$TOML" | head -1 | sed 's/.*= *"//; s/".*//'; }
 
 VERSION_NAME=$(val versionName)
 VERSION_CODE=$(val versionCode)
-PRO_VERSION_NAME=$(val proVersionName)
-PRO_VERSION_CODE=$(val proVersionCode)
 COMPILE_SDK=$(val compileSdk)
 MIN_SDK=$(val minSdk)
 TARGET_SDK=$(val targetSdk)
@@ -42,19 +40,18 @@ HILT=$(val hilt)
 
 # --- modulos -----------------------------------------------------------------
 # So o bloco include(...) — evita apanhar as linhas project(...).projectDir.
-# Comentarios sao removidos antes de extrair: o settings.gradle.kts cita aliases
-# proibidos como contra-exemplo (`":pro:app", nao ":proApp"`), e sem isso o
-# parser os contaria como modulos reais.
+# Comentarios sao removidos antes de extrair, por seguranca contra qualquer
+# alias citado como contra-exemplo dentro de um comentario.
+#
+# O SignallQ Pro (":pro:*") foi removido permanentemente em #1623/ADR-016 — nao
+# ha mais split consumer/Pro aqui. Se um portfolio novo reintroduzir modulos
+# fora do consumer, reavalie se este script precisa voltar a segmentar a lista.
 MODULOS=$(sed -n '/^include(/,/^)/p' "$SETTINGS" \
   | sed 's|//.*||' \
   | grep -oE '":[a-zA-Z0-9:_-]+"' | tr -d '"' | sort -u)
 
-MOD_PRO=$(echo "$MODULOS" | grep -c '^:pro:' || true)
 MOD_TOTAL=$(echo "$MODULOS" | grep -c . || true)
-MOD_CONSUMER=$((MOD_TOTAL - MOD_PRO))
-
-LISTA_CONSUMER=$(echo "$MODULOS" | grep -v '^:pro:' | paste -sd' ' -)
-LISTA_PRO=$(echo "$MODULOS" | grep '^:pro:' | paste -sd' ' -)
+LISTA_MODULOS=$(echo "$MODULOS" | paste -sd' ' -)
 
 # --- workers cloudflare ------------------------------------------------------
 WORKERS=""
@@ -120,19 +117,16 @@ bloco() {
 
 | Fato | Valor | Fonte |
 |---|---|---|
-| versionName / versionCode (consumer) | **$VERSION_NAME** / **$VERSION_CODE** | \`$TOML\` |
-| proVersionName / proVersionCode | $PRO_VERSION_NAME / $PRO_VERSION_CODE | \`$TOML\` |
+| versionName / versionCode | **$VERSION_NAME** / **$VERSION_CODE** | \`$TOML\` |
 | compileSdk / minSdk / targetSdk | $COMPILE_SDK / $MIN_SDK / $TARGET_SDK | \`$TOML\` |
 | Compose BOM · Room · Hilt | $COMPOSE_BOM · $ROOM · $HILT | \`$TOML\` |
-| Módulos Gradle | **$MOD_TOTAL** — $MOD_CONSUMER consumer + $MOD_PRO Pro | \`$SETTINGS\` |
+| Módulos Gradle | **$MOD_TOTAL** | \`$SETTINGS\` |
 | Workers Cloudflare | $N_WORKERS | \`integrations/cloudflare/*/wrangler.toml\` |
 | Tabelas D1 | $((N_TAB_ADMIN + N_TAB_DIAG)) — $N_TAB_ADMIN admin + $N_TAB_DIAG diagnostic | \`*/migrations/*.sql\`, \`*/schema.sql\` |
 | Contratos OpenAPI | $N_CONTRATOS contratos · **$N_PATHS_TOTAL** endpoints | \`docs_ai/CONTRATOS/openapi/\` |
 | Arquivos \`.kt\` em caminho legado \`io/veloo\` | $N_VELOO (sendo $N_VELOO_MAIN em \`src/main\`) | dívida conhecida — higiene §4.1 |
 
-**Módulos consumer ($MOD_CONSUMER):** $LISTA_CONSUMER
-
-**Módulos Pro ($MOD_PRO, on hold):** $LISTA_PRO
+**Módulos ($MOD_TOTAL):** $LISTA_MODULOS
 
 **Workers:**
 
@@ -152,6 +146,15 @@ BLOCO
 status=0
 NOVO=$(bloco)
 
+# BSD awk (macOS default) recusa strings multi-linha em `-v var=...` com
+# `awk: newline in string ... at source line 1`; GNU awk (Linux CI) tolera.
+# Sem isso o guardrail falhava em toda maquina macOS e passava no CI — o
+# mesmo tipo de alarme falso que a nota de CRLF logo abaixo tenta prevenir.
+# Escrever o bloco em arquivo e ler por getline funciona em ambos.
+NOVO_ARQ=$(mktemp)
+trap 'rm -f "$NOVO_ARQ"' EXIT
+printf '%s\n' "$NOVO" > "$NOVO_ARQ"
+
 for alvo in "${ALVOS[@]}"; do
   if [[ ! -f "$alvo" ]]; then
     echo "alvo inexistente: $alvo" >&2
@@ -165,8 +168,12 @@ for alvo in "${ALVOS[@]}"; do
   fi
 
   tmp=$(mktemp)
-  awk -v novo="$NOVO" '
-    /INVENTARIO:INICIO/ { print novo; dentro=1; next }
+  awk -v novoArq="$NOVO_ARQ" '
+    /INVENTARIO:INICIO/ {
+      while ((getline linha < novoArq) > 0) print linha
+      close(novoArq)
+      dentro=1; next
+    }
     /INVENTARIO:FIM/    { dentro=0; next }
     !dentro             { print }
   ' "$alvo" > "$tmp"

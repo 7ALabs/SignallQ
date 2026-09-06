@@ -13,11 +13,11 @@ This design system was reverse-engineered from a single attached, read-only code
 | Source | Path | What it gave us |
 |---|---|---|
 | Android codebase | `SignallQ/android/` (monorepo root) | Source of truth for all tokens, components & screens |
-| Theme tokens | `SignallQ/android/app/src/main/kotlin/io/veloo/app/kotlin/ui/SignallQTheme.kt` | `LkColors`, `LkSpacing`, `LkRadius`, `signallQTypography` |
+| Theme tokens | `SignallQ/android/app/src/main/kotlin/io/signallq/app/ui/SignallQTheme.kt` | `LkColors`, `LkSpacing`, `LkRadius`, `signallQTypography` |
 | Design-system docs | `SignallQ/docs_ai/design-system/*.md` | COLORS, TYPOGRAPHY, SPACING, DESIGN_TOKENS, COMPONENTS_ANDROID, MD3_GUIDELINES — canonical, kept in sync with the code |
 | Functional spec | `SignallQ/docs_ai/ANDROID_FUNCIONAL.md` | Screen-by-screen behaviour, flows, copy |
 | Mockup v2 spec | `SignallQ/.claude/design-specs/mockup-v2-ui-screens.md` | Pixel specs for Home / Sinal / SpeedTest / Resultado |
-| Screen composables | `SignallQ/android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/*.kt` | Layout, exact labels, metric thresholds |
+| Screen composables | `SignallQ/android/app/src/main/kotlin/io/signallq/app/ui/screen/*.kt` | Layout, exact labels, metric thresholds |
 | Components | `…/ui/component/*.kt` | SignallQ, SpeedTest, Pulse, layout primitives |
 | Launcher icon | `…/res/mipmap-xxxhdpi/ic_launcher*.png` (copied to `assets/`) | App icon / wordmark "SignallQ" |
 

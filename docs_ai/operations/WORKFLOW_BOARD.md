@@ -1,14 +1,28 @@
-# Workflow do Board — Como os agentes movimentam as issues
+---
+title: "Workflow do Board (histórico)"
+description: "Registro histórico de como a automação de board via agent-handoff.sh funcionava antes de ser superseded por GitHub Issues + PR"
+type: "técnico"
+status: "deprecated"
+owner: "Camilo"
+last_updated: "2026-08-15"
+---
 
-- **Status:** ativo
-- **Última validação:** 2026-07-23 (nome do Project corrigido; conferir se este mecanismo segue
-  em uso junto com os 4 Projects por produto criados em 2026-07-21 — ver `.claude/CLAUDE.md`,
-  seção "Fontes da Verdade" → "Hierarquia obrigatória por Project". Este board (#8) parece ser o
-  mecanismo mais antigo, anterior à divisão por produto; **[a confirmar]** se ainda é o fluxo
-  vigente ou se foi substituído.)
-- **Escopo:** automação de coluna/label do Project GitHub via `scripts/agent-handoff.sh`
+# Workflow do Board — Como os agentes movimentam as issues (histórico)
 
-O Project real hoje é **"LINKA Android — Roadmap"** (nome do Project não foi renomeado no rebrand
+- **Status:** deprecated
+- **Última validação:** 2026-08-15 (confirmado como superseded — ver nota abaixo)
+- **Escopo:** automação de coluna/label do Project GitHub via `agent-handoff.sh` (script removido)
+
+> **Deprecated (Fase 4f do épico #1623):** `agent-handoff.sh`, o script no centro deste
+> documento, foi removido de vez após confirmar zero uso (histórico via
+> `git show 0daa424a:scripts/legacy/agent-handoff.sh`). O mecanismo de handoff vigente é
+> **GitHub Issues + GitHub PR**, formalizado pela skill `/handoff` — ver
+> [`.claude/fluxos/HANDOFF_RULES.md`](../../.claude/fluxos/HANDOFF_RULES.md) e
+> [ADR-016](../decisions/ADR-016-portfolio-buildea.md). O resto deste documento fica como registro
+> histórico de como a automação de board funcionava antes da consolidação do squad canônico de 3
+> agentes; não é mais o fluxo ativo.
+
+O Project real hoje era **"LINKA Android — Roadmap"** (nome do Project não foi renomeado no rebrand
 SignallQ; confirmado via `gh project list --owner gmmattey`), Project #8
 (https://github.com/users/gmmattey/projects/8), é atualizado automaticamente conforme os agentes
 do squad trabalham. Existem **3 camadas** de automação:

@@ -186,7 +186,7 @@ Exemplo:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/speedtest/coletarParidadeKotlin.ps1 `
-  -PackageName io.veloo.app.kotlin `
+  -PackageName io.signallq.app `
   -FlutterJsonDir tmp_logs/sessao_v3.3.3+12_20260507_1224 `
   -Modo all `
   -JanelaSegundos 900

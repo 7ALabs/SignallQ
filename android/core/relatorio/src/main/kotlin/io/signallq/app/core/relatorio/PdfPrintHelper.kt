@@ -22,11 +22,10 @@ import java.io.File
  * minSdk do projeto = 24 — PrintDocumentAdapter disponível desde API 19.
  *
  * Movido de :featureHistory para :core:relatorio (issue #1157 Fase 1b) — zero acoplamento a
- * MedicaoEntity ou qualquer schema do consumidor, reuso direto pelo Pro na Fase 3
- * (:pro:feature:laudo).
+ * MedicaoEntity ou qualquer schema do consumidor, reuso compartilhado entre :app e
+ * :featureHistory.
  */
 internal object PdfPrintHelper {
-
     /**
      * Aciona o ciclo completo do [PrintDocumentAdapter] e escreve o resultado em [arquivo].
      * Deve ser chamado na Main thread (WebView requer UI thread).
@@ -46,12 +45,13 @@ internal object PdfPrintHelper {
         var respondeu = false
 
         // Dispara callback(false) se onWrite nunca completar dentro do timeout
-        val timeoutRunnable = Runnable {
-            if (!respondeu) {
-                respondeu = true
-                callback(false)
+        val timeoutRunnable =
+            Runnable {
+                if (!respondeu) {
+                    respondeu = true
+                    callback(false)
+                }
             }
-        }
         handler.postDelayed(timeoutRunnable, TIMEOUT_MS)
 
         // Wrapper que garante: cancela timeout e chama callback uma única vez
@@ -63,30 +63,44 @@ internal object PdfPrintHelper {
             }
         }
 
-        val printAttributes = PrintAttributes.Builder()
-            .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
-            .setResolution(PrintAttributes.Resolution("pdf", "pdf", 300, 300))
-            .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
-            .build()
+        val printAttributes =
+            PrintAttributes
+                .Builder()
+                .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
+                .setResolution(PrintAttributes.Resolution("pdf", "pdf", 300, 300))
+                .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
+                .build()
 
         adapter.onLayout(
-            /* oldAttributes = */ null,
-            /* newAttributes = */ printAttributes,
-            /* cancellationSignal = */ CancellationSignal(),
-            /* callback = */ object : PrintDocumentAdapter.LayoutResultCallback() {
-                override fun onLayoutFinished(info: PrintDocumentInfo, changed: Boolean) {
+            // oldAttributes =
+            null,
+            // newAttributes =
+            printAttributes,
+            // cancellationSignal =
+            CancellationSignal(),
+            // callback =
+            object : PrintDocumentAdapter.LayoutResultCallback() {
+                override fun onLayoutFinished(
+                    info: PrintDocumentInfo,
+                    changed: Boolean,
+                ) {
                     try {
-                        val fd = ParcelFileDescriptor.open(
-                            arquivo,
-                            ParcelFileDescriptor.MODE_READ_WRITE or
-                                ParcelFileDescriptor.MODE_CREATE or
-                                ParcelFileDescriptor.MODE_TRUNCATE,
-                        )
+                        val fd =
+                            ParcelFileDescriptor.open(
+                                arquivo,
+                                ParcelFileDescriptor.MODE_READ_WRITE or
+                                    ParcelFileDescriptor.MODE_CREATE or
+                                    ParcelFileDescriptor.MODE_TRUNCATE,
+                            )
                         adapter.onWrite(
-                            /* pages = */ arrayOf(PageRange.ALL_PAGES),
-                            /* destination = */ fd,
-                            /* cancellationSignal = */ CancellationSignal(),
-                            /* callback = */ object : PrintDocumentAdapter.WriteResultCallback() {
+                            // pages =
+                            arrayOf(PageRange.ALL_PAGES),
+                            // destination =
+                            fd,
+                            // cancellationSignal =
+                            CancellationSignal(),
+                            // callback =
+                            object : PrintDocumentAdapter.WriteResultCallback() {
                                 override fun onWriteFinished(pages: Array<out PageRange>) {
                                     fd.close()
                                     callbackSeguro(true)
@@ -116,7 +130,8 @@ internal object PdfPrintHelper {
                     callbackSeguro(false)
                 }
             },
-            /* extras = */ Bundle(),
+            // extras =
+            Bundle(),
         )
     }
 }

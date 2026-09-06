@@ -1,4 +1,6 @@
 plugins {
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.ktlint)
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.kapt")
@@ -53,13 +55,38 @@ kotlin {
     }
 }
 
+configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+    filter {
+        exclude("**/*.kts")
+    }
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom("$rootDir/config/detekt.yml")
+    baseline = file("$rootDir/config/detekt-baseline.xml")
+}
+
+ktlint {
+    version = "1.3.1"
+    android = true
+    ignoreFailures = false
+    reporters {
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
+    }
+}
+
 dependencies {
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(project(":featureSpeedtest"))
+    // GH#1682 — implementation(project(":featureSpeedtest")) removido: unico consumidor era
+    // SignallQOrchestrator.kt (motor SignallQ Pulse), que importava ExecutorSpeedtest/
+    // ResultadoSpeedtest/ModoSpeedtest/SpeedtestQualityClassifier. Resolve a violacao
+    // "feature nao pode depender de feature" (.claude/rules/higiene-e-padronizacao-
+    // repositorio.md §4.9) documentada em docs_ai/ARQUITETURA/MODULOS/feature-diagnostico.md.
     implementation(project(":coreDatabase"))
     implementation(project(":coreDatastore"))
     implementation(project(":coreNetwork"))
@@ -70,6 +97,11 @@ dependencies {
     // Dominio de causa-raiz extraido (issue #1157 Fase 1a) — FindingEngine, ScoreEngine,
     // DiagnosticInput/Report/Result, engines por dominio, topology/model+correlation+internet.
     implementation(project(":core:diagnostico"))
+    // NDS-02k (#1759) — NdsClient/NdsDiagnosticsRequest/Response e os mappers
+    // DiagnosticInput<->NDS (core/nds ja depende de core/diagnostico). Primeiro
+    // consumidor real de :core:nds em :featureDiagnostico -- nenhum outro modulo
+    // dependia dele ate esta fatia (confirmado no inventario da issue #1759).
+    implementation(project(":core:nds"))
     implementation(libs.timber)
     implementation(libs.okhttp)
     implementation(libs.androidx.datastore.preferences)

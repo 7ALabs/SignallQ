@@ -9,7 +9,92 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ---
 
-## [Unreleased]
+## [1.0.2] — 2026-08-30
+
+### Alterado
+- O Assist passa a usar a versão 2 do diagnóstico remoto, que aceita o contexto completo ou parcial da conversa e preserva a pergunta relatada.
+
+### Corrigido
+- Dados técnicos devolvidos pelo diagnóstico remoto deixam de aparecer como texto na resposta; o resultado continua explicando apenas o que é útil para a pessoa usuária.
+
+## [1.0.0] — 2026-08-23
+
+### Alterado
+- Primeira versão beta pública do SignallQ, com a jornada de diagnóstico orientada por causa provável, evidências e próximo passo.
+- Anúncios permanecem desligados nesta versão.
+
+## [0.35.3] — 2026-08-23
+
+### Corrigido
+- O Assist agora envia as medições de qualidade, DNS e gateway no formato esperado pelo diagnóstico remoto.
+- A tela deixa de apresentar como ausentes medições que já foram coletadas pelo aplicativo.
+
+## [0.35.2] — 2026-08-23
+
+### Alterado
+- O Assist agora explica o impacto encontrado e mostra ações práticas para melhorar a conexão.
+- A análise apresenta os dados ausentes em linguagem simples e ajusta a confiança quando necessário.
+
+### Corrigido
+- O resultado do Assist não exibe mais garantias, contradições ou nomes técnicos internos.
+- A recomendação remota passa por validação para impedir textos inseguros ou incompreensíveis.
+
+## [0.35.1] — 2026-08-23
+
+### Corrigido
+- O botão de voltar do Assist agora retorna diretamente para a tela de Início, sem percorrer perguntas anteriores.
+- A tela de Início não exibe mais o título adicional acima da trilha da conexão.
+
+## [0.35.0] — 2026-08-23
+
+### Adicionado
+- **Assist conectado ao diagnóstico remoto**: a jornada agora envia o objetivo e as respostas estruturadas para receber uma análise contextualizada.
+- **Reteste orientado**: a recomendação remota mantém sua ação, seus passos e a comparação do resultado antes e depois.
+
+### Alterado
+- O diagnóstico preserva evidências, recomendações, avisos e informações adicionais devolvidas pelo serviço de diagnóstico.
+- Respostas remotas inconclusivas continuam sendo apresentadas como inconclusivas; somente falhas de comunicação ou de formato usam o diagnóstico local de segurança.
+
+### Corrigido
+- O resultado do Assist não perde cards, identificadores de achados ou passos da recomendação ao converter a resposta remota.
+
+## [0.34.0] — 2026-08-22
+
+### Alterado
+- **Diagnóstico mais útil**: o resultado passou a priorizar a causa provável, as evidências encontradas e o próximo passo, sem exibir um score isolado que não orienta a decisão.
+- **Integração com o NDS**: análises remotas sem evidência acionável retornam ao diagnóstico local, evitando conclusões genéricas.
+- **Dispositivos conectados**: tela alinhada ao padrão de navegação e cabeçalho do aplicativo.
+- **Navegação e interface**: ajustes de consistência visual, textos e estados das telas redesenhadas.
+
+### Corrigido
+- Resultados insuficientes do NDS deixam de apresentar uma recomendação vazia ou genérica.
+- O estado “regular” não é mais apresentado como sinal positivo no resultado da análise.
+
+## [0.32.0] — 2026-08-21
+
+### Adicionado
+- **Reteste vinculado e comparação antes/depois**: o botão "Testar novamente" no resultado de uma análise volta a medir o mesmo cenário e mostra um veredito claro — Melhorou, Não mudou ou Piorou — com o nível de confiança explicado em texto, não só em ícone (2.0.09e).
+- Grid de disponibilidade dos últimos 7 dias voltou a aparecer na tela de Monitoramento, junto com o texto explicando de quanto em quanto tempo o app mede em segundo plano.
+
+### Alterado
+- **12 telas redesenhadas** com linguagem mais direta e menos jargão técnico: Sinal (Wi-Fi e Canal), Rede móvel, Dispositivos conectados, Equipamento, Ping/DNS, Monitoramento, Modo Gamer, Wi-Fi ao vivo, Histórico, Ajustes e Onboarding.
+- Histórico agora destaca primeiro a conclusão de cada teste (o que ele descobriu), não só o número bruto.
+- Modo Gamer aproximado do fluxo de diagnóstico guiado por objetivo, com tom mais direto no resultado.
+- Início da migração do motor de diagnóstico para o novo Núcleo de Diagnóstico SignallQ (NDS, ver ADR-017): roda internamente atrás de uma configuração remota desligada por padrão — nenhuma mudança perceptível ainda para quem usa o app.
+
+### Corrigido
+- **As 13 configurações remotas do app** (que permitem ligar/desligar recursos sem lançar uma versão nova) finalmente podem ser ajustadas remotamente — um erro de nomenclatura as bloqueava desde que existem.
+- Exclusão de dados locais em Ajustes agora espera a confirmação de que terminou antes de avisar sucesso, em vez de assumir que deu certo.
+- Onboarding: o pedido de permissão de telefone/localização volta a mostrar o diálogo nativo do Android, em vez de levar direto para a tela de Ajustes sem perguntar.
+
+### Removido
+- `OfflineBanner` e `StatefulScreen`: componentes visuais legados sem mais nenhum consumidor, substituídos pela versão 2.0 dos estados de tela.
+- `AnaliseDetalhadaBottomSheet` e seu teste: sheet do fluxo legado "Analisar meu problema com IA" (3 sintomas fixos), órfão desde que a #1475 o substituiu pelo diagnóstico guiado de objetivos fechados (`DiagnosticoGuiadoScreen`). Sem consumidor em produção — 347 linhas (#1485).
+- Composables mortas de `HomeScreen.kt`: `MobileSignalCard`, `CardMovelDualSim` e `SimChipCompact`, mais os helpers exclusivos delas (`mobileSignalPercent`, `MiniSignalBars`). Nunca eram chamadas em lugar nenhum do app — 296 linhas, sem mudança visual para o usuário (#1261).
+
+### Documentação / Testes
+- 6 testes de migration de banco de dados corrigidos (nunca rodavam de fato por configuração ausente) e um índice novo adicionado com migration de schema 19→20.
+- 5 anúncios nativos migrados para o mecanismo de carregamento atual, sem mudança visual para quem usa o app.
 
 ## [0.31.0] — 2026-08-01
 

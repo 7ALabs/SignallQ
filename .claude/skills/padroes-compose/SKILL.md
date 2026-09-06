@@ -2,8 +2,12 @@
 description: Checklist e padrões de implementação Jetpack Compose para o SignallQ — estrutura de Screen, ViewModel, StateFlow, estados visuais e anti-padrões a evitar.
 ---
 
+**Dono:** Camilo. **Modelo sugerido:** Sonnet.
+
 ## Quando usar
-Antes de implementar ou revisar código Compose no SignallQ.
+Antes de implementar ou revisar código Compose no SignallQ. Para checar o resultado contra os
+tokens visuais depois de implementado, use `/design-check` — esta skill cobre a estrutura
+Compose/arquitetura, não substitui a checagem de token.
 
 ## Padrões obrigatórios
 
@@ -34,8 +38,7 @@ Toda Screen deve tratar:
 
 ### DI e instanciação (absorvido de `arquitetura-android`, fundida em 2026-07-23)
 - Hilt em toda a cadeia. `@Singleton` para repositórios e clientes HTTP compartilhados — nunca instanciar manualmente (ex.: `AiDiagnosisRepository`, `OkHttpClient` de UPnP/scan, via `AppModule`).
-- ViewModel por feature via `@HiltViewModel` — sem god ViewModel. Exceções documentadas: `MainViewModel` (estado de navegação) e `ChatDiagnosticoIaViewModel` (chat de IA), justificadas por escopo transversal real.
-- `SignallQOrchestrator` vive em `:featureDiagnostico` — nunca mover para `:app`.
+- ViewModel por feature via `@HiltViewModel` — sem god ViewModel. Exceção documentada: `MainViewModel` (estado de navegação), justificada por escopo transversal real — e é dívida crítica pela §7, não modelo a imitar.
 - URL de Worker Cloudflare sempre via `BuildConfig`, nunca hardcoded.
 - Para módulos Gradle reais (contagem, nomes, dependências permitidas) e identificadores técnicos preservados, a fonte é `.claude/CLAUDE.md` (seção Identidade) e `.claude/rules/higiene-e-padronizacao-repositorio.md` (seção 5) — não duplicar aqui, eles mudam com o projeto e esta skill não é a fonte de verdade desses números.
 

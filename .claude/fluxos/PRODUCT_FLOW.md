@@ -1,37 +1,47 @@
-# Product Flow for Agents
+# Product Flow
 
-> **Fonte da verdade do squad e do fluxo:** `.claude/CLAUDE.md` + `.claude/agents/*.md`. Este arquivo resume o fluxo de produto do app; para o fluxo de trabalho dos agentes, ver `ai/AGENT_WORKFLOW.md` e `docs_ai/decisions/ADR-006-workflow-squad-5-agentes.md`.
-> Versão: v0.23.0 · 2026-07-05.
+> **Fonte da verdade:** [`AGENTS.md`](../../AGENTS.md) + [`.claude/agents/claudete.md`](../agents/claudete.md).
+> **Decisão canônica:** [ADR-016](../../docs_ai/decisions/ADR-016-portfolio-buildea.md).
+> **Última atualização:** 2026-08-15.
 
-## Objetivos do produto
+## Produto SignallQ
 
-- **Diagnóstico de rede doméstica**: mede velocidade, Wi-Fi, DNS, latência, jitter e perda de pacotes.
-- **Interpretação assistida por IA**: resultados explicados em linguagem acessível via assistente SignallQ.
-- **Monitoramento passivo**: WorkManager mede latência, DNS e RSSI a cada 30 minutos em background, com notificações de degradação.
+**Diagnóstico de rede doméstica para usuário brasileiro**, exclusivamente Android + Web (`signallq.com`, repo `signallq-web`). Freemium com propaganda; recursos pagos futuros possíveis. Ver [ADR-016](../../docs_ai/decisions/ADR-016-portfolio-buildea.md).
 
-## Jornada do usuário — Diagnóstico com IA
+## Objetivos
 
-1. Usuário acessa `DiagnosticoScreen.kt` (aba Diagnóstico).
+- **Diagnóstico** — velocidade, Wi-Fi, DNS, latência, jitter, perda de pacotes.
+- **Interpretação assistida por IA** — resultados explicados em linguagem acessível via Worker `ai-diagnosis-worker`.
+- **Monitoramento passivo** — WorkManager mede latência, DNS e RSSI em background, com notificações de degradação.
+
+## Jornada — Diagnóstico com IA
+
+1. Usuário acessa `DiagnosticoScreen.kt`.
 2. App coleta dados locais (Wi-Fi, velocidade, DNS, telefonia).
-3. Dados enviados ao worker Cloudflare via `coreNetwork`.
-4. Resposta da IA retornada e exibida como chat em `DiagnosticoScreen.kt`.
-5. Usuário interage com chips contextuais e árvore de perguntas dinâmica.
-6. Diagnóstico complementar gerado com contexto acumulado.
+3. Dados vão pro Worker Cloudflare via `coreNetwork`.
+4. Resposta da IA vira chat em `DiagnosticoScreen.kt`.
+5. Usuário interage com chips e árvore dinâmica de perguntas.
+6. Diagnóstico complementar com contexto acumulado.
 
 ## Telas principais
 
-- `DiagnosticoScreen.kt` — diagnóstico guiado por IA (chat, chips, análise)
-- `HomeScreen.kt` — visão geral da conexão atual (RSSI, gateway, tipo de rede)
-- `WifiScreen.kt` — análise de redes e canais Wi-Fi
-- `SpeedtestScreen.kt` — medição de velocidade
-- `DnsScreen.kt` — diagnóstico de DNS
-- `DevicesScreen.kt` — dispositivos na rede
-- `HistoryScreen.kt` — histórico de medições
+- `DiagnosticoScreen.kt` — chat de IA
+- `HomeScreen.kt` — visão geral da conexão
+- `WifiScreen.kt` / `SinalScreen.kt` — Wi-Fi e canais
+- `SpeedtestScreen.kt` — velocidade
+- `DnsScreen.kt` — DNS
+- `DispositivosScreen.kt` — dispositivos na rede
+- `HistoryScreen.kt` — histórico
 - `AjustesScreen.kt` — configurações, ISP, monitoramento passivo
+- `EquipamentoInternetScreen.kt` — status ONT/roteador
+
+## Fora do escopo
+
+- SignallQ Pro, ISP, Nethal — descontinuados (ADR-016).
+- iOS, macOS, desktop, wearable, TV, embedded — fora permanente (ADR-016).
+- Linka — produto separado, exclusivo Apple, repo próprio (`linka`, a ser criado).
 
 ## Docs relacionados
 
-- `FUNCIONAL.md` — detalhes da feature de IA
-- `FUNCIONAL.md` — fluxo de diagnóstico
-- `FUNCIONAL.md` — mapa completo de telas
-- `technical/MONITORAMENTO_PASSIVO.md` — WorkManager, notificações
+- [`docs_ai/FUNCIONAL.md`](../../docs_ai/FUNCIONAL.md) — features detalhadas
+- [`docs_ai/technical/`](../../docs_ai/technical/) — WorkManager, monitoramento passivo

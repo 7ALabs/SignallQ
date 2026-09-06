@@ -61,7 +61,7 @@ Nenhum outro módulo depende deste.
 
 ## Riscos e dívidas
 
-- **Caminho legado `io/veloo`.** Todos os 9 arquivos `main` e os 7 de teste vivem em `src/{main,test}/kotlin/io/veloo/app/kotlin/feature/history/` declarando `package io.signallq.app.feature.history`. Divergência conhecida (§4.1); migração é tarefa dedicada.
+- **Path físico alinhado ao package `io.signallq.app.*`** — migração de `io/signallq/app/kotlin/` concluída em 2026-08-15 (#1645).
 - **Dependência entre features:** nenhuma. Depende só de `:coreDatabase` e `:core:relatorio` — em conformidade com a regra.
 - **Regra de negócio em Composable:** não aplicável — 0 `@Composable` no módulo (verificado por grep). Toda a lógica de agregação, narrativa e tendência está em funções puras ou `object`.
 - **Arquivos acima de 800 linhas:** nenhum. Maiores arquivos (contagem real via `wc -l`): `src/test/.../UptimeNarrativaEngineTest.kt` **482 linhas**, `ExportadorHistoricoPDF.kt` **372**, `UptimeNarrativaEngine.kt` **354**. Os três estão acima do limiar de "revisar coesão" (400) apenas no caso do arquivo de teste; nenhum atinge o de extração obrigatória (800).

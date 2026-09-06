@@ -1,37 +1,44 @@
-# Review Flow for Agents
+# Review Flow
 
-> **Fonte da verdade:** `.claude/CLAUDE.md` + `.claude/agents/*.md`. Este arquivo é um resumo apontador.
-> Decisão de fluxo: `docs_ai/decisions/ADR-006-workflow-squad-5-agentes.md`.
-> Versão: v0.23.0 · 2026-07-05.
+> **Fonte da verdade:** [`.claude/agents/caio.md`](../agents/caio.md) + [contrato operacional](../../../ai-governance/policies/agent-operating-contract.md).
+> **Decisão canônica:** [ADR-016](../../docs_ai/decisions/ADR-016-portfolio-buildea.md).
+> **Última atualização:** 2026-08-15.
 
-## Gate único: Rhodolfo
+## Único gate: Caio
 
-**Rhodolfo** é o gate único de Done: review de código, QA, release e higiene. Não há revisor de arquitetura separado (Claudete absorveu a decisão de arquitetura) nem revisor de docs separado (Rhodolfo absorveu Nina/Taisa).
+**Caio** é o revisor independente. Adversarial por profissão — assume bug até prova em contrário. Não implementa o que revisa ([contrato op §7](../../../ai-governance/policies/agent-operating-contract.md)).
+
+Revisão é obrigatória quando houver: **código, segurança, produção, regressão, arquitetura ou risco relevante**. Docs puras podem passar direto (`/check-done --sem-caio` com justificativa registrada).
 
 ## Processo
 
-1. **Gatilho** — Camilo, Felipe ou Lia concluem a implementação.
-2. **Checks** — `.\android\gradlew.bat lint` e `test` (Android) ou `npm run lint`/`npm run build` (Admin) devem passar.
-3. **Review do Rhodolfo** — bugs, regressões, risco técnico, testes faltando, aderência ao design system e higiene (changelog, bump de versão, docs).
-4. **UX condicional** — Lia valida o entregável visual quando a mudança foi de tela/fluxo.
-5. **Veredito** — `Aprovado` / `Aprovado com ressalvas` / `Reprovado`.
+1. **Gatilho** — Camilo conclui e aciona via `/handoff`.
+2. **Checks automáticos** — Ktlint, Detekt, test (Android); npm test (Web/Workers); docs-CI. Devem estar verdes antes de Caio entrar em review humano.
+3. **Revisão adversarial** de Caio:
+   - **Segurança** — OWASP, secret em diff, endpoint sem auth, permissão nova, dado sensível.
+   - **Regressão** — refactor sem teste de caracterização em fluxo crítico.
+   - **Contrato** — compatibilidade com consumidores quando muda API/Worker/Room migration.
+   - **Duplicação** — grep antes de aceitar código novo.
+   - **Dívida líquida** — a PR reduz ou aumenta débito do repo?
+4. **Parecer** — Aprovado / Aprovado com ressalvas / Reprovado, com bloqueios objetivos.
+5. **Loop máx 2 rodadas** — na 3ª divergência, escala Claudete.
 
-## Limite de loop
+## Escalação ao Luiz
 
-Ciclo Rhodolfo → implementador tem no máximo **2 rodadas**. Na 3ª divergência, escala para a **Claudete** decidir (aceitar débito, repriorizar ou reescopar). Evita ping-pong infinito.
+Caio escala apenas para: aceite de risco crítico, exceção de segurança, redução de cobertura crítica, publicação sem evidência suficiente, mudança material de controles ([`caio.md`](../agents/caio.md)).
 
-## O que o Rhodolfo não faz
+## O que Caio não faz
 
-- Não implementa correções — devolve ao implementador.
-- Decisão de arquitetura vai para a Claudete.
+- Não implementa correções — devolve a Camilo.
+- Decisão de produto/prioridade vai para Claudete.
+- Não cede a pressão de prazo — reporta risco, Luiz decide se aceita.
 
-## O que a Lia não faz
+## Model / effort
 
-- Não edita lógica de negócio — apenas UI e layout.
-- Não aprova UX de feature visual que não passou por ela antes da implementação.
+- **Opus sempre.** Cortar custo no único gate é cortar o custo errado.
+- **Effort:** high por default, xhigh/max em PR grande ou security-critical.
 
 ## Referências
 
-- `ai/AGENT_WORKFLOW.md` — fluxo completo
-- `DESIGN_SYSTEM.md` — referência de revisão visual
-- `ARQUITETURA/README.md` — referência de revisão técnica
+- [`AGENT_WORKFLOW.md`](AGENT_WORKFLOW.md)
+- [`docs_ai/DESIGN_SYSTEM.md`](../../docs_ai/DESIGN_SYSTEM.md), [`docs_ai/ARQUITETURA/README.md`](../../docs_ai/ARQUITETURA/README.md)

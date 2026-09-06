@@ -1,7 +1,16 @@
+---
+title: "Scripts Oficiais"
+description: "Scripts PowerShell/shell oficiais em scripts/ para build, versionamento e ambiente do SignallQ Android"
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-15"
+---
+
 # Scripts Oficiais
 
 - **Status:** ativo
-- **Última validação:** 2026-07-23
+- **Última validação:** 2026-08-15 (seção "Legado" atualizada após remoção de `scripts/legacy/` — Fase 4f do épico #1623)
 - **Escopo:** scripts PowerShell/shell em `scripts/`
 
 Scripts ficam em:
@@ -84,4 +93,6 @@ Scripts antigos de build release foram removidos. O projeto deve usar somente:
 .\scripts\build-apk-release.ps1
 ```
 
-Scripts preservados por contexto historico ficam em `scripts/legacy/` e nao fazem parte do fluxo ativo.
+A pasta `scripts/legacy/` foi removida na Fase 4f do epico #1623 apos auditoria confirmar zero uso
+de todo o conteudo (scripts de handoff/notify e utilitarios Python do app Flutter legado). O git
+preserva o historico — ver `scripts/legacy/README.md` no commit anterior a remocao.

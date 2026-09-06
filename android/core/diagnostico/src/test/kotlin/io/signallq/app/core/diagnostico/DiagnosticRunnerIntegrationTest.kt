@@ -4,7 +4,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DiagnosticRunnerIntegrationTest {
-
     @Test
     fun `mobile connection does not apply wifi diagnostics`() {
         val input =

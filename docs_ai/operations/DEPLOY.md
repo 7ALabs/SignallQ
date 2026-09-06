@@ -1,3 +1,13 @@
+---
+title: "Deployment"
+description: "Processo de release do app Android SignallQ: build assinado, distribuição Firebase, publicação automatizada na Play Console e trilhas de release."
+type: "runbook"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-26"
+version: "1.1.0"
+---
+
 # Deployment
 
 ## Objective
@@ -5,7 +15,9 @@
 This document outlines the deployment process for the SignallQ Android Kotlin application, detailing how new versions are released to end-users.
 
 - **Status:** ativo
-- **Última validação:** 2026-07-23
+- **Última validação:** 2026-08-26 — corrigida defasagem: `release.yml` publica direto em
+  `beta` (não `internal`) desde 2026-08-23 (commit `1555e92b`); documentado o
+  `workflow_dispatch` de produção com ads (2026-08-26)
 - **Fonte de verdade:** versão real em `android/gradle/libs.versions.toml` (não fixar número
   aqui, muda a cada release); trilhas/canais reais em `.github/workflows/release.yml` e
   `promote-release.yml`
@@ -13,7 +25,7 @@ This document outlines the deployment process for the SignallQ Android Kotlin ap
 - **Responsável:** Camilo (build/deploy), Rhodolfo (gate de release)
 
 > Namespace/applicationId atual: **`io.signallq.app`** (renomeado de `io.veloo.app`
-> em 2026-06-28; caminho fisico do codigo do `:app` continua `io/veloo/app/kotlin/`).
+> em 2026-06-28; caminho fisico do codigo do `:app` continua `io/signallq/app/`).
 > Demais identificadores tecnicos permanecem: repo `7ALabs/SignallQ`, worker
 > `linka-ai-diagnosis-worker`. Publicacao na Play Console e distribuicao Firebase sao
 > automatizadas via GitHub Actions — nao ha upload manual pela UI (ver abaixo).
@@ -22,8 +34,9 @@ This document outlines the deployment process for the SignallQ Android Kotlin ap
 
 Dois canais, os dois via **GitHub Actions**:
 - **Firebase App Distribution** — validação rápida/debug, sob demanda.
-- **Google Play Console** — release oficial, trilha `internal` → `alpha`. Beta e produção
-  ainda não liberados.
+- **Google Play Console** — release oficial. Push de tag comum publica direto na trilha
+  `beta` com anúncios desligados. Produção (com anúncios reais) exige disparo manual
+  parametrizado do mesmo workflow — ver seção "Manage Release Tracks" abaixo.
 
 ## Processo Canônico (atualizado 2026-07-17) — os dois canais via CI
 
@@ -53,28 +66,38 @@ interativo, configurado uma vez com `gh secret set FIREBASE_TOKEN --repo
         `STORE_PASSWORD`/`KEY_ALIAS`/`KEY_PASSWORD` já configurados no repo.
 
 3.  **Upload to Google Play Console** — automatizado, não é login manual:
-    -   `git tag vX.Y.Z && git push origin vX.Y.Z` dispara `.github/workflows/release.yml`.
+    -   `git tag vX.Y.Z && git push origin vX.Y.Z` dispara `.github/workflows/release.yml`
+        (push de tag comum → sempre `-PplayTrack=beta -PadsEnabled=false`, sem input manual).
     -   O workflow builda, assina, cria o GitHub Release, e publica o AAB direto na trilha
-        `internal` via `gradlew :app:publishReleaseBundle` (`gradle-play-publisher`, credencial
+        `beta` via `gradlew :app:publishReleaseBundle` (`gradle-play-publisher`, credencial
         `PLAY_SERVICE_ACCOUNT_JSON`).
-    -   **Desacoplamento de produtos** (desde 2026-07-20): o release do consumer (SignallQ)
-        é escopado exclusivamente ao módulo `:app`, evitando que mudanças ou problemas no
-        módulo `:pro:app` (SignallQ Pro) bloqueiem publicações do consumer. O workflow roda
-        `:app:assembleRelease`, `:app:bundleRelease`, `:app:uploadCrashlyticsMappingFileRelease`,
-        e `:app:publishReleaseBundle` em vez de taskname sem prefixo. O Pro terá seu próprio
-        pipeline de release quando precisar publicar.
+    -   O release do consumer (SignallQ) é escopado exclusivamente ao módulo `:app` — o
+        workflow roda `:app:assembleRelease`, `:app:bundleRelease`,
+        `:app:uploadCrashlyticsMappingFileRelease` e `:app:publishReleaseBundle` (taskname
+        prefixado, não o genérico), o que mantém o pipeline isolado de qualquer outro módulo
+        do monorepo.
+    -   `release.yml` também aceita `workflow_dispatch` manual com inputs `playTrack`
+        (`beta`/`production`) e `adsEnabled` (booleano) — é o único jeito de publicar em
+        `production` com anúncios reais; não muda o comportamento do push de tag.
 
 4.  **Manage Release Tracks** — fluxo real do produto, não o genérico:
-    -   **`internal`** (Teste interno): destino de todo `release.yml` — só o Luiz valida,
-        sem review do Google, disponível quase na hora.
-    -   **`alpha`** (Teste fechado): promovido a partir de `internal` via
-        `.github/workflows/promote-release.yml` (`workflow_dispatch` manual,
-        `gradlew promoteReleaseArtifact` — mesmo AAB, sem rebuild) depois que o Luiz validar
-        o teste interno.
-    -   **`beta`/`production`**: **ainda não liberados**. `promote-release.yml` tem um
-        guardrail técnico que falha o workflow se alguém tentar essas trilhas — exige
-        decisão explícita do Luiz, não é autonomia do squad. Primeiro publish em
-        `production` deve ser versionado **1.0.0** (ver `VERSIONING.md`).
+    -   **`beta`** (Teste aberto/fechado): destino de todo push de tag em `release.yml` — só
+        o Luiz valida, disponível quase na hora, anúncios sempre desligados nesse caminho.
+    -   **`internal`/`alpha`**: se for preciso mover o mesmo AAB já publicado em `beta` pra
+        uma trilha de teste mais restrita, usar `.github/workflows/promote-release.yml`
+        (`workflow_dispatch` manual, `gradlew promoteReleaseArtifact` — mesmo AAB, sem
+        rebuild).
+    -   **`production`**: exige decisão explícita do Luiz — não é autonomia do squad, e não
+        é uma promoção. `promote-release.yml` bloqueia `production` como destino de
+        propósito, e mesmo sem esse guardrail promover o binário de `beta` não ativaria
+        anúncio nenhum: `USE_TEST_ADS`/`ADS_ENABLED` são compilados no AAB no momento do
+        build (ver `app/build.gradle.kts`), não do publish. O caminho real é disparar
+        `release.yml` manualmente com `playTrack=production` e `adsEnabled=true`, publicando
+        um AAB **novo** direto na trilha — e só depois de criadas as chaves de Firebase
+        Remote Config (`ads_native_enabled` + 5 por tela, ver
+        `android/app/src/main/kotlin/io/signallq/app/ads/AdsRemoteConfigRepository.kt`); sem
+        elas o app cai no fallback `AdsFlags.DESLIGADO` mesmo com o binário certo. Primeiro
+        publish em `production` deve ser versionado **1.0.0** (ver `VERSIONING.md`).
 
 5.  **Configure Release**:
     -   **Release Notes**: lidas de `android/app/src/main/play/release-notes/pt-BR/

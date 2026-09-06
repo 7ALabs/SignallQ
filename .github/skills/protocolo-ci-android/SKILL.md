@@ -2,6 +2,9 @@
 description: Protocolo de CI/CD e dependências Android — dependabot travado em action_required, mismatch kapt/kotlin-metadata-jvm, e a decisão de strict=false em required_status_checks. Consultar antes de mergear PR de dependabot ou investigar falha de build após bump de versão do Kotlin/Compose.
 ---
 
+**Dono:** Camilo (bump/merge de dependabot), Caio (gate). **Modelo sugerido:** Sonnet; Haiku para
+bump trivial já coberto pelo protocolo abaixo sem investigação nova.
+
 ## Quando usar
 
 Antes de declarar uma PR de dependabot "segura pra mergear", ao investigar falha de build depois
@@ -25,12 +28,12 @@ numa PR que só toca `/android`) e o CI de verdade nunca executou no HEAD atual.
 
 **Diagnóstico:**
 ```bash
-gh run list --repo 7ALabs/SignallQ --branch <branch> --json status,conclusion,workflowName
+gh run list --repo buildea-labs/signallq --branch <branch> --json status,conclusion,workflowName
 ```
 Se o run mais recente tiver `conclusion: action_required`, aprove antes de confiar em qualquer
 status:
 ```bash
-gh api -X POST repos/7ALabs/SignallQ/actions/runs/<run-id>/approve
+gh api -X POST repos/buildea-labs/signallq/actions/runs/<run-id>/approve
 ```
 Espere o resultado real antes de mergear.
 
@@ -66,7 +69,7 @@ byte-a-byte atualizada com o `main` mais recente.
 **Se uma PR aparecer `mergeStateStatus: BEHIND` mesmo assim:** normal em dia de merge concorrente
 alto — é só reflexo de `main` ter avançado, não bloqueia merge com `strict=false`. Se quiser
 atualizar mesmo assim (recomendado se a divergência for grande): `gh api -X PUT
-repos/7ALabs/SignallQ/pulls/<N>/update-branch`.
+repos/buildea-labs/signallq/pulls/<N>/update-branch`.
 
 ## Referência
 

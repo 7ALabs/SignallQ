@@ -15,7 +15,7 @@ class FeatureFlagCatalogParserTest {
               "schemaVersion": "1.0",
               "flags": [
                 {
-                  "key": "consumer.speedtest.enabled",
+                  "key": "consumer_speedtest_enabled",
                   "module": ":featureSpeedtest",
                   "type": "BOOLEAN",
                   "defaultValue": true,
@@ -37,7 +37,7 @@ class FeatureFlagCatalogParserTest {
 
         assertEquals(1, definicoes.size)
         val definicao = definicoes.single()
-        assertEquals(FeatureFlagKey("consumer.speedtest.enabled"), definicao.key)
+        assertEquals(FeatureFlagKey("consumer_speedtest_enabled"), definicao.key)
         assertEquals(":featureSpeedtest", definicao.module)
         assertEquals(FeatureFlagType.BOOLEAN, definicao.type)
         assertEquals(FeatureFlagRawValue.BooleanValue(true), definicao.defaultValue)
@@ -59,7 +59,7 @@ class FeatureFlagCatalogParserTest {
               "schemaVersion": "1.0",
               "flags": [
                 {
-                  "key": "consumer.speedtest.cloudflare_engine_enabled",
+                  "key": "consumer_speedtest_cloudflare_engine_enabled",
                   "module": ":featureSpeedtest",
                   "type": "BOOLEAN",
                   "defaultValue": true,
@@ -68,7 +68,7 @@ class FeatureFlagCatalogParserTest {
                   "description": "desc",
                   "disabledBehavior": "SILENT_NO_OP",
                   "disabledMessage": null,
-                  "dependencies": ["consumer.speedtest.enabled"],
+                  "dependencies": ["consumer_speedtest_enabled"],
                   "androidImplemented": false,
                   "adminManaged": true,
                   "analyticsEvent": null
@@ -81,7 +81,7 @@ class FeatureFlagCatalogParserTest {
 
         assertNull(definicao.disabledMessage)
         assertNull(definicao.analyticsEvent)
-        assertEquals(listOf(FeatureFlagKey("consumer.speedtest.enabled")), definicao.dependencies)
+        assertEquals(listOf(FeatureFlagKey("consumer_speedtest_enabled")), definicao.dependencies)
     }
 
     @Test
@@ -109,7 +109,7 @@ class FeatureFlagCatalogParserTest {
             {
               "schemaVersion": "1.0",
               "flags": [
-                { "key": "consumer.speedtest.enabled" }
+                { "key": "consumer_speedtest_enabled" }
               ]
             }
             """.trimIndent()
@@ -127,7 +127,7 @@ class FeatureFlagCatalogParserTest {
               "schemaVersion": "1.0",
               "flags": [
                 {
-                  "key": "consumer.speedtest.enabled",
+                  "key": "consumer_speedtest_enabled",
                   "module": ":featureSpeedtest",
                   "type": "BOOLEAN",
                   "defaultValue": "nao-e-booleano",
@@ -171,7 +171,7 @@ class FeatureFlagCatalogParserTest {
             """
             {
               "schemaVersion": "1.0",
-              "flags": [${entrada("consumer.speedtest.enabled")}, ${entrada("consumer.speedtest.enabled")}]
+              "flags": [${entrada("consumer_speedtest_enabled")}, ${entrada("consumer_speedtest_enabled")}]
             }
             """.trimIndent()
 

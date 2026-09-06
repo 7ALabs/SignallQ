@@ -4,7 +4,7 @@ description: "Stack, build, persistência, integrações Cloudflare, analytics e
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-28"
 ---
 
 # Documentação técnica — SignallQ consumer
@@ -12,7 +12,7 @@ last_updated: "2026-08-06"
 - **Fonte de verdade:** o código. Este documento é derivado dele. Números vêm do bloco de
   inventário abaixo, **gerado** por `scripts/gerar-inventario-docs.sh` — não editar à mão.
 - **Escopo:** app consumer Android (`io.signallq.app`) e backend Cloudflare. Não cobre SignallQ Pro
-  (on hold — `pro-onhold/`), Admin (`buildea-admin`) nem web (`signallq-web`).
+  (descontinuado permanentemente, ver ADR-016), Admin (`buildea-admin`) nem web (`signallq-web`).
 - **Perspectiva do usuário:** `FUNCIONAL.md`. **Detalhe por módulo:** `ARQUITETURA/MODULOS/`.
 
 <!-- INVENTARIO:INICIO — gerado por scripts/gerar-inventario-docs.sh, nao editar a mao -->
@@ -22,19 +22,16 @@ last_updated: "2026-08-06"
 
 | Fato | Valor | Fonte |
 |---|---|---|
-| versionName / versionCode (consumer) | **0.31.0** / **72** | `android/gradle/libs.versions.toml` |
-| proVersionName / proVersionCode | 0.3.0 / 8 | `android/gradle/libs.versions.toml` |
+| versionName / versionCode | **1.0.3** / **83** | `android/gradle/libs.versions.toml` |
 | compileSdk / minSdk / targetSdk | 37 / 24 / 36 | `android/gradle/libs.versions.toml` |
 | Compose BOM · Room · Hilt | 2026.06.01 · 2.8.4 · 2.60.1 | `android/gradle/libs.versions.toml` |
-| Módulos Gradle | **28** — 19 consumer + 9 Pro | `android/settings.gradle.kts` |
+| Módulos Gradle | **20** | `android/settings.gradle.kts` |
 | Workers Cloudflare | 5 | `integrations/cloudflare/*/wrangler.toml` |
 | Tabelas D1 | 38 — 20 admin + 18 diagnostic | `*/migrations/*.sql`, `*/schema.sql` |
 | Contratos OpenAPI | 7 contratos · **122** endpoints | `docs_ai/CONTRATOS/openapi/` |
-| Arquivos `.kt` em caminho legado `io/veloo` | 527 (sendo 362 em `src/main`) | dívida conhecida — higiene §4.1 |
+| Arquivos `.kt` em caminho legado `io/veloo` | 0 (sendo 0 em `src/main`) | dívida conhecida — higiene §4.1 |
 
-**Módulos consumer (19):** :app :core:diagnostico :core:featureflags :core:relatorio :coreDatabase :coreDatastore :coreNetwork :corePermissions :coreRecommendation :coreTelephony :featureDevices :featureDiagnostico :featureDns :featureFibra :featureHistory :featureHome :featureSettings :featureSpeedtest :featureWifi
-
-**Módulos Pro (9, on hold):** :pro:app :pro:core:database :pro:core:designsystem :pro:feature:ambiente :pro:feature:auth :pro:feature:cliente :pro:feature:laudo :pro:feature:medicao-diagnostico :pro:feature:visita
+**Módulos (20):** :app :core:diagnostico :core:featureflags :core:nds :core:relatorio :coreDatabase :coreDatastore :coreNetwork :corePermissions :coreRecommendation :coreTelephony :featureDevices :featureDiagnostico :featureDns :featureFibra :featureHistory :featureHome :featureSettings :featureSpeedtest :featureWifi
 
 **Workers:**
 
@@ -83,10 +80,10 @@ contra desatualização.
 técnicos: banco `linkaKotlin.db`, DataStore `linkaPreferencias`, canais de notificação `linka_*`,
 Worker `linka-ai-diagnosis-worker`.
 
-**Caminho físico legado:** os arquivos `.kt` vivem em `.../kotlin/io/veloo/app/kotlin/...` embora
-declarem `package io.signallq.app`. Único módulo já alinhado: `:coreRecommendation`, fisicamente em
-`io/signallq/`. Dívida registrada em `.claude/rules/higiene-e-padronizacao-repositorio.md` §4.1 —
-migração é tarefa dedicada e atômica.
+**Path físico ↔ package Kotlin alinhados:** todos os arquivos `.kt` residem em
+`.../kotlin/io/signallq/app/...`, coerente com `package io.signallq.app`. Migração dos 525 arquivos
+legados que viviam em `io/signallq/app/` foi concluída em 2026-08-15 (issue #1645); dívida
+histórica em `.claude/rules/higiene-e-padronizacao-repositorio.md` §4.1 marcada RESOLVIDA.
 
 ### 2.2 Stack
 
@@ -109,14 +106,56 @@ migração é tarefa dedicada e atômica.
 
 Detalhe que costuma ser documentado errado: **não existe uma única pilha HTTP**.
 
-- **`:coreNetwork` não usa OkHttp.** As sondagens de rede usam `HttpURLConnection`, `Socket` e
-  `InetAddress` puros, amarrados à `Network` sob análise — necessário para medir a interface
-  correta em vez da rota padrão do sistema. Oito timeouts constantes: passo 2500 ms, global
-  8000 ms, gateway 1200 ms, DNS 1500 ms, IP externo 1500 ms, hostname 2500 ms, RTT de gateway
-  1000 ms, varredura Wi-Fi 10 000 ms.
+- **`:coreNetwork` majoritariamente não usa OkHttp.** As sondagens de rede (gateway, DNS do
+  sistema, IP externo, hostname) usam `HttpURLConnection`, `Socket` e `InetAddress` puros,
+  amarrados à `Network` sob análise — necessário para medir a interface correta em vez da rota
+  padrão do sistema. Oito timeouts constantes: passo 2500 ms, global 8000 ms, gateway 1200 ms,
+  DNS 1500 ms, IP externo 1500 ms, hostname 2500 ms, RTT de gateway 1000 ms, varredura Wi-Fi
+  10 000 ms. **Exceção (issue #1811, Task 1):** `DohFallbackProbe` — o único probe de
+  `connectivity/` que faz uma requisição DoH real contra `cloudflare-dns.com` — usa OkHttp
+  (timeout configurável por instância, não singleton), porque não precisa amarrar à `Network`
+  sob análise da mesma forma que os outros (é sempre uma consulta contra o resolvedor público).
 - **OkHttp é usado nas chamadas a Workers**, em `:featureDiagnostico`.
 - **`:featureDevices` fixa `okhttp:5.4.0` direto no `build.gradle.kts`**, fora do version catalog —
   pode divergir do `libs.okhttp` dos demais módulos. Dívida registrada.
+
+### 2.4 Diagnóstico de conectividade: dois motores paralelos
+
+Dívida arquitetural conhecida e registrada (issue #1817) — dois orquestradores independentes
+sabem rodar a mesma sequência de sondagens (gateway → DNS → rota externa → hostname/captive
+portal), por motivos históricos diferentes, até serem unificados.
+
+**`ConnectivityDiagnosisEngine`/`ConnectivityDiagnosisRunner`** (`:coreNetwork`,
+`connectivity/`) — motor original, consumido em produção por `AppShellMedicaoGuiada` (medição
+guiada de Wi-Fi, chamada direta do Runner) e por `ConnectivityBlockingPolicy` (`:featureSpeedtest`,
+extensão sobre `ConnectivityDiagnosis` — a *saída* do engine, não o engine em si — chamada por
+`MainViewModel` e `SpeedtestViewModel` para decidir se bloqueia o speedtest). Roda a cadeia inteira
+numa única chamada suspend e devolve só o resultado agregado ao final — não expõe progresso etapa
+a etapa.
+
+**`DiagnosticoOfflineExecutorReal`** (`io.signallq.app.diagnosticooffline`, em `:app`) — motor
+novo (issue #1811, Task 4), chama os mesmos probes (`GatewayReachabilityProbe`,
+`DnsReachabilityProbe`/`DohFallbackProbe`, `ExternalIpReachabilityProbe`,
+`HostnameReachabilityProbe`) diretamente, na mesma ordem, mas devolve o resultado de UMA etapa
+por chamada — necessário para o diagnóstico offline guiado (5.5b em `FUNCIONAL.md`) mostrar
+progresso real conforme cada sondagem termina, sem reescrever o Runner original e arriscar
+regressão nos dois consumidores de produção.
+
+**`DiagnosticoOfflineViewModel`** (mesmo pacote) é o state holder consumido pela UI —
+`StateFlow<DiagnosticoOfflineEstado>` com seis estados (`Idle`, `TestandoEtapa`, `EtapaOk`,
+`EtapaFalhou`, `RetryEmAndamento`, `DiagnosticoConcluido`), execução sequencial que para na
+primeira falha, e retry (da última etapa que falhou, ou de uma etapa explícita) preservando o
+histórico anterior a ela. Guarda de concorrência (`jobEmAndamento`) evita corrotinas paralelas em
+tap duplo ou retry disparado durante uma rodada em andamento.
+
+Na etapa DNS, quando `DnsReachabilityProbe` falha mas `DohFallbackProbe` (contra a Cloudflare
+pública) resolve, o executor aciona `OrientadorConfiguracaoDns` (`:featureDns` — histórico da
+integração na issue #1819, fechada) com o provedor evidenciado — sem rodar o benchmark completo de
+`BenchmarkDnsDoh` (7 provedores, 6
+rounds, 25 s), pesado demais para esse fluxo de resposta rápida. `provedorAtivo` é derivado
+comparando os IPs de `ContextoRedeDiagnosticoOffline.dnsServers` contra uma tabela reversa
+IP→provedor (duplicada da tabela privada de `OrientadorConfiguracaoDns.mapearProvedor` — dívida
+registrada, issue #1823), para não recomendar trocar para o DNS que a rede já usa.
 
 ## 3. Modelo de dados
 
@@ -250,19 +289,31 @@ Validações locais, a partir de `android/` (`gradlew.bat` no Windows):
 ./gradlew assembleDebug
 ```
 
+**Suspeita de poluição entre testes no `:app`** (estado que vaza de um teste pra outro, ex.
+`kotlinx.coroutines.test.UncaughtExceptionsBeforeTest`): o Gradle `Test` task deste módulo (JUnit4
+puro, sem `useJUnitPlatform()`) não embaralha a ordem das classes nativamente — a ordem é
+determinística (varredura do diretório de `.class`). `SuiteEmbaralhadaTest`
+(`app/src/test/kotlin/io/signallq/app/SuiteEmbaralhadaTest.kt`) descobre e embaralha as classes de
+teste do módulo em runtime, rodando todas na mesma JVM — único jeito de reproduzir poluição de
+estado estático entre classes (ver GH#1684). Não roda no CI por padrão:
+
+```
+./gradlew :app:testDebugUnitTest --tests "io.signallq.app.SuiteEmbaralhadaTest" --rerun \
+    -PsuiteEmbaralhada -Dsuite.embaralhada.seed=<long opcional>
+```
+
 ## 9. Riscos técnicos
 
 | Risco | Detalhe |
 |---|---|
-| UI monolítica em `:app` | 150 arquivos, 40.017 linhas, dez acima de 800. `SinalScreen.kt` 3383, `HomeScreen.kt` 2967, `MainViewModel.kt` 2438 |
+| UI monolítica em `:app` | ~150 arquivos em `src/main`, dez acima de 800. `Inicio2Screen.kt`, `MainViewModel.kt` 2438, `SinalCanalSection.kt` 1215, `SinalWifiSection.kt` 1110 (issue #1660 extraiu o antigo `SinalScreen.kt` monolítico, 3383 linhas, em scaffold + `SinalWifiSection.kt`/`SinalCanalSection.kt`/`SinalMovelSection.kt`/`SinalSharedComponents.kt`) |
 | Dependência feature→feature | 2 violações — ver `ARQUITETURA/README.md` §2 |
 | Três mecanismos de feature flag | `:core:featureflags` (11 flags), `FeatureFlagProvider` legado em `:coreNetwork`, e Firebase Remote Config — com colisão de nome entre os dois primeiros |
 | Ausência de teste em pontos sensíveis | `:core:relatorio` (0 testes, compartilhado com o Pro), `:corePermissions` (0), `ExecutorSpeedtestCloudflare.kt` (1495 linhas, sem teste direto), `ExecutorFibra` e `NokiaModemCrypto` |
 | `:app` sem `androidTest` | Dependências de teste instrumentado declaradas, diretório inexistente |
-| Duas árvores físicas em `:featureDiagnostico` | `io/veloo` e `io/signallq` no mesmo source set |
 | `:core:diagnostico` não é Kotlin puro | Declara "zero `android.*`" mas `topology/` faz HTTP e `Runtime.exec("/system/bin/ping")` |
 | Fibra com um único driver | Só Nokia G-1425G-B em produção. TP-Link e Intelbras têm apenas mapa de reconhecimento documental em `technical/*_FIELD_MAP.md`, sem código |
-| `MetricClassifier` não usado em `SinalScreen.kt` | Limiares duplicados em três lugares — issue **#1586** |
+| `MetricClassifier` não usado em `SinalMovelSection.kt`/`SinalMovelClassificacao.kt` | Limiares duplicados em três lugares — issue **#1586** |
 
 ## 10. Referências
 

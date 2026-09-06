@@ -48,13 +48,14 @@ class ConnectivityDiagnosisEngine(
                 externalIpReachable = ProbeResult.NotExecuted("Wi-Fi desconectado"),
                 hostnameReachable = ProbeResult.NotExecuted("Wi-Fi desconectado"),
                 captivePortalSuspeito = false,
-                evidencias = listOf(
-                    ConnectivityEvidence(
-                        ConnectivityProbeStep.WIFI_TRANSPORT,
-                        ProbeResult.Failure(ProbeFailureReason.UNKNOWN),
-                        "Sem transporte Wi-Fi ativo",
+                evidencias =
+                    listOf(
+                        ConnectivityEvidence(
+                            ConnectivityProbeStep.WIFI_TRANSPORT,
+                            ProbeResult.Failure(ProbeFailureReason.UNKNOWN),
+                            "Sem transporte Wi-Fi ativo",
+                        ),
                     ),
-                ),
                 iniciadoEm = iniciadoEm,
             )
         }
@@ -66,46 +67,50 @@ class ConnectivityDiagnosisEngine(
         var hostnameResultado: ProbeResult = ProbeResult.NotExecuted("DNS nao confirmou resolucao")
         var captivePortalSuspeito = false
 
-        val concluiuDentroDoPrazo = withTimeoutOrNull(globalTimeoutMs) {
-            gatewayResultado = if (context.gatewayIp == null) {
-                ProbeResult.Unavailable("sem rota de gateway configurada")
-            } else {
-                withTimeoutOrNull(stepTimeoutMs) { gatewayProbe.probe(context.gatewayIp) }
-                    ?: ProbeResult.Timeout(stepTimeoutMs)
-            }
-            evidencias += ConnectivityEvidence(ConnectivityProbeStep.GATEWAY_REACHABILITY, gatewayResultado)
-
-            if (gatewayResultado is ProbeResult.Success) {
-                dnsResultado = if (context.dnsServers.isEmpty()) {
-                    ProbeResult.Unavailable("nenhum servidor DNS configurado")
-                } else {
-                    withTimeoutOrNull(stepTimeoutMs) { dnsProbe.probe(dnsHostnamesParaTeste) }
-                        ?: ProbeResult.Timeout(stepTimeoutMs)
-                }
-                evidencias += ConnectivityEvidence(ConnectivityProbeStep.DNS_REACHABILITY, dnsResultado)
-
-                if (dnsResultado is ProbeResult.Success) {
-                    val resultadoParalelo = withTimeoutOrNull(stepTimeoutMs) {
-                        coroutineScope {
-                            val ipDeferred = async { externalIpProbe.probe() }
-                            val hostDeferred = async { hostnameProbe.probe() }
-                            ipDeferred.await() to hostDeferred.await()
-                        }
-                    }
-                    if (resultadoParalelo != null) {
-                        externalIpResultado = resultadoParalelo.first
-                        hostnameResultado = resultadoParalelo.second.result
-                        captivePortalSuspeito = resultadoParalelo.second.captivePortalSuspeito
+        val concluiuDentroDoPrazo =
+            withTimeoutOrNull(globalTimeoutMs) {
+                gatewayResultado =
+                    if (context.gatewayIp == null) {
+                        ProbeResult.Unavailable("sem rota de gateway configurada")
                     } else {
-                        externalIpResultado = ProbeResult.Timeout(stepTimeoutMs)
-                        hostnameResultado = ProbeResult.Timeout(stepTimeoutMs)
+                        withTimeoutOrNull(stepTimeoutMs) { gatewayProbe.probe(context.gatewayIp) }
+                            ?: ProbeResult.Timeout(stepTimeoutMs)
                     }
-                    evidencias += ConnectivityEvidence(ConnectivityProbeStep.EXTERNAL_IP_REACHABILITY, externalIpResultado)
-                    evidencias += ConnectivityEvidence(ConnectivityProbeStep.HOSTNAME_REACHABILITY, hostnameResultado)
+                evidencias += ConnectivityEvidence(ConnectivityProbeStep.GATEWAY_REACHABILITY, gatewayResultado)
+
+                if (gatewayResultado is ProbeResult.Success) {
+                    dnsResultado =
+                        if (context.dnsServers.isEmpty()) {
+                            ProbeResult.Unavailable("nenhum servidor DNS configurado")
+                        } else {
+                            withTimeoutOrNull(stepTimeoutMs) { dnsProbe.probe(dnsHostnamesParaTeste) }
+                                ?: ProbeResult.Timeout(stepTimeoutMs)
+                        }
+                    evidencias += ConnectivityEvidence(ConnectivityProbeStep.DNS_REACHABILITY, dnsResultado)
+
+                    if (dnsResultado is ProbeResult.Success) {
+                        val resultadoParalelo =
+                            withTimeoutOrNull(stepTimeoutMs) {
+                                coroutineScope {
+                                    val ipDeferred = async { externalIpProbe.probe() }
+                                    val hostDeferred = async { hostnameProbe.probe() }
+                                    ipDeferred.await() to hostDeferred.await()
+                                }
+                            }
+                        if (resultadoParalelo != null) {
+                            externalIpResultado = resultadoParalelo.first
+                            hostnameResultado = resultadoParalelo.second.result
+                            captivePortalSuspeito = resultadoParalelo.second.captivePortalSuspeito
+                        } else {
+                            externalIpResultado = ProbeResult.Timeout(stepTimeoutMs)
+                            hostnameResultado = ProbeResult.Timeout(stepTimeoutMs)
+                        }
+                        evidencias += ConnectivityEvidence(ConnectivityProbeStep.EXTERNAL_IP_REACHABILITY, externalIpResultado)
+                        evidencias += ConnectivityEvidence(ConnectivityProbeStep.HOSTNAME_REACHABILITY, hostnameResultado)
+                    }
                 }
+                true
             }
-            true
-        }
 
         if (concluiuDentroDoPrazo == null) {
             // Timeout global -- qualquer etapa que ainda estivesse com valor "nao executado"
@@ -141,19 +146,21 @@ class ConnectivityDiagnosisEngine(
         globalTimeoutExceeded: Boolean = false,
     ): ConnectivityDiagnosis {
         val captivePortalDetectado = context.androidCaptivePortalCapability || captivePortalSuspeito
-        val outcome = ConnectivityProbeOutcome(
-            wifiConnected = context.wifiConnected,
-            gatewayConfigured = context.gatewayIp != null,
-            gatewayReachable = gatewayReachable,
-            dnsConfigured = context.dnsServers.isNotEmpty(),
-            dnsReachable = dnsReachable,
-            externalIpReachable = externalIpReachable,
-            hostnameReachable = hostnameReachable,
-            androidInternetCapability = context.androidInternetCapability,
-            androidValidated = context.androidValidated,
-            captivePortalDetected = captivePortalDetectado,
-            globalTimeoutExceeded = globalTimeoutExceeded,
-        )
+        val outcome =
+            ConnectivityProbeOutcome(
+                wifiConnected = context.wifiConnected,
+                localAddressAvailable = context.localAddressAvailable,
+                gatewayConfigured = context.gatewayIp != null,
+                gatewayReachable = gatewayReachable,
+                dnsConfigured = context.dnsServers.isNotEmpty(),
+                dnsReachable = dnsReachable,
+                externalIpReachable = externalIpReachable,
+                hostnameReachable = hostnameReachable,
+                androidInternetCapability = context.androidInternetCapability,
+                androidValidated = context.androidValidated,
+                captivePortalDetected = captivePortalDetectado,
+                globalTimeoutExceeded = globalTimeoutExceeded,
+            )
         val resolucao = ConnectivityStatusResolver.resolve(outcome)
 
         return ConnectivityDiagnosis(

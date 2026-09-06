@@ -1,49 +1,51 @@
 # Task Breakdown
 
-> **Fonte da verdade:** `.claude/CLAUDE.md` + `.claude/agents/*.md`. Este arquivo é um resumo apontador.
-> Decisão de fluxo: `docs_ai/decisions/ADR-006-workflow-squad-5-agentes.md`.
-> Versão: v0.23.0 · 2026-07-05.
+> **Fonte da verdade:** [`.claude/agents/claudete.md`](../agents/claudete.md).
+> **Decisão canônica:** [ADR-016](../../docs_ai/decisions/ADR-016-portfolio-buildea.md).
+> **Última atualização:** 2026-08-15.
 
 ## Quem quebra
 
-A **Claudete** refina e quebra toda demanda. Absorveu o planejamento de arquitetura — não há tech lead separado. Skill de apoio: `/refinar-demanda`.
+**Claudete** refina e quebra toda demanda. Skill de apoio: [`estimativa-impacto`](../skills/estimativa-impacto/).
 
 ## Princípios
 
-- **Modularidade** — alinhe com os módulos `:app`, `:core*`, `:feature*` (Android) e a estrutura do `SignallQ Admin/`.
+- **Modularidade** — alinha com `:app`, `:core:*`, `:feature:*` e com os Workers Cloudflare.
 - **Responsabilidade única** — cada sub-task tem objetivo verificável.
-- **Independência** — tasks devem poder rodar em trilhas paralelas por agentes diferentes.
-- **Dependências** — rastreie bloqueios e ordem de execução.
+- **Independência** — tasks devem poder rodar em paralelo por agentes diferentes (embora este squad tenha 1 dev único, tasks paralelas ajudam a serializar sem bloquear).
+- **Anti-duplicação** — Camilo roda `/inventario` antes de código novo (Fase 2 do épico #1623). Se algo parecido existe, ou reusa, ou justifica.
 
 ## Processo
 
-1. **Analise** a task e colete contexto de `docs_ai/technical/` e do código (Read/Grep/Glob).
-2. **Estime escopo** — se grande/arquitetural, proponha plano antes (ver classificação de tamanho em `.claude/CLAUDE.md`).
-3. **Decomponha** — prefira várias tasks pequenas a uma gigante.
-4. **Atribua** ao agente correto (tabela abaixo).
-5. **Mapeie dependências** e ordene.
-6. **Roteie** — bug → GitHub Issues; feature/task → Linear.
+1. **Analisa** a demanda e coleta contexto ([`docs_ai/`](../../docs_ai/), Read/Grep/Glob).
+2. **Estima escopo** com [`estimativa-impacto`](../skills/estimativa-impacto/).
+3. **Decompõe** em tasks pequenas. Prefere várias pequenas a uma gigante.
+4. **Atribui** ao agente correto (tabela abaixo).
+5. **Mapeia dependências** e ordena.
+6. **Roteia** — bug → GitHub Issues (`type:bug`); feature/task/refactor/docs → GitHub Issues (`Task -` / `Feat -`).
 
 ## Regra de granularidade
 
-- Bugfix simples (≤5 arquivos, sem mudança de contrato) → implementador direto, sem breakdown formal.
-- Tasks médias/grandes → Claudete decompõe antes de acionar o implementador.
-- WIP: máximo 1 task In Progress por agente.
+- Bugfix simples (≤5 arquivos, sem mudança de contrato) → Camilo direto (Haiku), sem breakdown formal.
+- Tasks médias/grandes → Claudete decompõe antes de acionar Camilo.
+- WIP: máx 1 task In Progress por agente.
 
-## Mapeamento de agentes
+## Mapeamento (squad de 3)
 
-| Tipo de task | Agente |
-|---|---|
-| Refino, priorização, decomposição, arquitetura | Claudete |
-| Implementação Android (Kotlin, Compose, MVVM) | Camilo |
-| Admin Panel (React/TS) e análise de dados de app | Felipe |
-| UX, design, Material 3, microcopy (task visual) | Lia |
-| Review, QA, regressão, release, changelog, higiene | Gema |
+| Tipo de task | Agente | Skill invocada durante |
+|---|---|---|
+| Refino, priorização, decomposição, critérios de aceite | Claudete | `/estimativa-impacto` |
+| Implementação Android (Kotlin/Compose/MVVM/Room/Coroutines) | Camilo | `/regras-android`, `/padroes-compose` |
+| Implementação Workers/Admin (TS/React) | Camilo | `/cloudflare-d1-console` |
+| Task visual (tela, microcopy, navegação) | Camilo | `/design-check` |
+| Task com telemetria/métrica | Camilo | `/analytics-spec` |
+| Task de growth (ASO, copy de store, campanha) | Claudete | `/growth-check` |
+| Revisão independente | Caio | `/check-done` |
+| Escalação (estratégia/marca/produção/custo/irreversível/risco crítico) | Luiz | — |
 
-Busca de código/docs = ferramentas nativas ou skills; sem agente dedicado.
+Busca de código/docs = ferramentas nativas (Read/Grep/Glob) ou skills.
 
 ## Referências
 
-- `ai/AGENT_WORKFLOW.md` — fluxo completo
-- `ai/HANDOFF_RULES.md` — protocolo de handoff
-- `TECNICO.md / ARQUITETURA/MODULOS/` — módulos Android
+- [`AGENT_WORKFLOW.md`](AGENT_WORKFLOW.md), [`HANDOFF_RULES.md`](HANDOFF_RULES.md)
+- [`docs_ai/ARQUITETURA/MODULOS/`](../../docs_ai/ARQUITETURA/MODULOS/)

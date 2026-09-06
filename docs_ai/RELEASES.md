@@ -4,13 +4,13 @@ description: "Releases publicados, com versão, data e escopo"
 type: "referência"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-30"
 ---
 
 # Histórico de Releases — SignallQ Android
 
 **Mantido por:** Rhodolfo
-**Última atualização:** 2026-07-21
+**Última atualização:** 2026-08-30
 **Referência:** `android/CHANGELOG.md` (fonte autoritativa do histórico Android) + `git log --oneline`
 
 > Nota de marca: o namespace/applicationId atual é **`io.signallq.app`** (renomeado de
@@ -19,6 +19,16 @@ last_updated: "2026-08-06"
 > de infra — repo `gmmattey/linka-android`, worker `linka-ai-diagnosis-worker`.
 
 ---
+
+## v1.0.2 (versionCode 82) — 2026-08-30
+
+**Assist com diagnóstico remoto NDS V2, publicado na trilha de teste aberto.**
+
+- O Assist envia o contexto relatado e aceita respostas do diagnóstico remoto mesmo quando parte do contexto estruturado não está disponível.
+- IDs técnicos retornados pelo serviço permanecem internos; a pessoa usuária vê apenas a explicação e o próximo passo.
+- A chave remota `consumer_diagnostico_assist_nds_v2_enabled` permite retornar ao contrato V1 sem novo binário.
+
+**Publicação:** trilha beta (teste aberto) do Play Console, via `release.yml`.
 
 ## v0.30.1 (versionCode 67) — 2026-07-21
 

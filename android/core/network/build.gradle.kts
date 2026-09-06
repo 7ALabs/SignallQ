@@ -1,4 +1,6 @@
 ﻿plugins {
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.ktlint)
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
 }
@@ -24,14 +26,40 @@ kotlin {
     }
 }
 
+configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+    filter {
+        exclude("**/*.kts")
+    }
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom("$rootDir/config/detekt.yml")
+    baseline = file("$rootDir/config/detekt-baseline.xml")
+}
+
+ktlint {
+    version = "1.3.1"
+    android = true
+    ignoreFailures = false
+    reporters {
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.kotlinx.coroutines.android)
     // ScannerRedesWifi (movido de :featureWifi, issue #1157 Fase 1c) loga via Timber.
     implementation(libs.timber)
+    // DohFallbackProbe (GH#1811 Task 1) -- requisicao DoH (RFC 8484) contra provedor
+    // publico. Mesma lib e versao ja usada por feature/dns (BenchmarkDnsDoh); nao
+    // importa nada de feature/dns, so compartilha a dependencia.
+    implementation(libs.okhttp)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.okhttp.mockwebserver)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }

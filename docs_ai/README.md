@@ -4,7 +4,7 @@ description: "Ponto de entrada da documentação do app consumer Android e do ba
 type: "índice"
 status: "ativo"
 owner: "Claudete (processo) · Camilo (técnico)"
-last_updated: "2026-08-06"
+last_updated: "2026-08-15"
 ---
 
 # Documentação — SignallQ
@@ -32,7 +32,7 @@ last_updated: "2026-08-06"
 | **Backend Cloudflare** (5 Workers, D1) | `integrations/cloudflare/` neste repo | aqui |
 | SignallQ Admin | repo **`buildea-admin`** | no repo dele |
 | Site / PWA | repo **`signallq-web`** (Next 16 + PWA) | no repo dele |
-| SignallQ Pro | `android/pro/` neste repo, **on hold** | selada em [`pro-onhold/`](./pro-onhold/) |
+| SignallQ Pro | **descontinuado permanentemente** (ver [ADR-016](decisions/ADR-016-portfolio-buildea.md)) | removida — módulos, docs e skill saíram do repo nas Fases 4a-b do épico #1623 |
 | SignallQ Nethal | repo separado | fora deste repositório |
 
 O `signallq-admin-worker` é **deste** repositório, embora o painel Admin que o consome não seja.
@@ -43,6 +43,11 @@ O `signallq-admin-worker` é **deste** repositório, embora o painel Admin que o
 
 | Documento | Conteúdo |
 |---|---|
+| [`HISTORIA.md`](./HISTORIA.md) | Origem, propósito e princípios que explicam por que o SignallQ existe |
+| [`POSICIONAMENTO_PRODUTO.md`](./POSICIONAMENTO_PRODUTO.md) | Diretriz obrigatória de produto para Android e Web/PWA |
+| [`design-system/SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md`](./design-system/SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md) | Direção futura de identidade e experiência compartilhada (draft) |
+| [`functional/JORNADA_ANDROID_GUIADA_2_SPEC.md`](./functional/JORNADA_ANDROID_GUIADA_2_SPEC.md) | Arquitetura futura da jornada Android orientada por sintomas (draft) |
+| [`prototypes/open-design-signallq-android-v2/`](./prototypes/open-design-signallq-android-v2/) | Pacote para gerar e revisar o primeiro protótipo Android 2.0 no Open Design |
 | [`FUNCIONAL.md`](./FUNCIONAL.md) | O que o app faz — navegação, telas, funcionalidades, permissões |
 | [`TECNICO.md`](./TECNICO.md) | Como é construído — stack, build, Workers, persistência, analytics, segurança |
 | [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) | Cores, tipografia, espaçamento, componentes, tokens |
@@ -58,13 +63,14 @@ O `signallq-admin-worker` é **deste** repositório, embora o painel Admin que o
 | Pasta | Conteúdo |
 |---|---|
 | `decisions/` | ADRs (`ADR-001`…`ADR-013`) e decisões de negócio — **preservados, não regeneráveis** |
+| `foundation-linka/` | Material provisório do produto Linka (ADR-016) — migra para o repo `buildea-labs/linka` quando ele nascer |
 | `operations/` | Runbooks: release, deploy, hotfix, rollback, assinatura, custos |
 | `technical/` | Referências técnicas pontuais: schema da Admin API, mapas de campo de equipamento (Intelbras, Nokia, TP-Link), fluxo de IA, ping executor |
 | `functional/` | Specs funcionais que não migraram para `FUNCIONAL.md` |
 | `design-system/` | Decisões de design (tokens, paleta, topbar) — conteúdo vigente em `DESIGN_SYSTEM.md` |
+| `prototypes/` | Pacotes de prototipação e checklists; não são fonte canônica de produto ou implementação |
 | `legal/` | Política de privacidade e termos de uso — **instrumentos jurídicos, não editar sem revisão** |
 | `templates/` | Modelos para documento novo (técnico, funcional, ADR, runbook) |
-| `pro-onhold/` | Specs do Pro **congeladas** — não manter enquanto o produto estiver parado |
 | `_archive/` | Vazia por decisão — ver [`_archive/README.md`](./_archive/README.md) |
 
 Assets de marca vivem em `brand/` na raiz do repositório, não aqui.
@@ -86,6 +92,16 @@ Removidos da árvore; recuperáveis via git a partir do commit `10b2f05d` (instr
 | `design-system/_archive/` | 1 | Mesma regra do `_archive/` |
 
 **235 → 116 documentos.**
+
+## O que saiu em 2026-08-15
+
+Removidos da árvore; recuperáveis via git a partir do commit `0daa424a`.
+
+| Removido | Qtd | Motivo |
+|---|---:|---|
+| `pro-onhold/` | 7 | SignallQ Pro descontinuado permanentemente (ADR-016); Fase 4b do épico #1623 |
+
+**116 → 111 documentos.**
 
 ## Regra a partir de agora
 

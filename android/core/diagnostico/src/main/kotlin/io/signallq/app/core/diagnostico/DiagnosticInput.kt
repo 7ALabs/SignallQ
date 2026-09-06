@@ -1,10 +1,10 @@
 ﻿package io.signallq.app.core.diagnostico
 
+import io.signallq.app.core.diagnostico.topology.model.NatStatus
 import io.signallq.app.core.network.contracts.localdevice.SafeLocalDeviceContext
 import io.signallq.app.core.network.contracts.topologia.NivelConfianca
 import io.signallq.app.core.network.contracts.topologia.PapelTopologia
 import io.signallq.app.core.network.contracts.wifi.SegurancaWifi
-import io.signallq.app.core.diagnostico.topology.model.NatStatus
 
 data class WifiDiagnosticInput(
     val rssiDbm: Int?,
@@ -69,6 +69,13 @@ data class MobileDiagnosticInput(
     val rsrqDb: Int? = null,
     /** Signal-to-Interference-plus-Noise Ratio, em dB. Fonte: MovelSnapshot.sinrDb. */
     val sinrDb: Int? = null,
+    /** GH#1662 -- true quando este snapshot foi capturado SEM READ_PHONE_STATE
+     *  (MovelSnapshot.capturaReduzida). Nesse modo tecnologia/rsrp/rsrq/sinr sempre
+     *  vem null -- so operadora/mcc/mnc, que nao exigem a permissao. Consumidores que
+     *  dependem de sinal medido (ex.: bloco `mobile` do NDS, issue #1837) devem tratar
+     *  este flag como "sem permissao de telefonia" e omitir a evidencia, nao so os
+     *  campos nulos. */
+    val capturaReduzida: Boolean = false,
 )
 
 data class DnsDiagnosticInput(
@@ -83,6 +90,15 @@ data class DnsDiagnosticInput(
     val coerenciaNivelAlerta: String? = null,
     val coerenciaDivergenciasConsecutivas: Int? = null,
     val coerenciaTaxaDivergenciaPercentual: Double? = null,
+    /** Estado do Private DNS (Android), lido de `SnapshotRede.privateDnsAtivo`
+     *  (ADR-018, bloco `dns` expandido — issue #1840). */
+    val privateDnsActive: Boolean? = null,
+    /** Hostname do Private DNS configurado, lido de `SnapshotRede.privateDnsHostname`.
+     *  So preenchido pelo chamador quando o hostname bate com um provedor publico
+     *  conhecido (mesma tabela de deteccao usada em [currentDnsName]) -- hostname
+     *  customizado (resolver proprio do usuario) nunca chega aqui, por decisao de
+     *  privacidade da ADR-018 (pode ser identificador pessoal). */
+    val privateDnsHostname: String? = null,
 )
 
 data class HistoricalDiagnosticInput(
@@ -135,17 +151,32 @@ data class SpeedtestQualityInput(
     val severidadeBufferbloat: String? = null,
 )
 
+/** Contexto fechado informado pelo usuário para a avaliação remota. Não contém PII. */
+data class DiagnosticContext(
+    val reportedProblem: String? = null,
+    val objective: String? = null,
+    /**
+     * Recorte opcional e estruturado do objetivo, usado pelo contrato NDS v2 somente para
+     * priorizar achados que já sejam compatíveis. Ausente quando a pergunta do Assist não tem
+     * equivalente canônico no contrato remoto; nunca é uma causa declarada pela pessoa.
+     */
+    val subcategory: String? = null,
+    val symptoms: List<String> = emptyList(),
+    val answers: Map<String, String> = emptyMap(),
+)
+
 enum class ConnectionType { wifi, mobile, ethernet, desconectado, desconhecido }
 
 enum class RouterType { roteador, mesh, extensor, desconhecido }
 
 enum class BandaWifi { ghz24, ghz5, desconhecida }
 
-fun WifiDiagnosticInput.banda(): BandaWifi = when {
-    frequenciaMhz == null -> BandaWifi.desconhecida
-    frequenciaMhz < 3000 -> BandaWifi.ghz24
-    else -> BandaWifi.ghz5
-}
+fun WifiDiagnosticInput.banda(): BandaWifi =
+    when {
+        frequenciaMhz == null -> BandaWifi.desconhecida
+        frequenciaMhz < 3000 -> BandaWifi.ghz24
+        else -> BandaWifi.ghz5
+    }
 
 data class DiagnosticInput(
     val connectionType: ConnectionType = ConnectionType.desconhecido,
@@ -160,11 +191,14 @@ data class DiagnosticInput(
     val velocidadeContratadaMbps: Int? = null,
     /** Classificacao de NAT/CGNAT da rede atual. Fonte: TopologyDiagnostic/NatClassifier. */
     val natStatus: NatStatus? = null,
-    /** Device/console selecionado manualmente pelo usuario na arvore de perguntas
-     *  do Pulse (no "qual_jogo_device" — SIG-290), ex.: "playstation", "xbox", "pc",
-     *  "switch". Null quando o usuario nao respondeu essa pergunta (device preset
+    /** Device/console selecionado manualmente pelo usuario, ex.: "playstation", "xbox",
+     *  "pc", "switch". Null quando o usuario nao respondeu essa pergunta (device preset
      *  entao usa o fallback automatico: o proprio Android/iPhone rodando o app).
-     *  Fonte: [io.signallq.app.feature.diagnostico.pulse.DynamicQuestionEngine]. */
+     *  GH#1682 — a unica fonte que preenchia este campo era a arvore de perguntas do
+     *  motor SignallQ Pulse ("qual_jogo_device" — SIG-290), removida por ser codigo
+     *  morto sem consumidor de UI. Nenhum caminho de producao atual escreve este campo
+     *  (so testes) — o consumidor em RecomendacaoPraticaEngine fica inalcancavel ate
+     *  uma nova fonte ser decidida (ex.: selecao de device no Modo Gamer). */
     val deviceGamingSelecionado: String? = null,
     /** Resumo seguro (allowlisted) do equipamento de rede local (ONT/roteador)
      *  detectado, quando disponivel — GH#542, epic #547. Ja passou por
@@ -180,4 +214,6 @@ data class DiagnosticInput(
      *  que ainda não propagam (nenhum comportamento de classificação muda por causa
      *  deste campo; ele só viaja até [DiagnosticReport.executionId]). */
     val executionId: String = "",
+    /** Contexto estruturado da jornada guiada, associado à mesma execução. */
+    val context: DiagnosticContext? = null,
 )

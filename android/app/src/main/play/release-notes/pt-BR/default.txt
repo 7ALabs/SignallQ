@@ -1,1 +1,1 @@
-Modo Jogos totalmente novo: escolha seu jogo ou console e veja um resultado feito pra sua situação. Diagnóstico guiado por objetivo: responda o que está sentindo (Wi-Fi fraco, quedas, travamentos) e receba um resultado direto ao ponto. Central de Ferramentas reorganizada, mostrando só o que faz sentido pra sua conexão. Vários ajustes de estabilidade e visual nos bastidores.
+Melhoramos a estabilidade do Assist em diagnósticos mais completos, para que a análise da sua conexão tenha mais tempo para responder.

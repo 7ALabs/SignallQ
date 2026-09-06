@@ -3,6 +3,9 @@ name: estimativa-impacto
 description: Framework executável para avaliar tamanho, risco e milestone de uma issue antes do breakdown em tasks. Produz uma linha de decisão: tamanho + risco + milestone + recomendação.
 ---
 
+**Dono:** Claudete invoca ao decompor issue. **Modelo sugerido:** Sonnet — framework mecânico de
+pontuação, não precisa de raciocínio profundo.
+
 Avalie o impacto da issue abaixo antes de qualquer breakdown:
 
 $ARGUMENTS
@@ -35,7 +38,7 @@ Responda cada critério com SIM ou NÃO e some os pontos.
 | 9+ ou qualquer critério sensível | Sensível | Parar — escalar para o Luiz |
 
 **Critérios que tornam Sensível automaticamente (independente de pontos):**
-- Mudança de package (`io.veloo.app`)
+- Mudança de package (`io.signallq.app`)
 - Mudança de marca ou rebrand
 - Custo novo ou integração paga
 - Publicação em loja (Play Console)
@@ -50,7 +53,8 @@ Responda cada pergunta. Qualquer NÃO é um risco ativo — registre e decida an
 **Definição**
 - [ ] Tem critério de aceite claro e verificável?
   - NÃO → refinar antes de estimar. Não avançar.
-- [ ] Existe design aprovado pela Lia (se a issue tem impacto visual)?
+- [ ] Existe direção de design validada (se a issue tem impacto visual)? Rode `/design-check` no
+  componente/tela mais próxima como referência, ou peça a Claudete para validar.
   - NÃO → bloquear até ter. Consultar `/SignallQ-design` como referência enquanto aguarda.
 
 **Arquitetura**
@@ -126,7 +130,7 @@ IMPACTO: Pequena · Risco Baixo · Milestone recomendado: M1 · Recomendação: 
 
 ```
 IMPACTO: Média · Risco Médio · Milestone recomendado: M1 · Recomendação: refinar primeiro
-- Sem design aprovado: bloquear até Lia validar estados visuais.
+- Sem direção de design validada: bloquear até Claudete validar estados visuais (`/design-check`).
 - Afeta Room DAO: planejar migration antes de iniciar.
 ```
 

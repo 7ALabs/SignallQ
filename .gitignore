@@ -4,6 +4,8 @@
 .wrangler/
 .dart_tool/
 .impeccable/
+.DS_Store
+**/.DS_Store
 
 build/
 **/build/

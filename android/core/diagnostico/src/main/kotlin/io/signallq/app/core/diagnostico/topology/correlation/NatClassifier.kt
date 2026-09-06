@@ -3,7 +3,6 @@
 import io.signallq.app.core.diagnostico.topology.model.NatStatus
 
 object NatClassifier {
-
     fun isPrivate(ip: String): Boolean {
         // RFC1918: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
         val octets = parseIpv4(ip) ?: return false
@@ -21,7 +20,10 @@ object NatClassifier {
         return octets[0] == 100 && octets[1] in 64..127
     }
 
-    fun classify(wanIp: String?, publicIp: String?): NatStatus {
+    fun classify(
+        wanIp: String?,
+        publicIp: String?,
+    ): NatStatus {
         if (wanIp == null) return NatStatus.UNKNOWN
         return when {
             isCgnatRange(wanIp) -> NatStatus.CGNAT
@@ -36,6 +38,8 @@ object NatClassifier {
         if (parts.size != 4) return null
         return try {
             IntArray(4) { parts[it].toInt().also { v -> require(v in 0..255) } }
-        } catch (_: Exception) { null }
+        } catch (_: Exception) {
+            null
+        }
     }
 }

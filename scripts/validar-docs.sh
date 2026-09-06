@@ -31,9 +31,6 @@ done
 # Diretorios onde .md e permitido. Qualquer outro lugar exige decisao explicita.
 ARVORE_PERMITIDA='^(docs_ai/|\.claude/|\.github/|\.agents/|android/|integrations/|packages/|scripts/|brand/|docs/|_archive/|[A-Z_]+\.md$)'
 
-# pro-onhold/ esta congelado: nao se mantem documentacao de produto parado.
-ISENTOS='^docs_ai/pro-onhold/'
-
 CAMPOS_OBRIGATORIOS=(title description type status owner last_updated)
 
 falhas=0
@@ -89,7 +86,7 @@ esac
 # proprio — SKILL.md usa name/description exigidos pelo carregador de skills, e as
 # regras em .claude/rules/ nao sao documentacao de produto. Impor o mesmo cabecalho
 # ali quebraria ferramenta em troca de nada.
-ALVOS=$(echo "$ALVOS" | grep -E '^docs_ai/' | grep -vE "$ISENTOS" || true)
+ALVOS=$(echo "$ALVOS" | grep -E '^docs_ai/' || true)
 
 # ---------------------------------------------------------------------------
 # 4. Frontmatter obrigatorio

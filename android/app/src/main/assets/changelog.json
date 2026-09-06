@@ -22,7 +22,7 @@
   {
     "tipo": "novo",
     "titulo": "Teste de velocidade completo",
-    "descricao": "Mede download, upload, latência e jitter em tempo real via Cloudflare. Resultado em segundos, sem anúncios."
+    "descricao": "Mede download, upload, latência e jitter em tempo real via Cloudflare. Resultado em segundos, com transparência sobre anúncios."
   },
   {
     "tipo": "novo",

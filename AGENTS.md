@@ -7,15 +7,41 @@
 - **Classificação:** produto.
 - **Estado atual:** monorepo ativo com Android Kotlin/Compose em `android/`, Workers Cloudflare em `integrations/cloudflare/`, scripts e documentação viva em `docs_ai/`.
 
+## Posicionamento de produto obrigatório
+
+O SignallQ **não é mais um teste de velocidade**. É um produto de diagnóstico de conectividade que
+analisa a rede, explica o que está acontecendo em linguagem amigável e orienta a pessoa sobre o que
+fazer em seguida. O speed test é uma fonte de evidência do diagnóstico, não a categoria, a promessa
+principal nem o fim da jornada.
+
+Toda decisão de produto, design, conteúdo e implementação para Android ou Web/PWA deve seguir a
+fonte canônica [`docs_ai/POSICIONAMENTO_PRODUTO.md`](docs_ai/POSICIONAMENTO_PRODUTO.md). Em resumo:
+**entender → diagnosticar → resolver → confirmar**. Métricas técnicas continuam disponíveis, mas a
+experiência padrão deve priorizar conclusão compreensível, causa provável, nível de confiança e
+próximo passo concreto para quem não entende de redes.
+
+A direção visual e de experiência futura está formalizada no draft
+[`docs_ai/design-system/SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md`](docs_ai/design-system/SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md).
+Até a migração terminar, `docs_ai/DESIGN_SYSTEM.md` continua descrevendo o Android implementado; não
+tratar o draft 2.0 como código já entregue.
+
+A arquitetura futura da jornada Android está no draft
+[`docs_ai/functional/JORNADA_ANDROID_GUIADA_2_SPEC.md`](docs_ai/functional/JORNADA_ANDROID_GUIADA_2_SPEC.md).
+Ela orienta protótipos e planejamento; `docs_ai/FUNCIONAL.md` continua sendo a verdade do fluxo
+implementado até a migração.
+
 ## Escopo e exclusões
 
-- **Pertence ao repositório:** aplicativo Android SignallQ e SignallQ Pro, módulos Gradle, Workers Cloudflare, contratos e documentação técnica relacionados.
-- **Não pertence:** aplicação Buildea Admin, que pertence ao repositório `buildea-admin`; site e PWA, que pertencem ao repositório `signallq-web`; projetos pessoais.
+- **Pertence ao repositório:** aplicativo Android SignallQ, módulos Gradle, Workers Cloudflare, contratos e documentação técnica relacionados.
+- **Não pertence:** aplicação Buildea Admin (repo `buildea-admin`); site e PWA (repo `signallq-web`); produto Linka (repo `linka` a ser criado — exclusivo ecossistema Apple, ver [ADR-016](docs_ai/decisions/ADR-016-portfolio-buildea.md)); projetos pessoais.
+- **Plataformas do SignallQ:** exclusivamente **Android** (este repo) e **Web** (`signallq.com`, repo `signallq-web`). iOS/macOS/desktop/wearable/embedded ficam permanentemente fora. Ver [ADR-016](docs_ai/decisions/ADR-016-portfolio-buildea.md).
+- **Descontinuados permanentemente:** SignallQ Pro, SignallQ ISP, Nethal, quaisquer derivados. Módulos `:pro:*` do Gradle e documentação e skill de design do Pro foram removidos nas Fases 4a-b do épico [#1623](https://github.com/buildea-labs/signallq/issues/1623). Ver [ADR-016](docs_ai/decisions/ADR-016-portfolio-buildea.md).
+- **Modelo comercial:** freemium com propaganda. Núcleo (diagnóstico, IA, monitoramento) gratuito e sustentado por ads. Recursos pagos futuros possíveis sem quebrar a promessa de gratuidade do núcleo.
 
 ## Arquitetura comprovada
 
 - **Android:** Kotlin, Jetpack Compose, Material 3, MVVM, StateFlow, Hilt, Room, DataStore e WorkManager.
-- **Módulos principais:** `:app`; módulos `:core*`, `:feature*`, `:pro:*` e `:core:featureflags` declarados em `android/settings.gradle.kts`.
+- **Módulos principais:** `:app`; módulos `:core*`, `:feature*` e `:core:featureflags` declarados em `android/settings.gradle.kts`.
 - **Workers:** `ai-diagnosis-worker`, `game-latency-probe-worker`, `signallq-admin-worker`, `signallq-diagnostic-worker` e `signallq-privacy-worker`.
 - **Integrações:** Firebase Analytics e Crashlytics; a IA de diagnóstico usa `ai-diagnosis-worker`. Contratos e disponibilidade de integrações devem ser confirmados nos arquivos e ambientes aplicáveis.
 - **Identificadores técnicos:** preservar `io.signallq.app`; versões e SDKs são definidos em `android/gradle/libs.versions.toml`.
@@ -35,16 +61,17 @@
 - **Compatibilidade:** consultar `android/gradle/libs.versions.toml` e a configuração Gradle antes de alterar versões, SDKs ou identificadores.
 - **Publicação:** builds, releases Android, deploys de Workers, produção e mudanças irreversíveis exigem aprovação explícita do Luiz.
 
-## Agentes aplicáveis
+## Squad canônico ([ADR-016](docs_ai/decisions/ADR-016-portfolio-buildea.md))
 
-- **Líder funcional:** Claudete.
-- **Responsável técnico:** Camilo.
-- **Design:** Juliana.
-- **Growth:** Marcos.
-- **Operações e dados:** Gustavo.
-- **Revisão independente:** Caio.
-- **Fonte organizacional:** os únicos agentes corporativos aplicáveis são os definidos em `../ai-governance/agents/`.
-- **Personas legadas:** arquivadas em `docs/archive/ai-governance/legacy-agents/`; não participam da descoberta ou do roteamento ativo.
+Squad enxuto de 3 agentes com personalidade escrita, vivendo em `.claude/agents/` deste repo:
+
+- **[Claudete](.claude/agents/claudete.md)** — Head de Produto (PM). Prioriza, decompõe, decide critérios de aceite. Absorve design/growth via skills (`/design-check`, `/growth-check`).
+- **[Camilo](.claude/agents/camilo.md)** — Principal Engineer. Android + Web (via `signallq-web`) + Workers + Admin — dev técnico único.
+- **[Caio](.claude/agents/caio.md)** — Principal Reviewer. Único gate independente antes de merge. Não implementa o que revisa.
+
+**Legado:** `ai-governance/agents/` (7 agentes org) foi superseded por ADR-016. Design (Juliana), Growth (Marcos), Dados (Gustavo) viraram **skills invocáveis**, não agentes permanentes. Personas históricas (Felipe, Lia, Gema, Rhodolfo, Juninho, Marina, Claudio, Nina, Taisa, Marcelo, Otávio) não participam da descoberta ou do roteamento ativo — o git preserva.
+
+**Autonomia:** agentes decidem sozinhos questões técnicas dentro do domínio; Luiz decide produto, estratégia, marca, monetização, custo recorrente, aprovação material ([contrato op §3](../ai-governance/policies/agent-operating-contract.md)). Decisões triviais de produto ficam com Claudete.
 
 ## Skills locais e espelhos
 
@@ -56,13 +83,27 @@
 
 - O escopo autorizado está atendido, os comandos e validações aplicáveis foram executados com evidência, documentação afetada está atualizada e Caio revisou quando houver código, segurança, produção ou risco relevante.
 
+## Regras operacionais obrigatórias
+
+Valem para qualquer ferramenta e qualquer sessão neste repositório, não apenas para as que carregam
+`.claude/` automaticamente. Leia antes de alterar código ou documentação; o diretório é caminho de
+armazenamento, não condição de vigência.
+
+- [Higiene e padronização do repositório](.claude/rules/higiene-e-padronizacao-repositorio.md) — idioma, nomes, limites de tamanho, correção oportunista, remoção segura, validação obrigatória e formato da entrega.
+- [Documentação viva](.claude/rules/politica-documentacao-viva.md) — metadados, índices, sincronia com o código e o que o `docs-ci` reprova.
+
+As regras comuns a todos os repositórios estão em `../ai-governance/policies/` e têm precedência
+sobre instrução local em segurança, autorização e governança.
+
 ## Fontes complementares
 
+- `docs_ai/POSICIONAMENTO_PRODUTO.md`
+- `docs_ai/design-system/SIGNALLQ_DESIGN_SYSTEM_2_SPEC.md`
+- `docs_ai/functional/JORNADA_ANDROID_GUIADA_2_SPEC.md`
 - `docs_ai/README.md`
 - `android/settings.gradle.kts`
 - `android/gradle/libs.versions.toml`
 - `docs_ai/CONTRATOS/openapi/`
-- `.claude/rules/higiene-e-padronizacao-repositorio.md`
 - `.claude/skills/SignallQ-design/`
 - `scripts/sync-skills-mirrors.sh`
 - `../ai-governance/policies/agent-operating-contract.md`

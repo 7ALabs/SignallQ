@@ -4,7 +4,7 @@ description: "Infraestrutura de rede compartilhada: monitoramento de conexão, s
 type: "técnico"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-08-06"
+last_updated: "2026-08-15"
 ---
 
 # `:coreNetwork`
@@ -52,29 +52,28 @@ Nenhuma dependência de outro módulo do monorepo. Nenhuma biblioteca HTTP (sem 
 | `:app` | `implementation` |
 | `:core:diagnostico` | `implementation` |
 | `:featureDevices`, `:featureDiagnostico`, `:featureFibra`, `:featureSpeedtest`, `:featureWifi` | `implementation` |
-| `:pro:app`, `:pro:feature:medicao-diagnostico` | `implementation` |
 
-É o módulo core mais consumido do repositório (9 consumidores diretos).
+É o módulo core mais consumido do repositório (7 consumidores diretos).
 
 ## Componentes principais
 
 | Arquivo/classe | Responsabilidade |
 |---|---|
-| `src/main/kotlin/io/veloo/app/kotlin/core/network/MonitorRede.kt` | contrato do monitor de conexão (`snapshotFlow`, `iniciar`, `encerrar`) |
-| `src/main/kotlin/io/veloo/app/kotlin/core/network/MonitorRedeAndroid.kt` (262 linhas) | implementação sobre `ConnectivityManager`/`WifiManager`/`LocationManager` |
-| `src/main/kotlin/io/veloo/app/kotlin/core/network/CoreNetworkModulo.kt` | fábrica manual (`criarMonitorRede`, `criarNetworkCapabilitiesProvider`) |
-| `src/main/kotlin/io/veloo/app/kotlin/core/network/AnalyticsHelper.kt` (157 linhas) | contrato do funil de 7 eventos (SIG-155) + `NoOpAnalyticsHelper` |
-| `src/main/kotlin/io/veloo/app/kotlin/core/network/AnalyticsTracker.kt` | contrato de eventos GA4 genéricos (SIG-134): `feature_used`, `screen_view`, `app_session_start/end`, `feature_crash`, `battery_snapshot`, `feature_blocked_remote` |
-| `src/main/kotlin/io/veloo/app/kotlin/core/network/GatewayLatencyMeasurer.kt` | RTT do gateway por TCP connect (sem ICMP/root), mediana de 3 amostras |
+| `src/main/kotlin/io/signallq/app/core/network/MonitorRede.kt` | contrato do monitor de conexão (`snapshotFlow`, `iniciar`, `encerrar`) |
+| `src/main/kotlin/io/signallq/app/core/network/MonitorRedeAndroid.kt` (262 linhas) | implementação sobre `ConnectivityManager`/`WifiManager`/`LocationManager` |
+| `src/main/kotlin/io/signallq/app/core/network/CoreNetworkModulo.kt` | fábrica manual (`criarMonitorRede`, `criarNetworkCapabilitiesProvider`) |
+| `src/main/kotlin/io/signallq/app/core/network/AnalyticsHelper.kt` (157 linhas) | contrato do funil de 7 eventos (SIG-155) + `NoOpAnalyticsHelper` |
+| `src/main/kotlin/io/signallq/app/core/network/AnalyticsTracker.kt` | contrato de eventos GA4 genéricos (SIG-134): `feature_used`, `screen_view`, `app_session_start/end`, `feature_crash`, `battery_snapshot`, `feature_blocked_remote` |
+| `src/main/kotlin/io/signallq/app/core/network/GatewayLatencyMeasurer.kt` | RTT do gateway por TCP connect (sem ICMP/root), mediana de 3 amostras |
 | `src/main/kotlin/io/signallq/app/core/network/connectivity/ConnectivityDiagnosisEngine.kt` (180 linhas) | motor puro que encadeia as sondagens e produz `ConnectivityDiagnosis` |
 | `src/main/kotlin/io/signallq/app/core/network/connectivity/ConnectivityDiagnosisRunner.kt` (167 linhas) | ponto de entrada Android; `ConnectivityDiagnosisSource` permite fake em teste JVM |
 | `src/main/kotlin/io/signallq/app/core/network/connectivity/{Gateway,Dns,ExternalIp,Hostname}ReachabilityProbe.kt` | as quatro sondagens concretas |
 | `src/main/kotlin/io/signallq/app/core/network/connectivity/ConnectivityProbeBinding.kt` + `AndroidNetworkProbeBinding.kt` | amarram socket/resolução/HTTP à `Network` sob análise (testável por fake) |
 | `src/main/kotlin/io/signallq/app/core/network/wifi/ScannerRedesWifi.kt` (142 linhas) | scan de redes vizinhas via `WifiManager` + `BroadcastReceiver` |
-| `src/main/kotlin/io/veloo/app/core/network/topologia/engine/TopologiaRedeEngine.kt` (272 linhas) | motor único de classificação de topologia (issues #975/#979) |
-| `src/main/kotlin/io/veloo/app/core/network/topologia/oui/OuiCatalog.kt` (350 linhas) | catálogo OUI único, unificação de `OuiDatabase` + `MeshOuiDatabase` |
-| `src/main/kotlin/io/veloo/app/core/network/contracts/gateway/GatewayConnectionService.kt` | contrato de conexão ao gateway — implementação real ainda pendente (#547); BUG#1511 proíbe mock que devolva sucesso |
-| `src/main/kotlin/io/veloo/app/core/network/contracts/localdevice/LocalDeviceSafeFilter.kt` (121 linhas) | allowlist de campos seguros do dispositivo local (GH#541) |
+| `src/main/kotlin/io/signallq/app/core/network/topologia/engine/TopologiaRedeEngine.kt` (272 linhas) | motor único de classificação de topologia (issues #975/#979) |
+| `src/main/kotlin/io/signallq/app/core/network/topologia/oui/OuiCatalog.kt` (350 linhas) | catálogo OUI único, unificação de `OuiDatabase` + `MeshOuiDatabase` |
+| `src/main/kotlin/io/signallq/app/core/network/contracts/gateway/GatewayConnectionService.kt` | contrato de conexão ao gateway — implementação real ainda pendente (#547); BUG#1511 proíbe mock que devolva sucesso |
+| `src/main/kotlin/io/signallq/app/core/network/contracts/localdevice/LocalDeviceSafeFilter.kt` (121 linhas) | allowlist de campos seguros do dispositivo local (GH#541) |
 
 ### Contrato `AnalyticsHelper`
 
@@ -82,8 +81,8 @@ Interface do funil principal de engajamento (SIG-155), implementada por `Firebas
 
 ## Riscos e dívidas
 
-- **Caminho físico legado `io/veloo/`:** 67 dos 92 arquivos `.kt` do módulo ainda estão sob `src/*/kotlin/io/veloo/...`, embora o `package` declarado já seja `io.signallq...`. Pasta e pacote divergem — renomeação pendente.
-- **Duas raízes de pacote convivendo:** `io.signallq.app.core.network.*` (contratos novos de conectividade/Wi-Fi) e o mesmo pacote alcançado por arquivos em `io/veloo/app/kotlin/...` e `io/veloo/app/core/...`. Três layouts físicos para uma árvore lógica só.
+- **Path físico alinhado ao package `io.signallq.app.*`** — migração de `io/signallq/app/kotlin/` concluída em 2026-08-15 (#1645).
+- **Duas raízes de pacote convivendo:** `io.signallq.app.core.network.*` (contratos novos de conectividade/Wi-Fi) e o mesmo pacote alcançado por arquivos em `io/signallq/app/...` e `io/signallq/app/core/...`. Três layouts físicos para uma árvore lógica só.
 - **Módulo grande:** 74 arquivos e 3951 linhas em `src/main` — é o maior dos seis módulos `core` flat legados. Nenhum arquivo passa de 800 linhas (maior: `OuiCatalog.kt`, 350 linhas).
 - **`GatewayConnectionService` sem implementação real** (issue #547 aberta); risco de reintrodução do BUG#1511 se alguém injetar um mock de sucesso em produção.
 - Sem testes instrumentados próprios (`androidTest` vazio) apesar das dependências declaradas; a cobertura é toda JVM (18 arquivos de teste).

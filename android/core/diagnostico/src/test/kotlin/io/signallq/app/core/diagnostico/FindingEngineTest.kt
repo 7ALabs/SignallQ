@@ -12,7 +12,6 @@ import org.junit.Test
  * (GW-01/02) estão em [FindingEngineGatewayTest].
  */
 class FindingEngineTest {
-
     private fun resultado(
         id: String,
         status: DiagnosticStatus,
@@ -33,10 +32,11 @@ class FindingEngineTest {
 
     @Test
     fun `sem nenhum achado, principal e DECISAO-04 (tudo ok)`() {
-        val r = FindingEngine.analisar(
-            internetResultados = emptyList(),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = emptyList(),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+            )
 
         assertEquals("DECISAO-04", r.principal.id)
         assertEquals(DiagnosticStatus.ok, r.principal.status)
@@ -49,14 +49,16 @@ class FindingEngineTest {
 
     @Test
     fun `fibra critica e DNS atencao sao causas independentes - fibra e principal, DNS e secundario`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(
-                resultado("IN-CRITICO", DiagnosticStatus.critical, "internet"),
-                resultado("DNS-LENTO", DiagnosticStatus.attention, "dns"),
-            ),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            fibraResultados = listOf(resultado("FIB-CRITICO", DiagnosticStatus.critical, "fibra")),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados =
+                    listOf(
+                        resultado("IN-CRITICO", DiagnosticStatus.critical, "internet"),
+                        resultado("DNS-LENTO", DiagnosticStatus.attention, "dns"),
+                    ),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                fibraResultados = listOf(resultado("FIB-CRITICO", DiagnosticStatus.critical, "fibra")),
+            )
 
         assertEquals("DECISAO-00", r.principal.id)
         assertTrue(
@@ -67,13 +69,15 @@ class FindingEngineTest {
 
     @Test
     fun `internet critica e wifi-canal atencao sem gateway - internet e principal, canal e secundario`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(
-                resultado("IN-CRITICO", DiagnosticStatus.critical, "internet"),
-                resultado("WCAN-01", DiagnosticStatus.attention, "wifi-canal"),
-            ),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados =
+                    listOf(
+                        resultado("IN-CRITICO", DiagnosticStatus.critical, "internet"),
+                        resultado("WCAN-01", DiagnosticStatus.attention, "wifi-canal"),
+                    ),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+            )
 
         assertEquals("DECISAO-02", r.principal.id)
         assertTrue(
@@ -90,13 +94,15 @@ class FindingEngineTest {
     fun `desempate - DNS critico isolado vence sobre wifi canal atencao (maior severidade)`() {
         // DNS crítico (severidade 4 * confianca 0.85 = 3.4) vs Wi-Fi canal atencao
         // (severidade 2 * confianca 0.55 = 1.1). DNS deve vencer com folga.
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(
-                resultado("DNS-RUIM", DiagnosticStatus.critical, "dns"),
-                resultado("WCAN-01", DiagnosticStatus.attention, "wifi-canal"),
-            ),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados =
+                    listOf(
+                        resultado("DNS-RUIM", DiagnosticStatus.critical, "dns"),
+                        resultado("WCAN-01", DiagnosticStatus.attention, "wifi-canal"),
+                    ),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+            )
 
         assertEquals("DECISAO-DNS-01", r.principal.id)
     }
@@ -105,14 +111,16 @@ class FindingEngineTest {
     fun `desempate - GW-01 (confianca 0_9) vence sobre DECISAO-02 (confianca 0_8) mesma severidade critical`() {
         // Ambas critical (severidade 4). GW-01 score = 4*0.9 = 3.6, DECISAO-02 = 4*0.8 = 3.2.
         // GW-01 deve vencer por ter confiança maior (correlaciona duas fontes).
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(
-                resultado("IN-LATENCIA", DiagnosticStatus.critical, "internet"),
-            ),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            rttGatewayMs = 5,
-            latenciaInternetMs = 250.0,
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados =
+                    listOf(
+                        resultado("IN-LATENCIA", DiagnosticStatus.critical, "internet"),
+                    ),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                rttGatewayMs = 5,
+                latenciaInternetMs = 250.0,
+            )
 
         assertEquals("DECISAO-GW-01", r.principal.id)
         assertTrue(
@@ -127,14 +135,16 @@ class FindingEngineTest {
 
     @Test
     fun `DNS critico suprimido por fibra critica vira hipotese descartada, nao desaparece`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(
-                resultado("IN-CRITICO", DiagnosticStatus.critical, "internet"),
-                resultado("DNS-RUIM", DiagnosticStatus.critical, "dns"),
-            ),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            fibraResultados = listOf(resultado("FIB-CRITICO", DiagnosticStatus.critical, "fibra")),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados =
+                    listOf(
+                        resultado("IN-CRITICO", DiagnosticStatus.critical, "internet"),
+                        resultado("DNS-RUIM", DiagnosticStatus.critical, "dns"),
+                    ),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                fibraResultados = listOf(resultado("FIB-CRITICO", DiagnosticStatus.critical, "fibra")),
+            )
 
         assertEquals("DECISAO-00", r.principal.id)
         assertTrue(
@@ -154,12 +164,14 @@ class FindingEngineTest {
 
     @Test
     fun `internet critica com wifi ruim - DECISAO-02 vira hipotese descartada e DECISAO-01 e o principal`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(
-                resultado("IN-CRITICO", DiagnosticStatus.critical, "internet"),
-            ),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = false),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados =
+                    listOf(
+                        resultado("IN-CRITICO", DiagnosticStatus.critical, "internet"),
+                    ),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = false),
+            )
 
         assertEquals("DECISAO-01", r.principal.id)
         assertTrue(
@@ -174,11 +186,12 @@ class FindingEngineTest {
 
     @Test
     fun `DECISAO-02 em wifi fala de Wi-Fi e roteador`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            connectionType = ConnectionType.wifi,
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                connectionType = ConnectionType.wifi,
+            )
 
         assertEquals("DECISAO-02", r.principal.id)
         assertTrue(r.principal.mensagemUsuario.contains("Wi-Fi"))
@@ -187,11 +200,12 @@ class FindingEngineTest {
 
     @Test
     fun `DECISAO-02 em rede movel nao fala de Wi-Fi nem roteador`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            connectionType = ConnectionType.mobile,
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                connectionType = ConnectionType.mobile,
+            )
 
         assertEquals("DECISAO-02", r.principal.id)
         assertTrue(
@@ -208,11 +222,12 @@ class FindingEngineTest {
 
     @Test
     fun `DECISAO-02b em rede movel nao fala de Wi-Fi nem roteador`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(resultado("IN-ATENCAO", DiagnosticStatus.attention, "internet")),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            connectionType = ConnectionType.mobile,
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = listOf(resultado("IN-ATENCAO", DiagnosticStatus.attention, "internet")),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                connectionType = ConnectionType.mobile,
+            )
 
         assertEquals("DECISAO-02b", r.principal.id)
         assertTrue(!r.principal.mensagemUsuario.contains("Wi-Fi"))
@@ -225,11 +240,12 @@ class FindingEngineTest {
 
     @Test
     fun `dados ausentes reporta rttGateway e fibra quando nao informados`() {
-        val r = FindingEngine.analisar(
-            internetResultados = emptyList(),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            rttGatewayMs = null,
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = emptyList(),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                rttGatewayMs = null,
+            )
 
         assertTrue(r.dadosAusentes.contains("rttGateway"))
         assertTrue(r.dadosAusentes.contains("fibra"))
@@ -237,11 +253,12 @@ class FindingEngineTest {
 
     @Test
     fun `dados ausentes nao reporta rttGateway quando informado`() {
-        val r = FindingEngine.analisar(
-            internetResultados = emptyList(),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            rttGatewayMs = 20,
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = emptyList(),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                rttGatewayMs = 20,
+            )
 
         assertTrue(!r.dadosAusentes.contains("rttGateway"))
     }
@@ -252,11 +269,12 @@ class FindingEngineTest {
 
     @Test
     fun `fibra critica com internet ruim continua produzindo DECISAO-00`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            fibraResultados = listOf(resultado("FIB-CRITICO", DiagnosticStatus.critical, "fibra")),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                fibraResultados = listOf(resultado("FIB-CRITICO", DiagnosticStatus.critical, "fibra")),
+            )
 
         assertEquals("DECISAO-00", r.principal.id)
         assertEquals(DiagnosticStatus.critical, r.principal.status)
@@ -270,11 +288,12 @@ class FindingEngineTest {
 
     @Test
     fun `DECISAO-00b (atencao na fibra) carrega categoriaOrigem fibra`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(resultado("IN-ATENCAO", DiagnosticStatus.attention, "internet")),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            fibraResultados = listOf(resultado("FIB-ATENCAO", DiagnosticStatus.attention, "fibra")),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = listOf(resultado("IN-ATENCAO", DiagnosticStatus.attention, "internet")),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                fibraResultados = listOf(resultado("FIB-ATENCAO", DiagnosticStatus.attention, "fibra")),
+            )
 
         assertEquals("DECISAO-00b", r.principal.id)
         assertEquals("fibra", r.principal.categoriaOrigem)
@@ -282,11 +301,12 @@ class FindingEngineTest {
 
     @Test
     fun `DECISAO-00 (fibra critica) carrega categoriaOrigem fibra`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            fibraResultados = listOf(resultado("FIB-CRITICO", DiagnosticStatus.critical, "fibra")),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                fibraResultados = listOf(resultado("FIB-CRITICO", DiagnosticStatus.critical, "fibra")),
+            )
 
         assertEquals("DECISAO-00", r.principal.id)
         assertEquals("fibra", r.principal.categoriaOrigem)
@@ -294,12 +314,13 @@ class FindingEngineTest {
 
     @Test
     fun `DECISAO-GW-01 (problema na operadora) carrega categoriaOrigem isp`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(resultado("IN-LATENCIA", DiagnosticStatus.critical, "internet")),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-            rttGatewayMs = 5,
-            latenciaInternetMs = 250.0,
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = listOf(resultado("IN-LATENCIA", DiagnosticStatus.critical, "internet")),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+                rttGatewayMs = 5,
+                latenciaInternetMs = 250.0,
+            )
 
         assertEquals("DECISAO-GW-01", r.principal.id)
         assertEquals("isp", r.principal.categoriaOrigem)
@@ -307,10 +328,11 @@ class FindingEngineTest {
 
     @Test
     fun `DECISAO-DNS-01 (dns critico isolado) carrega categoriaOrigem dns, nao isp nem fibra`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(resultado("DNS-RUIM", DiagnosticStatus.critical, "dns")),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = listOf(resultado("DNS-RUIM", DiagnosticStatus.critical, "dns")),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+            )
 
         assertEquals("DECISAO-DNS-01", r.principal.id)
         assertEquals("dns", r.principal.categoriaOrigem)
@@ -319,10 +341,11 @@ class FindingEngineTest {
 
     @Test
     fun `DECISAO-01 (interferencia wifi) carrega categoriaOrigem wifi, nao isp nem fibra`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = false),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = false),
+            )
 
         assertEquals("DECISAO-01", r.principal.id)
         assertEquals("wifi", r.principal.categoriaOrigem)
@@ -330,10 +353,11 @@ class FindingEngineTest {
 
     @Test
     fun `DECISAO-02 (problema generico na internet) tem categoriaOrigem null - causa ambigua entre roteador e provedor`() {
-        val r = FindingEngine.analisar(
-            internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+            )
 
         assertEquals("DECISAO-02", r.principal.id)
         assertEquals(null, r.principal.categoriaOrigem)
@@ -341,10 +365,11 @@ class FindingEngineTest {
 
     @Test
     fun `DECISAO-04 (tudo ok) tem categoriaOrigem null`() {
-        val r = FindingEngine.analisar(
-            internetResultados = emptyList(),
-            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
-        )
+        val r =
+            FindingEngine.analisar(
+                internetResultados = emptyList(),
+                wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+            )
 
         assertEquals("DECISAO-04", r.principal.id)
         assertEquals(null, r.principal.categoriaOrigem)
