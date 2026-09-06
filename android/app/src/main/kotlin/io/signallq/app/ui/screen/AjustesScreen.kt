@@ -184,8 +184,61 @@ fun AjustesScreen(
             // à intenção de cuidar da conexão antes das preferências secundárias.
             item { Spacer(Modifier.height(LkSpacing.md)) }
             item { SectionHeader("Sua conexão", c) }
+
+            // GH#1249 item C -- divergência entre provedor salvo e detectado nesta rede. Só
+            // aparece quando o usuário já confirmou explicitamente o valor salvo (senão o
+            // LaunchedEffect abaixo já sobrescreve silenciosamente, sem perguntar nada).
+            val divergenciaConfirmada =
+                minhaConexao.divergencia as? ResultadoDivergenciaPerfilConexao.DivergenciaConfirmadaPeloUsuario
+            if (divergenciaConfirmada != null) {
+                item {
+                    MinhaConexaoDivergenciaBanner(
+                        c = c,
+                        provedorDetectado = divergenciaConfirmada.detectado,
+                        onUsarDetectado = {
+                            onSalvarConnectionProfile(
+                                divergenciaConfirmada.detectado,
+                                minhaConexao.contractedDownloadMbps,
+                                minhaConexao.contractedUploadMbps,
+                                minhaConexao.city,
+                                minhaConexao.state,
+                                true,
+                            )
+                        },
+                    )
+                }
+                item { Spacer(Modifier.height(8.dp)) }
+            }
+            // GH#1249 item C -- divergência sem confirmação prévia do usuário: aplica o valor
+            // detectado silenciosamente, sem sheet/banner nenhum.
+            val atualizavelSilenciosamente =
+                minhaConexao.divergencia as? ResultadoDivergenciaPerfilConexao.AtualizavelSilenciosamente
+            if (atualizavelSilenciosamente != null) {
+                item {
+                    LaunchedEffect(atualizavelSilenciosamente) {
+                        onSalvarConnectionProfile(
+                            atualizavelSilenciosamente.detectado,
+                            minhaConexao.contractedDownloadMbps,
+                            minhaConexao.contractedUploadMbps,
+                            minhaConexao.city,
+                            minhaConexao.state,
+                            false,
+                        )
+                    }
+                }
+            }
+
             item {
                 SettingsSectionCard(c = c) {
+                    ValueSettingRow(
+                        c = c,
+                        icon = Icons.Outlined.Business,
+                        label = "Provedor",
+                        subtitle = "Operadora, plano e cidade",
+                        value = null,
+                        onClick = { showMinhaConexaoSheet = true },
+                    )
+                    HorizontalDivider(color = c.border, thickness = 1.dp)
                     ValueSettingRow(
                         c = c,
                         icon = Icons.Outlined.Router,
@@ -269,96 +322,6 @@ fun AjustesScreen(
                     )
                 }
             }
-
-            item { SectionHeader(stringResource(R.string.ajustes_minha_conexao), c) }
-            // GH#1249 item C -- divergência entre provedor salvo e detectado nesta rede. Só
-            // aparece quando o usuário já confirmou explicitamente o valor salvo (senão o
-            // LaunchedEffect abaixo já sobrescreve silenciosamente, sem perguntar nada).
-            val divergenciaConfirmada =
-                minhaConexao.divergencia as? ResultadoDivergenciaPerfilConexao.DivergenciaConfirmadaPeloUsuario
-            if (divergenciaConfirmada != null) {
-                item {
-                    MinhaConexaoDivergenciaBanner(
-                        c = c,
-                        provedorDetectado = divergenciaConfirmada.detectado,
-                        onUsarDetectado = {
-                            onSalvarConnectionProfile(
-                                divergenciaConfirmada.detectado,
-                                minhaConexao.contractedDownloadMbps,
-                                minhaConexao.contractedUploadMbps,
-                                minhaConexao.city,
-                                minhaConexao.state,
-                                true,
-                            )
-                        },
-                    )
-                }
-                item { Spacer(Modifier.height(8.dp)) }
-            }
-            // GH#1249 item C -- divergência sem confirmação prévia do usuário: aplica o valor
-            // detectado silenciosamente, sem sheet/banner nenhum.
-            val atualizavelSilenciosamente =
-                minhaConexao.divergencia as? ResultadoDivergenciaPerfilConexao.AtualizavelSilenciosamente
-            if (atualizavelSilenciosamente != null) {
-                item {
-                    LaunchedEffect(atualizavelSilenciosamente) {
-                        onSalvarConnectionProfile(
-                            atualizavelSilenciosamente.detectado,
-                            minhaConexao.contractedDownloadMbps,
-                            minhaConexao.contractedUploadMbps,
-                            minhaConexao.city,
-                            minhaConexao.state,
-                            false,
-                        )
-                    }
-                }
-            }
-            item {
-                SettingsSectionCard(c = c) {
-                    ValueSettingRow(
-                        c = c,
-                        icon = Icons.Outlined.Business,
-                        label = "Operadora",
-                        value = minhaConexao.providerFixed?.ifBlank { null } ?: "Adicionar",
-                        isPlaceholder = minhaConexao.providerFixed.isNullOrBlank(),
-                        onClick = { showMinhaConexaoSheet = true },
-                    )
-                    HorizontalDivider(color = c.border, thickness = 1.dp)
-                    ValueSettingRow(
-                        c = c,
-                        icon = Icons.Outlined.Speed,
-                        label = "Plano contratado",
-                        value =
-                            when {
-                                minhaConexao.contractedDownloadMbps != null && minhaConexao.contractedUploadMbps != null ->
-                                    "${minhaConexao.contractedDownloadMbps} ↓ / ${minhaConexao.contractedUploadMbps} ↑ Mbps"
-                                planoInternet.isNotBlank() -> planoInternet
-                                else -> "Adicionar"
-                            },
-                        isPlaceholder =
-                            minhaConexao.contractedDownloadMbps == null &&
-                                minhaConexao.contractedUploadMbps == null &&
-                                planoInternet.isBlank(),
-                        onClick = { showMinhaConexaoSheet = true },
-                    )
-                    HorizontalDivider(color = c.border, thickness = 1.dp)
-                    ValueSettingRow(
-                        c = c,
-                        icon = Icons.Outlined.Router,
-                        label = "Cidade",
-                        value =
-                            when {
-                                !minhaConexao.city.isNullOrBlank() && !minhaConexao.state.isNullOrBlank() ->
-                                    "${minhaConexao.city}, ${minhaConexao.state}"
-                                regiao.isNotBlank() -> regiao
-                                else -> "Adicionar"
-                            },
-                        isPlaceholder = minhaConexao.city.isNullOrBlank() && minhaConexao.state.isNullOrBlank() && regiao.isBlank(),
-                        onClick = { showMinhaConexaoSheet = true },
-                    )
-                }
-            }
-            item { Spacer(Modifier.height(LkSpacing.base)) }
 
             item { SectionHeader("Aparência", c) }
             item {
