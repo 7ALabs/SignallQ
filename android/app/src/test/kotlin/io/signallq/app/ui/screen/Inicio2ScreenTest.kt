@@ -41,7 +41,7 @@ class Inicio2ScreenTest {
                     onAbrirPerfil = {},
                     connectionTrail =
                         Inicio2ConnectionTrailState(
-                            nodes = listOf(Inicio2TrailNode("Internet", "Conectada")),
+                            nodes = listOf(Inicio2TrailNode("Internet", "Internet", "Conectada")),
                             supportingMessage = null,
                         ),
                 )

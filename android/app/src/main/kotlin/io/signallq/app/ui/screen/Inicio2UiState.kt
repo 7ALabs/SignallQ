@@ -1,5 +1,6 @@
 package io.signallq.app.ui.screen
 
+import io.signallq.app.core.diagnostico.MonitorConexaoLeveUseCase
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.feature.diagnostico.EstadoDiagnostico
@@ -37,9 +38,7 @@ internal object Inicio2UiStateMapper {
         estadoSpeedtest: EstadoExecucaoSpeedtest,
         diagnostico: SnapshotDiagnostico,
         medicao: ResolvedHomeMeasurement?,
-        monitorConexaoLeve: io.signallq.app.core.diagnostico.MonitorConexaoLeveUseCase =
-            io.signallq.app.core.diagnostico
-                .MonitorConexaoLeveUseCase(),
+        monitorConexaoLeve: MonitorConexaoLeveUseCase = MonitorConexaoLeveUseCase(),
     ): Inicio2UiState {
         val relatorio = diagnostico.relatorio
         val conexao =

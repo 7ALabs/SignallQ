@@ -279,10 +279,10 @@ private fun Inicio2ScreenPreview() {
                 Inicio2ConnectionTrailState(
                     nodes =
                         listOf(
-                            Inicio2TrailNode("Internet", "Conectada"),
-                            Inicio2TrailNode("Equipamento", "Roteador ou modem"),
-                            Inicio2TrailNode("Wi-Fi", "Casa"),
-                            Inicio2TrailNode("Este aparelho", "Conectado por Wi-Fi"),
+                            Inicio2TrailNode("Internet", "Internet", "Conectada"),
+                            Inicio2TrailNode("Equipamento", "Equipamento principal", "Roteador ou modem"),
+                            Inicio2TrailNode("Wi-Fi", "Casa", "Casa"),
+                            Inicio2TrailNode("Este aparelho", "Este aparelho", "Conectado por Wi-Fi"),
                         ),
                     supportingMessage = null,
                 ),
@@ -302,8 +302,8 @@ private fun Inicio2ScreenDarkPreview() {
                 Inicio2ConnectionTrailState(
                     nodes =
                         listOf(
-                            Inicio2TrailNode("Internet", "Sem acesso"),
-                            Inicio2TrailNode("Este aparelho", "Sem conexão ativa"),
+                            Inicio2TrailNode("Internet", "Internet", "Sem acesso"),
+                            Inicio2TrailNode("Este aparelho", "Este aparelho", "Sem conexão ativa"),
                         ),
                     supportingMessage = "Conecte-se a uma rede para completar a trilha.",
                 ),
