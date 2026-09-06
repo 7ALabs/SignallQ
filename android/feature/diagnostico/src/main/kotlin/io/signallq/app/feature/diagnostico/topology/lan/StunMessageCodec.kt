@@ -42,7 +42,11 @@ object StunMessageCodec {
      * não bate com o request original (proteção contra resposta de request antigo ou
      * spoof), ou nenhum atributo de endereço IPv4 suportado foi encontrado.
      */
-    fun parseBindingResponse(bytes: ByteArray, length: Int, transactionId: ByteArray): StunBindingResult? {
+    fun parseBindingResponse(
+        bytes: ByteArray,
+        length: Int,
+        transactionId: ByteArray,
+    ): StunBindingResult? {
         if (length < HEADER_SIZE) return null
 
         val tipo = readUShort(bytes, 0)
@@ -85,7 +89,11 @@ object StunMessageCodec {
     }
 
     /** RFC 5389 §15.2 — porta e endereço vêm com XOR contra o magic cookie. */
-    private fun parseXorMappedAddress(bytes: ByteArray, inicio: Int, tamanho: Int): StunBindingResult? {
+    private fun parseXorMappedAddress(
+        bytes: ByteArray,
+        inicio: Int,
+        tamanho: Int,
+    ): StunBindingResult? {
         if (tamanho < 8) return null
         val family = bytes[inicio + 1].toInt() and 0xFF
         if (family != FAMILY_IPV4) return null // IPv6 fora de escopo
@@ -103,7 +111,11 @@ object StunMessageCodec {
     }
 
     /** MAPPED-ADDRESS legado (RFC 3489) — sem XOR, formato de fallback. */
-    private fun parseMappedAddress(bytes: ByteArray, inicio: Int, tamanho: Int): StunBindingResult? {
+    private fun parseMappedAddress(
+        bytes: ByteArray,
+        inicio: Int,
+        tamanho: Int,
+    ): StunBindingResult? {
         if (tamanho < 8) return null
         val family = bytes[inicio + 1].toInt() and 0xFF
         if (family != FAMILY_IPV4) return null
@@ -115,26 +127,43 @@ object StunMessageCodec {
 
     private fun ByteArray.paraIpv4Texto(): String = joinToString(".") { (it.toInt() and 0xFF).toString() }
 
-    private fun writeUShort(buffer: ByteArray, offset: Int, value: Int) {
+    private fun writeUShort(
+        buffer: ByteArray,
+        offset: Int,
+        value: Int,
+    ) {
         buffer[offset] = ((value ushr 8) and 0xFF).toByte()
         buffer[offset + 1] = (value and 0xFF).toByte()
     }
 
-    private fun writeUInt(buffer: ByteArray, offset: Int, value: Int) {
+    private fun writeUInt(
+        buffer: ByteArray,
+        offset: Int,
+        value: Int,
+    ) {
         buffer[offset] = ((value ushr 24) and 0xFF).toByte()
         buffer[offset + 1] = ((value ushr 16) and 0xFF).toByte()
         buffer[offset + 2] = ((value ushr 8) and 0xFF).toByte()
         buffer[offset + 3] = (value and 0xFF).toByte()
     }
 
-    private fun readUShort(bytes: ByteArray, offset: Int): Int =
+    private fun readUShort(
+        bytes: ByteArray,
+        offset: Int,
+    ): Int =
         ((bytes[offset].toInt() and 0xFF) shl 8) or (bytes[offset + 1].toInt() and 0xFF)
 
-    private fun readUInt(bytes: ByteArray, offset: Int): Int =
+    private fun readUInt(
+        bytes: ByteArray,
+        offset: Int,
+    ): Int =
         ((bytes[offset].toInt() and 0xFF) shl 24) or
             ((bytes[offset + 1].toInt() and 0xFF) shl 16) or
             ((bytes[offset + 2].toInt() and 0xFF) shl 8) or
             (bytes[offset + 3].toInt() and 0xFF)
 }
 
-data class StunBindingResult(val enderecoMapeado: String, val portaMapeada: Int)
+data class StunBindingResult(
+    val enderecoMapeado: String,
+    val portaMapeada: Int,
+)

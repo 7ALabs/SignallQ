@@ -9,33 +9,37 @@ fun evaluateChannels(
     val filtered = neighbors.filter { it.bssid !in config.excludeBssids }
 
     return Band.entries.associateWith { band ->
-        val width = when (band) {
-            Band.GHZ_24 -> config.targetWidth24
-            Band.GHZ_5 -> config.targetWidth5
-            Band.GHZ_6 -> config.targetWidth6
-        }
-        val candidates = candidateChannels(
-            band = band,
-            width = width,
-            avoidDfs = config.avoidDfs,
-            allow24Overlapping = config.allow24Overlapping,
-            preferPsc = config.preferPsc,
-        )
+        val width =
+            when (band) {
+                Band.GHZ_24 -> config.targetWidth24
+                Band.GHZ_5 -> config.targetWidth5
+                Band.GHZ_6 -> config.targetWidth6
+            }
+        val candidates =
+            candidateChannels(
+                band = band,
+                width = width,
+                avoidDfs = config.avoidDfs,
+                allow24Overlapping = config.allow24Overlapping,
+                preferPsc = config.preferPsc,
+            )
         val bandNeighbors = filtered.filter { it.band == band }
 
-        val scores = candidates.map { channel ->
-            scoreChannel(channel, band, width, bandNeighbors, config)
-        }
+        val scores =
+            candidates.map { channel ->
+                scoreChannel(channel, band, width, bandNeighbors, config)
+            }
 
         // Regra 7 — ordenacao: score -> overlappingAps -> strongestNeighborDbm -> canal
-        val sorted = scores.sortedWith(
-            compareBy(
-                { it.score },
-                { it.overlappingAps },
-                { it.strongestNeighborDbm ?: Int.MIN_VALUE }, // null (sem vizinho) -> melhor
-                { it.channel },
-            ),
-        )
+        val sorted =
+            scores.sortedWith(
+                compareBy(
+                    { it.score },
+                    { it.overlappingAps },
+                    { it.strongestNeighborDbm ?: Int.MIN_VALUE }, // null (sem vizinho) -> melhor
+                    { it.channel },
+                ),
+            )
 
         // Regra 7 — recommended=true apenas para o vencedor de cada banda
         sorted.mapIndexed { idx, s -> if (idx == 0) s.copy(recommended = true) else s }

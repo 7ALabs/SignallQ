@@ -5,5 +5,5 @@ data class UpnpDeviceInfo(
     val manufacturer: String?,
     val modelName: String?,
     val modelNumber: String?,
-    val controlUrl: String?  // URL resolvida para WANIPConnection ou WANPPPConnection
+    val controlUrl: String?, // URL resolvida para WANIPConnection ou WANPPPConnection
 )

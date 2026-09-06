@@ -213,4 +213,80 @@ class FirebaseAnalyticsHelperTest {
         assertFalse(bundle.containsKey("latencia_ms"))
         assertNull(bundle.getString("modelo_ia", null))
     }
+
+    // NDS-Snapshot-12 (issue #1844) — telemetria de cobertura do snapshot enviado ao NDS.
+
+    @Test
+    fun `registrarNdsSnapshotEnviado envia todas as propriedades quando ia foi invocada`() {
+        helper.registrarNdsSnapshotEnviado(
+            schemaVersion = "1",
+            blocosPresentes = "connection,wifi,speed,quality",
+            qtdBlocosPresentes = 4,
+            camposPresentesCount = 12,
+            blocosCriticosAusentes = "",
+            iaInvocada = true,
+            iaProvider = "copy-catalog",
+            duracaoMs = 850,
+            resultConfidence = 0.9,
+            outcome = "success",
+        )
+
+        val bundle = capturarBundle("nds_snapshot_enviado")
+        assertEquals("1", bundle.getString("schema_version"))
+        assertEquals("connection,wifi,speed,quality", bundle.getString("blocks_present"))
+        assertEquals(4L, bundle.getLong("qtd_blocks_present"))
+        assertEquals(12L, bundle.getLong("fields_present_count"))
+        assertEquals("", bundle.getString("missing_critical_blocks"))
+        assertTrue(bundle.getBoolean("ai_invoked"))
+        assertEquals("copy-catalog", bundle.getString("ai_provider"))
+        assertEquals(850L, bundle.getLong("duration_ms"))
+        assertEquals(0.9, bundle.getDouble("result_confidence"), 0.0001)
+        assertEquals("success", bundle.getString("outcome"))
+        assertEquals(BuildConfig.VERSION_NAME, bundle.getString("versao_app"))
+    }
+
+    @Test
+    fun `registrarNdsSnapshotEnviado omite ai_provider e result_confidence quando ausentes`() {
+        helper.registrarNdsSnapshotEnviado(
+            schemaVersion = "1",
+            blocosPresentes = "connection,speed",
+            qtdBlocosPresentes = 2,
+            camposPresentesCount = 4,
+            blocosCriticosAusentes = "wifi",
+            iaInvocada = false,
+            duracaoMs = 300,
+            outcome = "known_error",
+        )
+
+        val bundle = capturarBundle("nds_snapshot_enviado")
+        assertEquals("wifi", bundle.getString("missing_critical_blocks"))
+        assertFalse(bundle.getBoolean("ai_invoked"))
+        assertFalse(bundle.containsKey("ai_provider"))
+        assertFalse(bundle.containsKey("result_confidence"))
+        assertNull(bundle.getString("ai_provider", null))
+    }
+
+    @Test
+    fun `registrarNdsSnapshotEnviado nunca carrega SSID, BSSID ou IP em nenhuma propriedade`() {
+        helper.registrarNdsSnapshotEnviado(
+            schemaVersion = "1",
+            blocosPresentes = "connection,wifi,wifiScan,speed",
+            qtdBlocosPresentes = 4,
+            camposPresentesCount = 20,
+            blocosCriticosAusentes = "",
+            iaInvocada = true,
+            iaProvider = "nds-scoring-v1",
+            duracaoMs = 700,
+            resultConfidence = 0.88,
+            outcome = "success",
+        )
+
+        val bundle = capturarBundle("nds_snapshot_enviado")
+        bundle.keySet().forEach { chave ->
+            @Suppress("DEPRECATION") // Bundle.get(String) generico e a unica forma de ler um valor sem saber o tipo previamente.
+            val valor = bundle.get(chave)?.toString().orEmpty()
+            assertFalse("propriedade '$chave' nao deveria conter SSID", valor.contains("ssid", ignoreCase = true))
+            assertFalse("propriedade '$chave' nao deveria conter BSSID", valor.contains("bssid", ignoreCase = true))
+        }
+    }
 }

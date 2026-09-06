@@ -32,7 +32,6 @@ package io.signallq.app.core.network.contracts.gateway
  * com [SupportLevel.UNKNOWN] e sem capability de fibra.
  */
 object EquipmentClassifier {
-
     private const val PESO_BANNER = 0.25
     private const val PESO_IP_CANONICO = 0.20
     private const val PESO_PRESENCA_CATALOGO = 0.10
@@ -41,29 +40,31 @@ object EquipmentClassifier {
     fun classificar(
         evidence: EquipmentFingerprintEvidence,
         catalog: List<DeviceDriverProfile> = DeviceDriverCatalog.entries,
-    ): EquipmentClassification = try {
-        val melhorCasamento = catalog
-            .map { perfil -> perfil to scoreParaPerfil(evidence, perfil) }
-            .filter { (_, score) -> score > 0.0 }
-            .maxByOrNull { (_, score) -> score }
+    ): EquipmentClassification =
+        try {
+            val melhorCasamento =
+                catalog
+                    .map { perfil -> perfil to scoreParaPerfil(evidence, perfil) }
+                    .filter { (_, score) -> score > 0.0 }
+                    .maxByOrNull { (_, score) -> score }
 
-        if (melhorCasamento == null) {
+            if (melhorCasamento == null) {
+                classificacaoDesconhecida(evidence)
+            } else {
+                val (perfil, score) = melhorCasamento
+                EquipmentClassification(
+                    deviceType = perfil.deviceType,
+                    supportLevel = perfil.supportLevel,
+                    driverId = perfil.driverId,
+                    // Defesa em profundidade: so ONT_GPON pode carregar capability de fibra,
+                    // mesmo que uma entrada futura do catalogo declare fibraCapable errado.
+                    fibraCapable = perfil.deviceType == DeviceType.ONT_GPON && perfil.fibraCapable,
+                    confidenceScore = score,
+                )
+            }
+        } catch (_: Throwable) {
             classificacaoDesconhecida(evidence)
-        } else {
-            val (perfil, score) = melhorCasamento
-            EquipmentClassification(
-                deviceType = perfil.deviceType,
-                supportLevel = perfil.supportLevel,
-                driverId = perfil.driverId,
-                // Defesa em profundidade: so ONT_GPON pode carregar capability de fibra,
-                // mesmo que uma entrada futura do catalogo declare fibraCapable errado.
-                fibraCapable = perfil.deviceType == DeviceType.ONT_GPON && perfil.fibraCapable,
-                confidenceScore = score,
-            )
         }
-    } catch (_: Throwable) {
-        classificacaoDesconhecida(evidence)
-    }
 
     private fun classificacaoDesconhecida(evidence: EquipmentFingerprintEvidence): EquipmentClassification {
         val houveSinalDeSuperficieAdministrativa =
@@ -71,11 +72,12 @@ object EquipmentClassifier {
                 evidence.knownRoutesDetected.isNotEmpty() ||
                 !evidence.loginResponseMarker.isNullOrBlank()
 
-        val deviceType = if (houveSinalDeSuperficieAdministrativa) {
-            DeviceType.UNKNOWN_SUPPORTED
-        } else {
-            DeviceType.UNKNOWN_UNSUPPORTED
-        }
+        val deviceType =
+            if (houveSinalDeSuperficieAdministrativa) {
+                DeviceType.UNKNOWN_SUPPORTED
+            } else {
+                DeviceType.UNKNOWN_UNSUPPORTED
+            }
 
         return EquipmentClassification(
             deviceType = deviceType,
@@ -86,17 +88,23 @@ object EquipmentClassifier {
         )
     }
 
-    private fun scoreParaPerfil(evidence: EquipmentFingerprintEvidence, perfil: DeviceDriverProfile): Double {
-        val casouBanner = perfil.bannerPatterns.isNotEmpty() &&
-            contemIgnorandoCaixa(evidence.httpBanner, perfil.bannerPatterns)
+    private fun scoreParaPerfil(
+        evidence: EquipmentFingerprintEvidence,
+        perfil: DeviceDriverProfile,
+    ): Double {
+        val casouBanner =
+            perfil.bannerPatterns.isNotEmpty() &&
+                contemIgnorandoCaixa(evidence.httpBanner, perfil.bannerPatterns)
 
         val casouIp = evidence.gatewayIp != null && perfil.canonicalGatewayIps.contains(evidence.gatewayIp)
 
-        val casouModelo = perfil.modelPatterns.isNotEmpty() &&
-            (contemIgnorandoCaixa(evidence.modelHint, perfil.modelPatterns) || contemIgnorandoCaixa(evidence.vendorHint, perfil.modelPatterns))
+        val casouModelo =
+            perfil.modelPatterns.isNotEmpty() &&
+                (contemIgnorandoCaixa(evidence.modelHint, perfil.modelPatterns) || contemIgnorandoCaixa(evidence.vendorHint, perfil.modelPatterns))
 
-        val casouRota = perfil.routeSignatures.isNotEmpty() &&
-            evidence.knownRoutesDetected.any { detectada -> perfil.routeSignatures.any { assinatura -> detectada.contains(assinatura, ignoreCase = true) } }
+        val casouRota =
+            perfil.routeSignatures.isNotEmpty() &&
+                evidence.knownRoutesDetected.any { detectada -> perfil.routeSignatures.any { assinatura -> detectada.contains(assinatura, ignoreCase = true) } }
 
         var score = 0.0
         if (casouBanner) score += PESO_BANNER
@@ -106,7 +114,10 @@ object EquipmentClassifier {
         return if (score > 0.0) maxOf(score, PISO_MINIMO) else 0.0
     }
 
-    private fun contemIgnorandoCaixa(valor: String?, padroes: List<String>): Boolean {
+    private fun contemIgnorandoCaixa(
+        valor: String?,
+        padroes: List<String>,
+    ): Boolean {
         if (valor.isNullOrBlank()) return false
         return padroes.any { padrao -> valor.contains(padrao, ignoreCase = true) }
     }

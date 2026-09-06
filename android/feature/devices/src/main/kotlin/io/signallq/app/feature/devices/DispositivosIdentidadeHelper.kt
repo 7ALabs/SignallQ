@@ -7,7 +7,6 @@
  * sem necessidade de Hilt, Room ou Android runtime.
  */
 object DispositivosIdentidadeHelper {
-
     /**
      * Retorna uma identidade estavel para rastrear dispositivos entre scans.
      *

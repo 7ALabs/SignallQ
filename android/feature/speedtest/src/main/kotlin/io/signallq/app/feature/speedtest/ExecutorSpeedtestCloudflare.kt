@@ -1,6 +1,5 @@
 ﻿package io.signallq.app.feature.speedtest
 
-import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -16,6 +15,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import timber.log.Timber
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -81,7 +81,8 @@ class ExecutorSpeedtestCloudflare(
     private var pingClient: OkHttpClient = criarClientPing(client)
 
     private fun criarClientTransferencia(isMobileAtual: Boolean): OkHttpClient =
-        OkHttpClient.Builder()
+        OkHttpClient
+            .Builder()
             .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
@@ -89,16 +90,18 @@ class ExecutorSpeedtestCloudflare(
             .connectionPool(criarConnectionPool(isMobileAtual))
             .addInterceptor { chain ->
                 chain.proceed(
-                    chain.request().newBuilder()
+                    chain
+                        .request()
+                        .newBuilder()
                         .header("User-Agent", UA)
                         .header("Cache-Control", "no-store")
                         .build(),
                 )
-            }
-            .build()
+            }.build()
 
     private fun criarClientDownload(isMobileAtual: Boolean): OkHttpClient =
-        OkHttpClient.Builder()
+        OkHttpClient
+            .Builder()
             .protocols(listOf(Protocol.HTTP_1_1))
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
@@ -106,7 +109,9 @@ class ExecutorSpeedtestCloudflare(
             .connectionPool(criarConnectionPool(isMobileAtual))
             .addInterceptor { chain ->
                 chain.proceed(
-                    chain.request().newBuilder()
+                    chain
+                        .request()
+                        .newBuilder()
                         .header("User-Agent", UA)
                         .header("Accept", "*/*")
                         .header("Accept-Language", "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7")
@@ -118,11 +123,11 @@ class ExecutorSpeedtestCloudflare(
                         .header("Sec-Fetch-Site", "same-origin")
                         .build(),
                 )
-            }
-            .build()
+            }.build()
 
     private fun criarClientPing(base: OkHttpClient): OkHttpClient =
-        base.newBuilder()
+        base
+            .newBuilder()
             .connectTimeout(4, TimeUnit.SECONDS)
             .readTimeout(4, TimeUnit.SECONDS)
             .callTimeout(4, TimeUnit.SECONDS)
@@ -147,7 +152,9 @@ class ExecutorSpeedtestCloudflare(
     private val emExecucao = AtomicBoolean(false)
     private val cancelFlag = AtomicBoolean(false)
     private val bytesConsumidosTotal = AtomicLong(0L)
+
     @Volatile private var faseAtualInterna: FaseSpeedtest = FaseSpeedtest.idle
+
     @Volatile private var velocidadeAtualInterna: Double = 0.0
     private val uploadPayloadCache = ConcurrentHashMap<Int, ByteArray>()
     private val pontosAoVivoInternos = Collections.synchronizedList(mutableListOf<PontoAoVivo>())
@@ -194,7 +201,10 @@ class ExecutorSpeedtestCloudflare(
                 // GH#1221/#1225 RF-02 — identificador unico desta execucao, usado por
                 // Resultado/Diagnostico/IA/Recomendacao/PDF para confirmar que pertencem
                 // a mesma execucao (descartar respostas assincronas de execucoes antigas).
-                val executionId = java.util.UUID.randomUUID().toString()
+                val executionId =
+                    java.util.UUID
+                        .randomUUID()
+                        .toString()
                 cancelFlag.set(false)
                 bytesConsumidosTotal.set(0L)
                 faseAtualInterna = FaseSpeedtest.idle
@@ -335,24 +345,25 @@ class ExecutorSpeedtestCloudflare(
 
                 val pingUpload = Collections.synchronizedList(mutableListOf<Double>())
                 val dnsProbe = async { executarDnsProbe() }
-                var uploadPhase = if (connectionType == "movel") {
-                    executarFaseUploadAdaptativa(
-                        config = config,
-                        onFaseProgress = { local -> publicar(EstadoExecucaoSpeedtest.executando, 74 + (local * 24).toInt(), null, null) },
-                        pingsSobCarga = pingUpload,
-                        redeInicial = redeInicial,
-                        connectionTypeProvider = connectionTypeProvider,
-                    )
-                } else {
-                    executarFaseTransferencia(
-                        isDownload = false,
-                        config = config,
-                        onFaseProgress = { local -> publicar(EstadoExecucaoSpeedtest.executando, 74 + (local * 24).toInt(), null, null) },
-                        pingsSobCarga = pingUpload,
-                        redeInicial = redeInicial,
-                        connectionTypeProvider = connectionTypeProvider,
-                    )
-                }
+                var uploadPhase =
+                    if (connectionType == "movel") {
+                        executarFaseUploadAdaptativa(
+                            config = config,
+                            onFaseProgress = { local -> publicar(EstadoExecucaoSpeedtest.executando, 74 + (local * 24).toInt(), null, null) },
+                            pingsSobCarga = pingUpload,
+                            redeInicial = redeInicial,
+                            connectionTypeProvider = connectionTypeProvider,
+                        )
+                    } else {
+                        executarFaseTransferencia(
+                            isDownload = false,
+                            config = config,
+                            onFaseProgress = { local -> publicar(EstadoExecucaoSpeedtest.executando, 74 + (local * 24).toInt(), null, null) },
+                            pingsSobCarga = pingUpload,
+                            redeInicial = redeInicial,
+                            connectionTypeProvider = connectionTypeProvider,
+                        )
+                    }
                 var uploadNaoDetectado = false
                 if (uploadPhase.throughputMbps == 0.0 && !cancelFlag.get()) {
                     val backoffMs = listOf(1_000L, 2_000L, 4_000L)
@@ -362,12 +373,13 @@ class ExecutorSpeedtestCloudflare(
                         Timber.w("upload=0 retry #${idx + 1} apos ${backoff}ms")
                         val mbpsRetry = executarProbeUpload()
                         if (mbpsRetry > 0.0) {
-                            uploadPhase = uploadPhase.copy(
-                                throughputMbps = mbpsRetry,
-                                peakMbps = mbpsRetry,
-                                faseEncerradaPor = "retryBemSucedido",
-                                throughputOrigem = "retryProbe",
-                            )
+                            uploadPhase =
+                                uploadPhase.copy(
+                                    throughputMbps = mbpsRetry,
+                                    peakMbps = mbpsRetry,
+                                    faseEncerradaPor = "retryBemSucedido",
+                                    throughputOrigem = "retryProbe",
+                                )
                             break
                         }
                         if (idx == backoffMs.lastIndex) uploadNaoDetectado = true
@@ -430,98 +442,99 @@ class ExecutorSpeedtestCloudflare(
         pingsSobCarga: MutableList<Double>,
         redeInicial: String?,
         connectionTypeProvider: (() -> String?)?,
-    ): ThroughputPhase = supervisorScope {
-        val inicioNs = System.nanoTime()
-        val budgetMs = 25_000L
-        val stopNs = inicioNs + (budgetMs * 1_000_000L)
-        val amostras = mutableListOf<Sample>()
-        val bytesTotal = AtomicLong(0)
-        val requisicoesSucesso = AtomicInteger(0)
-        val requisicoesErro = AtomicInteger(0)
-        var chunkBytes = 64 * 1024
-        var paralelo = 1
-        var roundsLentos = 0
-        var rodada = 0
+    ): ThroughputPhase =
+        supervisorScope {
+            val inicioNs = System.nanoTime()
+            val budgetMs = 25_000L
+            val stopNs = inicioNs + (budgetMs * 1_000_000L)
+            val amostras = mutableListOf<Sample>()
+            val bytesTotal = AtomicLong(0)
+            val requisicoesSucesso = AtomicInteger(0)
+            val requisicoesErro = AtomicInteger(0)
+            var chunkBytes = 64 * 1024
+            var paralelo = 1
+            var roundsLentos = 0
+            var rodada = 0
 
-        fun elapsedMs(): Long = (System.nanoTime() - inicioNs) / 1_000_000L
+            fun elapsedMs(): Long = (System.nanoTime() - inicioNs) / 1_000_000L
 
-        // Intervalo aumentado para 1000ms (era 300ms) durante o throughput adaptativo:
-        // pings frequentes competem por banda com os workers de upload no mesmo pool HTTP/2,
-        // distorcendo ambas as medições. Amostras a cada 1s ainda são suficientes para
-        // calcular bufferbloat (latência sob carga vs. latência em repouso).
-        val pingJob =
-            launch {
-                while (System.nanoTime() < stopNs && !mudouRede(redeInicial, connectionTypeProvider) && !cancelFlag.get()) {
-                    val t0 = System.nanoTime()
-                    val rtt = medirPing()
-                    if (rtt != null) pingsSobCarga.add(rtt)
-                    val elapsed = (System.nanoTime() - t0) / 1_000_000L
-                    delay(max(0L, 1_000L - elapsed))
+            // Intervalo aumentado para 1000ms (era 300ms) durante o throughput adaptativo:
+            // pings frequentes competem por banda com os workers de upload no mesmo pool HTTP/2,
+            // distorcendo ambas as medições. Amostras a cada 1s ainda são suficientes para
+            // calcular bufferbloat (latência sob carga vs. latência em repouso).
+            val pingJob =
+                launch {
+                    while (System.nanoTime() < stopNs && !mudouRede(redeInicial, connectionTypeProvider) && !cancelFlag.get()) {
+                        val t0 = System.nanoTime()
+                        val rtt = medirPing()
+                        if (rtt != null) pingsSobCarga.add(rtt)
+                        val elapsed = (System.nanoTime() - t0) / 1_000_000L
+                        delay(max(0L, 1_000L - elapsed))
+                    }
+                }
+
+            while (rodada < 4 && System.nanoTime() < stopNs && !mudouRede(redeInicial, connectionTypeProvider) && !cancelFlag.get()) {
+                rodada++
+                val tRoundNs = System.nanoTime()
+                val jobs = mutableListOf<Job>()
+                val bytesRodada = AtomicLong(0)
+
+                repeat(paralelo) {
+                    jobs +=
+                        launch {
+                            try {
+                                val sent = executarRequestUpload(chunkBytes)
+                                bytesRodada.addAndGet(sent.toLong())
+                                bytesTotal.addAndGet(sent.toLong())
+                                bytesConsumidosTotal.addAndGet(sent.toLong())
+                                requisicoesSucesso.incrementAndGet()
+                            } catch (_: Throwable) {
+                                requisicoesErro.incrementAndGet()
+                            }
+                        }
+                }
+                jobs.forEach { it.join() }
+                val tRoundMs = ((System.nanoTime() - tRoundNs) / 1_000_000L).coerceAtLeast(1L)
+                val mbps = (bytesRodada.get() * 8.0) / (tRoundMs.toDouble() / 1000.0) / 1_000_000.0
+                amostras.add(Sample(elapsedMs().toInt(), mbps))
+                velocidadeAtualInterna = mbps
+                onFaseProgress(min(1.0, elapsedMs().toDouble() / config.uploadDurationMs.toDouble()))
+
+                val roundRapido = tRoundMs < 2_000L
+                val podeEscalar = paralelo < 4 && chunkBytes < (2 * 1024 * 1024)
+                if (roundRapido && podeEscalar) {
+                    paralelo = min(4, paralelo + 1)
+                    chunkBytes = min(2 * 1024 * 1024, chunkBytes * 4)
+                    roundsLentos = 0
+                } else {
+                    roundsLentos++
+                    if (roundsLentos >= 2) break
                 }
             }
 
-        while (rodada < 4 && System.nanoTime() < stopNs && !mudouRede(redeInicial, connectionTypeProvider) && !cancelFlag.get()) {
-            rodada++
-            val tRoundNs = System.nanoTime()
-            val jobs = mutableListOf<Job>()
-            val bytesRodada = AtomicLong(0)
-
-            repeat(paralelo) {
-                jobs +=
-                    launch {
-                        try {
-                            val sent = executarRequestUpload(chunkBytes)
-                            bytesRodada.addAndGet(sent.toLong())
-                            bytesTotal.addAndGet(sent.toLong())
-                            bytesConsumidosTotal.addAndGet(sent.toLong())
-                            requisicoesSucesso.incrementAndGet()
-                        } catch (_: Throwable) {
-                            requisicoesErro.incrementAndGet()
-                        }
-                    }
-            }
-            jobs.forEach { it.join() }
-            val tRoundMs = ((System.nanoTime() - tRoundNs) / 1_000_000L).coerceAtLeast(1L)
-            val mbps = (bytesRodada.get() * 8.0) / (tRoundMs.toDouble() / 1000.0) / 1_000_000.0
-            amostras.add(Sample(elapsedMs().toInt(), mbps))
-            velocidadeAtualInterna = mbps
-            onFaseProgress(min(1.0, elapsedMs().toDouble() / config.uploadDurationMs.toDouble()))
-
-            val roundRapido = tRoundMs < 2_000L
-            val podeEscalar = paralelo < 4 && chunkBytes < (2 * 1024 * 1024)
-            if (roundRapido && podeEscalar) {
-                paralelo = min(4, paralelo + 1)
-                chunkBytes = min(2 * 1024 * 1024, chunkBytes * 4)
-                roundsLentos = 0
-            } else {
-                roundsLentos++
-                if (roundsLentos >= 2) break
-            }
+            pingJob.join()
+            val validas = amostras.filter { it.mbps > 0.0 }
+            val throughput = if (validas.isEmpty()) 0.0 else validas.map { it.mbps }.average()
+            val pico = validas.maxOfOrNull { it.mbps } ?: 0.0
+            val encerradaPor =
+                when {
+                    mudouRede(redeInicial, connectionTypeProvider) -> "redeMudou"
+                    rodada >= 4 -> "rodadasMax"
+                    roundsLentos >= 2 -> "estagnou"
+                    else -> "tempoEsgotado"
+                }
+            ThroughputPhase(
+                throughputMbps = throughput,
+                peakMbps = pico,
+                amostrasInstantaneas = validas.map { it.mbps },
+                bytesTotal = bytesTotal.get(),
+                requisicoesSucesso = requisicoesSucesso.get(),
+                requisicoesErro = requisicoesErro.get(),
+                faseEncerradaPor = encerradaPor,
+                throughputOrigem = if (validas.isEmpty()) "semDados" else "validasSemCorte",
+                ultimoErro = null,
+            )
         }
-
-        pingJob.join()
-        val validas = amostras.filter { it.mbps > 0.0 }
-        val throughput = if (validas.isEmpty()) 0.0 else validas.map { it.mbps }.average()
-        val pico = validas.maxOfOrNull { it.mbps } ?: 0.0
-        val encerradaPor =
-            when {
-                mudouRede(redeInicial, connectionTypeProvider) -> "redeMudou"
-                rodada >= 4 -> "rodadasMax"
-                roundsLentos >= 2 -> "estagnou"
-                else -> "tempoEsgotado"
-            }
-        ThroughputPhase(
-            throughputMbps = throughput,
-            peakMbps = pico,
-            amostrasInstantaneas = validas.map { it.mbps },
-            bytesTotal = bytesTotal.get(),
-            requisicoesSucesso = requisicoesSucesso.get(),
-            requisicoesErro = requisicoesErro.get(),
-            faseEncerradaPor = encerradaPor,
-            throughputOrigem = if (validas.isEmpty()) "semDados" else "validasSemCorte",
-            ultimoErro = null,
-        )
-    }
 
     private suspend fun executarFaseLatencia(
         config: SpeedtestConfig,
@@ -611,187 +624,188 @@ class ExecutorSpeedtestCloudflare(
         pingsSobCarga: MutableList<Double>,
         redeInicial: String?,
         connectionTypeProvider: (() -> String?)?,
-    ): ThroughputPhase = supervisorScope {
-        val duracaoMs = if (isDownload) config.downloadDurationMs else config.uploadDurationMs
-        val warmupMs = if (isDownload) config.downloadWarmupMs else config.uploadWarmupMs
-        val payloadBytes = if (isDownload) config.downloadPayloadBytes else config.uploadPayloadBytes
-        val streamInicial = if (isDownload) config.downloadInitialStreams else config.uploadInitialStreams
-        val maxStreams = if (isDownload) config.downloadMaxStreams else config.uploadMaxStreams
+    ): ThroughputPhase =
+        supervisorScope {
+            val duracaoMs = if (isDownload) config.downloadDurationMs else config.uploadDurationMs
+            val warmupMs = if (isDownload) config.downloadWarmupMs else config.uploadWarmupMs
+            val payloadBytes = if (isDownload) config.downloadPayloadBytes else config.uploadPayloadBytes
+            val streamInicial = if (isDownload) config.downloadInitialStreams else config.uploadInitialStreams
+            val maxStreams = if (isDownload) config.downloadMaxStreams else config.uploadMaxStreams
 
-        val inicioNs = System.nanoTime()
-        val stopNs = inicioNs + (duracaoMs * 1_000_000L)
-        val stopFlag = AtomicBoolean(false)
-        val bytesTick = AtomicLong(0)
-        val bytesTotal = AtomicLong(0)
-        val requisicoesSucesso = AtomicInteger(0)
-        val requisicoesErro = AtomicInteger(0)
-        val ultimoErro = AtomicReference<String?>(null)
-        val targetStreams = AtomicInteger(streamInicial)
-        val amostras = Collections.synchronizedList(mutableListOf<Sample>())
-        val workers = mutableListOf<Job>()
-        val ultimoSampleNs = AtomicLong(inicioNs)
+            val inicioNs = System.nanoTime()
+            val stopNs = inicioNs + (duracaoMs * 1_000_000L)
+            val stopFlag = AtomicBoolean(false)
+            val bytesTick = AtomicLong(0)
+            val bytesTotal = AtomicLong(0)
+            val requisicoesSucesso = AtomicInteger(0)
+            val requisicoesErro = AtomicInteger(0)
+            val ultimoErro = AtomicReference<String?>(null)
+            val targetStreams = AtomicInteger(streamInicial)
+            val amostras = Collections.synchronizedList(mutableListOf<Sample>())
+            val workers = mutableListOf<Job>()
+            val ultimoSampleNs = AtomicLong(inicioNs)
 
-        fun elapsedMs(): Long = (System.nanoTime() - inicioNs) / 1_000_000L
+            fun elapsedMs(): Long = (System.nanoTime() - inicioNs) / 1_000_000L
 
-        fun spawnWorker(indice: Int) {
-            workers +=
-                launch {
-                    if (indice > 0) delay(indice * 200L)
-                    var fallbackTriedDownload = false
-                    var payloadDownloadAtual = payloadBytes
-                    var tentativasRateLimit = 0
-                    while (!stopFlag.get() && System.nanoTime() < stopNs && !mudouRede(redeInicial, connectionTypeProvider) && !cancelFlag.get()) {
-                        if (indice >= targetStreams.get()) {
-                            delay(120)
-                            continue
-                        }
-                        val restanteMs = ((stopNs - System.nanoTime()) / 1_000_000L).coerceAtLeast(0L)
-                        if (restanteMs <= 0L) break
-                        try {
-                            if (isDownload) {
-                                executarRequestDownload(payloadDownloadAtual) { lidos ->
-                                    bytesTick.addAndGet(lidos.toLong())
-                                    bytesTotal.addAndGet(lidos.toLong())
-                                    bytesConsumidosTotal.addAndGet(lidos.toLong())
-                                }
-                            } else {
-                                val sent = executarRequestUpload(payloadBytes)
-                                bytesTick.addAndGet(sent.toLong())
-                                bytesTotal.addAndGet(sent.toLong())
-                                bytesConsumidosTotal.addAndGet(sent.toLong())
-                            }
-                            tentativasRateLimit = 0
-                            requisicoesSucesso.incrementAndGet()
-                        } catch (t: Throwable) {
-                            val erroResumo = resumirErroTransferencia(t)
-                            val ehRateLimit = erroResumo.contains("HttpStatus:429") || erroResumo.contains("HttpStatus:403")
-                            if (isDownload && ehRateLimit) {
-                                if (ultimoErro.get() == null) ultimoErro.set(erroResumo)
-                                tentativasRateLimit++
-                                val backoffMs = min(2000L, 500L * tentativasRateLimit)
-                                delay(backoffMs)
-                                if (tentativasRateLimit >= 3) {
-                                    delay(4000L)
-                                    tentativasRateLimit = 0
-                                }
+            fun spawnWorker(indice: Int) {
+                workers +=
+                    launch {
+                        if (indice > 0) delay(indice * 200L)
+                        var fallbackTriedDownload = false
+                        var payloadDownloadAtual = payloadBytes
+                        var tentativasRateLimit = 0
+                        while (!stopFlag.get() && System.nanoTime() < stopNs && !mudouRede(redeInicial, connectionTypeProvider) && !cancelFlag.get()) {
+                            if (indice >= targetStreams.get()) {
+                                delay(120)
                                 continue
                             }
-                            requisicoesErro.incrementAndGet()
-                            if (ultimoErro.get() == null) ultimoErro.set(erroResumo)
-                            if (isDownload && !fallbackTriedDownload) {
-                                val fallback = reduzirPayloadDownload(payloadDownloadAtual)
-                                if (fallback < payloadDownloadAtual) {
-                                    payloadDownloadAtual = fallback
-                                    fallbackTriedDownload = true
+                            val restanteMs = ((stopNs - System.nanoTime()) / 1_000_000L).coerceAtLeast(0L)
+                            if (restanteMs <= 0L) break
+                            try {
+                                if (isDownload) {
+                                    executarRequestDownload(payloadDownloadAtual) { lidos ->
+                                        bytesTick.addAndGet(lidos.toLong())
+                                        bytesTotal.addAndGet(lidos.toLong())
+                                        bytesConsumidosTotal.addAndGet(lidos.toLong())
+                                    }
+                                } else {
+                                    val sent = executarRequestUpload(payloadBytes)
+                                    bytesTick.addAndGet(sent.toLong())
+                                    bytesTotal.addAndGet(sent.toLong())
+                                    bytesConsumidosTotal.addAndGet(sent.toLong())
+                                }
+                                tentativasRateLimit = 0
+                                requisicoesSucesso.incrementAndGet()
+                            } catch (t: Throwable) {
+                                val erroResumo = resumirErroTransferencia(t)
+                                val ehRateLimit = erroResumo.contains("HttpStatus:429") || erroResumo.contains("HttpStatus:403")
+                                if (isDownload && ehRateLimit) {
+                                    if (ultimoErro.get() == null) ultimoErro.set(erroResumo)
+                                    tentativasRateLimit++
+                                    val backoffMs = min(2000L, 500L * tentativasRateLimit)
+                                    delay(backoffMs)
+                                    if (tentativasRateLimit >= 3) {
+                                        delay(4000L)
+                                        tentativasRateLimit = 0
+                                    }
                                     continue
                                 }
+                                requisicoesErro.incrementAndGet()
+                                if (ultimoErro.get() == null) ultimoErro.set(erroResumo)
+                                if (isDownload && !fallbackTriedDownload) {
+                                    val fallback = reduzirPayloadDownload(payloadDownloadAtual)
+                                    if (fallback < payloadDownloadAtual) {
+                                        payloadDownloadAtual = fallback
+                                        fallbackTriedDownload = true
+                                        continue
+                                    }
+                                }
+                                break
                             }
-                            break
+                        }
+                    }
+            }
+
+            repeat(maxStreams) { idx -> spawnWorker(idx) }
+
+            // Intervalo aumentado para 1000ms (era 300ms) durante o throughput:
+            // pings a cada 300ms competem por banda com os workers de transferência no mesmo pool
+            // HTTP/2, distorcendo o throughput e os próprios valores de latência sob carga.
+            // 1 amostra/s ainda é suficiente para calcular bufferbloat com precisão adequada.
+            val pingJob =
+                launch {
+                    while (!stopFlag.get() && System.nanoTime() < stopNs && !mudouRede(redeInicial, connectionTypeProvider) && !cancelFlag.get()) {
+                        val t0 = System.nanoTime()
+                        val rtt = medirPing()
+                        if (rtt != null) pingsSobCarga.add(rtt)
+                        val elapsed = (System.nanoTime() - t0) / 1_000_000L
+                        val waitMs = max(0L, 1_000L - elapsed)
+                        delay(waitMs)
+                    }
+                }
+
+            val sampler =
+                launch {
+                    var ultimaEscalaMs = 0L
+                    while (!stopFlag.get() && System.nanoTime() < stopNs && !mudouRede(redeInicial, connectionTypeProvider) && !cancelFlag.get()) {
+                        delay(1_000)
+                        val agoraNs = System.nanoTime()
+                        val elapsedSec = (agoraNs - ultimoSampleNs.get()).toDouble() / 1_000_000_000.0
+                        ultimoSampleNs.set(agoraNs)
+                        val bytes = bytesTick.getAndSet(0)
+                        val tMs = elapsedMs()
+                        val progressoLocal = min(1.0, tMs.toDouble() / duracaoMs.toDouble())
+                        onFaseProgress(progressoLocal)
+
+                        if (elapsedSec > 0.0 && bytes > 0L) {
+                            val instant = (bytes * 8.0) / elapsedSec / 1_000_000.0
+                            amostras.add(Sample(tMs.toInt(), instant))
+                            velocidadeAtualInterna = instant
+                        }
+
+                        val prontoParaEscalar = tMs - ultimaEscalaMs >= 4000L && targetStreams.get() < maxStreams
+                        if (prontoParaEscalar) {
+                            ultimaEscalaMs = tMs
+                            val ganho = calcularGanhoJanela(amostras.toList(), tMs.toInt())
+                            if (ganho >= 0.10) {
+                                val novoAlvo = min(maxStreams, targetStreams.get() + 2)
+                                targetStreams.set(novoAlvo)
+                            }
                         }
                     }
                 }
-        }
 
-        repeat(maxStreams) { idx -> spawnWorker(idx) }
-
-        // Intervalo aumentado para 1000ms (era 300ms) durante o throughput:
-        // pings a cada 300ms competem por banda com os workers de transferência no mesmo pool
-        // HTTP/2, distorcendo o throughput e os próprios valores de latência sob carga.
-        // 1 amostra/s ainda é suficiente para calcular bufferbloat com precisão adequada.
-        val pingJob =
-            launch {
-                while (!stopFlag.get() && System.nanoTime() < stopNs && !mudouRede(redeInicial, connectionTypeProvider) && !cancelFlag.get()) {
-                    val t0 = System.nanoTime()
-                    val rtt = medirPing()
-                    if (rtt != null) pingsSobCarga.add(rtt)
-                    val elapsed = (System.nanoTime() - t0) / 1_000_000L
-                    val waitMs = max(0L, 1_000L - elapsed)
-                    delay(waitMs)
-                }
+            while (System.nanoTime() < stopNs && !mudouRede(redeInicial, connectionTypeProvider) && !cancelFlag.get()) {
+                delay(80)
             }
-
-        val sampler =
-            launch {
-                var ultimaEscalaMs = 0L
-                while (!stopFlag.get() && System.nanoTime() < stopNs && !mudouRede(redeInicial, connectionTypeProvider) && !cancelFlag.get()) {
-                    delay(1_000)
-                    val agoraNs = System.nanoTime()
-                    val elapsedSec = (agoraNs - ultimoSampleNs.get()).toDouble() / 1_000_000_000.0
-                    ultimoSampleNs.set(agoraNs)
-                    val bytes = bytesTick.getAndSet(0)
-                    val tMs = elapsedMs()
-                    val progressoLocal = min(1.0, tMs.toDouble() / duracaoMs.toDouble())
-                    onFaseProgress(progressoLocal)
-
-                    if (elapsedSec > 0.0 && bytes > 0L) {
-                        val instant = (bytes * 8.0) / elapsedSec / 1_000_000.0
-                        amostras.add(Sample(tMs.toInt(), instant))
-                        velocidadeAtualInterna = instant
-                    }
-
-                    val prontoParaEscalar = tMs - ultimaEscalaMs >= 4000L && targetStreams.get() < maxStreams
-                    if (prontoParaEscalar) {
-                        ultimaEscalaMs = tMs
-                        val ganho = calcularGanhoJanela(amostras.toList(), tMs.toInt())
-                        if (ganho >= 0.10) {
-                            val novoAlvo = min(maxStreams, targetStreams.get() + 2)
-                            targetStreams.set(novoAlvo)
-                        }
-                    }
-                }
+            stopFlag.set(true)
+            pingJob.join()
+            sampler.join()
+            workers.forEach { it.join() }
+            val bytesRestantes = bytesTick.getAndSet(0)
+            val agoraFlushNs = System.nanoTime()
+            val elapsedFlushSec = (agoraFlushNs - ultimoSampleNs.get()).toDouble() / 1_000_000_000.0
+            if (bytesRestantes > 0L && elapsedFlushSec > 0.0) {
+                val instant = (bytesRestantes * 8.0) / elapsedFlushSec / 1_000_000.0
+                amostras.add(Sample(elapsedMs().toInt(), instant))
             }
+            val duracaoMedidaMs = ((System.nanoTime() - inicioNs) / 1_000_000L).coerceAtLeast(1L)
 
-        while (System.nanoTime() < stopNs && !mudouRede(redeInicial, connectionTypeProvider) && !cancelFlag.get()) {
-            delay(80)
-        }
-        stopFlag.set(true)
-        pingJob.join()
-        sampler.join()
-        workers.forEach { it.join() }
-        val bytesRestantes = bytesTick.getAndSet(0)
-        val agoraFlushNs = System.nanoTime()
-        val elapsedFlushSec = (agoraFlushNs - ultimoSampleNs.get()).toDouble() / 1_000_000_000.0
-        if (bytesRestantes > 0L && elapsedFlushSec > 0.0) {
-            val instant = (bytesRestantes * 8.0) / elapsedFlushSec / 1_000_000.0
-            amostras.add(Sample(elapsedMs().toInt(), instant))
-        }
-        val duracaoMedidaMs = ((System.nanoTime() - inicioNs) / 1_000_000L).coerceAtLeast(1L)
-
-        val amostrasValidas =
-            amostras
-                .filter { it.tMs >= warmupMs && it.mbps > 0.0 }
-                .sortedBy { it.tMs }
-        val corte = min(amostrasValidas.size, kotlin.math.ceil(amostrasValidas.size * 0.35).toInt())
-        val estaveis = amostrasValidas.drop(corte)
-        val throughputCalculado =
-            calcularThroughputFase(
-                estaveis = estaveis,
-                amostrasValidas = amostrasValidas,
+            val amostrasValidas =
+                amostras
+                    .filter { it.tMs >= warmupMs && it.mbps > 0.0 }
+                    .sortedBy { it.tMs }
+            val corte = min(amostrasValidas.size, kotlin.math.ceil(amostrasValidas.size * 0.35).toInt())
+            val estaveis = amostrasValidas.drop(corte)
+            val throughputCalculado =
+                calcularThroughputFase(
+                    estaveis = estaveis,
+                    amostrasValidas = amostrasValidas,
+                    bytesTotal = bytesTotal.get(),
+                    duracaoFaseMs = duracaoMedidaMs,
+                    warmupMs = warmupMs,
+                )
+            if (isDownload && bytesTotal.get() <= 0L && requisicoesSucesso.get() <= 0) {
+                throw IllegalStateException("download_failed:${ultimoErro.get() ?: "semDetalhe"}")
+            }
+            val pico = amostrasValidas.maxOfOrNull { it.mbps } ?: 0.0
+            val encerradaPor =
+                when {
+                    mudouRede(redeInicial, connectionTypeProvider) -> "redeMudou"
+                    else -> "tempoEsgotado"
+                }
+            ThroughputPhase(
+                throughputMbps = throughputCalculado.mbps,
+                peakMbps = pico,
+                amostrasInstantaneas = amostrasValidas.map { it.mbps },
                 bytesTotal = bytesTotal.get(),
-                duracaoFaseMs = duracaoMedidaMs,
-                warmupMs = warmupMs,
+                requisicoesSucesso = requisicoesSucesso.get(),
+                requisicoesErro = requisicoesErro.get(),
+                faseEncerradaPor = encerradaPor,
+                throughputOrigem = throughputCalculado.origem,
+                ultimoErro = ultimoErro.get(),
             )
-        if (isDownload && bytesTotal.get() <= 0L && requisicoesSucesso.get() <= 0) {
-            throw IllegalStateException("download_failed:${ultimoErro.get() ?: "semDetalhe"}")
         }
-        val pico = amostrasValidas.maxOfOrNull { it.mbps } ?: 0.0
-        val encerradaPor =
-            when {
-                mudouRede(redeInicial, connectionTypeProvider) -> "redeMudou"
-                else -> "tempoEsgotado"
-            }
-        ThroughputPhase(
-            throughputMbps = throughputCalculado.mbps,
-            peakMbps = pico,
-            amostrasInstantaneas = amostrasValidas.map { it.mbps },
-            bytesTotal = bytesTotal.get(),
-            requisicoesSucesso = requisicoesSucesso.get(),
-            requisicoesErro = requisicoesErro.get(),
-            faseEncerradaPor = encerradaPor,
-            throughputOrigem = throughputCalculado.origem,
-            ultimoErro = ultimoErro.get(),
-        )
-    }
 
     // ── Camada HTTP (OkHttp) ─────────────────────────────────────────────────
 
@@ -800,7 +814,12 @@ class ExecutorSpeedtestCloudflare(
         onBytesChunk: ((Int) -> Unit)? = null,
     ): Int {
         val url = "https://speed.cloudflare.com/__down?bytes=$payloadBytes&_cb=${cacheBust()}"
-        val request = Request.Builder().url(url).get().build()
+        val request =
+            Request
+                .Builder()
+                .url(url)
+                .get()
+                .build()
         val response = downloadClient.newCall(request).execute()
         return try {
             if (!response.isSuccessful) throw IllegalStateException("HttpStatus:${response.code}")
@@ -825,7 +844,12 @@ class ExecutorSpeedtestCloudflare(
         val url = "https://speed.cloudflare.com/__up?_cb=${cacheBust()}"
         val payload = obterPayloadUpload(payloadBytes)
         val body = payload.toRequestBody("application/octet-stream".toMediaType())
-        val request = Request.Builder().url(url).post(body).build()
+        val request =
+            Request
+                .Builder()
+                .url(url)
+                .post(body)
+                .build()
         val response = client.newCall(request).execute()
         return try {
             if (!response.isSuccessful) throw IllegalStateException("HttpStatus:${response.code}")
@@ -845,7 +869,8 @@ class ExecutorSpeedtestCloudflare(
                 val sent = executarRequestUpload(payloadBytes)
                 totalBytes += sent.toLong()
                 sucesso++
-            } catch (_: Throwable) {}
+            } catch (_: Throwable) {
+            }
         }
         val elapsedMs = ((System.nanoTime() - inicioNs) / 1_000_000L).coerceAtLeast(1L)
         if (sucesso == 0) return 0.0
@@ -855,7 +880,12 @@ class ExecutorSpeedtestCloudflare(
     private fun medirPing(baseUrl: String = HOST_PUBLICO_LATENCIA): Double? {
         val separador = if (baseUrl.contains("?")) "&" else "?"
         val url = "$baseUrl${separador}_cb=${cacheBust()}"
-        val request = Request.Builder().url(url).get().build()
+        val request =
+            Request
+                .Builder()
+                .url(url)
+                .get()
+                .build()
         val inicio = System.nanoTime()
         return try {
             val response = pingClient.newCall(request).execute()
@@ -876,11 +906,13 @@ class ExecutorSpeedtestCloudflare(
 
     private fun executarDnsProbe(): DnsProbeResult {
         val url = "https://cloudflare-dns.com/dns-query?name=whoami.cloudflare.com&type=TXT"
-        val request = Request.Builder()
-            .url(url)
-            .header("accept", "application/dns-json")
-            .get()
-            .build()
+        val request =
+            Request
+                .Builder()
+                .url(url)
+                .header("accept", "application/dns-json")
+                .get()
+                .build()
         val inicio = System.nanoTime()
         return try {
             val response = client.newCall(request).execute()
@@ -889,11 +921,12 @@ class ExecutorSpeedtestCloudflare(
                 val corpo = resp.body?.string() ?: return DnsProbeResult(null, null, null, null)
                 val duracaoMs = ((System.nanoTime() - inicio) / 1_000_000L).toInt()
                 val resolverIp = extrairPrimeiroIpv4(corpo)
-                val provider = when {
-                    corpo.contains("cloudflare", ignoreCase = true) -> "cloudflare"
-                    resolverIp != null -> "desconhecido"
-                    else -> null
-                }
+                val provider =
+                    when {
+                        corpo.contains("cloudflare", ignoreCase = true) -> "cloudflare"
+                        resolverIp != null -> "desconhecido"
+                        else -> null
+                    }
                 DnsProbeResult(duracaoMs, resolverIp, provider, null)
             }
         } catch (_: Throwable) {
@@ -916,7 +949,10 @@ class ExecutorSpeedtestCloudflare(
         return max(0.0, min(100.0, 100.0 - cv * 150.0))
     }
 
-    private fun calcularGanhoJanela(amostras: List<Sample>, nowMs: Int): Double {
+    private fun calcularGanhoJanela(
+        amostras: List<Sample>,
+        nowMs: Int,
+    ): Double {
         val recente = amostras.filter { it.tMs > nowMs - 4000 }
         val anterior = amostras.filter { it.tMs <= nowMs - 4000 && it.tMs > nowMs - 8000 }
         if (recente.size < 3 || anterior.size < 3) return 0.0
@@ -1105,14 +1141,16 @@ class ExecutorSpeedtestCloudflare(
         val progresso = min(100, max(0, progressoPercentual))
         val vel = velocidadeAtualInterna
         when (faseAtualInterna) {
-            FaseSpeedtest.download -> if (vel > 0) {
-                pontosAoVivoInternos.add(PontoAoVivo(t = System.currentTimeMillis(), dl = vel))
-                if (pontosAoVivoInternos.size > 60) pontosAoVivoInternos.removeFirst()
-            }
-            FaseSpeedtest.upload -> if (vel > 0) {
-                pontosAoVivoInternos.add(PontoAoVivo(t = System.currentTimeMillis(), ul = vel))
-                if (pontosAoVivoInternos.size > 60) pontosAoVivoInternos.removeFirst()
-            }
+            FaseSpeedtest.download ->
+                if (vel > 0) {
+                    pontosAoVivoInternos.add(PontoAoVivo(t = System.currentTimeMillis(), dl = vel))
+                    if (pontosAoVivoInternos.size > 60) pontosAoVivoInternos.removeFirst()
+                }
+            FaseSpeedtest.upload ->
+                if (vel > 0) {
+                    pontosAoVivoInternos.add(PontoAoVivo(t = System.currentTimeMillis(), ul = vel))
+                    if (pontosAoVivoInternos.size > 60) pontosAoVivoInternos.removeFirst()
+                }
             else -> {}
         }
         mutableSnapshotFlow.value =
@@ -1165,9 +1203,15 @@ class ExecutorSpeedtestCloudflare(
         val ultimoErro: String?,
     )
 
-    private data class ThroughputCalculado(val mbps: Double, val origem: String)
+    private data class ThroughputCalculado(
+        val mbps: Double,
+        val origem: String,
+    )
 
-    private data class Sample(val tMs: Int, val mbps: Double)
+    private data class Sample(
+        val tMs: Int,
+        val mbps: Double,
+    )
 
     private data class SpeedtestConfig(
         val pingCount: Int,
@@ -1191,7 +1235,7 @@ class ExecutorSpeedtestCloudflare(
                             pingCount = 15,
                             downloadDurationMs = 7_000L,
                             uploadDurationMs = 7_000L,
-                            downloadPayloadBytes = 10_000_000,  // 10 MB
+                            downloadPayloadBytes = 10_000_000, // 10 MB
                             uploadPayloadBytes = 5_000_000,
                             downloadInitialStreams = 2,
                             downloadMaxStreams = 4,
@@ -1205,7 +1249,7 @@ class ExecutorSpeedtestCloudflare(
                             pingCount = 25,
                             downloadDurationMs = 18_000L,
                             uploadDurationMs = 18_000L,
-                            downloadPayloadBytes = 25_000_000,  // 25 MB
+                            downloadPayloadBytes = 25_000_000, // 25 MB
                             uploadPayloadBytes = 10_000_000,
                             downloadInitialStreams = 2,
                             downloadMaxStreams = 8,

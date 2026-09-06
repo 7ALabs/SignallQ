@@ -7,7 +7,6 @@ import androidx.room.Query
 
 @Dao
 interface ConnectivityDiagnosisHistoryDao {
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun registrar(entrada: ConnectivityDiagnosisHistoryEntity)
 

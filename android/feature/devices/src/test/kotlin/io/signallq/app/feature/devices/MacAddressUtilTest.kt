@@ -6,7 +6,6 @@ import org.junit.Test
 
 /** GH#1217 item 5/9 — MAC localmente administrado (bit U/L) nunca gera fabricante real via OUI. */
 class MacAddressUtilTest {
-
     @Test
     fun `MAC com bit UL setado e localmente administrado`() {
         // 0x02 = 0000 0010 -- bit U/L ligado.

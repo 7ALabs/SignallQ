@@ -7,5 +7,6 @@
  */
 interface FeatureFlagStore {
     suspend fun salvarFeatureFlags(flags: Map<String, Boolean>)
+
     suspend fun buscarFeatureFlags(): Map<String, Boolean>
 }

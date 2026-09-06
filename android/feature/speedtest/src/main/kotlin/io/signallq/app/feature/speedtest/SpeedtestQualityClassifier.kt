@@ -7,7 +7,6 @@ import io.signallq.app.core.diagnostico.MetricStatus
  * sem duplicar thresholds. Nao alterar a logica aqui sem testes de regressao.
  */
 object SpeedtestQualityClassifier {
-
     /**
      * GH#1228 Fatia 6 (P1-4): fonte unica dos 3 cortes de bufferbloat (5/30/100ms) e
      * [MetricClassifier.classificarBufferbloat][io.signallq.app.core.diagnostico.MetricClassifier.classificarBufferbloat]
@@ -75,4 +74,3 @@ object SpeedtestQualityClassifier {
         )
     }
 }
-

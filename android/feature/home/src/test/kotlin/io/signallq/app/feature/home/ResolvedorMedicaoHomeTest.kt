@@ -6,7 +6,6 @@ import org.junit.Test
 
 /** GH#1223 item 1/RF-02/RF-03 — nunca mistura métricas de execuções diferentes. */
 class ResolvedorMedicaoHomeTest {
-
     private fun metricas(
         download: Double? = 100.0,
         upload: Double? = 50.0,

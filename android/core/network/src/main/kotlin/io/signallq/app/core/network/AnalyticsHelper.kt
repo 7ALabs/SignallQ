@@ -107,6 +107,51 @@ interface AnalyticsHelper {
          *  informa codigo. */
         errorCode: String? = null,
     )
+
+    /**
+     * NDS-Snapshot-12 (issue #1844, epico #1832 secao 17 "Observabilidade") — disparado uma vez
+     * por chamada a `NdsClient.evaluate()` feita por `NdsDiagnosticRepository`, junto de
+     * [registrarDiagNdsOutcome] (mesmo ponto de disparo, evento distinto). Mede a COBERTURA do
+     * snapshot enviado — quais blocos do payload NDS (ADR-018) foram montados, quantos campos
+     * tem conteudo, e se a IA foi de fato invocada — nao o resultado do diagnostico em si (isso
+     * continua sendo `registrarDiagConcluido`, SIG-155).
+     *
+     * Nunca inclui SSID/BSSID/IP nem qualquer outro valor de campo do snapshot — [blocosPresentes]
+     * e [blocosCriticosAusentes] carregam so nomes de bloco (metadado estrutural do payload), na
+     * mesma lista fechada de [io.signallq.app.core.nds.NdsSnapshotBlock].
+     */
+    fun registrarNdsSnapshotEnviado(
+        /** Versao do contrato `DiagnosticSnapshot` (ADR-018) —
+         *  [io.signallq.app.core.nds.NDS_SNAPSHOT_SCHEMA_VERSION]. */
+        schemaVersion: String,
+        /** Nomes de bloco (`NdsSnapshotBlock.jsonKey`) presentes no payload, separados por
+         *  virgula — mesmo formato de `capacidades`/`qtd_capacidades` ja usado em
+         *  `DiagnosticoGuiadoAnalytics`. Vazio quando nenhum bloco opcional foi montado. */
+        blocosPresentes: String,
+        /** Contagem de blocos presentes — evita o consumidor ter que fazer split() no Firebase
+         *  para saber "quantos". */
+        qtdBlocosPresentes: Long,
+        /** Contagem de campos-folha nao nulos em todo o payload (todos os blocos). */
+        camposPresentesCount: Long,
+        /** Nomes de bloco criticos ausentes nesta execucao, separados por virgula — string vazia
+         *  quando nenhum falta. Criterio de "critico" em
+         *  [io.signallq.app.core.nds.NdsSnapshotCoverage.missingCriticalBlocks]. */
+        blocosCriticosAusentes: String,
+        /** `true` quando o NDS retornou um resultado do modulo `"ai"` (contrato v1) ou uma
+         *  explicacao v2 — `false` em qualquer erro antes da resposta, ou quando o NDS decidiu
+         *  nao invocar IA. */
+        iaInvocada: Boolean,
+        /** Modelo/provedor de IA usado, quando informado pelo NDS (`NdsAiResult.aiModelUsed`) —
+         *  `null` quando [iaInvocada] e falso ou o contrato nao informa (v2). */
+        iaProvider: String? = null,
+        duracaoMs: Long,
+        /** [io.signallq.app.core.diagnostico.DiagnosticReport.confianca] (0.0-1.0) — `null`
+         *  quando nao houve relatorio (erro sem fallback local, caminho do Assist). */
+        resultConfidence: Double? = null,
+        /** Mesmo vocabulario de `registrarDiagNdsOutcome.outcome` — permite correlacionar os
+         *  dois eventos sem duplicar a logica de decisao de outcome. */
+        outcome: String,
+    )
 }
 
 /**
@@ -181,5 +226,18 @@ object NoOpAnalyticsHelper : AnalyticsHelper {
         fallbackLocalUsado: Boolean,
         latenciaMs: Long,
         errorCode: String?,
+    ) = Unit
+
+    override fun registrarNdsSnapshotEnviado(
+        schemaVersion: String,
+        blocosPresentes: String,
+        qtdBlocosPresentes: Long,
+        camposPresentesCount: Long,
+        blocosCriticosAusentes: String,
+        iaInvocada: Boolean,
+        iaProvider: String?,
+        duracaoMs: Long,
+        resultConfidence: Double?,
+        outcome: String,
     ) = Unit
 }

@@ -10,7 +10,6 @@ import org.junit.Test
  * manualmente a matemática que existia duplicada nos dois consumidores originais.
  */
 class AnalisadorAmostragemPingTest {
-
     @Test
     fun `descarta sempre a primeira amostra`() {
         // 1a amostra é um outlier gigante (500ms) que seria descartado de qualquer forma,

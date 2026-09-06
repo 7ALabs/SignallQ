@@ -23,90 +23,99 @@ import io.signallq.app.core.network.contracts.localdevice.WifiSnapshot
  * fica fora de escopo desta fase (a UI trata `null` como "sem leitura").
  */
 object NokiaLocalDeviceMapper {
-
-    fun map(snapshot: SnapshotFibra, capturadoEmEpochMs: Long): LocalNetworkDeviceSnapshot? {
+    fun map(
+        snapshot: SnapshotFibra,
+        capturadoEmEpochMs: Long,
+    ): LocalNetworkDeviceSnapshot? {
         if (snapshot.estado != EstadoFibra.concluido) return null
         val gpon = snapshot.gpon ?: return null
 
         return LocalNetworkDeviceSnapshot(
             deviceType = DeviceType.ONT_GPON,
             supportLevel = SupportLevel.LAB_VALIDATED,
-            capabilities = DeviceCapabilities(
-                suportaFibra = true,
-                suportaWan = true,
-                suportaWifi = true,
-                suportaLan = true,
-                // GH#839/#865 Fase 2 — lista real de clientes (device_cfg +
-                // alias_cfg), ligada em 2026-07-10.
-                suportaClientes = true,
-                suportaDiagnosticoNativo = false,
-                // Nokia G-1425G-B é o único provider real com ação de gerência
-                // implementada hoje (reboot.cgi, GH#934) — ver NokiaModemClient.reboot.
-                // GH#1213 item 12/critério "Reboot não validado fica indisponível em
-                // produção": a rota/payload nunca foram confirmados contra hardware físico
-                // (ver KDoc de NokiaModemClient.reboot). Gate único e explícito — não
-                // remover a capability do fluxo/testes, só desligar em produção até a
-                // validação real acontecer (flip pra `true` nesse dia, nada mais).
-                suportaGerenciamento = RebootLabFlags.HABILITADO_SEM_VALIDACAO_HARDWARE,
-            ),
+            capabilities =
+                DeviceCapabilities(
+                    suportaFibra = true,
+                    suportaWan = true,
+                    suportaWifi = true,
+                    suportaLan = true,
+                    // GH#839/#865 Fase 2 — lista real de clientes (device_cfg +
+                    // alias_cfg), ligada em 2026-07-10.
+                    suportaClientes = true,
+                    suportaDiagnosticoNativo = false,
+                    // Nokia G-1425G-B é o único provider real com ação de gerência
+                    // implementada hoje (reboot.cgi, GH#934) — ver NokiaModemClient.reboot.
+                    // GH#1213 item 12/critério "Reboot não validado fica indisponível em
+                    // produção": a rota/payload nunca foram confirmados contra hardware físico
+                    // (ver KDoc de NokiaModemClient.reboot). Gate único e explícito — não
+                    // remover a capability do fluxo/testes, só desligar em produção até a
+                    // validação real acontecer (flip pra `true` nesse dia, nada mais).
+                    suportaGerenciamento = RebootLabFlags.HABILITADO_SEM_VALIDACAO_HARDWARE,
+                ),
             vendor = "Nokia",
             modelo = snapshot.deviceInfo?.model,
             firmwareVersion = snapshot.deviceInfo?.firmwareVersion,
-            fiber = FiberSnapshot(
-                linkAtivo = gpon.isUp,
-                rxPowerDbm = gpon.rxPowerDbm,
-                txPowerDbm = gpon.txPowerDbm,
-                temperaturaCelsius = gpon.temperatureCelsius,
-                tensaoV = gpon.voltageV,
-                correnteLaserMa = gpon.laserCurrentMa,
-                serialOnt = gpon.serial,
-            ),
-            wan = snapshot.wan?.let { wan ->
-                WanSnapshot(
-                    ipExterno = wan.externalIp,
-                    gateway = wan.gateway,
-                    dnsPrimario = wan.primaryDns,
-                    dnsSecundario = wan.secondaryDns,
-                    tipoConexao = wan.connectionType,
-                    nomeInterface = wan.interfaceName,
-                    uptimeSegundos = wan.connectionUptimeSeconds,
-                )
-            },
-            wifi = snapshot.wifi?.let { wifi ->
-                WifiSnapshot(
-                    radios = wifi.radios.map { radio ->
-                        WifiRadioSnapshot(
-                            banda = radio.banda,
-                            ssid = radio.ssid,
-                            canal = radio.canal,
-                            // Nao capturado nesta fase — ver comentario em
-                            // NokiaModemParser.parseWifi.
-                            larguraCanal = null,
-                            potenciaTx = radio.potenciaTx,
-                            criptografia = radio.criptografia,
-                            habilitado = radio.habilitado,
-                        )
-                    },
-                )
-            },
-            lan = snapshot.lan?.let { lan ->
-                LanSnapshot(
-                    ipRoteador = lan.routerIp,
-                    mascara = lan.subnetMask,
-                    dhcpHabilitado = lan.dhcpHabilitado,
-                    faixaDhcpInicio = lan.dhcpFaixaInicio,
-                    faixaDhcpFim = lan.dhcpFaixaFim,
-                )
-            },
-            clientes = snapshot.clientes.map { cliente ->
-                ClientSnapshot(
-                    mac = cliente.mac,
-                    ip = cliente.ip,
-                    hostname = cliente.hostname,
-                    tipoConexao = cliente.tipoConexao,
-                    tipoConexaoFisica = cliente.tipoConexaoFisica,
-                )
-            },
+            fiber =
+                FiberSnapshot(
+                    linkAtivo = gpon.isUp,
+                    rxPowerDbm = gpon.rxPowerDbm,
+                    txPowerDbm = gpon.txPowerDbm,
+                    temperaturaCelsius = gpon.temperatureCelsius,
+                    tensaoV = gpon.voltageV,
+                    correnteLaserMa = gpon.laserCurrentMa,
+                    serialOnt = gpon.serial,
+                ),
+            wan =
+                snapshot.wan?.let { wan ->
+                    WanSnapshot(
+                        ipExterno = wan.externalIp,
+                        gateway = wan.gateway,
+                        dnsPrimario = wan.primaryDns,
+                        dnsSecundario = wan.secondaryDns,
+                        tipoConexao = wan.connectionType,
+                        nomeInterface = wan.interfaceName,
+                        uptimeSegundos = wan.connectionUptimeSeconds,
+                    )
+                },
+            wifi =
+                snapshot.wifi?.let { wifi ->
+                    WifiSnapshot(
+                        radios =
+                            wifi.radios.map { radio ->
+                                WifiRadioSnapshot(
+                                    banda = radio.banda,
+                                    ssid = radio.ssid,
+                                    canal = radio.canal,
+                                    // Nao capturado nesta fase — ver comentario em
+                                    // NokiaModemParser.parseWifi.
+                                    larguraCanal = null,
+                                    potenciaTx = radio.potenciaTx,
+                                    criptografia = radio.criptografia,
+                                    habilitado = radio.habilitado,
+                                )
+                            },
+                    )
+                },
+            lan =
+                snapshot.lan?.let { lan ->
+                    LanSnapshot(
+                        ipRoteador = lan.routerIp,
+                        mascara = lan.subnetMask,
+                        dhcpHabilitado = lan.dhcpHabilitado,
+                        faixaDhcpInicio = lan.dhcpFaixaInicio,
+                        faixaDhcpFim = lan.dhcpFaixaFim,
+                    )
+                },
+            clientes =
+                snapshot.clientes.map { cliente ->
+                    ClientSnapshot(
+                        mac = cliente.mac,
+                        ip = cliente.ip,
+                        hostname = cliente.hostname,
+                        tipoConexao = cliente.tipoConexao,
+                        tipoConexaoFisica = cliente.tipoConexaoFisica,
+                    )
+                },
             warnings = emptyList(),
             freshness = DataFreshness(capturadoEmEpochMs = capturadoEmEpochMs, expirado = false),
         )

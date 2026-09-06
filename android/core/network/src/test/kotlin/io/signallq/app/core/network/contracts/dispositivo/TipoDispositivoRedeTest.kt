@@ -8,18 +8,18 @@ import org.junit.Test
  * atual de `feature/devices` mais `console`, reservado sem lógica de classificação nesta fase.
  */
 class TipoDispositivoRedeTest {
-
     @Test
     fun `superset inclui todos os valores atuais de TipoDispositivo mais console`() {
-        val valoresAtuais = setOf(
-            "roteador",
-            "pontoAcesso",
-            "computador",
-            "smartphone",
-            "smarthome",
-            "impressora",
-            "desconhecido",
-        )
+        val valoresAtuais =
+            setOf(
+                "roteador",
+                "pontoAcesso",
+                "computador",
+                "smartphone",
+                "smarthome",
+                "impressora",
+                "desconhecido",
+            )
         val nomes = TipoDispositivoRede.entries.map { it.name }.toSet()
 
         assertEquals(valoresAtuais + "console", nomes)

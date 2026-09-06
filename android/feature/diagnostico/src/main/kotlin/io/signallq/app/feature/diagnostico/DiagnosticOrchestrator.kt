@@ -4,7 +4,6 @@ import io.signallq.app.core.diagnostico.ConnectionType
 import io.signallq.app.core.diagnostico.DiagnosticArea
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.DiagnosticReport
-import io.signallq.app.core.diagnostico.DiagnosticRunner
 import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.FibraDiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
@@ -12,9 +11,9 @@ import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 import io.signallq.app.core.featureflags.DisabledFeatureFlagProvider
 import io.signallq.app.core.featureflags.FeatureFlagKeys
 import io.signallq.app.core.featureflags.FeatureFlagProvider
+import io.signallq.app.core.nds.NdsClientFactory
 import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.NoOpAnalyticsHelper
-import io.signallq.app.core.nds.NdsClientFactory
 import io.signallq.app.feature.diagnostico.nds.NdsDiagnosticRepository
 import io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository
 import kotlinx.coroutines.CancellationException
@@ -47,6 +46,13 @@ import timber.log.Timber
  * `FeatureFlagKeys.USAR_NDS_V2_NO_ASSIST` (feat/nds-client-v2) segue o mesmo padrao:
  * [avaliarAssist] le a flag e repassa pro [ndsDiagnosticRepository] decidir se chama
  * `POST /v2/diagnostics/evaluate` do NDS em vez de `/v1/...` -- default `false`.
+ *
+ * `FeatureFlagKeys.USAR_NDS_V2_NO_FLUXO_PRINCIPAL` (feat/nds-v2-fluxo-principal) estende o
+ * mesmo padrao pro fluxo principal: quando `ndsLiveEnabled` decide chamar o NDS dentro de
+ * [executarProtegido], essa segunda flag decide qual contrato usar (v2 por default, v1 quando a
+ * flag for desligada como kill-switch). O v2 e estritamente aditivo sobre o v1 (request so ganha
+ * campos opcionais, response so troca o envelope de transporte, ja suportado pelo parser usado no
+ * Assist) -- sem risco de schema, so uma troca de rota com rollback via Remote Config.
  */
 class DiagnosticOrchestrator(
     private val analyticsHelper: AnalyticsHelper = NoOpAnalyticsHelper,
@@ -56,7 +62,6 @@ class DiagnosticOrchestrator(
         NdsDiagnosticRepository(ndsClient = NdsClientFactory.create()),
     private val featureFlagProvider: FeatureFlagProvider = DisabledFeatureFlagProvider,
 ) {
-
     /** Avaliação do SignallQ Assist pelo caminho NDS remoto dedicado.
      *
      * O Assist não participa do rollout global do diagnóstico nem do shadow mode:
@@ -73,13 +78,14 @@ class DiagnosticOrchestrator(
             usarNdsV2 = featureFlagProvider.isEnabled(FeatureFlagKeys.USAR_NDS_V2_NO_ASSIST),
         )
 
-    private val mutableSnapshotFlow = MutableStateFlow(
-        SnapshotDiagnostico(
-            estado = EstadoDiagnostico.idle,
-            relatorio = null,
-            erroMensagem = null,
-        ),
-    )
+    private val mutableSnapshotFlow =
+        MutableStateFlow(
+            SnapshotDiagnostico(
+                estado = EstadoDiagnostico.idle,
+                relatorio = null,
+                erroMensagem = null,
+            ),
+        )
 
     val snapshotFlow: StateFlow<SnapshotDiagnostico> = mutableSnapshotFlow.asStateFlow()
 
@@ -87,12 +93,16 @@ class DiagnosticOrchestrator(
     private var geracaoAtual = 0L
     private var reservaAtiva: ReservaDiagnostico? = null
 
-    class ReservaDiagnostico internal constructor(val geracao: Long)
+    class ReservaDiagnostico internal constructor(
+        val geracao: Long,
+    )
 
     sealed interface ResultadoSolicitacao {
         data object Rejeitada : ResultadoSolicitacao
 
-        data class Aceita(val snapshot: SnapshotDiagnostico) : ResultadoSolicitacao
+        data class Aceita(
+            val snapshot: SnapshotDiagnostico,
+        ) : ResultadoSolicitacao
     }
 
     fun tentarReservar(): ReservaDiagnostico? =
@@ -238,11 +248,13 @@ class DiagnosticOrchestrator(
         )
 
         val ndsLiveEnabled = featureFlagProvider.isEnabled(FeatureFlagKeys.CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED)
-        val relatorio = if (ndsLiveEnabled) {
-            ndsDiagnosticRepository.evaluate(input, enabledAreas)
-        } else {
-            remoteDiagnosticRepository.evaluateShadow(input, enabledAreas)
-        }
+        val relatorio =
+            if (ndsLiveEnabled) {
+                val usarNdsV2 = featureFlagProvider.isEnabled(FeatureFlagKeys.USAR_NDS_V2_NO_FLUXO_PRINCIPAL)
+                ndsDiagnosticRepository.evaluate(input, enabledAreas, usarNdsV2 = usarNdsV2)
+            } else {
+                remoteDiagnosticRepository.evaluateShadow(input, enabledAreas)
+            }
 
         Timber.i(
             "diagnostico concluido decisao=${relatorio.decisao.id}(${relatorio.decisao.status}) " +

@@ -8,22 +8,24 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class GeoIpParserTest {
-
     private val resolver = GeoIpResolver()
 
     // --- Fixtures ---
 
-    private val ipInfoJson = JSONObject(
-        """{"ip":"203.0.113.45","city":"São Paulo","region":"São Paulo","country":"BR","org":"AS28573 Claro S.A.","loc":"-23.5505,-46.6333"}"""
-    )
+    private val ipInfoJson =
+        JSONObject(
+            """{"ip":"203.0.113.45","city":"São Paulo","region":"São Paulo","country":"BR","org":"AS28573 Claro S.A.","loc":"-23.5505,-46.6333"}""",
+        )
 
-    private val ipApiSuccessJson = JSONObject(
-        """{"status":"success","isp":"Claro S.A.","city":"São Paulo","regionName":"São Paulo","country":"Brazil","lat":-23.5505,"lon":-46.6333}"""
-    )
+    private val ipApiSuccessJson =
+        JSONObject(
+            """{"status":"success","isp":"Claro S.A.","city":"São Paulo","regionName":"São Paulo","country":"Brazil","lat":-23.5505,"lon":-46.6333}""",
+        )
 
-    private val ipApiFailJson = JSONObject(
-        """{"status":"fail","message":"private range","query":"192.168.1.1"}"""
-    )
+    private val ipApiFailJson =
+        JSONObject(
+            """{"status":"fail","message":"private range","query":"192.168.1.1"}""",
+        )
 
     // --- parseIpInfoResponse ---
 

@@ -1,18 +1,14 @@
 package io.signallq.app.core.diagnostico
 
 /**
- * Motor local determinístico do diagnóstico guiado por objetivo (Feature #550,
- * issue #1475). Recebe o [ObjetivoDiagnostico] escolhido, as respostas das
- * [PerguntaFechada] (por índice de opção, não texto) e o [DiagnosticInput] real do
- * teste — devolve um [ResultadoDiagnosticoGuiado] com status/evidências/ações.
+ * Motor local determinístico do diagnóstico guiado por macro-objetivo. Recebe o
+ * [ObjetivoDiagnostico] escolhido e o [DiagnosticInput] real do teste — devolve um
+ * [ResultadoDiagnosticoGuiado] com status/evidências/ações.
  *
- * ## Roteiro reduzido a 1 pergunta por objetivo (2026-08)
- * [PerguntasDiagnosticoGuiado.perguntas] hoje devolve **1** [PerguntaFechada] por
- * objetivo (antes eram 2) — ver o kdoc daquele objeto para o racional completo.
- * Este motor não precisou mudar: nenhum `avaliarXxx` abaixo já lia
- * `respostas.getOrNull(1)` ou índice maior — [avaliarJogosComLag] e
- * [avaliarWifiVsOperadora] são os únicos que leem `respostas`, e ambos só usam
- * `getOrNull(0)`, que continua sendo a pergunta que sobrou.
+ * ## Roteiro sem perguntas fechadas (2026-09)
+ * A triagem foi reduzida a 4 macro-objetivos e não coleta mais respostas fechadas. O motor
+ * decide apenas com métricas reais do teste; texto livre segue somente como contexto de IA
+ * quando [ObjetivoDiagnostico.OUTRO_PROBLEMA] é escolhido.
  *
  * ## Regra de produto (não-negociável, issue #1475/#550)
  * Este objeto é a ÚNICA fonte do `status`/evidências. A camada de IA (ver
@@ -24,23 +20,10 @@ package io.signallq.app.core.diagnostico
  *
  * ## Como cada objetivo prioriza métricas (issue #1475, critério "cada um
  * priorizando as métricas relevantes daquele objetivo")
- * - [ObjetivoDiagnostico.INTERNET_CAI_OSCILA]: perda de pacotes + jitter (pior faixa vence).
- * - [ObjetivoDiagnostico.VIDEOS_TRAVAM]: atraso sob carga (bufferbloat) + download.
- * - [ObjetivoDiagnostico.JOGOS_COM_LAG]: latência + jitter + perda (mesmas 3 dimensões
- *   de [GameReadinessClassifier] FPS competitivo) — resposta "Cabo de rede" na 1ª
- *   pergunta desativa a penalidade de Wi-Fi fraco (não faz sentido puxar RSSI se o
- *   usuário já disse que joga por cabo).
- * - [ObjetivoDiagnostico.CHAMADAS_CONGELAM]: jitter + perda + upload.
- * - [ObjetivoDiagnostico.SITES_DEMORAM]: latência de DNS quando disponível (gargalo
- *   mais específico de "sites demoram"); cai para latência geral quando o teste não
- *   mediu DNS.
- * - [ObjetivoDiagnostico.VELOCIDADE_NAO_CHEGA]: download medido vs. plano contratado
- *   ([DiagnosticInput.velocidadeContratadaMbps]) quando o usuário informou o plano;
- *   cai para a régua genérica de download quando não informou.
- * - [ObjetivoDiagnostico.WIFI_VS_OPERADORA]: sinal da conexão atual (RSSI Wi-Fi ou
- *   sinal móvel, conforme [DiagnosticInput.connectionType]) combinado com a resposta
- *   auto-relatada da 1ª pergunta (nunca é a única evidência — sempre soma ao dado
- *   medido, não substitui).
+ * - [ObjetivoDiagnostico.INSTABILIDADE_QUEDAS]: sinal ativo + perda de pacotes + jitter.
+ * - [ObjetivoDiagnostico.LENTIDAO_GERAL]: download vs. plano, DNS e latência geral.
+ * - [ObjetivoDiagnostico.PROBLEMAS_VIDEO_JOGOS]: latência + jitter + perda + carga/upload.
+ * - [ObjetivoDiagnostico.OUTRO_PROBLEMA]: dimensões gerais sem inferir causa a partir do texto.
  */
 object DiagnosticoGuiadoEngine {
 

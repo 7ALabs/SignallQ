@@ -13,7 +13,6 @@ import org.junit.Test
  * reponderacao/ausencia de dados.
  */
 class UsageProfileClassifierTest {
-
     private fun internetOk(
         download: Double = 100.0,
         upload: Double = 20.0,
@@ -67,10 +66,11 @@ class UsageProfileClassifierTest {
 
     @Test
     fun `navegacao comprometida com perda real maior ou igual a 1 por cento`() {
-        val r = UsageProfileClassifier.classificar(
-            Perfil.NAVEGACAO,
-            input(internet = internetOk(perda = 1.0, packetLossSource = "modem")),
-        )
+        val r =
+            UsageProfileClassifier.classificar(
+                Perfil.NAVEGACAO,
+                input(internet = internetOk(perda = 1.0, packetLossSource = "modem")),
+            )
         assertEquals(UsageProfileStatus.Comprometido, r.status)
     }
 
@@ -78,29 +78,32 @@ class UsageProfileClassifierTest {
 
     @Test
     fun `streaming OK com download alto e bufferbloat baixo`() {
-        val r = UsageProfileClassifier.classificar(
-            Perfil.STREAMING,
-            input(internet = internetOk(download = 30.0, bufferbloat = 20.0)),
-        )
+        val r =
+            UsageProfileClassifier.classificar(
+                Perfil.STREAMING,
+                input(internet = internetOk(download = 30.0, bufferbloat = 20.0)),
+            )
         assertEquals(UsageProfileStatus.OK, r.status)
     }
 
     @Test
     fun `streaming nao fica OK so porque HD esta OK quando download esta abaixo do limiar 4K`() {
         // 20Mbps: acima do limiar HD (>=10) mas abaixo do limiar 4K OK (>=25) -> Instavel (faixa 15-25 do 4K).
-        val r = UsageProfileClassifier.classificar(
-            Perfil.STREAMING,
-            input(internet = internetOk(download = 20.0, bufferbloat = 20.0)),
-        )
+        val r =
+            UsageProfileClassifier.classificar(
+                Perfil.STREAMING,
+                input(internet = internetOk(download = 20.0, bufferbloat = 20.0)),
+            )
         assertEquals(UsageProfileStatus.Instavel, r.status)
     }
 
     @Test
     fun `streaming comprometido com bufferbloat acima de 100ms`() {
-        val r = UsageProfileClassifier.classificar(
-            Perfil.STREAMING,
-            input(internet = internetOk(download = 30.0, bufferbloat = 150.0)),
-        )
+        val r =
+            UsageProfileClassifier.classificar(
+                Perfil.STREAMING,
+                input(internet = internetOk(download = 30.0, bufferbloat = 150.0)),
+            )
         assertEquals(UsageProfileStatus.Comprometido, r.status)
     }
 
@@ -108,28 +111,31 @@ class UsageProfileClassifierTest {
 
     @Test
     fun `jogos OK dentro das faixas`() {
-        val r = UsageProfileClassifier.classificar(
-            Perfil.JOGOS,
-            input(internet = internetOk(latencia = 40.0, jitter = 10.0, bufferbloat = 20.0)),
-        )
+        val r =
+            UsageProfileClassifier.classificar(
+                Perfil.JOGOS,
+                input(internet = internetOk(latencia = 40.0, jitter = 10.0, bufferbloat = 20.0)),
+            )
         assertEquals(UsageProfileStatus.OK, r.status)
     }
 
     @Test
     fun `jogos nao fica OK so por causa de download alto quando latencia esta ruim`() {
-        val r = UsageProfileClassifier.classificar(
-            Perfil.JOGOS,
-            input(internet = internetOk(download = 500.0, latencia = 150.0, jitter = 10.0, bufferbloat = 10.0)),
-        )
+        val r =
+            UsageProfileClassifier.classificar(
+                Perfil.JOGOS,
+                input(internet = internetOk(download = 500.0, latencia = 150.0, jitter = 10.0, bufferbloat = 10.0)),
+            )
         assertEquals(UsageProfileStatus.Comprometido, r.status)
     }
 
     @Test
     fun `jogos instavel com jitter entre 16 e 30ms`() {
-        val r = UsageProfileClassifier.classificar(
-            Perfil.JOGOS,
-            input(internet = internetOk(latencia = 40.0, jitter = 25.0, bufferbloat = 20.0)),
-        )
+        val r =
+            UsageProfileClassifier.classificar(
+                Perfil.JOGOS,
+                input(internet = internetOk(latencia = 40.0, jitter = 25.0, bufferbloat = 20.0)),
+            )
         assertEquals(UsageProfileStatus.Instavel, r.status)
     }
 
@@ -137,19 +143,21 @@ class UsageProfileClassifierTest {
 
     @Test
     fun `videochamada OK com upload maior ou igual a 5Mbps`() {
-        val r = UsageProfileClassifier.classificar(
-            Perfil.VIDEOCHAMADA,
-            input(internet = internetOk(upload = 6.0, latencia = 50.0, jitter = 10.0, bufferbloat = 20.0)),
-        )
+        val r =
+            UsageProfileClassifier.classificar(
+                Perfil.VIDEOCHAMADA,
+                input(internet = internetOk(upload = 6.0, latencia = 50.0, jitter = 10.0, bufferbloat = 20.0)),
+            )
         assertEquals(UsageProfileStatus.OK, r.status)
     }
 
     @Test
     fun `videochamada comprometida com upload abaixo de 2Mbps`() {
-        val r = UsageProfileClassifier.classificar(
-            Perfil.VIDEOCHAMADA,
-            input(internet = internetOk(upload = 1.0, latencia = 50.0, jitter = 10.0, bufferbloat = 20.0)),
-        )
+        val r =
+            UsageProfileClassifier.classificar(
+                Perfil.VIDEOCHAMADA,
+                input(internet = internetOk(upload = 1.0, latencia = 50.0, jitter = 10.0, bufferbloat = 20.0)),
+            )
         assertEquals(UsageProfileStatus.Comprometido, r.status)
     }
 
@@ -157,28 +165,31 @@ class UsageProfileClassifierTest {
 
     @Test
     fun `trabalho OK sem perda real e metricas dentro da faixa`() {
-        val r = UsageProfileClassifier.classificar(
-            Perfil.TRABALHO,
-            input(internet = internetOk(upload = 10.0, latencia = 50.0), dnsMs = 30),
-        )
+        val r =
+            UsageProfileClassifier.classificar(
+                Perfil.TRABALHO,
+                input(internet = internetOk(upload = 10.0, latencia = 50.0), dnsMs = 30),
+            )
         assertEquals(UsageProfileStatus.OK, r.status)
     }
 
     @Test
     fun `trabalho comprometido com degradacao historica maior ou igual a 40 por cento`() {
-        val r = UsageProfileClassifier.classificar(
-            Perfil.TRABALHO,
-            input(internet = internetOk(upload = 10.0, latencia = 50.0), dnsMs = 30, degradacao = 45.0),
-        )
+        val r =
+            UsageProfileClassifier.classificar(
+                Perfil.TRABALHO,
+                input(internet = internetOk(upload = 10.0, latencia = 50.0), dnsMs = 30, degradacao = 45.0),
+            )
         assertEquals(UsageProfileStatus.Comprometido, r.status)
     }
 
     @Test
     fun `trabalho instavel com degradacao historica entre 20 e 40 por cento`() {
-        val r = UsageProfileClassifier.classificar(
-            Perfil.TRABALHO,
-            input(internet = internetOk(upload = 10.0, latencia = 50.0), dnsMs = 30, degradacao = 25.0),
-        )
+        val r =
+            UsageProfileClassifier.classificar(
+                Perfil.TRABALHO,
+                input(internet = internetOk(upload = 10.0, latencia = 50.0), dnsMs = 30, degradacao = 25.0),
+            )
         assertEquals(UsageProfileStatus.Instavel, r.status)
     }
 
@@ -194,30 +205,33 @@ class UsageProfileClassifierTest {
     @Test
     fun `rssi muito fraco compromete streaming diretamente`() {
         val wifiFraco = WifiDiagnosticInput(rssiDbm = -80, linkSpeedMbps = 100, frequenciaMhz = 5200)
-        val r = UsageProfileClassifier.classificar(
-            Perfil.STREAMING,
-            input(internet = internetOk(download = 30.0, bufferbloat = 20.0), wifi = wifiFraco),
-        )
+        val r =
+            UsageProfileClassifier.classificar(
+                Perfil.STREAMING,
+                input(internet = internetOk(download = 30.0, bufferbloat = 20.0), wifi = wifiFraco),
+            )
         assertEquals(UsageProfileStatus.Comprometido, r.status)
     }
 
     @Test
     fun `rssi muito fraco compromete videochamada diretamente`() {
         val wifiFraco = WifiDiagnosticInput(rssiDbm = -78, linkSpeedMbps = 100, frequenciaMhz = 5200)
-        val r = UsageProfileClassifier.classificar(
-            Perfil.VIDEOCHAMADA,
-            input(internet = internetOk(upload = 10.0), wifi = wifiFraco),
-        )
+        val r =
+            UsageProfileClassifier.classificar(
+                Perfil.VIDEOCHAMADA,
+                input(internet = internetOk(upload = 10.0), wifi = wifiFraco),
+            )
         assertEquals(UsageProfileStatus.Comprometido, r.status)
     }
 
     @Test
     fun `rssi muito fraco compromete jogos diretamente`() {
         val wifiFraco = WifiDiagnosticInput(rssiDbm = -77, linkSpeedMbps = 100, frequenciaMhz = 5200)
-        val r = UsageProfileClassifier.classificar(
-            Perfil.JOGOS,
-            input(internet = internetOk(latencia = 30.0, jitter = 5.0), wifi = wifiFraco),
-        )
+        val r =
+            UsageProfileClassifier.classificar(
+                Perfil.JOGOS,
+                input(internet = internetOk(latencia = 30.0, jitter = 5.0), wifi = wifiFraco),
+            )
         assertEquals(UsageProfileStatus.Comprometido, r.status)
     }
 
@@ -230,20 +244,22 @@ class UsageProfileClassifierTest {
 
     @Test
     fun `perda estimada nao eleva status a comprometido sozinha`() {
-        val r = UsageProfileClassifier.classificar(
-            Perfil.NAVEGACAO,
-            input(internet = internetOk(perda = 2.0, packetLossSource = "estimated")),
-        )
+        val r =
+            UsageProfileClassifier.classificar(
+                Perfil.NAVEGACAO,
+                input(internet = internetOk(perda = 2.0, packetLossSource = "estimated")),
+            )
         // Perda estimada (nao medida real) nunca vira Comprometido sozinha.
         assertTrue(r.status != UsageProfileStatus.Comprometido)
     }
 
     @Test
     fun `perda estimada reduz confianca mas nao necessariamente o status`() {
-        val comEstimada = UsageProfileClassifier.classificar(
-            Perfil.NAVEGACAO,
-            input(internet = internetOk(perda = 0.5, packetLossSource = "estimated")),
-        )
+        val comEstimada =
+            UsageProfileClassifier.classificar(
+                Perfil.NAVEGACAO,
+                input(internet = internetOk(perda = 0.5, packetLossSource = "estimated")),
+            )
         val semPerda = UsageProfileClassifier.classificar(Perfil.NAVEGACAO, input())
         assertTrue(comEstimada.confianca < semPerda.confianca)
     }

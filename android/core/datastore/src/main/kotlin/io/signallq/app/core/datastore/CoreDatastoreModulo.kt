@@ -3,7 +3,5 @@
 import android.content.Context
 
 object CoreDatastoreModulo {
-    fun criarPreferenciasAppRepository(context: Context): PreferenciasAppRepository {
-        return PreferenciasAppRepository(context.applicationContext)
-    }
+    fun criarPreferenciasAppRepository(context: Context): PreferenciasAppRepository = PreferenciasAppRepository(context.applicationContext)
 }

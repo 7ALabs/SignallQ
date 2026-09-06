@@ -10,7 +10,6 @@ import org.junit.Test
  * com inferido").
  */
 class PublicCompatibilityCatalogTest {
-
     @Test
     fun `catalogo diferencia validado, importado e inferido`() {
         val catalogo = PublicCompatibilityCatalog.montar()
@@ -37,15 +36,16 @@ class PublicCompatibilityCatalogTest {
 
     @Test
     fun `nenhum modelo externo entra como LAB_VALIDATED sem entrada curada no catalogo`() {
-        val catalogoCustom = listOf(
-            DeviceDriverProfile(
-                driverId = "externo-nao-testado",
-                vendor = "Generico",
-                modelPatterns = listOf("qualquer"),
-                deviceType = DeviceType.ROUTER,
-                supportLevel = SupportLevel.PARSER_IMPORTED,
-            ),
-        )
+        val catalogoCustom =
+            listOf(
+                DeviceDriverProfile(
+                    driverId = "externo-nao-testado",
+                    vendor = "Generico",
+                    modelPatterns = listOf("qualquer"),
+                    deviceType = DeviceType.ROUTER,
+                    supportLevel = SupportLevel.PARSER_IMPORTED,
+                ),
+            )
 
         val catalogo = PublicCompatibilityCatalog.montar(catalogoCustom)
 
@@ -56,14 +56,15 @@ class PublicCompatibilityCatalogTest {
 
     @Test
     fun `entrada UNKNOWN nunca aparece na lista publica, mesmo que o catalogo a contenha`() {
-        val catalogoCustom = listOf(
-            DeviceDriverProfile(
-                driverId = "sem-driver-conhecido",
-                vendor = "Desconhecido",
-                deviceType = DeviceType.UNKNOWN_SUPPORTED,
-                supportLevel = SupportLevel.UNKNOWN,
-            ),
-        )
+        val catalogoCustom =
+            listOf(
+                DeviceDriverProfile(
+                    driverId = "sem-driver-conhecido",
+                    vendor = "Desconhecido",
+                    deviceType = DeviceType.UNKNOWN_SUPPORTED,
+                    supportLevel = SupportLevel.UNKNOWN,
+                ),
+            )
 
         val catalogo = PublicCompatibilityCatalog.montar(catalogoCustom)
 

@@ -32,8 +32,9 @@ import kotlin.math.abs
  *   se fosse autoritativo.
  */
 object DiagnosticDivergenceClassifier {
-
-    enum class Classification(val wireValue: String) {
+    enum class Classification(
+        val wireValue: String,
+    ) {
         EXACT_MATCH("EXACT_MATCH"),
         EQUIVALENT_RESULT("EQUIVALENT_RESULT"),
         MINOR_DIVERGENCE("MINOR_DIVERGENCE"),
@@ -57,7 +58,10 @@ object DiagnosticDivergenceClassifier {
     private const val EXACT_SCORE_TOLERANCE_PONTOS = 5
     private const val EQUIVALENT_SCORE_TOLERANCE_PONTOS = 20
 
-    fun classify(local: DiagnosticReport?, remote: DiagnosticReport?): Comparison {
+    fun classify(
+        local: DiagnosticReport?,
+        remote: DiagnosticReport?,
+    ): Comparison {
         val localStatus = local?.decisao?.status
         val remoteStatus = remote?.decisao?.status
         val localScore = local?.scoreConexao
@@ -65,18 +69,20 @@ object DiagnosticDivergenceClassifier {
         val localFlow = local?.decisao?.categoriaOrigem
         val remoteFlow = remote?.decisao?.categoriaOrigem
 
-        val classification = when {
-            local == null -> Classification.LOCAL_ERROR
-            remote == null -> Classification.REMOTE_ERROR
-            else -> classifyBothPresent(
-                localStatus = localStatus!!,
-                remoteStatus = remoteStatus!!,
-                localScore = localScore!!,
-                remoteScore = remoteScore!!,
-                localFlow = localFlow,
-                remoteFlow = remoteFlow,
-            )
-        }
+        val classification =
+            when {
+                local == null -> Classification.LOCAL_ERROR
+                remote == null -> Classification.REMOTE_ERROR
+                else ->
+                    classifyBothPresent(
+                        localStatus = localStatus!!,
+                        remoteStatus = remoteStatus!!,
+                        localScore = localScore!!,
+                        remoteScore = remoteScore!!,
+                        localFlow = localFlow,
+                        remoteFlow = remoteFlow,
+                    )
+            }
 
         return Comparison(
             classification = classification,
@@ -117,11 +123,12 @@ object DiagnosticDivergenceClassifier {
      *  "distancia" entre duas classificacoes. `inconclusive` fica isolado: um
      *  motor que nao conseguiu concluir nada nunca e equivalente a um motor que
      *  concluiu "saudavel", mesmo que os dois nao apontem problema algum. */
-    private fun grupo(status: DiagnosticStatus): Int = when (status) {
-        DiagnosticStatus.inconclusive -> -1
-        DiagnosticStatus.ok -> 0
-        DiagnosticStatus.info -> 0
-        DiagnosticStatus.attention -> 1
-        DiagnosticStatus.critical -> 2
-    }
+    private fun grupo(status: DiagnosticStatus): Int =
+        when (status) {
+            DiagnosticStatus.inconclusive -> -1
+            DiagnosticStatus.ok -> 0
+            DiagnosticStatus.info -> 0
+            DiagnosticStatus.attention -> 1
+            DiagnosticStatus.critical -> 2
+        }
 }

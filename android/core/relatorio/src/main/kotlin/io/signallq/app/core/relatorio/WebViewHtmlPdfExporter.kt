@@ -31,40 +31,46 @@ suspend fun exportarHtmlComoPdf(
     context: Context,
 ): Boolean {
     return try {
-        val resultado = withContext(Dispatchers.Main) {
-            withTimeoutOrNull(TIMEOUT_CARREGAMENTO_MS) {
-                suspendCancellableCoroutine { cont ->
-                    val webView = WebView(context).apply {
-                        settings.javaScriptEnabled = false
-                        setBackgroundColor(Color.WHITE)
-                    }
-
-                    webView.webViewClient = object : WebViewClient() {
-                        override fun onPageFinished(view: WebView?, url: String?) {
-                            if (!cont.isActive) return
-
-                            try {
-                                // minSdk=24 > LOLLIPOP(21) — createPrintDocumentAdapter(String) sempre disponível
-                                val printAdapter = view?.createPrintDocumentAdapter("historico_signallq")
-
-                                if (printAdapter == null) {
-                                    cont.resume(false)
-                                    return
-                                }
-
-                                PdfPrintHelper.imprimir(printAdapter, arquivo) { sucesso ->
-                                    cont.resume(sucesso)
-                                }
-                            } catch (e: Exception) {
-                                cont.resume(false)
+        val resultado =
+            withContext(Dispatchers.Main) {
+                withTimeoutOrNull(TIMEOUT_CARREGAMENTO_MS) {
+                    suspendCancellableCoroutine { cont ->
+                        val webView =
+                            WebView(context).apply {
+                                settings.javaScriptEnabled = false
+                                setBackgroundColor(Color.WHITE)
                             }
-                        }
-                    }
 
-                    webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+                        webView.webViewClient =
+                            object : WebViewClient() {
+                                override fun onPageFinished(
+                                    view: WebView?,
+                                    url: String?,
+                                ) {
+                                    if (!cont.isActive) return
+
+                                    try {
+                                        // minSdk=24 > LOLLIPOP(21) — createPrintDocumentAdapter(String) sempre disponível
+                                        val printAdapter = view?.createPrintDocumentAdapter("historico_signallq")
+
+                                        if (printAdapter == null) {
+                                            cont.resume(false)
+                                            return
+                                        }
+
+                                        PdfPrintHelper.imprimir(printAdapter, arquivo) { sucesso ->
+                                            cont.resume(sucesso)
+                                        }
+                                    } catch (e: Exception) {
+                                        cont.resume(false)
+                                    }
+                                }
+                            }
+
+                        webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+                    }
                 }
             }
-        }
         resultado ?: false // timeout → falha graceful
     } catch (e: Exception) {
         false

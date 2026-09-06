@@ -6,7 +6,6 @@ import org.junit.Test
 
 /** GH#1212 item 8/12/13 — vencedor real vs. empate técnico vs. dados insuficientes. */
 class AvaliadorRecomendacaoDnsTest {
-
     private fun resultado(
         nome: String,
         tempoMs: Double?,

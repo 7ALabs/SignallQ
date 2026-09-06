@@ -70,74 +70,78 @@ class PingExecutor(
         // não de instabilidade do destino; aborta cedo em vez de esgotar as 20 tentativas.
         const val FALHAS_REDE_CONSECUTIVAS_PARA_ABORTAR = 3
 
-        val pingClient: OkHttpClient = OkHttpClient.Builder()
-            .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
-            .connectTimeout(4, TimeUnit.SECONDS)
-            .readTimeout(4, TimeUnit.SECONDS)
-            .callTimeout(4, TimeUnit.SECONDS)
-            .addInterceptor { chain ->
-                chain.proceed(
-                    chain.request().newBuilder()
-                        .header("User-Agent", UA)
-                        .header("Cache-Control", "no-store")
-                        .build(),
-                )
-            }
-            .build()
+        val pingClient: OkHttpClient =
+            OkHttpClient
+                .Builder()
+                .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
+                .connectTimeout(4, TimeUnit.SECONDS)
+                .readTimeout(4, TimeUnit.SECONDS)
+                .callTimeout(4, TimeUnit.SECONDS)
+                .addInterceptor { chain ->
+                    chain.proceed(
+                        chain
+                            .request()
+                            .newBuilder()
+                            .header("User-Agent", UA)
+                            .header("Cache-Control", "no-store")
+                            .build(),
+                    )
+                }.build()
     }
 
     suspend fun executar(
         count: Int = 20,
         onProgresso: (Int) -> Unit = {},
-    ): PingResultado = withContext(Dispatchers.IO) {
-        val bruto = mutableListOf<Double?>()
-        var falhasRedeConsecutivas = 0
-        var abortadoPorRede = false
+    ): PingResultado =
+        withContext(Dispatchers.IO) {
+            val bruto = mutableListOf<Double?>()
+            var falhasRedeConsecutivas = 0
+            var abortadoPorRede = false
 
-        val concluiuDentroDoPrazo =
-            withTimeoutOrNull(TIMEOUT_GLOBAL_MS) {
-                var i = 0
-                while (i < count) {
-                    val (ms, motivo) = medirPingComMotivo()
-                    bruto.add(ms)
-                    onProgresso(i + 1)
-                    i++
+            val concluiuDentroDoPrazo =
+                withTimeoutOrNull(TIMEOUT_GLOBAL_MS) {
+                    var i = 0
+                    while (i < count) {
+                        val (ms, motivo) = medirPingComMotivo()
+                        bruto.add(ms)
+                        onProgresso(i + 1)
+                        i++
 
-                    if (ms == null && motivo == MotivoFalhaPing.SEM_REDE_OU_DNS) {
-                        falhasRedeConsecutivas++
-                        if (falhasRedeConsecutivas >= FALHAS_REDE_CONSECUTIVAS_PARA_ABORTAR) {
-                            abortadoPorRede = true
-                            break
+                        if (ms == null && motivo == MotivoFalhaPing.SEM_REDE_OU_DNS) {
+                            falhasRedeConsecutivas++
+                            if (falhasRedeConsecutivas >= FALHAS_REDE_CONSECUTIVAS_PARA_ABORTAR) {
+                                abortadoPorRede = true
+                                break
+                            }
+                        } else {
+                            falhasRedeConsecutivas = 0
                         }
-                    } else {
-                        falhasRedeConsecutivas = 0
                     }
-                }
-            } != null
+                } != null
 
-        // Algoritmo de mediana/outlier/jitter/perda extraído para AnalisadorAmostragemPing
-        // (GH#1019) — reusado também por ExecutorSpeedtestCloudflare. Decisão de
-        // consolidação: perdaPercentual passa a manter precisão total de Double (antes
-        // era arredondado para Int aqui); sem efeito observável hoje porque os thresholds
-        // de classificação (PerfilThresholds) são mais grossos que a granularidade de
-        // uma única amostra, e a tela Ping já formata a exibição com "%.0f%%".
-        val resultado = AnalisadorAmostragemPing.analisar(bruto)
+            // Algoritmo de mediana/outlier/jitter/perda extraído para AnalisadorAmostragemPing
+            // (GH#1019) — reusado também por ExecutorSpeedtestCloudflare. Decisão de
+            // consolidação: perdaPercentual passa a manter precisão total de Double (antes
+            // era arredondado para Int aqui); sem efeito observável hoje porque os thresholds
+            // de classificação (PerfilThresholds) são mais grossos que a granularidade de
+            // uma única amostra, e a tela Ping já formata a exibição com "%.0f%%".
+            val resultado = AnalisadorAmostragemPing.analisar(bruto)
 
-        PingResultado(
-            latenciaMs = resultado.latenciaMs,
-            jitterMs = resultado.jitterMs,
-            perdaPercentual = resultado.perdaPercentual,
-            amostras = bruto.size,
-            amostrasValidas = resultado.amostrasValidas,
-            timeouts = resultado.timeouts,
-            maxMs = resultado.maxMs,
-            p95Ms = resultado.p95Ms,
-            picos = resultado.picos,
-            destino = destinoLegivel(),
-            abortadoPorRede = abortadoPorRede,
-            execucaoParcial = abortadoPorRede || !concluiuDentroDoPrazo,
-        )
-    }
+            PingResultado(
+                latenciaMs = resultado.latenciaMs,
+                jitterMs = resultado.jitterMs,
+                perdaPercentual = resultado.perdaPercentual,
+                amostras = bruto.size,
+                amostrasValidas = resultado.amostrasValidas,
+                timeouts = resultado.timeouts,
+                maxMs = resultado.maxMs,
+                p95Ms = resultado.p95Ms,
+                picos = resultado.picos,
+                destino = destinoLegivel(),
+                abortadoPorRede = abortadoPorRede,
+                execucaoParcial = abortadoPorRede || !concluiuDentroDoPrazo,
+            )
+        }
 
     private fun destinoLegivel(): String =
         runCatching { java.net.URI(targetUrl).host }.getOrNull() ?: targetUrl
@@ -152,7 +156,12 @@ class PingExecutor(
         val cb = "${System.currentTimeMillis()}_${kotlin.random.Random.nextInt(10_000, 99_999)}"
         val separador = if (targetUrl.contains("?")) "&" else "?"
         val url = "$targetUrl${separador}_cb=$cb"
-        val request = Request.Builder().url(url).get().build()
+        val request =
+            Request
+                .Builder()
+                .url(url)
+                .get()
+                .build()
         val inicio = System.nanoTime()
         return try {
             val response = pingClient.newCall(request).execute()

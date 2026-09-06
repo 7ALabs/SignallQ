@@ -4,4 +4,3 @@ enum class EstadoPermissao {
     concedida,
     negada,
 }
-

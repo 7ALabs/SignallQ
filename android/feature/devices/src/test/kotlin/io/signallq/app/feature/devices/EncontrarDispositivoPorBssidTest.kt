@@ -9,13 +9,17 @@ import org.junit.Test
  * dispositivo) usada pela tela Sinal pra abrir MeshApSheet com dado real do scan LAN.
  */
 class EncontrarDispositivoPorBssidTest {
-    private fun dispositivo(id: String, mac: String?) = DispositivoRede(
-        id = id,
-        ip = "192.168.1.50",
-        mac = mac,
-        nomeExibicao = "Dispositivo de teste",
-        fonteNome = "arp",
-    )
+    private fun dispositivo(
+        id: String,
+        mac: String?,
+    ) =
+        DispositivoRede(
+            id = id,
+            ip = "192.168.1.50",
+            mac = mac,
+            nomeExibicao = "Dispositivo de teste",
+            fonteNome = "arp",
+        )
 
     @Test
     fun `mac igual ao bssid normalizado encontra o dispositivo`() {

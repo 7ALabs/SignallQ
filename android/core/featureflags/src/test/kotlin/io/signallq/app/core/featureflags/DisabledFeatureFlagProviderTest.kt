@@ -11,7 +11,6 @@ import org.junit.Test
  * para pontos de instanciação manual fora do grafo Hilt: toda flag sempre `false`.
  */
 class DisabledFeatureFlagProviderTest {
-
     @Test
     fun `isEnabled e sempre false, para qualquer chave`() {
         assertFalse(DisabledFeatureFlagProvider.isEnabled(FeatureFlagKeys.CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED))
@@ -20,17 +19,19 @@ class DisabledFeatureFlagProviderTest {
     }
 
     @Test
-    fun `observe emite BooleanValue false com source DEFAULT`() = runTest {
-        val value = DisabledFeatureFlagProvider.observe(FeatureFlagKeys.CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED).first()
+    fun `observe emite BooleanValue false com source DEFAULT`() =
+        runTest {
+            val value = DisabledFeatureFlagProvider.observe(FeatureFlagKeys.CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED).first()
 
-        assertEquals(FeatureFlagRawValue.BooleanValue(false), value.raw)
-        assertEquals(FeatureFlagSource.DEFAULT, value.source)
-    }
+            assertEquals(FeatureFlagRawValue.BooleanValue(false), value.raw)
+            assertEquals(FeatureFlagSource.DEFAULT, value.source)
+        }
 
     @Test
-    fun `refresh nunca busca rede, devolve Success com activated false`() = runTest {
-        val result = DisabledFeatureFlagProvider.refresh() as FeatureFlagRefreshResult.Success
+    fun `refresh nunca busca rede, devolve Success com activated false`() =
+        runTest {
+            val result = DisabledFeatureFlagProvider.refresh() as FeatureFlagRefreshResult.Success
 
-        assertFalse(result.activated)
-    }
+            assertFalse(result.activated)
+        }
 }

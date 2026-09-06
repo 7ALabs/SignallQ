@@ -16,8 +16,8 @@ data class SnapshotRede(
     val metered: Boolean = false,
 ) {
     companion object {
-        fun desconectado(timestampEpochMs: Long): SnapshotRede {
-            return SnapshotRede(
+        fun desconectado(timestampEpochMs: Long): SnapshotRede =
+            SnapshotRede(
                 estadoConexao = EstadoConexao.desconectado,
                 conectado = false,
                 timestampEpochMs = timestampEpochMs,
@@ -26,6 +26,5 @@ data class SnapshotRede(
                 privateDnsHostname = null,
                 dnsServidores = emptyList(),
             )
-        }
     }
 }

@@ -1,4 +1,5 @@
 ﻿import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
+import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 import java.util.Properties
 
 plugins {
@@ -189,7 +190,7 @@ android {
             }
             // Upload automático do mapping.txt para Crashlytics acontece como dependência
             // do bundleRelease/assembleRelease quando mappingFileUploadEnabled = true.
-            firebaseCrashlytics {
+            configure<CrashlyticsExtension> {
                 mappingFileUploadEnabled = true
             }
             isMinifyEnabled = true

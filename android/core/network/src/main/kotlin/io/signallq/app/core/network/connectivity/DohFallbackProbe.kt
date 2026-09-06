@@ -43,17 +43,18 @@ class DohFallbackProbe(
     private val endpoint: String = ENDPOINT_PADRAO,
     private val timeoutMs: Long = TIMEOUT_MS_DEFAULT,
 ) : DnsProbe {
-
     // Construído uma única vez por instância (não a cada chamada de `probe`) -- OkHttpClient
     // é caro de criar (pool de conexões, dispatcher próprio). `httpClientBase` só empresta
     // configuração compartilhada (ex.: interceptors); os timeouts de fato aplicados são
     // sempre derivados de `timeoutMs`, nunca do valor fixo do cliente base -- é a causa raiz
     // da ressalva de revisão do Caio na PR #1812: antes, `timeoutMs` não configurava nada.
-    private val httpClient: OkHttpClient = httpClientBase.newBuilder()
-        .connectTimeout(timeoutMs, TimeUnit.MILLISECONDS)
-        .readTimeout(timeoutMs, TimeUnit.MILLISECONDS)
-        .callTimeout(timeoutMs, TimeUnit.MILLISECONDS)
-        .build()
+    private val httpClient: OkHttpClient =
+        httpClientBase
+            .newBuilder()
+            .connectTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+            .readTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+            .callTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+            .build()
 
     companion object {
         private const val TIMEOUT_MS_DEFAULT = 2000L
@@ -68,46 +69,51 @@ class DohFallbackProbe(
     }
 
     @OptIn(ExperimentalEncodingApi::class)
-    override suspend fun probe(hostnames: List<String>): ProbeResult = withContext(Dispatchers.IO) {
-        val hostname = hostnames.firstOrNull()
-            ?: return@withContext ProbeResult.Unavailable("nenhum hostname informado para sondagem DoH")
+    override suspend fun probe(hostnames: List<String>): ProbeResult =
+        withContext(Dispatchers.IO) {
+            val hostname =
+                hostnames.firstOrNull()
+                    ?: return@withContext ProbeResult.Unavailable("nenhum hostname informado para sondagem DoH")
 
-        val inicio = System.currentTimeMillis()
-        try {
-            val request = construirRequest(hostname)
-            httpClient.newCall(request).execute().use { response ->
-                val decorridoMs = System.currentTimeMillis() - inicio
-                if (!response.isSuccessful) {
-                    return@withContext ProbeResult.Failure(ProbeFailureReason.UNEXPECTED_RESPONSE)
-                }
-                val corpo = response.body.bytes()
+            val inicio = System.currentTimeMillis()
+            try {
+                val request = construirRequest(hostname)
+                httpClient.newCall(request).execute().use { response ->
+                    val decorridoMs = System.currentTimeMillis() - inicio
+                    if (!response.isSuccessful) {
+                        return@withContext ProbeResult.Failure(ProbeFailureReason.UNEXPECTED_RESPONSE)
+                    }
+                    val corpo = response.body.bytes()
 
-                when (validarRespostaDoh(corpo)) {
-                    DohValidationResult.VALIDA -> ProbeResult.Success(decorridoMs)
-                    DohValidationResult.NXDOMAIN, DohValidationResult.SEM_RESPOSTA ->
-                        ProbeResult.Failure(ProbeFailureReason.DNS_RESOLUTION_FAILED)
-                    DohValidationResult.MALFORMADA, DohValidationResult.OUTRO_ERRO ->
-                        ProbeResult.Failure(ProbeFailureReason.UNEXPECTED_RESPONSE)
+                    when (validarRespostaDoh(corpo)) {
+                        DohValidationResult.VALIDA -> ProbeResult.Success(decorridoMs)
+                        DohValidationResult.NXDOMAIN, DohValidationResult.SEM_RESPOSTA ->
+                            ProbeResult.Failure(ProbeFailureReason.DNS_RESOLUTION_FAILED)
+                        DohValidationResult.MALFORMADA, DohValidationResult.OUTRO_ERRO ->
+                            ProbeResult.Failure(ProbeFailureReason.UNEXPECTED_RESPONSE)
+                    }
                 }
+            } catch (_: InterruptedIOException) {
+                // SocketTimeoutException (subclasse) cobre connect/read timeout; OkHttp usa
+                // InterruptedIOException puro para estourar o callTimeout global.
+                ProbeResult.Timeout(timeoutMs)
+            } catch (_: IOException) {
+                // Falha de conexão/TLS/host inalcançável -- sem alcance ao provedor DoH.
+                ProbeResult.Failure(ProbeFailureReason.HOST_UNREACHABLE)
             }
-        } catch (_: InterruptedIOException) {
-            // SocketTimeoutException (subclasse) cobre connect/read timeout; OkHttp usa
-            // InterruptedIOException puro para estourar o callTimeout global.
-            ProbeResult.Timeout(timeoutMs)
-        } catch (_: IOException) {
-            // Falha de conexão/TLS/host inalcançável -- sem alcance ao provedor DoH.
-            ProbeResult.Failure(ProbeFailureReason.HOST_UNREACHABLE)
         }
-    }
 
     @OptIn(ExperimentalEncodingApi::class)
     private fun construirRequest(hostname: String): Request {
-        val url = endpoint.toHttpUrl()
-            .newBuilder()
-            .addQueryParameter("dns", construirDnsQueryBase64Url(hostname))
-            .build()
+        val url =
+            endpoint
+                .toHttpUrl()
+                .newBuilder()
+                .addQueryParameter("dns", construirDnsQueryBase64Url(hostname))
+                .build()
 
-        return Request.Builder()
+        return Request
+            .Builder()
             .url(url)
             .get()
             .header("accept", "application/dns-message")

@@ -13,7 +13,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class DiagnosticSnapshotMapperTest {
-
     @Test
     fun `snapshot vazio ainda manda schemaVersion e connection`() {
         val json = DiagnosticSnapshotMapper.toJson(DiagnosticInput())
@@ -27,10 +26,11 @@ class DiagnosticSnapshotMapperTest {
 
     @Test
     fun `wifi 2_4Ghz mapeia banda no formato do worker`() {
-        val input = DiagnosticInput(
-            connectionType = ConnectionType.wifi,
-            wifi = WifiDiagnosticInput(rssiDbm = -70, linkSpeedMbps = 72, frequenciaMhz = 2412),
-        )
+        val input =
+            DiagnosticInput(
+                connectionType = ConnectionType.wifi,
+                wifi = WifiDiagnosticInput(rssiDbm = -70, linkSpeedMbps = 72, frequenciaMhz = 2412),
+            )
         val json = DiagnosticSnapshotMapper.toJson(input)
 
         assertEquals("WIFI", json.getJSONObject("connection").getString("type"))
@@ -42,25 +42,28 @@ class DiagnosticSnapshotMapperTest {
 
     @Test
     fun `wifi 5Ghz mapeia banda 5_GHZ`() {
-        val input = DiagnosticInput(
-            wifi = WifiDiagnosticInput(rssiDbm = -55, linkSpeedMbps = 400, frequenciaMhz = 5180),
-        )
+        val input =
+            DiagnosticInput(
+                wifi = WifiDiagnosticInput(rssiDbm = -55, linkSpeedMbps = 400, frequenciaMhz = 5180),
+            )
         val json = DiagnosticSnapshotMapper.toJson(input)
         assertEquals("5_GHZ", json.getJSONObject("wifi").getString("band"))
     }
 
     @Test
     fun `speed e quality mapeiam metricas de internet`() {
-        val input = DiagnosticInput(
-            internet = InternetDiagnosticInput(
-                downloadMbps = 85.0,
-                uploadMbps = 20.0,
-                latencyMs = 24.0,
-                jitterMs = 4.0,
-                perdaPercentual = 0.5,
-                bufferbloatMs = 12.0,
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                internet =
+                    InternetDiagnosticInput(
+                        downloadMbps = 85.0,
+                        uploadMbps = 20.0,
+                        latencyMs = 24.0,
+                        jitterMs = 4.0,
+                        perdaPercentual = 0.5,
+                        bufferbloatMs = 12.0,
+                    ),
+            )
         val json = DiagnosticSnapshotMapper.toJson(input)
 
         val speed = json.getJSONObject("speed")
@@ -77,15 +80,17 @@ class DiagnosticSnapshotMapperTest {
 
     @Test
     fun `internet sem nenhuma metrica de velocidade marca hasInternet false e nao manda speed`() {
-        val input = DiagnosticInput(
-            internet = InternetDiagnosticInput(
-                downloadMbps = null,
-                uploadMbps = null,
-                latencyMs = null,
-                jitterMs = null,
-                perdaPercentual = null,
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                internet =
+                    InternetDiagnosticInput(
+                        downloadMbps = null,
+                        uploadMbps = null,
+                        latencyMs = null,
+                        jitterMs = null,
+                        perdaPercentual = null,
+                    ),
+            )
         val json = DiagnosticSnapshotMapper.toJson(input)
         assertFalse(json.getJSONObject("connection").getBoolean("hasInternet"))
         assertFalse(json.has("speed"))
@@ -93,12 +98,13 @@ class DiagnosticSnapshotMapperTest {
 
     @Test
     fun `dns fibra mobile e historico mapeiam quando presentes`() {
-        val input = DiagnosticInput(
-            dns = DnsDiagnosticInput(currentDnsLatencyMs = 45, currentDnsName = "Cloudflare"),
-            fibra = FibraDiagnosticInput(rxPowerDbm = -18.5, txPowerDbm = 2.1, temperatureCelsius = 45.0, isUp = true),
-            mobile = MobileDiagnosticInput(mobileTechnology = "5G", rsrpDbm = -95, rsrqDb = -10, sinrDb = 12, carrierName = "Vivo"),
-            historico = HistoricalDiagnosticInput(avgDownload7d = 80.0, testsCount7d = 5, testsCount30d = 20),
-        )
+        val input =
+            DiagnosticInput(
+                dns = DnsDiagnosticInput(currentDnsLatencyMs = 45, currentDnsName = "Cloudflare"),
+                fibra = FibraDiagnosticInput(rxPowerDbm = -18.5, txPowerDbm = 2.1, temperatureCelsius = 45.0, isUp = true),
+                mobile = MobileDiagnosticInput(mobileTechnology = "5G", rsrpDbm = -95, rsrqDb = -10, sinrDb = 12, carrierName = "Vivo"),
+                historico = HistoricalDiagnosticInput(avgDownload7d = 80.0, testsCount7d = 5, testsCount30d = 20),
+            )
         val json = DiagnosticSnapshotMapper.toJson(input)
 
         assertEquals(45, json.getJSONObject("dns").getInt("latencyMs"))
@@ -115,12 +121,18 @@ class DiagnosticSnapshotMapperTest {
 
     @Test
     fun `gateway rtt mapeia quando presente no internet input`() {
-        val input = DiagnosticInput(
-            internet = InternetDiagnosticInput(
-                downloadMbps = 50.0, uploadMbps = 10.0, latencyMs = 20.0, jitterMs = 2.0,
-                perdaPercentual = 0.0, rttGatewayMs = 8,
-            ),
-        )
+        val input =
+            DiagnosticInput(
+                internet =
+                    InternetDiagnosticInput(
+                        downloadMbps = 50.0,
+                        uploadMbps = 10.0,
+                        latencyMs = 20.0,
+                        jitterMs = 2.0,
+                        perdaPercentual = 0.0,
+                        rttGatewayMs = 8,
+                    ),
+            )
         val json = DiagnosticSnapshotMapper.toJson(input)
         assertEquals(8, json.getJSONObject("gateway").getInt("rttMs"))
     }

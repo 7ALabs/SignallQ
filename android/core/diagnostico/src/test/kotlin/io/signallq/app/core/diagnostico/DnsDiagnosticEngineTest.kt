@@ -12,7 +12,6 @@ import org.junit.Test
  * DNS-REC-01 (ver PR #1851, achado do Caio).
  */
 class DnsDiagnosticEngineTest {
-
     @Test
     fun `dns over 150ms generates attention`() {
         val input =
@@ -154,4 +153,3 @@ class DnsDiagnosticEngineTest {
         assertFalse(r.any { it.id == "DNS-REC-01" })
     }
 }
-

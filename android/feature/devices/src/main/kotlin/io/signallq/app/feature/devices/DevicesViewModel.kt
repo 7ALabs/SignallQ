@@ -8,8 +8,8 @@ import io.signallq.app.core.database.SignallQDatabase
 import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.core.network.DispatcherProvider
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.map
@@ -111,7 +111,11 @@ class DevicesViewModel
 
                     val dispositivosAtuais = scannerDispositivos.snapshotFlow.value.dispositivos
                     val macsConhecidosRoom =
-                        bancoDados.apelidoDispositivoDao().buscarTodos().map { it.mac }.toSet()
+                        bancoDados
+                            .apelidoDispositivoDao()
+                            .buscarTodos()
+                            .map { it.mac }
+                            .toSet()
                     val identidadesConhecidas =
                         preferenciasAppRepository.buscarDispositivosConhecidos().toMutableSet()
 

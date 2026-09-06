@@ -5,6 +5,12 @@
       "Bash(gh pr merge *)"
     ]
   },
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Bash(gh pr merge *)"
+    ]
+  },
   "hooks": {
     "PostToolUse": [
       {

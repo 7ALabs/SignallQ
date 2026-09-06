@@ -5,7 +5,6 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class NdsProfileCapabilitiesMapperTest {
-
     @Test
     fun `profile e gamer dentro do fluxo Modo Gamer`() {
         assertEquals("gamer", ndsProfile(dentroDoModoGamer = true))
@@ -112,20 +111,22 @@ class NdsProfileCapabilitiesMapperTest {
 
     @Test
     fun `sobrecarga com bloco localEquipment real deriva incluiLocalEquipment de nulidade`() {
-        val comLocalEquipment = ndsCapabilities(
-            wifi = null,
-            fiber = null,
-            localEquipment = NdsLocalEquipmentInfo(
-                deviceType = "ONT_GPON",
-                supportLevel = "LAB_VALIDATED",
-                connectionStatus = "OK",
-                fiberStatus = "OK",
-                wanStatus = "OK",
-                wifiStatus = "OK",
-                lanStatus = "OK",
-                connectedClients = 7,
-            ),
-        )
+        val comLocalEquipment =
+            ndsCapabilities(
+                wifi = null,
+                fiber = null,
+                localEquipment =
+                    NdsLocalEquipmentInfo(
+                        deviceType = "ONT_GPON",
+                        supportLevel = "LAB_VALIDATED",
+                        connectionStatus = "OK",
+                        fiberStatus = "OK",
+                        wanStatus = "OK",
+                        wifiStatus = "OK",
+                        lanStatus = "OK",
+                        connectedClients = 7,
+                    ),
+            )
         val semLocalEquipment = ndsCapabilities(wifi = null, fiber = null, localEquipment = null)
 
         assertEquals(listOf("scoring", "ai", "local_equipment"), comLocalEquipment)

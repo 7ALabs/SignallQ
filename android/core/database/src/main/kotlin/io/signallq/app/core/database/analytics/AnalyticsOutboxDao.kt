@@ -11,13 +11,20 @@ interface AnalyticsOutboxDao {
     suspend fun enqueue(event: AnalyticsOutboxEntity): Long
 
     @Query("SELECT * FROM analytics_outbox WHERE nextAttemptAtEpochMs <= :nowEpochMs ORDER BY createdAtEpochMs LIMIT :limit")
-    suspend fun due(nowEpochMs: Long, limit: Int): List<AnalyticsOutboxEntity>
+    suspend fun due(
+        nowEpochMs: Long,
+        limit: Int,
+    ): List<AnalyticsOutboxEntity>
 
     @Query("DELETE FROM analytics_outbox WHERE id = :id")
     suspend fun acknowledge(id: String): Int
 
     @Query("UPDATE analytics_outbox SET attemptCount = :attemptCount, nextAttemptAtEpochMs = :nextAttemptAtEpochMs WHERE id = :id")
-    suspend fun defer(id: String, attemptCount: Int, nextAttemptAtEpochMs: Long): Int
+    suspend fun defer(
+        id: String,
+        attemptCount: Int,
+        nextAttemptAtEpochMs: Long,
+    ): Int
 
     @Query("DELETE FROM analytics_outbox")
     suspend fun clear()

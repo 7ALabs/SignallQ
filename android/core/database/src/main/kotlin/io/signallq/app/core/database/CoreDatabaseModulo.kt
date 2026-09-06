@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+
 object CoreDatabaseModulo {
     private val migracao1para2 =
         object : Migration(1, 2) {
@@ -320,12 +321,13 @@ object CoreDatabaseModulo {
             }
         }
 
-    fun criarBanco(context: Context): SignallQDatabase {
-        return Room.databaseBuilder(
-            context.applicationContext,
-            SignallQDatabase::class.java,
-            "linkaKotlin.db",
-        ).addMigrations(migracao1para2)
+    fun criarBanco(context: Context): SignallQDatabase =
+        Room
+            .databaseBuilder(
+                context.applicationContext,
+                SignallQDatabase::class.java,
+                "linkaKotlin.db",
+            ).addMigrations(migracao1para2)
             .addMigrations(migracao2para3)
             .addMigrations(migracao3para4)
             .addMigrations(migracao4para5)
@@ -345,6 +347,4 @@ object CoreDatabaseModulo {
             .addMigrations(MIGRATION_18_19)
             .addMigrations(MIGRATION_19_20)
             .build()
-    }
-
 }

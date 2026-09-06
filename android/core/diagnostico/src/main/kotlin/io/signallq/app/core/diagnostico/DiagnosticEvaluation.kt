@@ -105,7 +105,9 @@ data class DiagnosticEvaluationFinding(
 )
 
 /** Espelha `DiagnosticResult.evaluationSource` (`contracts.ts:162`). */
-enum class DiagnosticEvaluationSource(val wireValue: String) {
+enum class DiagnosticEvaluationSource(
+    val wireValue: String,
+) {
     REMOTE("REMOTE"),
     CACHED_LOCAL("CACHED_LOCAL"),
     BUNDLED_LOCAL("BUNDLED_LOCAL"),
@@ -122,7 +124,9 @@ enum class DiagnosticEvaluationSource(val wireValue: String) {
  * (5 valores, achado individual local) nem com `MetricStatus` (6 valores,
  * classificador de metrica).
  */
-enum class DiagnosticEvaluationStatus(val wireValue: String) {
+enum class DiagnosticEvaluationStatus(
+    val wireValue: String,
+) {
     OK("OK"),
     ATTENTION("ATTENTION"),
     CRITICAL("CRITICAL"),
@@ -135,7 +139,9 @@ enum class DiagnosticEvaluationStatus(val wireValue: String) {
 }
 
 /** Espelha `confidence` em `DiagnosticResult` e `DiagnosticFinding` (`contracts.ts:165` e `:141`). */
-enum class DiagnosticEvaluationConfidence(val wireValue: String) {
+enum class DiagnosticEvaluationConfidence(
+    val wireValue: String,
+) {
     LOW("LOW"),
     MEDIUM("MEDIUM"),
     HIGH("HIGH"),
@@ -147,7 +153,9 @@ enum class DiagnosticEvaluationConfidence(val wireValue: String) {
 }
 
 /** Espelha `DiagnosticFinding.severity` (`contracts.ts:140`). */
-enum class DiagnosticEvaluationSeverity(val wireValue: String) {
+enum class DiagnosticEvaluationSeverity(
+    val wireValue: String,
+) {
     INFO("INFO"),
     WARNING("WARNING"),
     ERROR("ERROR"),
@@ -164,7 +172,9 @@ enum class DiagnosticEvaluationSeverity(val wireValue: String) {
  * hifen no contrato (`"wifi-canal"`), quebrando a transformacao automatica
  * UPPER_SNAKE_CASE -> snake_case que os demais valores permitiriam.
  */
-enum class DiagnosticEvaluationFindingCategory(val wireValue: String) {
+enum class DiagnosticEvaluationFindingCategory(
+    val wireValue: String,
+) {
     INTERNET("internet"),
     WIFI("wifi"),
     DNS("dns"),
@@ -184,7 +194,9 @@ enum class DiagnosticEvaluationFindingCategory(val wireValue: String) {
  * Espelha `DiagnosticFlowCode` (`contracts.ts:147`) -- fluxo de causa-raiz
  * apontado por [DiagnosticEvaluation.primaryFlow]/[DiagnosticEvaluation.secondaryFlows].
  */
-enum class DiagnosticEvaluationFlow(val wireValue: String) {
+enum class DiagnosticEvaluationFlow(
+    val wireValue: String,
+) {
     ISP_EXTERNO("isp_externo"),
     WIFI_LOCAL("wifi_local"),
     DNS("dns"),

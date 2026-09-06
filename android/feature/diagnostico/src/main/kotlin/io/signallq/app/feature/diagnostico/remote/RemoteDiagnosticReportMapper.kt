@@ -44,10 +44,13 @@ import org.json.JSONObject
  *   se beneficiam de vir do servidor.
  */
 internal object RemoteDiagnosticReportMapper {
-
-    fun toDiagnosticReport(payload: JSONObject, geradoEmMs: Long): DiagnosticReport {
-        val decisaoJson = payload.optJSONObject("decisao")
-            ?: error("payload remoto sem campo 'decisao' obrigatorio")
+    fun toDiagnosticReport(
+        payload: JSONObject,
+        geradoEmMs: Long,
+    ): DiagnosticReport {
+        val decisaoJson =
+            payload.optJSONObject("decisao")
+                ?: error("payload remoto sem campo 'decisao' obrigatorio")
 
         return DiagnosticReport(
             wifiResultados = resultsFrom(payload.optJSONArray("wifiResultados")),
@@ -74,25 +77,27 @@ internal object RemoteDiagnosticReportMapper {
         )
     }
 
-    private fun statusFrom(raw: String?): DiagnosticStatus = when (raw) {
-        "ok" -> DiagnosticStatus.ok
-        "info" -> DiagnosticStatus.info
-        "attention" -> DiagnosticStatus.attention
-        "critical" -> DiagnosticStatus.critical
-        else -> DiagnosticStatus.inconclusive
-    }
+    private fun statusFrom(raw: String?): DiagnosticStatus =
+        when (raw) {
+            "ok" -> DiagnosticStatus.ok
+            "info" -> DiagnosticStatus.info
+            "attention" -> DiagnosticStatus.attention
+            "critical" -> DiagnosticStatus.critical
+            else -> DiagnosticStatus.inconclusive
+        }
 
-    private fun resultFrom(o: JSONObject): DiagnosticResult = DiagnosticResult(
-        id = o.optString("id", ""),
-        titulo = o.optString("titulo", ""),
-        status = statusFrom(o.optStringOrNull("status")),
-        evidencia = o.optStringOrNull("evidencia"),
-        mensagemUsuario = o.optString("mensagemUsuario", ""),
-        recomendacao = o.optStringOrNull("recomendacao"),
-        categoria = o.optString("categoria", ""),
-        podeConcluir = o.optBoolean("podeConcluir", false),
-        categoriaOrigem = o.optStringOrNull("categoriaOrigem"),
-    )
+    private fun resultFrom(o: JSONObject): DiagnosticResult =
+        DiagnosticResult(
+            id = o.optString("id", ""),
+            titulo = o.optString("titulo", ""),
+            status = statusFrom(o.optStringOrNull("status")),
+            evidencia = o.optStringOrNull("evidencia"),
+            mensagemUsuario = o.optString("mensagemUsuario", ""),
+            recomendacao = o.optStringOrNull("recomendacao"),
+            categoria = o.optString("categoria", ""),
+            podeConcluir = o.optBoolean("podeConcluir", false),
+            categoriaOrigem = o.optStringOrNull("categoriaOrigem"),
+        )
 
     private fun resultsFrom(arr: JSONArray?): List<DiagnosticResult> {
         if (arr == null) return emptyList()
@@ -117,7 +122,10 @@ internal object RemoteDiagnosticReportMapper {
     /** Ver kdoc da classe — dimensoes remotas nao usam a taxonomia local, mas o
      *  score final e o `dadosAusentes` (aproximado pelo do relatorio) sao dado
      *  real, nao fabricado. */
-    private fun scoreResultFrom(scoreJson: JSONObject?, reportJson: JSONObject): ScoreResult? {
+    private fun scoreResultFrom(
+        scoreJson: JSONObject?,
+        reportJson: JSONObject,
+    ): ScoreResult? {
         if (scoreJson == null) return null
         val score = if (scoreJson.has("score") && !scoreJson.isNull("score")) scoreJson.optInt("score") else null
         val dimensoesJson = scoreJson.optJSONArray("dimensoes")

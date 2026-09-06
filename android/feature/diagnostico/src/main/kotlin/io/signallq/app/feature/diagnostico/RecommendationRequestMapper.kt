@@ -24,7 +24,6 @@ import io.signallq.app.core.recommendation.RecommendationRequest
  * da camada Room introduzida na issue #812, que passa a lista real para [map].
  */
 object RecommendationRequestMapper {
-
     fun map(
         report: DiagnosticReport,
         input: DiagnosticInput,
@@ -32,28 +31,30 @@ object RecommendationRequestMapper {
         history: List<RecommendationHistoryEntry> = emptyList(),
         flags: RecommendationFlags = RecommendationFlags(),
         diagnosticId: String? = null,
-    ): RecommendationRequest = RecommendationRequest(
-        tags = mapTags(report),
-        network = mapNetworkContext(input.connectionType),
-        metrics = mapMetrics(input),
-        isp = isp,
-        device = mapDeviceContext(input),
-        history = history,
-        flags = flags,
-        diagnosticId = diagnosticId,
-    )
+    ): RecommendationRequest =
+        RecommendationRequest(
+            tags = mapTags(report),
+            network = mapNetworkContext(input.connectionType),
+            metrics = mapMetrics(input),
+            isp = isp,
+            device = mapDeviceContext(input),
+            history = history,
+            flags = flags,
+            diagnosticId = diagnosticId,
+        )
 
     /** Reusa o mesmo [ConnectionType] ja detectado por [InternetDiagnosticEngine]/[DiagnosticRunner]
      *  -- nao duplica deteccao de tipo de conexao (criterio de aceite da #811). */
-    fun mapNetworkContext(connectionType: ConnectionType): NetworkContextType = when (connectionType) {
-        ConnectionType.wifi -> NetworkContextType.WIFI
-        ConnectionType.mobile -> NetworkContextType.MOVEL
-        ConnectionType.ethernet -> NetworkContextType.ETHERNET
-        // Sem tipo de conexao definido (desconectado/desconhecido) nao ha um NetworkContextType
-        // dedicado no engine; WIFI e o contexto mais comum e nao filtra recomendacoes universais
-        // (candidate.applicableNetworkTypes vazio passa em qualquer contexto).
-        ConnectionType.desconectado, ConnectionType.desconhecido -> NetworkContextType.WIFI
-    }
+    fun mapNetworkContext(connectionType: ConnectionType): NetworkContextType =
+        when (connectionType) {
+            ConnectionType.wifi -> NetworkContextType.WIFI
+            ConnectionType.mobile -> NetworkContextType.MOVEL
+            ConnectionType.ethernet -> NetworkContextType.ETHERNET
+            // Sem tipo de conexao definido (desconectado/desconhecido) nao ha um NetworkContextType
+            // dedicado no engine; WIFI e o contexto mais comum e nao filtra recomendacoes universais
+            // (candidate.applicableNetworkTypes vazio passa em qualquer contexto).
+            ConnectionType.desconectado, ConnectionType.desconhecido -> NetworkContextType.WIFI
+        }
 
     private fun mapMetrics(input: DiagnosticInput): DiagnosticMetrics {
         val internet = input.internet
@@ -92,15 +93,16 @@ object RecommendationRequestMapper {
      * REC-04, nao tem regra dedicada so pra "muitos dispositivos").
      */
     private fun mapTags(report: DiagnosticReport): Set<DiagnosticTag> {
-        val ids = (
-            report.wifiResultados +
-                report.internetResultados +
-                report.mobileResultados +
-                report.dnsResultados +
-                report.historicoResultados +
-                report.wifiCanalResultados +
-                report.redeResultados +
-                listOf(report.decisao)
+        val ids =
+            (
+                report.wifiResultados +
+                    report.internetResultados +
+                    report.mobileResultados +
+                    report.dnsResultados +
+                    report.historicoResultados +
+                    report.wifiCanalResultados +
+                    report.redeResultados +
+                    listOf(report.decisao)
             ).map { it.id }.toSet()
 
         val recIds = report.recomendacoes.map { it.id }.toSet()

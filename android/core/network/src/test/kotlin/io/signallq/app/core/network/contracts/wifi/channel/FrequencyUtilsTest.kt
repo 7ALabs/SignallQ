@@ -6,7 +6,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FrequencyUtilsTest {
-
     // ── freqToChannel ───────────────────────────────────────────────────────────
 
     @Test
