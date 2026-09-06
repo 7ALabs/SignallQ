@@ -1,0 +1,6 @@
+# Configuração local do Codex para o SignallQ.
+# AGENTS.md é a autoridade de governança do repositório.
+
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 5
