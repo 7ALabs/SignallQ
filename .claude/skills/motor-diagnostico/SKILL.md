@@ -1,132 +1,100 @@
 ---
 name: motor-diagnostico
-description: Use para diagnóstico de rede, speedtest (download/upload/latência/jitter/perda), IA de diagnóstico e revisão da jornada do usuário no fluxo de diagnóstico do SignallQ.
+description: Procedimento para analisar e alterar diagnóstico, speedtest, Wi-Fi/DNS e IA do SignallQ sem duplicar engine, threshold ou fonte de verdade.
 ---
 
-Skill consolidada para tudo que envolve o diagnóstico do SignallQ: o motor (engine/orchestrator/use cases), o fluxo de speedtest e a jornada do usuário. Cobre Wi-Fi, DNS, latência, jitter, perda de pacotes, IA de diagnóstico e fluxo guiado.
+# Motor de diagnóstico
 
-Thresholds de qualidade e padrões técnicos brasileiros: consulte sempre `/regras-diagnostico-rede`. **Não duplicar thresholds aqui.**
+Use em mudanças que afetem diagnóstico, speedtest, Wi-Fi, DNS, latência, jitter, perda, equipamentos ou IA de diagnóstico.
 
-Agentes recomendados por fase (squad canônico de 3 — ver ADR-016; **Dono:** Camilo, invocada
-durante implementação de diagnóstico/speedtest. **Modelo sugerido:** Opus quando toca o motor de
-classificação/orchestrator — risco de regressão ampla; Sonnet para mudança isolada de UI de estado):
-- **Claudete** — planeja e mapeia impacto
-- **`/regras-android`** — valida comportamento real em device (DNS, Wi-Fi, NetworkCallback, OEM quirks)
-- **Camilo** — implementa Android
-- **`/design-check`** — valida impacto visual e estados de UI da jornada (Juliana virou skill, não agente — ver ADR-016)
-- **Caio** — revisão independente final
+A skill orienta o procedimento. O roteamento de agentes vem do `AGENTS.md`.
 
----
+## 1. Antes de propor mudança
 
-## 1. Motor / Engine
+Localize no código:
 
-### Checkpoint de engine existente — OBRIGATÓRIO antes de criar
-Antes de propor nova engine, orchestrator ou use case de diagnóstico:
-1. `Grep` por "Engine", "Orchestrator", "UseCase", "Decision" nos módulos `:featureDiagnostico`, `:featureSpeedtest`, `:featureWifi`, `:featureDns`
-2. Liste as engines encontradas
-3. Confirme que não existe engine equivalente — não crie duplicata
-4. Se engine existente cobrir >70% do caso, prefira estender a criar nova
+- modelos de entrada e saída;
+- engine/orchestrator/use case/classifier existentes;
+- thresholds e regras determinísticas atuais;
+- persistência relacionada;
+- Worker/API/contrato consumido;
+- testes que caracterizam o comportamento.
 
-### Gatilho `/regras-android` — OBRIGATÓRIO
-Se a tarefa envolver qualquer um destes, **consultar `/regras-android` é obrigatório**:
-- DNS real (não mock) — resolução, servidores, privateDns
-- Wi-Fi scan, RSSI, frequência, padrão de conexão, NetworkCapabilities
-- NetworkCallback, ConnectivityManager
-- Comportamento de rede em background/Doze mode
-- Restrições de permissão (ACCESS_FINE_LOCATION para Wi-Fi)
+Antes de criar engine nova, faça inventário em módulos relacionados. Se uma implementação existente cobre a maior parte do caso, prefira estender com responsabilidade clara.
 
-→ Invocar `/regras-android` antes de Camilo implementar.
+## 2. Três camadas que não podem se misturar
 
-`[PRÓXIMO: /regras-android — task envolve [DNS/Wi-Fi/NetworkCallback], validação obrigatória antes de Camilo]`
+Todo diagnóstico deve distinguir:
 
-### Regras obrigatórias do motor
-1. Localize os modelos de entrada e saída do diagnóstico antes de propor mudança.
-2. Localize engines, orchestrators, use cases e decision engines existentes.
-3. Identifique thresholds atuais (em `/regras-diagnostico-rede`) antes de propor novos valores.
-4. Separe claramente: coleta de dados → classificação técnica → mensagem ao usuário.
-5. A resposta final ao usuário deve conter ação prática, não só explicação.
-6. Preserve compatibilidade entre diagnóstico inicial automático e complementos posteriores.
-7. Não rode novo speedtest em complemento de contexto se já houver resultado salvo — salvo pedido explícito.
-8. Quando faltar contexto, gere perguntas guiadas em vez de adivinhar.
-9. Não esconda etapas de coleta — a UI deve refletir o que está acontecendo: `coletando dados`, `testando download`, `analisando estabilidade` ou similar.
+1. **fato medido/coletado**;
+2. **inferência determinística reproduzível**;
+3. **interpretação de IA**.
 
----
+Regras:
 
-## 2. Fluxo de Speedtest
+- IA não substitui regra determinística confiável;
+- ausência de dado não é zero;
+- timeout/erro não é sucesso;
+- causa raiz exige evidência suficiente;
+- threshold tem fonte canônica única;
+- resposta ao usuário deve ser sustentada pelas evidências disponíveis;
+- quando a evidência é insuficiente, declare incerteza ou peça contexto em vez de adivinhar.
 
-Antes de implementar ou alterar qualquer parte do fluxo de speedtest no Android (`:featureSpeedtest`, `:coreNetwork`).
+Para thresholds e padrões técnicos, consulte `regras-diagnostico-rede` em vez de duplicar valores nesta skill.
 
-### Arquitetura do fluxo
+## 3. Gatilhos Android
+
+Consulte `regras-android` quando envolver:
+
+- DNS real/private DNS;
+- Wi-Fi scan, RSSI, frequência ou NetworkCapabilities;
+- ConnectivityManager/NetworkCallback;
+- permissão Android;
+- background/Doze;
+- dado que varia por API level/OEM.
+
+## 4. Gate arquitetural
+
+Se a mudança atravessar módulos com alteração de responsabilidade, criar/alterar API, ligar app↔Worker, mudar contrato compartilhado, migrar persistência ou alterar estruturalmente o motor central, o gate de Camillo é obrigatório antes da implementação.
+
+Use `.agents/architecture-plan.md` para registrar a decisão.
+
+## 5. Speedtest
+
+Ao tocar o fluxo de speedtest:
+
+- preserve execução fora da Main thread;
+- trate cancelamento, timeout e perda de conectividade;
+- não reporte amostra incompleta como medição concluída;
+- diferencie valor zero real de fase não medida;
+- mantenha estado de UI coerente com o estado real do motor;
+- persista apenas o que o contrato atual considerar resultado válido;
+- adicione teste de regressão quando mudar cálculo, estado ou classificação.
+
+Não fixe nesta skill uma sequência de classes se o código atual tiver evoluído; confirme a arquitetura real antes.
+
+## 6. IA de diagnóstico
+
+Antes de alterar prompt/contexto/Worker:
+
+- liste todas as evidências enviadas;
+- identifique quais já foram classificadas deterministicamente;
+- confirme o contrato de entrada/saída;
+- preserve fallback quando IA estiver indisponível;
+- impeça que a resposta contradiga fatos medidos ou regras determinísticas;
+- não exponha segredo no app.
+
+## Saída esperada
+
+```text
+Impacto no fluxo:
+Implementação existente encontrada:
+Regras/thresholds relevantes:
+Gate Camillo: SIM/NÃO — motivo
+Plano de alteração:
+Riscos de regressão:
+Testes necessários:
+Evidências/limitações:
 ```
-UI (SpeedtestScreen) → SpeedtestViewModel → SpeedtestUseCase → NetworkEngine → Results
-```
-- ViewModel expõe `StateFlow<SpeedtestUiState>` — nunca valores crus.
-- Engine roda em `Dispatchers.IO` — nunca na Main thread.
-- Resultados persistidos no Room (`:coreDatabase`) após conclusão.
 
-### Estados obrigatórios da UI
-| Estado | O que exibir |
-|---|---|
-| Idle | Botão de início, última medição |
-| Preparing | "Preparando teste..." + spinner |
-| DownloadRunning | Velocidade atual em tempo real + barra de progresso |
-| UploadRunning | Velocidade atual em tempo real + barra de progresso |
-| LatencyRunning | "Medindo latência..." |
-| Completed | Resultado completo (down/up/ping/jitter/loss) |
-| Error | Mensagem do erro + botão retry |
-
-### Métricas obrigatórias
-| Métrica | Unidade | Precisão |
-|---|---|---|
-| Download | Mbps | 2 casas decimais |
-| Upload | Mbps | 2 casas decimais |
-| Latência | ms | inteiro |
-| Jitter | ms | 1 casa decimal |
-| Perda de pacotes | % | 1 casa decimal |
-
-Thresholds de resultado (Brasil): consulte `/regras-diagnostico-rede`.
-
-### Anti-padrões
-- Bloquear Main thread durante medição.
-- Exibir Mbps em vez de Mbps/s durante medição em tempo real.
-- Salvar resultado parcial no banco (apenas resultado final completo).
-- Omitir estado de erro — sempre oferecer retry.
-- Calcular jitter sem mínimo de 10 amostras.
-
----
-
-## 3. Jornada do Usuário
-
-Ao modificar qualquer parte do fluxo de diagnóstico, revise pela perspectiva do usuário. Rode
-`/design-check` na tela/estado afetado quando o fluxo tem impacto visual.
-
-### Passos
-1. Mapear estados do fluxo atual: idle → iniciando → coletando → analisando → resultado.
-2. Verificar transições: cada estado tem microcopy claro e duração previsível.
-3. Verificar o resultado: o usuário entende o problema e sabe o que fazer.
-4. Verificar fallbacks: o que acontece se o diagnóstico falha ou fica incompleto.
-
-### Checklist
-- [ ] Cada estado de loading comunica o que está acontecendo.
-- [ ] Resultado explica o problema em linguagem não-técnica.
-- [ ] Resultado oferece ação clara (não só "seu sinal está fraco").
-- [ ] Estado de erro explica o que falhou e o que o usuário pode tentar.
-- [ ] Animações de progresso não bloqueiam leitura de informação.
-
----
-
-## Entregue
-1. **Diagnóstico do impacto** — o que a tarefa afeta no fluxo atual
-2. **Engines existentes encontradas** — lista com caminhos reais
-3. **Regras existentes** — thresholds (de `/regras-diagnostico-rede`) e lógicas atuais relevantes
-4. **Plano de alteração** — passos ordenados e seguros
-5. **Riscos** — o que pode regredir no diagnóstico ou na experiência do usuário
-6. **Testes necessários** — cenários de rede que devem ser validados
-7. **Avaliação da jornada** — por estado, com problemas encontrados e sugestão de melhoria
-
----
-
-## Limites
-- Esta skill orienta, não implementa. Implementação → Camilo.
-
-[PRÓXIMO: /regras-diagnostico-rede (thresholds) | /regras-android (se domínio crítico) | Claudete (planejamento) | Camilo (implementação)]
+Esta skill não faz deploy e não autoriza ampliar o diagnóstico além do comportamento definido por produto.
