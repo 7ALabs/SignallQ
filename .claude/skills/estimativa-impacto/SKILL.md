@@ -1,156 +1,73 @@
 ---
 name: estimativa-impacto
-description: Framework executável para avaliar tamanho, risco e milestone de uma issue antes do breakdown em tasks. Produz uma linha de decisão: tamanho + risco + milestone + recomendação.
+description: Avalia tamanho, risco, dependências e necessidade de gate arquitetural antes da execução de uma mudança do SignallQ.
+argument-hint: "<issue-ou-descrição>"
 ---
 
-**Dono:** Claudete invoca ao decompor issue. **Modelo sugerido:** Sonnet — framework mecânico de
-pontuação, não precisa de raciocínio profundo.
+# Estimativa de impacto
 
-Avalie o impacto da issue abaixo antes de qualquer breakdown:
+Use antes de decompor feature média/grande ou quando não estiver claro se uma mudança pode seguir no fluxo comum.
 
-$ARGUMENTS
+Não use datas ou milestones hardcoded como fonte de verdade; consulte o estado atual do projeto/GitHub quando prazo for relevante.
 
----
+## 1. Tamanho
 
-## Passo 1 — Classificação de Tamanho
+Classifique pelo impacto real:
 
-Responda cada critério com SIM ou NÃO e some os pontos.
+- **Pequena** — uma responsabilidade local, reversível, sem contrato externo.
+- **Média** — mais de uma área local ou comportamento relevante, mas dentro da arquitetura existente.
+- **Grande** — mudança ampla, migração, fluxo crítico ou alto custo de regressão.
+- **Sistêmica** — aciona pelo menos um gate arquitetural do `AGENTS.md`.
 
-| Critério | Peso |
-|---|---|
-| Toca 1 módulo Gradle | 0 |
-| Toca 2–3 módulos Gradle | +1 |
-| Toca 4+ módulos Gradle | +2 |
-| Toca `AppShell.kt` (navegação raiz) | +2 |
-| Toca `AppModule.kt` ou `DiagnosticoModule.kt` (DI global) | +2 |
-| Requer migration de schema Room | +3 |
-| Requer mudança no Worker Cloudflare (`linka-ai-diagnosis-worker`) | +2 |
-| Adiciona permissão nova no Android | +2 |
-| Envolve mudança de contrato de API pública (Worker ou endpoint) | +2 |
+Contagem de arquivos/módulos é sinal, não regra automática.
 
-**Escala:**
+## 2. Risco
 
-| Pontos | Tamanho | Modo de operação |
-|---|---|---|
-| 0–1 | Pequena | Piloto automático |
-| 2–4 | Média | Planejar, executar, registrar |
-| 5–8 | Grande | Propor plano, pedir aprovação antes |
-| 9+ ou qualquer critério sensível | Sensível | Parar — escalar para o Luiz |
+Avalie:
 
-**Critérios que tornam Sensível automaticamente (independente de pontos):**
-- Mudança de package (`io.signallq.app`)
-- Mudança de marca ou rebrand
-- Custo novo ou integração paga
-- Publicação em loja (Play Console)
-- Exclusão destrutiva irreversível
+- critério de aceite está claro?
+- comportamento atual foi confirmado no código?
+- toca diagnóstico central/speedtest?
+- toca Room, persistência ou migration?
+- toca Worker/API/contrato?
+- muda permissão/API Android/background?
+- altera threshold, métrica ou cálculo?
+- mexe em dado sensível/autenticação?
+- cria custo recorrente?
+- depende de outro repositório/issue?
+- existe teste que caracteriza o comportamento?
 
----
+Classifique `Baixo`, `Médio`, `Alto` ou `Crítico` e cite evidências.
 
-## Passo 2 — Mapeamento de Risco
+## 3. Gate Camillo
 
-Responda cada pergunta. Qualquer NÃO é um risco ativo — registre e decida antes de executar.
+Marque `SIM` quando houver qualquer gatilho arquitetural do `AGENTS.md`, incluindo API, integração, contrato compartilhado, mudança estrutural entre módulos, migração sistêmica, novo serviço ou segurança sistêmica.
 
-**Definição**
-- [ ] Tem critério de aceite claro e verificável?
-  - NÃO → refinar antes de estimar. Não avançar.
-- [ ] Existe direção de design validada (se a issue tem impacto visual)? Rode `/design-check` no
-  componente/tela mais próxima como referência, ou peça a Claudete para validar.
-  - NÃO → bloquear até ter. Consultar `/SignallQ-design` como referência enquanto aguarda.
+Se `SIM`, a implementação espera Architecture Plan/revisão do Camillo.
 
-**Arquitetura**
-- [ ] Afeta `DiagnosticOrchestrator` ou o fluxo central de diagnóstico?
-  - SIM → risco ALTO. Adicionar task de smoke test pós-merge.
-- [ ] Afeta persistência Room (schema, DAO, queries)?
-  - SIM → risco de migration. Verificar versão atual do banco (`SignallQDatabase`, versão 10) e planejar migration explícita.
-- [ ] Afeta `MonitoramentoWorker` (background, alarme, WorkManager)?
-  - SIM → risco de comportamento silencioso. Testar em device real com Doze Mode.
+## 4. Especialistas prováveis
 
-**Infra e Custo**
-- [ ] Afeta o AI Worker Cloudflare (`linka-ai-diagnosis-worker`)?
-  - SIM → risco de custo (modelo Qwen3 30B). Estimar volume de chamadas antes de implementar. Fazer `npx wrangler deploy` ANTES do commit.
-- [ ] Adiciona permissão nova no Android?
-  - SIM → verificar `/regras-android` para restrições de API level e Play Store.
+- produto/jornada: Cora;
+- Android: Davi;
+- diagnóstico/Workers: Ramon;
+- arquitetura sistêmica: Camillo;
+- qualidade: Breno.
 
-**Qualidade**
-- [ ] Tem cobertura de teste unitário prevista ou já existente?
-  - NÃO → adicionar ao escopo da issue antes de fechar estimativa. Ver cobertura real em `android/*/src/test/`.
-- [ ] Há dependência de outra issue em andamento (bloqueio cruzado)?
-  - SIM → registrar dependência na issue do GitHub antes de iniciar.
+Liste apenas quem realmente agrega valor.
 
-**Nível de Risco Consolidado:**
+## Saída
 
-| Resultado | Nível |
-|---|---|
-| Todos SIM, sem afetação de componentes críticos | Baixo |
-| 1–2 NÃO ou afeta 1 componente crítico | Médio |
-| 3+ NÃO ou afeta DiagnosticOrchestrator ou Room migration | Alto |
-| Qualquer critério Sensível acionado | Crítico — escalar |
+```text
+IMPACTO: Pequena|Média|Grande|Sistêmica
+RISCO: Baixo|Médio|Alto|Crítico
+GATE CAMILLO: SIM|NÃO — motivo
+RESPONSÁVEIS: ...
+RECOMENDAÇÃO: explorar | refinar | executar | arquitetar antes | adiar
 
----
-
-## Passo 3 — Cruzamento com Milestone
-
-Datas de referência (hoje: verificar `currentDate` no contexto):
-
-| Milestone | Data alvo |
-|---|---|
-| M0 — Fundação e Setup | 27/06/2026 |
-| M1 — App pronto para Beta | 17/07/2026 |
-| M2 — Beta Fechado | 31/07/2026 |
-| M3 — Lançamento Play Store | 07/08/2026 |
-
-**Regra de capacidade por tamanho:**
-
-| Tamanho | Dias úteis estimados | Cabe em M1 se iniciada até | Cabe em M2 se iniciada até |
-|---|---|---|---|
-| Pequena | 1–2 | 15/07/2026 | 29/07/2026 |
-| Média | 3–5 | 10/07/2026 | 24/07/2026 |
-| Grande | 6–10 | 03/07/2026 | 17/07/2026 |
-| Sensível | indeterminado | Não programar sem aprovação | Não programar sem aprovação |
-
-Se a issue não cabe no milestone atual dado o tamanho e a data de hoje → mover para próximo milestone ou colocar em backlog. Não forçar entrega incompleta.
-
----
-
-## Passo 4 — Output de Decisão
-
-Ao final dos 3 passos, produza exatamente esta linha:
-
-```
-IMPACTO: [Tamanho] · Risco [Nível] · Milestone recomendado: [M0/M1/M2/M3/Backlog] · Recomendação: [executar agora / refinar primeiro / mover para próximo cycle / escalar para o Luiz]
+Riscos ativos:
+- ...
+Dependências:
+- ...
 ```
 
-Seguida de até 3 bullets com os riscos ativos identificados (se houver). Se não há riscos: omitir os bullets.
-
-**Exemplos de output válido:**
-
-```
-IMPACTO: Pequena · Risco Baixo · Milestone recomendado: M1 · Recomendação: executar agora
-```
-
-```
-IMPACTO: Média · Risco Médio · Milestone recomendado: M1 · Recomendação: refinar primeiro
-- Sem direção de design validada: bloquear até Claudete validar estados visuais (`/design-check`).
-- Afeta Room DAO: planejar migration antes de iniciar.
-```
-
-```
-IMPACTO: Grande · Risco Alto · Milestone recomendado: M2 · Recomendação: mover para próximo cycle
-- Afeta DiagnosticOrchestrator: risco de regressão em todo fluxo de diagnóstico.
-- Sem critério de aceite claro: refinar com o Luiz antes de qualquer estimativa de prazo.
-- Sem cobertura de teste: adicionar ao escopo antes de fechar.
-```
-
----
-
-## Quando usar esta skill
-
-- Antes de qualquer breakdown de issue em tasks (obrigatório para Média/Grande/Sensível).
-- Ao receber feature bruta sem critério de aceite definido.
-- Ao avaliar se uma issue cabe no cycle/milestone atual.
-- Ao identificar conflito de prioridade entre issues concorrentes.
-
-## Quando não usar
-
-- BUGFIXes simples (≤5 arquivos, sem mudança de contrato) — Camilo direto.
-- Ajustes de copy ou cor que não afetam lógica — Camilo direto com `/SignallQ-design`.
+Esta skill estima e roteia; não decide prioridade estratégica, custo novo ou publicação em nome do Luiz.
