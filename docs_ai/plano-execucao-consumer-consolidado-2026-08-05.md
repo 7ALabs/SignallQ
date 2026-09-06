@@ -14,17 +14,18 @@ last_updated: "2026-08-06"
 > **Correção de 2026-08-06 (Claudete).** A versão anterior deste plano referenciava as seis issues
 > criadas na auditoria de 2026-08-05 com numeração deslocada — quem seguisse o documento pegaria a
 > issue errada (a Onda 2 mandava executar "#1584, segurança P0", quando #1584 é o épico de contrato
-> multi-plataforma). Os números abaixo foram conferidos um a um contra o GitHub em 2026-08-06.
+> multi-plataforma). Os números abaixo foram conferidos um a um contra o GitHub em 2026-08-06;
+> os títulos atuais foram reconferidos em 2026-09-06.
 > Mapeamento do que mudou:
 >
-> | Plano dizia | Issue real | Título real |
+> | Plano dizia | Issue real | Título atual no GitHub em 2026-09-06 |
 > |---|---|---|
-> | 1584 SECURITY endpoints sem auth | **#1585** | [P0 SECURITY] `/ingest/*` sem autenticação |
-> | 1585 MetricClassifier em SinalScreen | **#1586** | [P1 BUG] MetricClassifier não usado em `SinalScreen.kt` |
-> | 1586 auth PBKDF2 duplicada | **#1587** | [P2 TECH-DEBT] consolidar PBKDF2 em módulo compartilhado |
-> | 1587 OpenAPI admin-worker + 1588 remover OpenAPI fictícios | **#1588** | [P2 DOC] corrigir contratos OpenAPI (**issue única**, não duas) |
-> | 1589 Épico multi-tenant | **#1584** | [Épico] Contrato multi-plataforma unificado para diagnóstico |
-> | — | **#1589** | [P3 DOC] limpar `_archive/` |
+> | 1584 SECURITY endpoints sem auth | **#1585** | [P0][Security] Proteger endpoints de ingestão sem segredo estático embutido no cliente |
+> | 1585 MetricClassifier em SinalScreen | **#1586** | [P1 BUG] MetricClassifier not used in SinalScreen.kt — thresholds are duplicated |
+> | 1586 auth PBKDF2 duplicada | **#1587** | [P2 TECH-DEBT] Consolidate duplicated PBKDF2 auth into shared module |
+> | 1587 OpenAPI admin-worker + 1588 remover OpenAPI fictícios | **#1588** | [P2 DOC] Fix OpenAPI contracts: admin-api incomplete, remove fictitious analytics-events and integrations-api |
+> | 1589 Épico multi-tenant | **#1584** | [Épico] Contrato multi-plataforma unificado para diagnóstico — App vs Web vs futuro |
+> | — | **#1589** | [P3 DOC] Clean up _archive/ — remove old documentation copies, keep historical decisions only |
 >
 > A contagem "42 issues Consumer" também não fecha: o repositório tem **41 issues abertas no total**
 > (verificado 2026-08-06), das quais parte é Admin, Pro ou processo, não Consumer.
@@ -204,12 +205,12 @@ Onda 7 (superfícies + implementação multi-tenant)
 | 11 | #1463 | ✓ Fila (investigação) — mas rotulada `fase-1`, fora do escopo congelado em 2026-07-21 |
 | Novo | #1583 | ✓ Épica de pesquisa de métricas |
 | Novo | #1582 | ✓ Feedback de tester (6 GHz vs 5 GHz) |
-| Novo | #1584 | ✓ [Épico] Contrato multi-plataforma unificado |
-| Novo | #1585 | ✓ [P0 SECURITY] endpoints `/ingest/*` sem auth |
-| Novo | #1586 | ✓ [P1 BUG] MetricClassifier não usado em `SinalScreen.kt` |
-| Novo | #1587 | ✓ [P2 TECH-DEBT] auth PBKDF2 duplicada |
-| Novo | #1588 | ✓ [P2 DOC] OpenAPI: admin-api incompleto + remover contratos fictícios |
-| Novo | #1589 | ✓ [P3 DOC] limpar `_archive/` |
+| Novo | #1584 | ✓ Épico de contrato multi-plataforma unificado |
+| Novo | #1585 | ✓ Segurança P0 para endpoints `/ingest/*` |
+| Novo | #1586 | ✓ Uso de `MetricClassifier` em `SinalScreen.kt` |
+| Novo | #1587 | ✓ Consolidação da autenticação PBKDF2 duplicada |
+| Novo | #1588 | ✓ Reconciliação de contratos OpenAPI |
+| Novo | #1589 | ✓ Limpeza de `_archive/` |
 
 ---
 
@@ -242,4 +243,3 @@ Onda 7 (superfícies + implementação multi-tenant)
 - Segurança de base implementada
 - Features de update do app avançadas
 - Código limpo de tech-debt óbvia
-
