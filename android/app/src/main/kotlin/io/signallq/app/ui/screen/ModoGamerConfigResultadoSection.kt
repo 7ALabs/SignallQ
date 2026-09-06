@@ -2,6 +2,7 @@ package io.signallq.app.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,12 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.NetworkCheck
-import androidx.compose.material.icons.outlined.RadioButtonChecked
-import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.SportsEsports
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,10 +29,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,7 +49,6 @@ import io.signallq.app.feature.diagnostico.topology.lan.StunNatProbe
 import io.signallq.app.feature.speedtest.PingExecutor
 import io.signallq.app.modogamer.ModoGamerEtapa
 import io.signallq.app.modogamer.SelecaoJogoModoGamer
-import io.signallq.app.modogamer.icone
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
@@ -70,7 +65,6 @@ import io.signallq.app.ui.component.corSemantica
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
 private const val AMOSTRAS_PING_ESPECIFICO = 24
@@ -81,8 +75,10 @@ private const val TIMEOUT_NAT_UDP_MS = 3_000L
  *  duplicar a lógica de amostragem. Roda em paralelo, mesmo padrão do antigo
  *  `JogosViewModel.iniciarTeste` — o NAT UDP nunca atrasa além do próprio ping (timeout
  *  próprio de 3s, igual ao legado). */
-private data class MedicaoPingEspecifico(
+internal data class MedicaoPingEspecifico(
     val latenciaMs: Double,
+    val jitterMs: Double,
+    val perdaPercentual: Double,
     val natUdp: NatUdpResultado,
 )
 
@@ -94,168 +90,58 @@ private suspend fun medirPingEspecifico(probeUrl: String): MedicaoPingEspecifico
         val nat =
             withTimeoutOrNull(TIMEOUT_NAT_UDP_MS) { natDeferred.await() }
                 ?: NatUdpResultado(NatUdpTipo.NAO_VERIFICADO).also { natDeferred.cancel() }
-        MedicaoPingEspecifico(latenciaMs = ping.latenciaMs, natUdp = nat)
+        MedicaoPingEspecifico(
+            latenciaMs = ping.latenciaMs,
+            jitterMs = ping.jitterMs,
+            perdaPercentual = ping.perdaPercentual,
+            natUdp = nat,
+        )
     }
 
-private sealed interface PingEspecificoState {
-    data object Ocioso : PingEspecificoState
-
-    data object Medindo : PingEspecificoState
-
-    data class Concluido(
-        val medicao: MedicaoPingEspecifico,
-    ) : PingEspecificoState
-
-    data object Erro : PingEspecificoState
-}
-
 /**
- * Etapa 3/3 — "Quer salvar esta escolha?" (protótipo #1474 `ModoGamerConfig`) + a
- * medição dedicada opcional da issue #1487 ("Medir o tempo de resposta agora"). Nenhuma das
- * opções é obrigatória — "Ver diagnóstico" funciona a qualquer momento, mesmo com a medição
- * ainda em andamento (nesse caso, [onConfirmar] recebe `pingEspecificoMs`/`natUdp` nulos e o
- * resultado usa só o [io.signallq.app.core.diagnostico.DiagnosticInput] já coletado).
+ * Tela de carregamento enquanto o app faz o teste de rede real e atualizado.
  */
 @Composable
-internal fun ModoGamerConfigConteudo(
+internal fun ModoGamerMedindoConteudo(
     modifier: Modifier = Modifier,
     selecaoJogo: SelecaoJogoModoGamer,
     device: DeviceJogo,
     probeUrl: String,
-    onConfirmar: (salvarComoPadrao: Boolean, pingEspecificoMs: Double?, natUdp: NatUdpResultado?) -> Unit,
+    onConcluido: (MedicaoPingEspecifico?) -> Unit,
 ) {
     val c = LocalLkTokens.current
-    val scope = rememberCoroutineScope()
-    var salvarComoPadrao by remember { mutableStateOf(true) }
-    var pingState by remember { mutableStateOf<PingEspecificoState>(PingEspecificoState.Ocioso) }
+    var iniciou by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        if (!iniciou) {
+            iniciou = true
+            val medicao = runCatching { medirPingEspecifico(probeUrl) }.getOrNull()
+            onConcluido(medicao)
+        }
+    }
 
     Column(
         modifier =
             modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
                 .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
-        ModoGamerListItem(titulo = selecaoJogo.nomeExibido, subtitulo = device.label, icone = selecaoJogo.categoria.icone(), onClick = {})
-        Spacer(Modifier.height(LkSpacing.lg))
-        LkSectionOverline(text = "Quer salvar esta escolha?")
-        Spacer(Modifier.height(LkSpacing.sm))
-        ModoGamerOpcaoConfig(
-            titulo = "Salvar para os próximos testes",
-            descricao = "Próxima vez, o Modo gamer já abre direto com ${selecaoJogo.nomeExibido} + ${device.label}",
-            selecionada = salvarComoPadrao,
-            onClick = { salvarComoPadrao = true },
+        CircularProgressIndicator(modifier = Modifier.size(48.dp), color = c.primary)
+        Spacer(Modifier.height(LkSpacing.xl))
+        Text(
+            text = "Testando a rota do jogo...",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.W600,
+            color = c.textPrimary,
         )
         Spacer(Modifier.height(LkSpacing.sm))
-        ModoGamerOpcaoConfig(
-            titulo = "Usar apenas agora",
-            descricao = "Sua escolha salva não será alterada.",
-            selecionada = !salvarComoPadrao,
-            onClick = { salvarComoPadrao = false },
+        Text(
+            text = "Aguarde alguns segundos",
+            style = MaterialTheme.typography.bodyMedium,
+            color = c.textSecondary,
         )
-        Spacer(Modifier.height(LkSpacing.lg))
-        LkSectionOverline(text = "Fazer uma medição extra (opcional)")
-        Spacer(Modifier.height(LkSpacing.sm))
-        ModoGamerPingEspecificoRow(
-            state = pingState,
-            onMedir = {
-                pingState = PingEspecificoState.Medindo
-                scope.launch {
-                    pingState =
-                        runCatching { medirPingEspecifico(probeUrl) }
-                            .fold(
-                                onSuccess = { PingEspecificoState.Concluido(it) },
-                                onFailure = { PingEspecificoState.Erro },
-                            )
-                }
-            },
-        )
-        Spacer(Modifier.height(LkSpacing.lg))
-        Button(
-            onClick = {
-                val medicao = (pingState as? PingEspecificoState.Concluido)?.medicao
-                onConfirmar(salvarComoPadrao, medicao?.latenciaMs, medicao?.natUdp)
-            },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(LkRadius.button),
-            colors = ButtonDefaults.buttonColors(containerColor = c.primary, contentColor = c.onPrimary),
-        ) {
-            Text(text = "Ver diagnóstico", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        }
-    }
-}
-
-@Composable
-private fun ModoGamerPingEspecificoRow(
-    state: PingEspecificoState,
-    onMedir: () -> Unit,
-) {
-    val c = LocalLkTokens.current
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.input))
-                .background(c.bgSecondary)
-                .padding(LkSpacing.lg),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(imageVector = Icons.Outlined.NetworkCheck, contentDescription = null, tint = c.textSecondary, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(LkSpacing.sm))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = "Medir o tempo de resposta agora", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = c.textPrimary)
-            Text(
-                text =
-                    when (state) {
-                        PingEspecificoState.Ocioso -> "Leva alguns segundos e deixa a análise mais precisa."
-                        PingEspecificoState.Medindo -> "Medindo…"
-                        is PingEspecificoState.Concluido -> "Ping medido: %.0f ms".format(state.medicao.latenciaMs)
-                        PingEspecificoState.Erro -> "Não consegui fazer a medição extra. Vou usar os dados já coletados."
-                    },
-                style = MaterialTheme.typography.bodySmall,
-                color = c.textSecondary,
-            )
-        }
-        Spacer(Modifier.width(LkSpacing.sm))
-        if (state == PingEspecificoState.Medindo) {
-            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = c.primary, strokeWidth = 2.dp)
-        } else {
-            TextButton(onClick = onMedir) {
-                Text(text = if (state is PingEspecificoState.Concluido) "Medir novamente" else "Medir", style = MaterialTheme.typography.labelLarge)
-            }
-        }
-    }
-}
-
-@Composable
-private fun ModoGamerOpcaoConfig(
-    titulo: String,
-    descricao: String,
-    selecionada: Boolean,
-    onClick: () -> Unit,
-) {
-    val c = LocalLkTokens.current
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.input))
-                .background(if (selecionada) c.primary.copy(alpha = 0.08f) else c.bgCard)
-                .clickable(onClick = onClick)
-                .padding(LkSpacing.lg),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Icon(
-            imageVector = if (selecionada) Icons.Outlined.RadioButtonChecked else Icons.Outlined.RadioButtonUnchecked,
-            contentDescription = null,
-            tint = if (selecionada) c.primary else c.textTertiary,
-        )
-        Spacer(Modifier.width(LkSpacing.sm))
-        Column {
-            Text(text = titulo, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = c.textPrimary)
-            Spacer(Modifier.height(2.dp))
-            Text(text = descricao, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
-        }
     }
 }
 
@@ -283,6 +169,7 @@ internal fun ModoGamerResultadoConteudo(
     modifier: Modifier = Modifier,
     etapa: ModoGamerEtapa.Resultado,
     analisadorState: AnalisadorState,
+    onAlternarSalvarPadrao: (Boolean) -> Unit,
     onTrocarJogoOuDevice: () -> Unit,
     onIrParaHome: () -> Unit,
     /** Toggle remoto (Firebase Remote Config) + gate de consentimento UMP -- issue #555,
@@ -385,13 +272,14 @@ internal fun ModoGamerResultadoConteudo(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(LkRadius.input))
                     .background(c.bgSecondary)
+                    .clickable { onAlternarSalvarPadrao(!etapa.salvoComoPadrao) }
                     .padding(LkSpacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = if (etapa.salvoComoPadrao) Icons.Outlined.Bookmark else Icons.Outlined.BookmarkBorder,
                 contentDescription = null,
-                tint = c.textSecondary,
+                tint = if (etapa.salvoComoPadrao) c.primary else c.textSecondary,
                 modifier = Modifier.size(16.dp),
             )
             Spacer(Modifier.width(LkSpacing.sm))
@@ -400,7 +288,7 @@ internal fun ModoGamerResultadoConteudo(
                     if (etapa.salvoComoPadrao) {
                         "Salvo como padrão do Modo gamer (${etapa.selecaoJogo.nomeExibido} + ${etapa.device.label})"
                     } else {
-                        "Usado só desta vez. O padrão do Modo gamer não mudou."
+                        "Toque para salvar como padrão"
                     },
                 style = MaterialTheme.typography.bodySmall,
                 color = c.textSecondary,

@@ -107,7 +107,7 @@ fun ModoGamerScreen(
         when (val atual = etapa) {
             is ModoGamerEtapa.SelecaoJogo -> onVoltar()
             is ModoGamerEtapa.SelecaoDevice -> viewModel.voltarParaSelecaoJogo()
-            is ModoGamerEtapa.Config -> viewModel.voltarParaSelecaoDevice()
+            is ModoGamerEtapa.Medindo -> viewModel.voltarParaSelecaoDevice()
             is ModoGamerEtapa.Resultado -> if (atual.salvoComoPadrao) onVoltar() else viewModel.voltarParaSelecaoDevice()
         }
     }
@@ -148,16 +148,17 @@ fun ModoGamerScreen(
                     nomeJogo = etapaAtual.selecaoJogo.nomeExibido,
                     onSelecionarDevice = viewModel::selecionarDevice,
                 )
-            is ModoGamerEtapa.Config ->
-                ModoGamerConfigConteudo(
+            is ModoGamerEtapa.Medindo -> {
+                ModoGamerMedindoConteudo(
                     modifier = Modifier.padding(padding),
                     selecaoJogo = etapaAtual.selecaoJogo,
                     device = etapaAtual.device,
-                    probeUrl = BuildConfig.GAME_LATENCY_PROBE_URL,
-                    onConfirmar = { salvarComoPadrao, pingEspecificoMs, natUdp ->
-                        scope.launch { viewModel.confirmar(salvarComoPadrao, pingEspecificoMs, natUdp) }
+                    probeUrl = etapaAtual.selecaoJogo.specificProbeHost ?: BuildConfig.GAME_LATENCY_PROBE_URL,
+                    onConcluido = { medicao ->
+                        scope.launch { viewModel.confirmarMedicao(medicao?.latenciaMs, medicao?.jitterMs, medicao?.perdaPercentual, medicao?.natUdp) }
                     },
                 )
+            }
             is ModoGamerEtapa.Resultado -> {
                 LaunchedEffect(etapaAtual.selecaoJogo, etapaAtual.device) {
                     onResetarAnalisador()
@@ -167,6 +168,9 @@ fun ModoGamerScreen(
                     modifier = Modifier.padding(padding),
                     etapa = etapaAtual,
                     analisadorState = analisadorState,
+                    onAlternarSalvarPadrao = { salvar ->
+                        scope.launch { viewModel.alternarSalvarPadrao(salvar) }
+                    },
                     onTrocarJogoOuDevice = viewModel::trocarJogoOuDevice,
                     onIrParaHome = onIrParaHome,
                     adsEnabled = adsEnabled,
@@ -208,7 +212,7 @@ private fun ModoGamerSelecaoJogoConteudo(
             )
             Spacer(Modifier.height(LkSpacing.sm))
             Text(
-                text = "Escolha um jogo para testar os servidores mais próximos.",
+                text = "Escolha um jogo para testar a rota mais relevante.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = c.textSecondary,
             )

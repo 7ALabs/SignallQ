@@ -41,6 +41,8 @@ object ModoGamerEngine {
         device: DeviceJogo,
         input: DiagnosticInput?,
         pingEspecificoMs: Double? = null,
+        jitterMs: Double? = null,
+        perdaPercentual: Double? = null,
     ): ResultadoModoGamer {
         val avaliador =
             when (categoria) {
@@ -51,7 +53,7 @@ object ModoGamerEngine {
                 CategoriaJogoModoGamer.CLOUD_GAMING -> ::avaliarCloudGaming
                 CategoriaJogoModoGamer.OUTRO -> ::avaliarOutro
             }
-        val inputEfetivo = aplicarPingEspecifico(input, pingEspecificoMs)
+        val inputEfetivo = aplicarPingEspecifico(input, pingEspecificoMs, jitterMs, perdaPercentual)
         val resultado = avaliador(inputEfetivo, device)
         return if (pingEspecificoMs != null) {
             resultado.copy(evidencias = resultado.evidencias + evidenciaPingEspecifico(pingEspecificoMs))
@@ -60,16 +62,16 @@ object ModoGamerEngine {
         }
     }
 
-    /** Substitui só a latência do [input] pela medição dedicada — demais métricas (jitter,
-     *  perda, download, bufferbloat) continuam vindo do `input` já coletado, já que o
-     *  refinamento do legado só media latência/jitter/perda com [pingEspecificoMs] cobrindo
-     *  apenas o primeiro. Quando não havia [input] nenhum (ex.: usuário abriu o Modo gamer
-     *  direto de Ferramentas, sem nunca ter rodado um teste de velocidade), a medição
-     *  dedicada passa a ser a ÚNICA fonte de dado — deixa de cair em "dados insuficientes"
-     *  só por causa disso. */
+    /** Substitui a latência, jitter e perda do [input] pela medição dedicada — demais
+     *  métricas continuam vindo do `input` já coletado. Quando não havia [input] nenhum
+     *  (ex.: usuário abriu o Modo gamer direto de Ferramentas, sem nunca ter rodado um teste
+     *  de velocidade), a medição dedicada passa a ser a ÚNICA fonte de dado — deixa de cair
+     *  em "dados insuficientes" só por causa disso. */
     private fun aplicarPingEspecifico(
         input: DiagnosticInput?,
         pingEspecificoMs: Double?,
+        jitterMs: Double?,
+        perdaPercentual: Double?,
     ): DiagnosticInput? {
         if (pingEspecificoMs == null) return input
         val internetBase =
@@ -80,7 +82,14 @@ object ModoGamerEngine {
                 jitterMs = null,
                 perdaPercentual = null,
             )
-        return (input ?: DiagnosticInput()).copy(internet = internetBase.copy(latencyMs = pingEspecificoMs))
+        return (input ?: DiagnosticInput()).copy(
+            internet =
+                internetBase.copy(
+                    latencyMs = pingEspecificoMs,
+                    jitterMs = jitterMs ?: internetBase.jitterMs,
+                    perdaPercentual = perdaPercentual ?: internetBase.perdaPercentual,
+                ),
+        )
     }
 
     private fun evidenciaPingEspecifico(pingEspecificoMs: Double): EvidenciaDiagnostico =
@@ -340,6 +349,7 @@ data class JogoCatalogoModoGamer(
     val gameId: String,
     val nome: String,
     val categoria: CategoriaJogoModoGamer,
+    val specificProbeHost: String? = null,
 )
 
 /**
@@ -380,18 +390,18 @@ object CatalogoJogosModoGamer {
             JogoCatalogoModoGamer("apex_legends", "Apex Legends", CategoriaJogoModoGamer.BATTLE_ROYALE),
             JogoCatalogoModoGamer("pubg_battlegrounds", "PUBG: Battlegrounds", CategoriaJogoModoGamer.BATTLE_ROYALE),
             // ── FPS competitivo ──────────────────────────────────────────────────
-            JogoCatalogoModoGamer("valorant", "Valorant", CategoriaJogoModoGamer.FPS_COMPETITIVO),
+            JogoCatalogoModoGamer("valorant", "Valorant", CategoriaJogoModoGamer.FPS_COMPETITIVO, "104.160.152.3"),
             JogoCatalogoModoGamer("codm", "Call of Duty Mobile", CategoriaJogoModoGamer.FPS_COMPETITIVO),
             JogoCatalogoModoGamer("ea_fc", "EA FC", CategoriaJogoModoGamer.FPS_COMPETITIVO),
             JogoCatalogoModoGamer("overwatch", "Overwatch", CategoriaJogoModoGamer.FPS_COMPETITIVO),
             JogoCatalogoModoGamer("rainbow_six_siege", "Rainbow Six Siege", CategoriaJogoModoGamer.FPS_COMPETITIVO),
             JogoCatalogoModoGamer("marvel_rivals", "Marvel Rivals", CategoriaJogoModoGamer.FPS_COMPETITIVO),
             JogoCatalogoModoGamer("the_finals", "THE FINALS", CategoriaJogoModoGamer.FPS_COMPETITIVO),
-            JogoCatalogoModoGamer("counter_strike_2", "Counter-Strike 2", CategoriaJogoModoGamer.FPS_COMPETITIVO),
+            JogoCatalogoModoGamer("counter_strike_2", "Counter-Strike 2", CategoriaJogoModoGamer.FPS_COMPETITIVO, "gru.valve.net"),
             JogoCatalogoModoGamer("rocket_league", "Rocket League", CategoriaJogoModoGamer.FPS_COMPETITIVO),
             // ── MOBA ─────────────────────────────────────────────────────────────
-            JogoCatalogoModoGamer("league_of_legends", "League of Legends", CategoriaJogoModoGamer.MOBA),
-            JogoCatalogoModoGamer("dota_2", "Dota 2", CategoriaJogoModoGamer.MOBA),
+            JogoCatalogoModoGamer("league_of_legends", "League of Legends", CategoriaJogoModoGamer.MOBA, "104.160.152.3"),
+            JogoCatalogoModoGamer("dota_2", "Dota 2", CategoriaJogoModoGamer.MOBA, "gru.valve.net"),
             // ── Casual ou mobile ─────────────────────────────────────────────────
             JogoCatalogoModoGamer("minecraft", "Minecraft", CategoriaJogoModoGamer.CASUAL),
             JogoCatalogoModoGamer("roblox", "Roblox", CategoriaJogoModoGamer.CASUAL),
