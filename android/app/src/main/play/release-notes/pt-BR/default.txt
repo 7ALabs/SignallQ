@@ -1,1 +1,1 @@
-Melhoramos a estabilidade do Assist em diagnósticos mais completos, para que a análise da sua conexão tenha mais tempo para responder.
+O Assist agora apresenta com mais clareza a conclusão e as recomendações do diagnóstico da sua conexão.
