@@ -4,8 +4,8 @@ description: "Define nome de campo, tipo, opcionalidade e origem no DiagnosticIn
 type: "adr"
 status: "ativo"
 owner: "Camilo"
-last_updated: "2026-09-04"
-version: "1.5.0"
+last_updated: "2026-09-06"
+version: "1.6.0"
 ---
 
 # ADR-018 — Schema canônico `DiagnosticSnapshot` para o payload NDS
@@ -136,6 +136,9 @@ enquanto nenhuma sub-issue pedir campos adicionais de execução (ex.: timestamp
 | `wifiScan.neighbors[].rssiDbm` | `Int?` | Sim | `RedeWifiVizinha.rssiDbm` |
 | `wifiScan.neighbors[].widthMhz` | `Int?` | Sim | `RedeWifiVizinha.larguraCanalMhz` — `null` quando o scan não reportou largura real (o motor assume 20 MHz internamente, mas o payload não inventa esse valor: envia `null`, não `20`). |
 | `wifiScan.algorithmVersion` | `String?` | Sim | Constante `CHANNEL_EVALUATOR_VERSION` em `NdsWifiScanMapper` — identifica método/versão do algoritmo de avaliação de canal. `null` quando nenhum canal foi avaliado (sem vizinhos utilizáveis pelo `ChannelEvaluator`). |
+| `wifiScan.currentScoreMw` | `Double?` | Sim | `ChannelScore.score` (mW, quanto menor melhor) do canal conectado dentro de `bandScores` — mesma fonte usada para calcular `channelCongestion`, mas sem a normalização percentual. `null` sem canal conectado ou fora do `bandScores` avaliado. Exigido pela regra `WIFI-CANAL-*` do NDS (issue #1874) para sair do estado inconclusivo `WIFI-CANAL-INC-02`. |
+| `wifiScan.bestScoreMw` | `Double?` | Sim | `ChannelScore.score` (mW) do candidato marcado `recommended` em `bandScores` — mesmo critério usado para `bestChannel`. `null` quando não há candidato recomendado. |
+| `wifiScan.validNetworkCount` | `Int?` | Sim | Quantidade de vizinhas que o `ChannelEvaluator` conseguiu efetivamente usar no cálculo (freq/RSSI/banda válidos) — distinto de `neighborCount`, que é a contagem bruta do scan. Permite à regra `WIFI-CANAL-*` diferenciar "poucas vizinhas" de "muitas vizinhas mas maioria sem dado utilizável". |
 
 **Decisão de privacidade:** o BSSID das redes vizinhas **não** entra no payload (nem mascarado) —
 só serve para o `ChannelEvaluator` identificar sobreposição espectral internamente. Enviar BSSID de

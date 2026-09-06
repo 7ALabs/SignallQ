@@ -318,6 +318,47 @@ class NdsDiagnosticsRequestTest {
     }
 
     @Test
+    fun `toJson serializa currentScoreMw, bestScoreMw e validNetworkCount do bloco wifiScan (regra WIFI-CANAL do NDS)`() {
+        val request =
+            NdsDiagnosticsRequest(
+                requestId = "req-wifiscan-scores",
+                app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+                wifiScan =
+                    NdsWifiScanInfo(
+                        connectedChannel = 36,
+                        channelCongestion = 42,
+                        bestChannel = 149,
+                        neighborCount = 3,
+                        currentScoreMw = 123.45,
+                        bestScoreMw = 10.5,
+                        validNetworkCount = 2,
+                    ),
+            )
+
+        val wifiScan = request.toJson().getJSONObject("wifiScan")
+
+        assertEquals(123.45, wifiScan.getDouble("currentScoreMw"), 0.001)
+        assertEquals(10.5, wifiScan.getDouble("bestScoreMw"), 0.001)
+        assertEquals(2, wifiScan.getInt("validNetworkCount"))
+    }
+
+    @Test
+    fun `toJson omite currentScoreMw, bestScoreMw e validNetworkCount do wifiScan quando nulos`() {
+        val request =
+            NdsDiagnosticsRequest(
+                requestId = "req-wifiscan-sem-scores",
+                app = NdsAppInfo(id = "io.signallq.app", version = "1.0.0"),
+                wifiScan = NdsWifiScanInfo(connectedChannel = 36, neighborCount = 0),
+            )
+
+        val wifiScan = request.toJson().getJSONObject("wifiScan")
+
+        assertFalse(wifiScan.has("currentScoreMw"))
+        assertFalse(wifiScan.has("bestScoreMw"))
+        assertFalse(wifiScan.has("validNetworkCount"))
+    }
+
+    @Test
     fun `toJson serializa contexto sem PII e omite relato nulo`() {
         val request =
             NdsDiagnosticsRequest(

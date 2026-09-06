@@ -48,6 +48,48 @@ class NdsWifiScanMapperTest {
     }
 
     @Test
+    fun `currentScoreMw e bestScoreMw propagam o score bruto em mW dos ChannelScore correspondentes`() {
+        val bandScores =
+            listOf(
+                score(channel = 36, score = 500.0, recommended = false),
+                score(channel = 149, score = 10.0, recommended = true),
+            )
+
+        val resultado = mapWifiScanToNds(bandScores, canalConectado = 36)
+
+        assertEquals(500.0, resultado.currentScoreMw!!, 0.0)
+        assertEquals(10.0, resultado.bestScoreMw!!, 0.0)
+    }
+
+    @Test
+    fun `sem canal conectado ou bandScores vazio, currentScoreMw e bestScoreMw ficam nulos`() {
+        val bandScores = listOf(score(channel = 36, score = 500.0, recommended = true))
+
+        val semCanal = mapWifiScanToNds(bandScores, canalConectado = null)
+        val semScores = mapWifiScanToNds(emptyList(), canalConectado = 36)
+
+        assertNull(semCanal.currentScoreMw)
+        assertEquals(500.0, semCanal.bestScoreMw!!, 0.0)
+        assertNull(semScores.currentScoreMw)
+        assertNull(semScores.bestScoreMw)
+    }
+
+    @Test
+    fun `validNetworkCount conta so vizinhas com freq e rssi validos, distinto de neighborCount bruto`() {
+        val bandScores = listOf(score(channel = 36, score = 0.0, recommended = true))
+        val redes =
+            listOf(
+                RedeWifiVizinha(canal = 40, rssiDbm = -55, frequenciaMhz = 5200, larguraCanalMhz = 80),
+                RedeWifiVizinha(canal = 44, rssiDbm = null, frequenciaMhz = 5220),
+            )
+
+        val resultado = mapWifiScanToNds(bandScores, canalConectado = 36, redesVizinhas = redes)
+
+        assertEquals(2, resultado.neighborCount)
+        assertEquals(1, resultado.validNetworkCount)
+    }
+
+    @Test
     fun `bestChannel usa o candidato marcado recommended, nao o primeiro da lista`() {
         val bandScores =
             listOf(
