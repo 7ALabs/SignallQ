@@ -20,7 +20,7 @@ last_updated: "2026-08-06"
 > | Plano dizia | Issue real | Título real |
 > |---|---|---|
 > | 1584 SECURITY endpoints sem auth | **#1585** | [P0 SECURITY] `/ingest/*` sem autenticação |
-> | 1585 MetricClassifier em SinalScreen | **#1586** | [P2 BUG] MetricClassifier não usado em `SinalScreen.kt` |
+> | 1585 MetricClassifier em SinalScreen | **#1586** | [P1 BUG] MetricClassifier não usado em `SinalScreen.kt` |
 > | 1586 auth PBKDF2 duplicada | **#1587** | [P2 TECH-DEBT] consolidar PBKDF2 em módulo compartilhado |
 > | 1587 OpenAPI admin-worker + 1588 remover OpenAPI fictícios | **#1588** | [P2 DOC] corrigir contratos OpenAPI (**issue única**, não duas) |
 > | 1589 Épico multi-tenant | **#1584** | [Épico] Contrato multi-plataforma unificado para diagnóstico |
@@ -206,7 +206,7 @@ Onda 7 (superfícies + implementação multi-tenant)
 | Novo | #1582 | ✓ Feedback de tester (6 GHz vs 5 GHz) |
 | Novo | #1584 | ✓ [Épico] Contrato multi-plataforma unificado |
 | Novo | #1585 | ✓ [P0 SECURITY] endpoints `/ingest/*` sem auth |
-| Novo | #1586 | ✓ [P2 BUG] MetricClassifier não usado em `SinalScreen.kt` |
+| Novo | #1586 | ✓ [P1 BUG] MetricClassifier não usado em `SinalScreen.kt` |
 | Novo | #1587 | ✓ [P2 TECH-DEBT] auth PBKDF2 duplicada |
 | Novo | #1588 | ✓ [P2 DOC] OpenAPI: admin-api incompleto + remover contratos fictícios |
 | Novo | #1589 | ✓ [P3 DOC] limpar `_archive/` |
