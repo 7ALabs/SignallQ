@@ -44,9 +44,10 @@ package io.signallq.app.core.featureflags
  * ligado por [CONSUMER_DIAGNOSTICO_NDS_LIVE_ENABLED] acima). O v2 é estritamente aditivo sobre
  * o v1 (request só ganha campos opcionais a mais; response só troca o envelope de
  * `{...}` direto para `{raw: {...}, explanation: {...}}`, já suportado pelo parser usado no
- * Assist), então não há risco de schema na migração — só uma troca de rota. Default `false`
- * preserva o `/v1/diagnostics/evaluate` atual; a flag ligada seleciona v2. A reversão continua
- * disponível via Remote Config, sem publicar nova versão do app.
+ * Assist), então não há risco de schema na migração — só uma troca de rota. Default `true`
+ * torna o v2 o caminho padrão; a flag desligada preserva o `/v1/diagnostics/evaluate` como
+ * kill-switch de emergência. A reversão continua disponível via Remote Config, sem publicar nova
+ * versão do app.
  */
 object FeatureFlagKeys {
     val CONSUMER_SPEEDTEST_ENABLED = FeatureFlagKey("consumer_speedtest_enabled")

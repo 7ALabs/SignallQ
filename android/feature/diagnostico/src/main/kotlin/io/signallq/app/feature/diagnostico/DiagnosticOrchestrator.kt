@@ -49,10 +49,10 @@ import timber.log.Timber
  *
  * `FeatureFlagKeys.USAR_NDS_V2_NO_FLUXO_PRINCIPAL` (feat/nds-v2-fluxo-principal) estende o
  * mesmo padrao pro fluxo principal: quando `ndsLiveEnabled` decide chamar o NDS dentro de
- * [executarProtegido], essa segunda flag decide qual contrato usar (v1 por default, v2 quando
- * ligada). O v2 e estritamente aditivo sobre o v1 (request so ganha campos opcionais, response
- * so troca o envelope de transporte, ja suportado pelo parser usado no Assist) -- sem risco de
- * schema, so uma troca de rota com rollback via Remote Config.
+ * [executarProtegido], essa segunda flag decide qual contrato usar (v2 por default, v1 quando a
+ * flag for desligada como kill-switch). O v2 e estritamente aditivo sobre o v1 (request so ganha
+ * campos opcionais, response so troca o envelope de transporte, ja suportado pelo parser usado no
+ * Assist) -- sem risco de schema, so uma troca de rota com rollback via Remote Config.
  */
 class DiagnosticOrchestrator(
     private val analyticsHelper: AnalyticsHelper = NoOpAnalyticsHelper,
