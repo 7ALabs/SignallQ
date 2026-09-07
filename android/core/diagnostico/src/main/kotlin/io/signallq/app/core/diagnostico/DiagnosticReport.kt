@@ -1,5 +1,18 @@
 ﻿package io.signallq.app.core.diagnostico
 
+enum class ExplanationProvenanceSource {
+    AI,
+    COPY_CATALOG,
+    DETERMINISTIC,
+}
+
+/** Procedência da explicação em linguagem humana, separada da decisão determinística. */
+data class DiagnosticExplanationProvenance(
+    val source: ExplanationProvenanceSource,
+    /** Nome público e opcional do modelo; nunca um identificador operacional bruto. */
+    val modelLabel: String? = null,
+)
+
 data class DiagnosticReport(
     val wifiResultados: List<DiagnosticResult>,
     val internetResultados: List<DiagnosticResult>,
@@ -73,6 +86,7 @@ data class DiagnosticReport(
     val modulosRemotos: Map<String, Map<String, Any?>> = emptyMap(),
     val avisosRemotos: Map<String, List<String>> = emptyMap(),
     val context: DiagnosticContext? = null,
+    val explanationProvenance: DiagnosticExplanationProvenance? = null,
 ) {
     private val todos: List<DiagnosticResult>
         get() =

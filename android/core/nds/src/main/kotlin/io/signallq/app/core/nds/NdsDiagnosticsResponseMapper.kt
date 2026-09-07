@@ -1,9 +1,11 @@
 package io.signallq.app.core.nds
 
+import io.signallq.app.core.diagnostico.DiagnosticExplanationProvenance
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.core.diagnostico.DiagnosticResult
 import io.signallq.app.core.diagnostico.DiagnosticStatus
+import io.signallq.app.core.diagnostico.ExplanationProvenanceSource
 import io.signallq.app.core.diagnostico.ScoreResult
 
 /**
@@ -94,6 +96,7 @@ fun NdsDiagnosticsResponse.toDiagnosticReport(
         modulosRemotos = results.associate { it.module to it.result },
         avisosRemotos = results.associate { it.module to it.warnings },
         context = input.context,
+        explanationProvenance = resultFor("ai")?.asAi()?.toExplanationProvenance(),
     )
 }
 
@@ -189,8 +192,35 @@ private fun NdsDiagnosticsResponse.toDiagnosticReportV2(
         modulosRemotos = mapOf("nds_v2" to rawV2),
         avisosRemotos = emptyMap(),
         context = input.context,
+        explanationProvenance = explanation.provenance?.toExplanationProvenance(),
     )
 }
+
+private fun NdsAiResult.toExplanationProvenance(): DiagnosticExplanationProvenance? =
+    when (explanationSource) {
+        "ai" ->
+            DiagnosticExplanationProvenance(
+                source = ExplanationProvenanceSource.AI,
+                modelLabel = aiModelUsed.takeIf(::isPublicModelLabel),
+            )
+        "copy_catalog" -> DiagnosticExplanationProvenance(source = ExplanationProvenanceSource.COPY_CATALOG)
+        else -> null
+    }
+
+private fun NdsExplanationProvenanceV2.toExplanationProvenance(): DiagnosticExplanationProvenance? =
+    when (source) {
+        "ai" ->
+            DiagnosticExplanationProvenance(
+                source = ExplanationProvenanceSource.AI,
+                modelLabel = modelLabel?.takeIf(::isPublicModelLabel),
+            )
+        "copy_catalog" -> DiagnosticExplanationProvenance(source = ExplanationProvenanceSource.COPY_CATALOG)
+        "deterministic" -> DiagnosticExplanationProvenance(source = ExplanationProvenanceSource.DETERMINISTIC)
+        else -> null
+    }
+
+private fun isPublicModelLabel(value: String): Boolean =
+    value.matches(Regex("^(?:@cf/[a-z0-9._/-]+|gpt-[a-z0-9._-]+|gemini-[a-z0-9._-]+|claude-[a-z0-9._-]+|llama-[a-z0-9._-]+|mistral-[a-z0-9._-]+|qwen-[a-z0-9._-]+)$", RegexOption.IGNORE_CASE))
 
 private fun Map<String, Any?>.string(key: String): String? = this[key] as? String
 

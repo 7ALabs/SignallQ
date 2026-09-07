@@ -2,6 +2,7 @@
 
 import androidx.compose.runtime.Stable
 import io.signallq.app.ads.AdsFlags
+import io.signallq.app.core.diagnostico.MedicaoBaseModoGamer
 import io.signallq.app.core.network.wifi.SnapshotScanWifi
 import io.signallq.app.core.recommendation.RecommendationDecision
 import io.signallq.app.core.recommendation.RecommendationFeedbackType
@@ -116,6 +117,10 @@ sealed class AnalisadorState {
 @Stable
 data class AppShellDiagnosticoState(
     val snapshotDiagnostico: SnapshotDiagnostico,
+    /** Base recém-medida e validada para o Modo gamer; null exige uma nova medição. */
+    val medicaoBaseModoGamer: MedicaoBaseModoGamer? = null,
+    /** Identidade da rede ativa, usada para invalidar a evidência gamer em uma troca de rede. */
+    val networkIdAtual: String? = null,
     val onIniciarDiagnostico: () -> Unit,
     val onSolicitarDiagnostico: () -> Long? = {
         onIniciarDiagnostico()

@@ -56,7 +56,6 @@ import io.signallq.app.ui.ads.NativeAdEligibility
 import io.signallq.app.ui.ads.NativeAdLoadState
 import io.signallq.app.ui.ads.rememberNativeAdState
 import io.signallq.app.ui.component.AcoesRecomendadasCard
-import io.signallq.app.ui.component.AiVsMotorExplainer
 import io.signallq.app.ui.component.DiagnosticoStatusBanner
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.ads.NativeAdCard
@@ -66,6 +65,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withTimeoutOrNull
+import java.text.DateFormat
+import java.util.Date
 
 private const val AMOSTRAS_PING_ESPECIFICO = 24
 private const val TIMEOUT_NAT_UDP_MS = 3_000L
@@ -146,6 +147,69 @@ internal fun ModoGamerMedindoConteudo(
 }
 
 /**
+ * Sem uma base recente para a mesma rede, não há veredito gamer. O botão fica no próprio
+ * fluxo para que jogo e aparelho escolhidos não se percam enquanto o teste rápido roda.
+ */
+@Composable
+internal fun ModoGamerAguardandoTesteRapidoConteudo(
+    modifier: Modifier = Modifier,
+    selecaoJogo: SelecaoJogoModoGamer,
+    device: DeviceJogo,
+    estadoMedicao: EstadoAnaliseGuiada,
+    redeMedida: Boolean,
+    onIniciarTeste: () -> Unit,
+    onCancelarTeste: () -> Unit,
+) {
+    val c = LocalLkTokens.current
+    val emAndamento = estadoMedicao as? EstadoAnaliseGuiada.EmAndamento
+
+    Column(
+        modifier = modifier.fillMaxSize().padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(text = selecaoJogo.nomeExibido, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
+        Spacer(Modifier.height(LkSpacing.xs))
+        Text(text = device.label, style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
+        Spacer(Modifier.height(LkSpacing.xl))
+
+        if (emAndamento != null) {
+            CircularProgressIndicator(color = c.primary)
+            Spacer(Modifier.height(LkSpacing.lg))
+            Text(text = emAndamento.etapa, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.W600, color = c.textPrimary)
+            Spacer(Modifier.height(LkSpacing.xs))
+            Text(text = "Vamos medir sua conexão antes de avaliar o jogo.", style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
+            TextButton(onClick = onCancelarTeste, modifier = Modifier.fillMaxWidth()) {
+                Text(text = "Cancelar", style = MaterialTheme.typography.bodyMedium, color = c.primary)
+            }
+        } else {
+            Text(text = "Vamos conferir como sua rede está agora", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
+            Spacer(Modifier.height(LkSpacing.sm))
+            Text(
+                text = "Assim verificamos se ela está pronta para jogar neste momento.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.textSecondary,
+            )
+            if (redeMedida) {
+                Spacer(Modifier.height(LkSpacing.xs))
+                Text(
+                    text = "O teste pode usar dados móveis.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.textTertiary,
+                )
+            }
+            if (estadoMedicao is EstadoAnaliseGuiada.Falhou) {
+                Spacer(Modifier.height(LkSpacing.sm))
+                Text(text = estadoMedicao.mensagem, style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
+            }
+            Spacer(Modifier.height(LkSpacing.xl))
+            OutlinedButton(onClick = onIniciarTeste, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(LkRadius.button)) {
+                Text(text = "Fazer um teste rápido para jogar", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+            }
+        }
+    }
+}
+
+/**
  * GH#1785 — mesmo mapeamento de [NativeAdEligibility] usado em `eligibilidadeAnuncioResultado`
  * (ResultadoVelocidadeScreen.kt): a tela só recebe o flag `adsEnabled` de fora, sem sinal de
  * consentimento UMP nem de conectividade separados (mesma limitação que `rememberNativeAd()`,
@@ -160,15 +224,14 @@ internal fun eligibilidadeAnuncioModoGamer(adsEnabled: Boolean): NativeAdEligibi
     )
 
 /**
- * Resultado do Modo gamer — reaproveita [DiagnosticoStatusBanner]/[AiVsMotorExplainer]/
- * [AcoesRecomendadasCard] (mesmos componentes de [DiagnosticoGuiadoScreen], issue #1476
- * critério "reaproveita motor de decisão de #1475, sem lógica duplicada").
+ * Resultado do Modo gamer: o veredito e as métricas vêm exclusivamente do motor determinístico.
+ * Não solicita nem exibe uma explicação por IA nesse fluxo.
  */
 @Composable
 internal fun ModoGamerResultadoConteudo(
     modifier: Modifier = Modifier,
     etapa: ModoGamerEtapa.Resultado,
-    analisadorState: AnalisadorState,
+    timestampMedicaoBaseEpochMs: Long?,
     onAlternarSalvarPadrao: (Boolean) -> Unit,
     onTrocarJogoOuDevice: () -> Unit,
     onIrParaHome: () -> Unit,
@@ -238,7 +301,12 @@ internal fun ModoGamerResultadoConteudo(
         DiagnosticoStatusBanner(status = resultado.status, mensagem = resultado.mensagemMotor, c = c)
 
         Spacer(Modifier.height(LkSpacing.lg))
-        AiVsMotorExplainer(evidencias = resultado.evidencias, analisadorState = analisadorState, c = c)
+        LkSectionOverline(text = "Dados deste teste")
+        Spacer(Modifier.height(LkSpacing.sm))
+        ModoGamerMetricasResumo(
+            evidencias = resultado.evidencias,
+            timestampMedicaoBaseEpochMs = timestampMedicaoBaseEpochMs,
+        )
 
         if (resultado.acoes.isNotEmpty()) {
             Spacer(Modifier.height(LkSpacing.lg))
@@ -312,6 +380,43 @@ internal fun ModoGamerResultadoConteudo(
 }
 
 @Composable
+private fun ModoGamerMetricasResumo(
+    evidencias: List<io.signallq.app.core.diagnostico.EvidenciaDiagnostico>,
+    timestampMedicaoBaseEpochMs: Long?,
+) {
+    val c = LocalLkTokens.current
+    val metricas =
+        evidencias
+            .filterNot { it.label == "Aparelho analisado" }
+            .sortedByDescending { it.label == "Tempo de resposta medido agora" }
+            .take(3)
+
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.surfaceContainer)
+                .padding(LkSpacing.lg),
+    ) {
+        metricas.forEach { evidencia ->
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(text = evidencia.label, style = MaterialTheme.typography.bodyMedium, color = c.textPrimary, modifier = Modifier.weight(1f))
+                Text(text = evidencia.valorExibido, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.W700, color = evidencia.status.corSemantica(c))
+            }
+        }
+        if (timestampMedicaoBaseEpochMs != null) {
+            Spacer(Modifier.height(LkSpacing.xs))
+            Text(
+                text = "Baseado no teste de ${formatarHorarioModoGamer(timestampMedicaoBaseEpochMs)}",
+                style = MaterialTheme.typography.labelSmall,
+                color = c.textTertiary,
+            )
+        }
+    }
+}
+
+@Composable
 private fun ModoGamerNatUdpRow(natUdp: NatUdpResultado) {
     val c = LocalLkTokens.current
     Row(
@@ -343,3 +448,6 @@ private fun NatUdpTipo.rotulo(): String =
         NatUdpTipo.BLOQUEADO -> "Bloqueada"
         NatUdpTipo.NAO_VERIFICADO -> "Não foi possível verificar"
     }
+
+internal fun formatarHorarioModoGamer(timestampEpochMs: Long): String =
+    DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(timestampEpochMs))

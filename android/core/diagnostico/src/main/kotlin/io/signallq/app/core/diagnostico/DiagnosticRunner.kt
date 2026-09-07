@@ -110,6 +110,8 @@ object DiagnosticRunner {
                 // uma nova aqui) e fixa a versao canonica das regras aplicadas por este motor.
                 executionId = input.executionId,
                 rulesVersion = DiagnosticRulesVersion.CURRENT,
+                explanationProvenance =
+                    DiagnosticExplanationProvenance(ExplanationProvenanceSource.DETERMINISTIC),
             )
 
         val scoreResultado =

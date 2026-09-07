@@ -264,6 +264,8 @@ fun AppShell(
     val clientesNaRedeGateway = snapshotDevices.dispositivos.count { it.ehClienteFinal() }
 
     val snapshotDiagnostico = diagnostico.snapshotDiagnostico
+    val medicaoBaseModoGamer = diagnostico.medicaoBaseModoGamer
+    val networkIdAtual = diagnostico.networkIdAtual
     val onIniciarDiagnostico = diagnostico.onIniciarDiagnostico
     val onSolicitarDiagnostico = diagnostico.onSolicitarDiagnostico
     val analisadorState = diagnostico.analisadorState
@@ -982,11 +984,11 @@ fun AppShell(
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
             ModoGamerScreen(
-                input = snapshotDiagnostico.input,
+                medicaoBaseModoGamer = medicaoBaseModoGamer,
+                networkIdAtual = networkIdAtual,
+                medicaoGuiada = medicaoGuiada,
+                redeMedida = snapshotRede.metered,
                 padraoInicial = remember(modoGamerPadrao) { resolverPadraoModoGamer(modoGamerPadrao) },
-                analisadorState = analisadorState,
-                onAnalisarProblema = onAnalisarProblema,
-                onResetarAnalisador = onResetarAnalisador,
                 onSalvarPadrao = onSalvarModoGamerPadrao,
                 onVoltar = { overlayStack.remove(Overlay.ModoGamer) },
                 onIrParaHome = {

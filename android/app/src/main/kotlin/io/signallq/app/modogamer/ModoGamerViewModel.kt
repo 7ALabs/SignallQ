@@ -44,6 +44,16 @@ sealed interface ModoGamerEtapa {
         val selecaoJogo: SelecaoJogoModoGamer,
     ) : ModoGamerEtapa
 
+    /**
+     * Jogo e aparelho já foram escolhidos, mas ainda não há uma medição de velocidade
+     * reutilizável para esta rede. Não é resultado sem dados: a pessoa precisa iniciar o
+     * teste rápido antes de avaliarmos o jogo.
+     */
+    data class AguardandoTesteRapido(
+        val selecaoJogo: SelecaoJogoModoGamer,
+        val device: DeviceJogo,
+    ) : ModoGamerEtapa
+
     data class Medindo(
         val selecaoJogo: SelecaoJogoModoGamer,
         val device: DeviceJogo,
@@ -61,13 +71,14 @@ sealed interface ModoGamerEtapa {
 class ModoGamerViewModel(
     padraoInicial: Pair<SelecaoJogoModoGamer, DeviceJogo>?,
     private val inputAtual: () -> DiagnosticInput?,
+    private val evidenciaBaseDisponivel: () -> Boolean = { true },
     private val onSalvarPadrao: suspend (jogoId: String?, categoriaFallback: String?, deviceId: String) -> Unit,
 ) {
     private val mutableEtapa =
         MutableStateFlow<ModoGamerEtapa>(
             if (padraoInicial != null) {
                 val (selecaoJogo, device) = padraoInicial
-                ModoGamerEtapa.Medindo(selecaoJogo, device)
+                etapaParaEvidenciaBase(selecaoJogo, device)
             } else {
                 ModoGamerEtapa.SelecaoJogo()
             },
@@ -89,7 +100,29 @@ class ModoGamerViewModel(
     fun selecionarDevice(device: DeviceJogo) {
         mutableEtapa.update { atual ->
             val selecaoJogo = (atual as? ModoGamerEtapa.SelecaoDevice)?.selecaoJogo ?: return
-            ModoGamerEtapa.Medindo(selecaoJogo, device)
+            etapaParaEvidenciaBase(selecaoJogo, device)
+        }
+    }
+
+    /** A AppShell publicou uma medição fast nova e elegível; agora mede a rota do jogo. */
+    fun onEvidenciaBaseDisponivel() {
+        val aguardando = mutableEtapa.value as? ModoGamerEtapa.AguardandoTesteRapido ?: return
+        if (evidenciaBaseDisponivel()) {
+            mutableEtapa.value = ModoGamerEtapa.Medindo(aguardando.selecaoJogo, aguardando.device)
+        }
+    }
+
+    /**
+     * A rede ou a idade da medição deixou a base inelegível. Um veredito em andamento ou já
+     * composto não pode permanecer visível como se ainda descrevesse a conexão atual.
+     */
+    fun onEvidenciaBaseIndisponivel() {
+        mutableEtapa.update { atual ->
+            when (atual) {
+                is ModoGamerEtapa.Medindo -> ModoGamerEtapa.AguardandoTesteRapido(atual.selecaoJogo, atual.device)
+                is ModoGamerEtapa.Resultado -> ModoGamerEtapa.AguardandoTesteRapido(atual.selecaoJogo, atual.device)
+                else -> atual
+            }
         }
     }
 
@@ -102,6 +135,7 @@ class ModoGamerViewModel(
             val selecaoJogo =
                 when (atual) {
                     is ModoGamerEtapa.Medindo -> atual.selecaoJogo
+                    is ModoGamerEtapa.AguardandoTesteRapido -> atual.selecaoJogo
                     is ModoGamerEtapa.Resultado -> atual.selecaoJogo
                     else -> return
                 }
@@ -116,6 +150,11 @@ class ModoGamerViewModel(
         natUdp: NatUdpResultado?,
     ) {
         val medindo = mutableEtapa.value as? ModoGamerEtapa.Medindo ?: return
+
+        if (!evidenciaBaseDisponivel()) {
+            mutableEtapa.value = ModoGamerEtapa.AguardandoTesteRapido(medindo.selecaoJogo, medindo.device)
+            return
+        }
 
         val salvarComoPadrao = true
 
@@ -162,6 +201,16 @@ class ModoGamerViewModel(
     fun trocarJogoOuDevice() {
         mutableEtapa.value = ModoGamerEtapa.SelecaoJogo()
     }
+
+    private fun etapaParaEvidenciaBase(
+        selecaoJogo: SelecaoJogoModoGamer,
+        device: DeviceJogo,
+    ): ModoGamerEtapa =
+        if (evidenciaBaseDisponivel()) {
+            ModoGamerEtapa.Medindo(selecaoJogo, device)
+        } else {
+            ModoGamerEtapa.AguardandoTesteRapido(selecaoJogo, device)
+        }
 }
 
 fun resolverPadraoModoGamer(persistido: ModoGamerPadraoPersistido?): Pair<SelecaoJogoModoGamer, DeviceJogo>? {
