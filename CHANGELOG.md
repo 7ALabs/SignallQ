@@ -14,6 +14,12 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 
 ---
 
+## [1.0.6] — 2026-09-07
+
+### Corrigido
+
+- Atualizada a credencial de comunicação entre o Assist e o diagnóstico remoto para restabelecer a análise.
+
 ## [1.0.5] — 2026-09-07
 
 ### Alterado

@@ -9,6 +9,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ---
 
+## [1.0.6] — 2026-09-07
+
+### Corrigido
+- Restaurada a autenticação do Assist com o diagnóstico remoto.
+
 ## [1.0.5] — 2026-09-07
 
 ### Alterado
