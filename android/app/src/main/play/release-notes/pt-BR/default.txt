@@ -1,1 +1,3 @@
-Corrigimos a conexão do Assist com o diagnóstico remoto para que a análise volte a ser concluída normalmente.
+O SignallQ chegou ao público: entenda sua conexão, identifique problemas e saiba o que fazer.
+
+Também corrigimos a conexão do Assist com o diagnóstico remoto para que a análise volte a ser concluída normalmente.
