@@ -3,6 +3,7 @@ package io.signallq.app.core.nds
 import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.DiagnosticStatus
+import io.signallq.app.core.diagnostico.ExplanationProvenanceSource
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.SpeedtestQualityInput
 import org.junit.Assert.assertEquals
@@ -335,6 +336,7 @@ class NdsDiagnosticsResponseMapperTest {
                         dados = listOf("LATENCY_HIGH"),
                         acaoUsuario = "Evite downloads grandes nesse horário.",
                         semCausaIdentificada = false,
+                        provenance = NdsExplanationProvenanceV2(source = "ai", modelLabel = "gemini-2.5-flash"),
                     ),
                 rawV2 = mapOf("score" to 42),
             )
@@ -350,6 +352,8 @@ class NdsDiagnosticsResponseMapperTest {
         assertEquals(DiagnosticStatus.attention, report.decisao.status)
         assertTrue(report.decisao.podeConcluir)
         assertEquals(mapOf("score" to 42), report.modulosRemotos["nds_v2"])
+        assertEquals(ExplanationProvenanceSource.AI, report.explanationProvenance?.source)
+        assertEquals("gemini-2.5-flash", report.explanationProvenance?.modelLabel)
     }
 
     @Test

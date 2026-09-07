@@ -1,7 +1,6 @@
 package io.signallq.app.ui.screen
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Button
@@ -30,22 +28,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
+import io.signallq.app.core.diagnostico.DiagnosticExplanationProvenance
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.DiagnosticoGuiadoEngine
+import io.signallq.app.core.diagnostico.ExplanationProvenanceSource
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.diagnostico.ResultadoDiagnosticoGuiado
 import io.signallq.app.core.recommendation.RecommendationDecision
@@ -64,34 +59,6 @@ import io.signallq.app.ui.component.corConteudo
 import io.signallq.app.ui.component.corSemantica
 import io.signallq.app.ui.component.icone
 import io.signallq.app.ui.component.labelPt
-
-private val MISSING_INPUT_LABELS =
-    mapOf(
-        "dns.latencyMs" to "resposta do DNS",
-        "dns_latency_ms" to "resposta do DNS",
-        "quality.latencyMs" to "latência",
-        "latency_ms" to "latência",
-        "quality.jitterMs" to "variação da conexão",
-        "jitter_ms" to "variação da conexão",
-        "quality.packetLossPercent" to "perda de pacotes",
-        "packet_loss_percent" to "perda de pacotes",
-        "quality.loadedLatencyMs" to "resposta sob carga",
-        "loaded_latency_ms" to "resposta sob carga",
-        "quality.bufferbloatMs" to "atraso com a rede ocupada",
-        "bufferbloat_ms" to "atraso com a rede ocupada",
-        "gateway.rttMs" to "resposta do roteador",
-        "gateway_rtt_ms" to "resposta do roteador",
-        "gateway.connectedDevices" to "dispositivos conectados",
-        "connected_devices" to "dispositivos conectados",
-        "wifi.rssiDbm" to "força do Wi-Fi",
-        "wifi_rssi_dbm" to "força do Wi-Fi",
-        "wifi.band" to "banda do Wi-Fi",
-        "wifi_band" to "banda do Wi-Fi",
-        "speed.downloadMbps" to "download",
-        "download_mbps" to "download",
-        "speed.uploadMbps" to "upload",
-        "upload_mbps" to "upload",
-    )
 
 internal fun tituloAssistSeguro(
     objetivo: ObjetivoDiagnostico,
@@ -197,25 +164,24 @@ internal fun passosAssistSeguro(
 /** Ferramentas locais são continuidade do motor local, não recomendação do resultado remoto. */
 internal fun deveExibirCtaMelhoriaLocal(veioDoNds: Boolean): Boolean = !veioDoNds
 
-internal fun dadosAusentesEmLinguagemHumana(dadosAusentes: List<String>): String {
-    val labels =
-        dadosAusentes.map { MISSING_INPUT_LABELS[it] ?: "outras medições avançadas" }.distinct()
-    return "Algumas medições avançadas não estavam disponíveis: ${labels.joinToString(", ")}."
-}
+/**
+ * O card "O que encontramos" deve exibir somente fatos que a medição coletou.
+ * A explicação em prosa já é apresentada no topo do resultado; repeti-la no
+ * card tira destaque das métricas e torna a leitura mais cansativa.
+ */
+internal fun deveExibirMetricasEncontradas(
+    latenciaLivre: Double?,
+    atrasoSobCarga: Double?,
+): Boolean = latenciaLivre != null && atrasoSobCarga != null
 
-internal fun confiancaAssist(report: DiagnosticReport): String {
-    val confiancaBase =
-        when {
-            report.confianca >= 0.8 -> "alta"
-            report.confianca >= 0.5 -> "média"
-            else -> "baixa"
-        }
-    return if (confiancaBase == "alta" && report.dadosAusentes.isNotEmpty()) {
-        "média"
-    } else {
-        confiancaBase
+internal fun rotuloProcedenciaExplicacao(provenance: DiagnosticExplanationProvenance?): String? =
+    when (provenance?.source) {
+        ExplanationProvenanceSource.AI ->
+            provenance.modelLabel?.let { "Explicação por IA · $it" } ?: "Explicação por IA"
+        ExplanationProvenanceSource.COPY_CATALOG -> "Explicação validada do Assist"
+        ExplanationProvenanceSource.DETERMINISTIC -> "Baseado nas regras do diagnóstico"
+        null -> null
     }
-}
 
 /**
  * Diagnóstico guiado por objetivo — Feature #550, issue #1475. 7 objetivos fechados,
@@ -264,10 +230,6 @@ internal fun DiagnosticoGuiadoResultadoSection(
     val decisao = diagnosticReport?.decisao
     val status = decisao?.status ?: resultado.status
     val veioDoNds = diagnosticReport?.evaluationSource == DiagnosticEvaluationSource.REMOTE
-    val evidencia =
-        decisao?.evidencia
-            ?: resultado.evidencias.firstOrNull()?.let { "${it.label}: ${it.valorExibido}." }
-            ?: "A análise não encontrou dados suficientes para concluir."
     val internet = input?.internet
     val latenciaLivre = internet?.latencyMs
     val atrasoSobCarga = internet?.latencyMs?.let { it + (internet.bufferbloatMs ?: 0.0) }
@@ -298,8 +260,6 @@ internal fun DiagnosticoGuiadoResultadoSection(
             usarApenasRecomendacaoNds = veioDoNds,
         )
     val ferramentaSugerida = remember(resultado.objetivo) { resultado.objetivo.ferramentaSugerida() }
-    var detalhesAbertos by remember { mutableStateOf(false) }
-
     Column(
         modifier =
             modifier
@@ -390,6 +350,14 @@ internal fun DiagnosticoGuiadoResultadoSection(
                 style = MaterialTheme.typography.bodySmall,
                 color = c.textSecondary,
             )
+            rotuloProcedenciaExplicacao(diagnosticReport.explanationProvenance)?.let { procedencia ->
+                Spacer(Modifier.height(LkSpacing.xs))
+                Text(
+                    text = procedencia,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = c.textTertiary,
+                )
+            }
         }
         if (!veioDoNds) {
             Spacer(Modifier.height(LkSpacing.lg))
@@ -409,27 +377,16 @@ internal fun DiagnosticoGuiadoResultadoSection(
                 )
             }
         }
-        diagnosticReport?.let { report ->
-            Spacer(Modifier.height(LkSpacing.sm))
-            Text(
-                text = "Confiança ${confiancaAssist(report)}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = c.textSecondary,
-            )
-        }
-        Spacer(Modifier.height(LkSpacing.xl))
-        LkSurfaceCard(modifier = Modifier.fillMaxWidth(), outlined = false) {
-            Column(Modifier.padding(LkSpacing.lg)) {
-                Text(
-                    text = "O que encontramos",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = c.textPrimary,
-                )
-                Spacer(Modifier.height(LkSpacing.sm))
-                Text(evidencia, style = MaterialTheme.typography.bodyLarge, color = c.textSecondary)
-                if (latenciaLivre != null && atrasoSobCarga != null) {
+        if (deveExibirMetricasEncontradas(latenciaLivre, atrasoSobCarga)) {
+            Spacer(Modifier.height(LkSpacing.xl))
+            LkSurfaceCard(modifier = Modifier.fillMaxWidth(), outlined = false) {
+                Column(Modifier.padding(LkSpacing.lg)) {
+                    Text(
+                        text = "O que encontramos",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = c.textPrimary,
+                    )
                     Spacer(Modifier.height(LkSpacing.lg))
                     Row(Modifier.fillMaxWidth()) {
                         ResultadoMetricaCard(
@@ -446,21 +403,6 @@ internal fun DiagnosticoGuiadoResultadoSection(
                             modifier = Modifier.weight(1f),
                         )
                     }
-                }
-                diagnosticReport?.dadosAusentes?.takeIf { it.isNotEmpty() }?.let { dadosAusentes ->
-                    Spacer(Modifier.height(LkSpacing.md))
-                    Text(
-                        text = "Sobre esta análise",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = c.textPrimary,
-                    )
-                    Spacer(Modifier.height(LkSpacing.xs))
-                    Text(
-                        text = dadosAusentesEmLinguagemHumana(dadosAusentes),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = c.textSecondary,
-                    )
                 }
             }
         }
@@ -527,27 +469,6 @@ internal fun DiagnosticoGuiadoResultadoSection(
             onTestarNovamente = onTestarNovamenteVinculado,
             c = c,
         )
-        Spacer(Modifier.height(LkSpacing.lg))
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { detalhesAbertos = !detalhesAbertos },
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Ver detalhes técnicos",
-                style = MaterialTheme.typography.titleMedium,
-                color = c.textPrimary,
-                modifier = Modifier.weight(1f),
-            )
-            Icon(
-                imageVector = Icons.Outlined.ExpandMore,
-                contentDescription = if (detalhesAbertos) "Ocultar detalhes técnicos" else "Mostrar detalhes técnicos",
-                tint = c.textSecondary,
-                modifier = Modifier.rotate(if (detalhesAbertos) 180f else 0f),
-            )
-        }
         Spacer(Modifier.height(LkSpacing.xl))
         if (deveExibirCtaMelhoriaLocal(veioDoNds)) {
             Button(

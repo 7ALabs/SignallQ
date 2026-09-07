@@ -42,6 +42,23 @@ interface MedicaoDao {
         limite: Int,
     ): Flow<List<MedicaoEntity>>
 
+    /**
+     * Base explícita para o veredito do Modo gamer. Não cai na última medição global: exige a
+     * mesma identidade de rede, janela temporal indicada pelo chamador e integridade completa.
+     * Linhas antigas sem `networkId` ficam naturalmente fora da consulta.
+     */
+    @Query(
+        "SELECT * FROM medicao " +
+            "WHERE networkId = :networkId " +
+            "AND status = 'completed' " +
+            "AND timestampEpochMs >= :timestampMin " +
+            "ORDER BY timestampEpochMs DESC LIMIT 1",
+    )
+    suspend fun buscarUltimaCompletaNaRedeDesde(
+        networkId: String,
+        timestampMin: Long,
+    ): MedicaoEntity?
+
     @Query(
         "SELECT * FROM medicao " +
             "WHERE timestampEpochMs >= :timestampMin " +

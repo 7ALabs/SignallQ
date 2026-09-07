@@ -23,10 +23,12 @@ class ModoGamerViewModelTest {
 
     private fun viewModel(
         padraoInicial: Pair<SelecaoJogoModoGamer, DeviceJogo>? = null,
+        evidenciaBaseDisponivel: () -> Boolean = { true },
         onSalvarPadrao: suspend (String?, String?, String) -> Unit = { _, _, _ -> },
     ) = ModoGamerViewModel(
         padraoInicial = padraoInicial,
         inputAtual = { DiagnosticInput() },
+        evidenciaBaseDisponivel = evidenciaBaseDisponivel,
         onSalvarPadrao = onSalvarPadrao,
     )
 
@@ -72,6 +74,60 @@ class ModoGamerViewModelTest {
         val etapa = vm.etapa.value as ModoGamerEtapa.Medindo
         assertEquals(DeviceJogo.PC, etapa.device)
     }
+
+    @Test
+    fun `sem evidencia base elegivel pede teste rapido preservando jogo e aparelho`() {
+        val vm = viewModel(evidenciaBaseDisponivel = { false })
+
+        vm.selecionarJogo(valorant)
+        vm.selecionarDevice(DeviceJogo.PC)
+
+        val etapa = vm.etapa.value as ModoGamerEtapa.AguardandoTesteRapido
+        assertEquals("valorant", (etapa.selecaoJogo as SelecaoJogoModoGamer.Catalogado).jogo.gameId)
+        assertEquals(DeviceJogo.PC, etapa.device)
+    }
+
+    @Test
+    fun `evidencia base nova retoma medicao especifica sem perder selecao`() {
+        var evidenciaDisponivel = false
+        val vm = viewModel(evidenciaBaseDisponivel = { evidenciaDisponivel })
+        vm.selecionarJogo(valorant)
+        vm.selecionarDevice(DeviceJogo.XBOX)
+
+        evidenciaDisponivel = true
+        vm.onEvidenciaBaseDisponivel()
+
+        val etapa = vm.etapa.value as ModoGamerEtapa.Medindo
+        assertEquals("valorant", (etapa.selecaoJogo as SelecaoJogoModoGamer.Catalogado).jogo.gameId)
+        assertEquals(DeviceJogo.XBOX, etapa.device)
+    }
+
+    @Test
+    fun `perder evidencia base durante medicao volta a pedir teste rapido`() {
+        val vm = viewModel()
+        vm.selecionarJogo(valorant)
+        vm.selecionarDevice(DeviceJogo.PC)
+
+        vm.onEvidenciaBaseIndisponivel()
+
+        val etapa = vm.etapa.value as ModoGamerEtapa.AguardandoTesteRapido
+        assertEquals("valorant", (etapa.selecaoJogo as SelecaoJogoModoGamer.Catalogado).jogo.gameId)
+        assertEquals(DeviceJogo.PC, etapa.device)
+    }
+
+    @Test
+    fun `nao confirma veredito se evidencia expira durante medicao`() =
+        runTest {
+            var evidenciaDisponivel = true
+            val vm = viewModel(evidenciaBaseDisponivel = { evidenciaDisponivel })
+            vm.selecionarJogo(valorant)
+            vm.selecionarDevice(DeviceJogo.PLAYSTATION)
+
+            evidenciaDisponivel = false
+            vm.confirmarMedicao(pingEspecificoMs = 18.0, jitterMs = 2.0, perdaPercentual = 0.0, natUdp = null)
+
+            assertTrue(vm.etapa.value is ModoGamerEtapa.AguardandoTesteRapido)
+        }
 
     @Test
     fun `confirmar medicao salva como padrao automaticamente`() =

@@ -54,7 +54,11 @@ import io.signallq.app.core.diagnostico.CatalogoJogosModoGamer
 import io.signallq.app.core.diagnostico.CategoriaJogoModoGamer
 import io.signallq.app.core.diagnostico.DeviceJogo
 import io.signallq.app.core.diagnostico.DiagnosticInput
+import io.signallq.app.core.diagnostico.ElegibilidadeMedicaoBaseModoGamer
 import io.signallq.app.core.diagnostico.JogoCatalogoModoGamer
+import io.signallq.app.core.diagnostico.MedicaoBaseModoGamer
+import io.signallq.app.core.diagnostico.atrasoAteRevalidarMedicaoBaseModoGamer
+import io.signallq.app.core.diagnostico.avaliarElegibilidadeMedicaoBaseModoGamer
 import io.signallq.app.modogamer.ModoGamerEtapa
 import io.signallq.app.modogamer.ModoGamerViewModel
 import io.signallq.app.modogamer.SelecaoJogoModoGamer
@@ -62,6 +66,7 @@ import io.signallq.app.modogamer.icone
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -75,12 +80,12 @@ import kotlinx.coroutines.launch
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ModoGamerScreen(
-    input: DiagnosticInput?,
+internal fun ModoGamerScreen(
+    medicaoBaseModoGamer: MedicaoBaseModoGamer?,
+    networkIdAtual: String?,
+    medicaoGuiada: MedicaoGuiadaUi,
+    redeMedida: Boolean,
     padraoInicial: Pair<SelecaoJogoModoGamer, DeviceJogo>?,
-    analisadorState: AnalisadorState,
-    onAnalisarProblema: (String?) -> Unit,
-    onResetarAnalisador: () -> Unit,
     onSalvarPadrao: suspend (jogoId: String?, categoriaFallback: String?, deviceId: String) -> Unit,
     onVoltar: () -> Unit,
     onIrParaHome: () -> Unit,
@@ -91,22 +96,49 @@ fun ModoGamerScreen(
 ) {
     val c = LocalLkTokens.current
     val scope = rememberCoroutineScope()
-    val inputAtualizado = rememberUpdatedState(input)
+    val medicaoBaseAtualizada = rememberUpdatedState(medicaoBaseModoGamer)
+    val networkIdAtualizado = rememberUpdatedState(networkIdAtual)
 
     val viewModel =
         remember {
             ModoGamerViewModel(
                 padraoInicial = padraoInicial,
-                inputAtual = { inputAtualizado.value },
+                inputAtual = {
+                    medicaoBaseAtualizada.value
+                        ?.takeIf { medicaoBaseEhElegivel(it, networkIdAtualizado.value) }
+                        ?.let { DiagnosticInput(internet = it.internet) }
+                },
+                evidenciaBaseDisponivel = {
+                    medicaoBaseAtualizada.value
+                        ?.let { medicaoBaseEhElegivel(it, networkIdAtualizado.value) } == true
+                },
                 onSalvarPadrao = onSalvarPadrao,
             )
         }
     val etapa by viewModel.etapa.collectAsState()
 
+    LaunchedEffect(medicaoBaseModoGamer?.medidoEmEpochMs, networkIdAtual) {
+        val medicao = medicaoBaseModoGamer
+        if (medicao == null || !medicaoBaseEhElegivel(medicao, networkIdAtual)) {
+            viewModel.onEvidenciaBaseIndisponivel()
+            return@LaunchedEffect
+        }
+
+        viewModel.onEvidenciaBaseDisponivel()
+        delay(atrasoAteRevalidarMedicaoBaseModoGamer(medicao, System.currentTimeMillis()))
+        viewModel.onEvidenciaBaseIndisponivel()
+    }
+
     fun voltarUmPasso() {
         when (val atual = etapa) {
             is ModoGamerEtapa.SelecaoJogo -> onVoltar()
             is ModoGamerEtapa.SelecaoDevice -> viewModel.voltarParaSelecaoJogo()
+            is ModoGamerEtapa.AguardandoTesteRapido -> {
+                if (medicaoGuiada.contrato.estado is EstadoAnaliseGuiada.EmAndamento) {
+                    medicaoGuiada.contrato.onCancelar()
+                }
+                viewModel.voltarParaSelecaoDevice()
+            }
             is ModoGamerEtapa.Medindo -> viewModel.voltarParaSelecaoDevice()
             is ModoGamerEtapa.Resultado -> if (atual.salvoComoPadrao) onVoltar() else viewModel.voltarParaSelecaoDevice()
         }
@@ -148,6 +180,16 @@ fun ModoGamerScreen(
                     nomeJogo = etapaAtual.selecaoJogo.nomeExibido,
                     onSelecionarDevice = viewModel::selecionarDevice,
                 )
+            is ModoGamerEtapa.AguardandoTesteRapido ->
+                ModoGamerAguardandoTesteRapidoConteudo(
+                    modifier = Modifier.padding(padding),
+                    selecaoJogo = etapaAtual.selecaoJogo,
+                    device = etapaAtual.device,
+                    estadoMedicao = medicaoGuiada.contrato.estado,
+                    redeMedida = redeMedida,
+                    onIniciarTeste = medicaoGuiada.contrato.onIniciar,
+                    onCancelarTeste = medicaoGuiada.contrato.onCancelar,
+                )
             is ModoGamerEtapa.Medindo -> {
                 ModoGamerMedindoConteudo(
                     modifier = Modifier.padding(padding),
@@ -160,14 +202,10 @@ fun ModoGamerScreen(
                 )
             }
             is ModoGamerEtapa.Resultado -> {
-                LaunchedEffect(etapaAtual.selecaoJogo, etapaAtual.device) {
-                    onResetarAnalisador()
-                    onAnalisarProblema("Modo gamer: ${etapaAtual.selecaoJogo.nomeExibido} em ${etapaAtual.device.label}")
-                }
                 ModoGamerResultadoConteudo(
                     modifier = Modifier.padding(padding),
                     etapa = etapaAtual,
-                    analisadorState = analisadorState,
+                    timestampMedicaoBaseEpochMs = medicaoBaseModoGamer?.medidoEmEpochMs,
                     onAlternarSalvarPadrao = { salvar ->
                         scope.launch { viewModel.alternarSalvarPadrao(salvar) }
                     },
@@ -179,6 +217,17 @@ fun ModoGamerScreen(
         }
     }
 }
+
+internal fun medicaoBaseEhElegivel(
+    medicao: MedicaoBaseModoGamer,
+    networkIdAtual: String?,
+    agoraEpochMs: Long = System.currentTimeMillis(),
+): Boolean =
+    avaliarElegibilidadeMedicaoBaseModoGamer(
+        medicao = medicao,
+        networkIdAtual = networkIdAtual,
+        agoraEpochMs = agoraEpochMs,
+    ) is ElegibilidadeMedicaoBaseModoGamer.Elegivel
 
 @Composable
 private fun ModoGamerSelecaoJogoConteudo(

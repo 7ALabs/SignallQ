@@ -283,6 +283,8 @@ class MainActivity : ComponentActivity() {
                 viewModel.diagnosticOrchestrator.snapshotFlow
                     .collectAsStateWithLifecycle()
                     .value
+            val medicaoBaseModoGamer by viewModel.medicaoBaseModoGamer.collectAsStateWithLifecycle()
+            val networkIdAtual by viewModel.networkIdAtual.collectAsStateWithLifecycle()
             val movelSnapshot = viewModel.movelSnapshot.collectAsStateWithLifecycle().value
             val simsAtivos = viewModel.simsAtivos.collectAsStateWithLifecycle().value
             val gemmaAvailable = viewModel.gemmaAvailable.collectAsStateWithLifecycle().value
@@ -432,6 +434,8 @@ class MainActivity : ComponentActivity() {
                             diagnostico =
                                 io.signallq.app.ui.screen.AppShellDiagnosticoState(
                                     snapshotDiagnostico = snapshotDiagnostico,
+                                    medicaoBaseModoGamer = medicaoBaseModoGamer,
+                                    networkIdAtual = networkIdAtual,
                                     onIniciarDiagnostico = {
                                         // GH#919 — feature_used("diagnostico") era disparado dentro do
                                         // SignallQOrchestrator (motor SignallQ Pulse), correlacionado com

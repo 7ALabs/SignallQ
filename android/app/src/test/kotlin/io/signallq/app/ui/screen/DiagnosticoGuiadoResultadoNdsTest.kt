@@ -1,6 +1,8 @@
 package io.signallq.app.ui.screen
 
+import io.signallq.app.core.diagnostico.DiagnosticExplanationProvenance
 import io.signallq.app.core.diagnostico.DiagnosticStatus
+import io.signallq.app.core.diagnostico.ExplanationProvenanceSource
 import io.signallq.app.core.diagnostico.ObjetivoDiagnostico
 import io.signallq.app.core.diagnostico.ResultadoDiagnosticoGuiado
 import org.junit.Assert.assertEquals
@@ -71,5 +73,31 @@ class DiagnosticoGuiadoResultadoNdsTest {
                 status = resultadoLocal.status,
             ),
         )
+    }
+
+    @Test
+    fun `card de achados aparece somente com as duas metricas medidas`() {
+        assertTrue(deveExibirMetricasEncontradas(latenciaLivre = 13.0, atrasoSobCarga = 118.0))
+        assertFalse(deveExibirMetricasEncontradas(latenciaLivre = 13.0, atrasoSobCarga = null))
+        assertFalse(deveExibirMetricasEncontradas(latenciaLivre = null, atrasoSobCarga = 118.0))
+    }
+
+    @Test
+    fun `procedencia da explicacao e discreta e nao expoe dado ausente`() {
+        assertEquals(
+            "Explicação por IA · gemini-2.5-flash",
+            rotuloProcedenciaExplicacao(
+                DiagnosticExplanationProvenance(ExplanationProvenanceSource.AI, "gemini-2.5-flash"),
+            ),
+        )
+        assertEquals(
+            "Explicação validada do Assist",
+            rotuloProcedenciaExplicacao(DiagnosticExplanationProvenance(ExplanationProvenanceSource.COPY_CATALOG)),
+        )
+        assertEquals(
+            "Baseado nas regras do diagnóstico",
+            rotuloProcedenciaExplicacao(DiagnosticExplanationProvenance(ExplanationProvenanceSource.DETERMINISTIC)),
+        )
+        assertEquals(null, rotuloProcedenciaExplicacao(null))
     }
 }

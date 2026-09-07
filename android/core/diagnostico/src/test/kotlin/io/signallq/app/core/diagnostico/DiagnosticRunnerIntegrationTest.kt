@@ -1,9 +1,20 @@
 ﻿package io.signallq.app.core.diagnostico
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DiagnosticRunnerIntegrationTest {
+    @Test
+    fun `motor local identifica a explicacao como deterministica`() {
+        val relatorio = DiagnosticRunner.run(DiagnosticInput(connectionType = ConnectionType.wifi))
+
+        assertEquals(
+            DiagnosticExplanationProvenance(ExplanationProvenanceSource.DETERMINISTIC),
+            relatorio.explanationProvenance,
+        )
+    }
+
     @Test
     fun `mobile connection does not apply wifi diagnostics`() {
         val input =

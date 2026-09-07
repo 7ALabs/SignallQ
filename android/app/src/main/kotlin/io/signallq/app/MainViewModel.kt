@@ -17,13 +17,16 @@ import io.signallq.app.core.diagnostico.ConnectionType
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.core.diagnostico.DnsDiagnosticInput
+import io.signallq.app.core.diagnostico.ElegibilidadeMedicaoBaseModoGamer
 import io.signallq.app.core.diagnostico.FibraDiagnosticInput
 import io.signallq.app.core.diagnostico.HistoricalDiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
+import io.signallq.app.core.diagnostico.MedicaoBaseModoGamer
 import io.signallq.app.core.diagnostico.MobileDiagnosticInput
 import io.signallq.app.core.diagnostico.RedeWifiVizinha
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
 import io.signallq.app.core.diagnostico.WifiScanDiagnosticInput
+import io.signallq.app.core.diagnostico.avaliarElegibilidadeMedicaoBaseModoGamer
 import io.signallq.app.core.diagnostico.banda
 import io.signallq.app.core.diagnostico.rotuloConfianca
 import io.signallq.app.core.diagnostico.topology.model.NatStatus
@@ -546,6 +549,29 @@ class MainViewModel
                 )
             }.distinctUntilChanged()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        }
+
+        /**
+         * Única fonte de evidência reaproveitável pelo Modo gamer. Histórico só é aceito quando
+         * a medição concluída ainda cabe na janela do produto e pertence à rede atual.
+         */
+        val medicaoBaseModoGamer: StateFlow<MedicaoBaseModoGamer?> by lazy {
+            combine(bancoDados.medicaoDao().observarUltimas(10), networkIdAtual) { medicoes, networkId ->
+                val agora = System.currentTimeMillis()
+                medicoes.firstNotNullOfOrNull { entity ->
+                    when (
+                        val elegibilidade =
+                            avaliarElegibilidadeMedicaoBaseModoGamer(
+                                medicao = entity.paraMedicaoBaseModoGamer(),
+                                networkIdAtual = networkId,
+                                agoraEpochMs = agora,
+                            )
+                    ) {
+                        is ElegibilidadeMedicaoBaseModoGamer.Elegivel -> elegibilidade.medicao
+                        is ElegibilidadeMedicaoBaseModoGamer.RequerNovoTeste -> null
+                    }
+                }
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
         }
 
         /**

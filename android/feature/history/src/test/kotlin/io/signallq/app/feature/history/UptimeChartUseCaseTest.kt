@@ -84,6 +84,18 @@ private class FakeMedicaoDao(
         excluirId: String,
         antesDoTimestamp: Long,
     ): MedicaoEntity? = null
+
+    override suspend fun buscarUltimaCompletaNaRedeDesde(
+        networkId: String,
+        timestampMin: Long,
+    ): MedicaoEntity? =
+        medicoes
+            .filter {
+                it.networkId == networkId &&
+                    it.timestampEpochMs >= timestampMin &&
+                    !it.contaminado &&
+                    it.connectionTypeStart == it.connectionTypeEnd
+            }.maxByOrNull { it.timestampEpochMs }
 }
 
 // ---------------------------------------------------------------------------

@@ -18,6 +18,12 @@ data class NdsExplanationV2(
     /** `true` quando o NDS não conseguiu apontar uma causa provável com os dados
      *  coletados -- a UI deve mostrar isso de forma transparente, não como erro. */
     val semCausaIdentificada: Boolean,
+    val provenance: NdsExplanationProvenanceV2? = null,
+)
+
+data class NdsExplanationProvenanceV2(
+    val source: String,
+    val modelLabel: String?,
 )
 
 /** Resposta de sucesso (200 OK) de `POST /v1/diagnostics/evaluate` (ADR-017). */
@@ -117,6 +123,15 @@ internal object NdsResponseParser {
             dados = stringListFrom(obj.optJSONArray("dados")),
             acaoUsuario = obj.optStringOrNull("acao_usuario"),
             semCausaIdentificada = obj.optBoolean("sem_causa_identificada", false),
+            provenance =
+                obj.optJSONObject("provenance")?.let { provenance ->
+                    provenance.optStringOrNull("source")?.let { source ->
+                        NdsExplanationProvenanceV2(
+                            source = source,
+                            modelLabel = provenance.optStringOrNull("model_label"),
+                        )
+                    }
+                },
         )
 
     private fun parseRecommendation(obj: JSONObject): NdsNextBestAction? {
