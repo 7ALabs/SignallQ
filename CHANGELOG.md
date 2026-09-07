@@ -14,6 +14,13 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 
 ---
 
+## [1.0.5] — 2026-09-07
+
+### Alterado
+
+- Resultados do Assist mostram apenas as evidências medidas e indicam discretamente a origem da explicação.
+- O Modo Gamer usa somente medições completas, recentes e da mesma rede; quando não há base válida, inicia um novo teste pela própria tela.
+
 ## [1.0.4] — 2026-09-06
 
 ### Fixed

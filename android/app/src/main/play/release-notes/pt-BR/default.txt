@@ -1,1 +1,1 @@
-O Assist agora apresenta com mais clareza a conclusão e as recomendações do diagnóstico da sua conexão.
+Resultados do Assist ficaram mais objetivos e mostram de forma discreta como a explicação foi gerada. O Modo Gamer agora usa testes recentes da mesma rede e permite iniciar um novo teste direto pela tela.

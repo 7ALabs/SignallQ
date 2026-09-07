@@ -9,6 +9,12 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ---
 
+## [1.0.5] — 2026-09-07
+
+### Alterado
+- O resultado do Assist ficou mais objetivo, com evidências medidas e indicação discreta da origem da explicação.
+- O Modo Gamer agora só reutiliza uma medição completa, recente e da mesma rede; sem ela, oferece um novo teste na própria tela.
+
 ## [1.0.2] — 2026-08-30
 
 ### Alterado
