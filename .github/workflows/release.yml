@@ -150,6 +150,11 @@ jobs:
       - name: Criar GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          # No workflow_dispatch não há tag de GitHub por definição. Declarar a tag
+          # permite que o release manual de produção a crie no commit que foi
+          # compilado, sem depender do gatilho automático (que publica em beta).
+          tag_name: v${{ steps.versao.outputs.name }}
+          target_commitish: ${{ github.sha }}
           name: "SignallQ v${{ steps.versao.outputs.name }} (build ${{ steps.versao.outputs.code }})"
           body: ${{ steps.notas.outputs.corpo }}
           draft: false
